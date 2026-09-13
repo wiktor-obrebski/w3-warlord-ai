@@ -34,11 +34,22 @@ commit_sha=$(read_commit_sha)
 trap 'chown -R "$project_owner" _build 2>/dev/null || true' EXIT
 mkdir -p _build
 (
+    JAR=/home/wurstuser/.wurst/wurst-compiler/wurstscript.jar
+
+    cp ./warcraft-api/common.ai /tmp/ai-common.j
     cd /tmp
-    java -jar /home/wurstuser/.wurst/wurst-compiler/wurstscript.jar \
-        /workspace/warcraft-api/common.j /workspace/warcraft-api/common.ai \
+
+    java -jar $JAR \
+        -noPJass \
+        /workspace/warcraft-api/common.j \
+        /tmp/ai-common.j \
         /workspace/wurst \
         -out "/workspace/$output_file"
+
+    jar xf "$JAR" pjass
+    chmod +x pjass
+
+    ./pjass /workspace/warcraft-api/common.j /workspace/warcraft-api/common.ai /workspace/$output_file
 )
 
 if ! grep -q '__SCRIPT_COMMIT_SHA' "$output_file"; then
