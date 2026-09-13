@@ -1,5 +1,7 @@
 package W3WarlordAi
 import NoWurst
+import RandomWorkerMoveController
 
 init
     DisplayTextToPlayer(GetLocalPlayer(), 0., 0., "Welcome! You face the W3 Warlord AI")
+    runRandomWorkerMove()

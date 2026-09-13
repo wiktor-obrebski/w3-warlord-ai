@@ -102,7 +102,6 @@ Known constraints:
 * The AI runs against `common.j` and `common.ai`; do not depend on `Blizzard.j` or helpers such as `BJDebugMsg`.
 * Do not use normal callback mechanisms such as triggers, `ExecuteFunc`, timer callbacks, `ForGroup` callbacks, `Condition`, or `Filter`.
 * Consequently, avoid Wurst facilities built on those mechanisms, including callback-based events, timers, groups, and closures.
-* Do not use Wurst `init` blocks; initialize explicitly from `main`.
 * `StartThread` and AI `Sleep` are supported and are the normal mechanism for concurrent AI execution.
 * Do not use `I2S` or Wurst conversions that lower to it.
 * Wurst classes require explicit lifetime management; destroy instances when they are no longer needed.
@@ -214,6 +213,8 @@ Do not use Conventional Commit prefixes such as `feat:`, `fix:`, or `refactor:`.
 Use a commit body only when the description alone does not provide enough important context. Bodies should be uncommon. When needed, use the body to explain non-obvious rationale, constraints, or consequences rather than repeating the description or narrating the diff.
 
 Do not commit, amend, rebase, force-push, push, or otherwise modify repository history unless explicitly requested.
+
+When correcting work in the latest commit, amend that commit instead of creating a new one. Create a new commit when the work is a new change or the existing commit is already part of a pull request.
 
 ## Dependencies
 

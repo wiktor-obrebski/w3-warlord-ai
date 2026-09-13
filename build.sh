@@ -10,7 +10,8 @@ mkdir -p _build
 (
     cd /tmp
     java -jar /home/wurstuser/.wurst/wurst-compiler/wurstscript.jar \
-        /workspace/warcraft-api/common.j /workspace/wurst/Main.wurst \
+        /workspace/warcraft-api/common.j /workspace/warcraft-api/common.ai \
+        /workspace/wurst \
         -out "/workspace/$output_file"
 )
 
