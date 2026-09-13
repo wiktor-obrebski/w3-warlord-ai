@@ -1,0 +1,29 @@
+package CentralTimingScheduler
+import NoWurst
+import ScheduledSystems
+
+int array systems
+real array intervals
+real array nextRuns
+int systemCount = 0
+
+public function registerScheduledSystem(int systemId, real interval) returns bool
+    if interval <= 0.
+        return false
+    systems[systemCount] = systemId
+    intervals[systemCount] = interval
+    nextRuns[systemCount] = 0.
+    systemCount++
+    return true
+
+public function runScheduler()
+    var now = 0.
+    while true
+        var index = 0
+        while index < systemCount
+            if now >= nextRuns[index]
+                runScheduledSystem(systems[index])
+                nextRuns[index] = now + intervals[index]
+            index++
+        Sleep(0.1)
+        now += 0.1

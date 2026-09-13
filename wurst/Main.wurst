@@ -1,7 +1,9 @@
 package W3WarlordAi
 import NoWurst
-import RandomWorkerMoveController
+import CentralTimingScheduler
+import ScheduledSystems
 
 init
     DisplayTextToPlayer(GetLocalPlayer(), 0., 0., "Welcome! You face the W3 Warlord AI")
-    runRandomWorkerMove()
+    registerScheduledSystem(RANDOM_WORKER_MOVEMENT_SYSTEM, 5.)
+    runScheduler()

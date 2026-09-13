@@ -20,7 +20,7 @@ function chooseMoveAction(UnitRef worker) returns MoveActionResult
         attempt++
     return MoveActionResult(false, MoveAction(worker, origin))
 
-public function runRandomWorkerMove()
+public function updateRandomWorkerMovement()
     let workers = getOwnWorkers()
     var nextWorker = workers.next()
     while nextWorker.found
