@@ -17,6 +17,10 @@ Do **not** read the full architecture document by default for routine implementa
 
 Do not duplicate architectural documentation in this file.
 
+## Technical Requirements
+
+* At the start of every new session, pull `main` from `origin` before inspecting or modifying the repository.
+
 ## Engineering Principles
 
 Prefer simple, explicit, maintainable solutions.
