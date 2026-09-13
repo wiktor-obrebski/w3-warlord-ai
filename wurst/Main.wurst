@@ -2,8 +2,10 @@ package W3WarlordAi
 import NoWurst
 import CentralTimingScheduler
 import ScheduledSystems
+import Wc3Debug
 
 init
+    debugMessage("Build __SCRIPT_COMMIT_SHA")
     DisplayTextToPlayer(GetLocalPlayer(), 0., 0., "Welcome! You face the W3 Warlord AI")
     registerScheduledSystem(RANDOM_WORKER_MOVEMENT_SYSTEM, 5.)
     runScheduler()

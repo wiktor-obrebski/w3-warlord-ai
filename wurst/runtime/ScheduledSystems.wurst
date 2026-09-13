@@ -1,10 +1,11 @@
 package ScheduledSystems
 import NoWurst
 import RandomWorkerMoveController
+import Wc3Debug
 
 public constant RANDOM_WORKER_MOVEMENT_SYSTEM = 0
 
 public function runScheduledSystem(int systemId)
     if systemId == RANDOM_WORKER_MOVEMENT_SYSTEM
-        DisplayTextToPlayer(GetLocalPlayer(), 0., 0., "Dispatching random worker movement")
+        debugMessage("Dispatching random worker movement")
         updateRandomWorkerMovement()

@@ -1,0 +1,5 @@
+package Wc3Debug
+import NoWurst
+
+public function debugMessage(string message)
+    DisplayTextToPlayer(GetLocalPlayer(), 0., 0., "[Warlord] " + message)
