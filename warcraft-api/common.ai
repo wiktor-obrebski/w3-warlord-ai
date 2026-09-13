@@ -1,0 +1,2 @@
+native GetAiPlayer takes nothing returns integer
+native Sleep takes real seconds returns nothing

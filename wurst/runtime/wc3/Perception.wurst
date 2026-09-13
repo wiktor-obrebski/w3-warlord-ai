@@ -1,0 +1,29 @@
+package Wc3Perception
+import NoWurst
+import MoveAction
+
+public tuple OwnWorkers(group warcraftUnits)
+public tuple NextOwnWorker(bool found, UnitRef worker)
+
+public function getOwnWorkers() returns OwnWorkers
+    let workers = CreateGroup()
+    GroupEnumUnitsOfPlayer(workers, Player(GetAiPlayer()), null)
+    return OwnWorkers(workers)
+
+public function OwnWorkers.next() returns NextOwnWorker
+    var candidate = FirstOfGroup(this.warcraftUnits)
+    while candidate != null
+        GroupRemoveUnit(this.warcraftUnits, candidate)
+        if IsUnitType(candidate, UNIT_TYPE_PEON)
+            return NextOwnWorker(true, UnitRef(candidate))
+        candidate = FirstOfGroup(this.warcraftUnits)
+    return NextOwnWorker(false, UnitRef(null))
+
+public function OwnWorkers.close()
+    DestroyGroup(this.warcraftUnits)
+
+public function getUnitPosition(UnitRef unitRef) returns Position
+    return Position(GetUnitX(unitRef.warcraftUnit), GetUnitY(unitRef.warcraftUnit))
+
+public function isTerrainWalkable(Position position) returns bool
+    return not IsTerrainPathable(position.x, position.y, PATHING_TYPE_WALKABILITY)

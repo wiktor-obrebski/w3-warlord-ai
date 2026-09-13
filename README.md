@@ -12,6 +12,8 @@ docker compose run --rm wurst
 
 Output: `_build/w3-warlord.ai`
 
+The build stamps the current Git commit SHA into the AI's startup debug output.
+
 ## Use
 
 Copy `_build/w3-warlord.ai` to the Warcraft III `Scripts` directory using the
