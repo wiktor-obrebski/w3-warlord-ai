@@ -7,4 +7,4 @@ services:
       JAVA_TOOL_OPTIONS: -Duser.home=/tmp
     volumes:
       - .:/workspace
-    command: ./build.sh
+    command: ./bin/build.sh

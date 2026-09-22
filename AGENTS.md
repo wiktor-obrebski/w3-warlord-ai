@@ -116,19 +116,23 @@ Known constraints:
 
 High-level Wurst syntax is not forbidden by itself. The generated JASS and runtime behavior determine whether a feature is safe.
 
-## Validation
+### Validation
 
 The project does not yet use automated tests.
 
 For now:
-* make sure changed Wurst code compiles: `grill typecheck`
-* validate generated JASS with the available static checks when directly asked
-* inspect generated JASS when investigating AI-runtime compatibility
+* make sure changed Wurst code compiles:
+`docker-compose run --rm wurst ./bin/typecheck.sh`
+* inspect generated JASS for AI-constrains compatibility when directly asked
 
 
 Do not introduce a testing framework or new test infrastructure unless explicitly requested.
 
 Never claim that something was compiled, checked, or verified unless it actually was.
+
+### Building
+After all work is done and typechecked, build the project with
+`docker-compose run --rm wurst ./bin/build.sh`
 
 ## Documentation
 
