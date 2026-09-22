@@ -95,6 +95,12 @@ When uncertainty materially affects the implementation, state it rather than gue
 
 ## Wurst / Warcraft AI Runtime Constraints
 
+- Edit source, configuration, and tests; never treat `_build/`, generated output, or downloaded dependencies as source-of-truth. Patch upstream dependencies at their source.
+- Fix root causes with small, focused changes. Avoid duplicated branches, special-case workarounds, and unrelated refactors.
+- Add narrow tests for changed behavior. Fix relevant compiler warnings unless a warning is intentionally suppressed and explained.
+- Search declarations and existing usages instead of guessing APIs or signatures.
+
+
 Wurst compiles to JASS executed by Warcraft III's standalone **`.ai` runtime**, which has stricter limitations than normal map scripts.
 
 Known constraints:
@@ -115,11 +121,10 @@ High-level Wurst syntax is not forbidden by itself. The generated JASS and runti
 The project does not yet use automated tests.
 
 For now:
+* make sure changed Wurst code compiles: `grill typecheck`
+* validate generated JASS with the available static checks when directly asked
+* inspect generated JASS when investigating AI-runtime compatibility
 
-* make sure changed Wurst code compiles,
-* validate generated JASS with the available static checks when relevant,
-* use in-game validation when the change depends on Warcraft runtime behavior,
-* inspect generated JASS when investigating AI-runtime compatibility.
 
 Do not introduce a testing framework or new test infrastructure unless explicitly requested.
 
