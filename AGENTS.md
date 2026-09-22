@@ -122,7 +122,7 @@ The project does not yet use automated tests.
 
 For now:
 * make sure changed Wurst code compiles:
-`docker-compose run --rm wurst ./bin/typecheck.sh`
+`docker compose run --rm wurst ./bin/typecheck.sh`
 * inspect generated JASS for AI-constrains compatibility when directly asked
 
 
@@ -132,7 +132,9 @@ Never claim that something was compiled, checked, or verified unless it actually
 
 ### Building
 After all work is done and typechecked, build the project with
-`docker-compose run --rm wurst ./bin/build.sh`
+`docker compose run --rm wurst ./bin/build.sh`
+
+Do it only after some real changes has been introduced to the project.
 
 ## Documentation
 
