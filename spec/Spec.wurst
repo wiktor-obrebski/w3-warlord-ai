@@ -1,0 +1,14 @@
+package Spec
+import NoWurst
+
+@annotation public function annotation()
+
+@annotation public function compiletimenative()
+
+@annotation public function test()
+
+@compiletimenative public function testFail(string message)
+
+public function assertEquals(int actual, int expected)
+    if actual != expected
+        testFail("Expected integers to be equal.")

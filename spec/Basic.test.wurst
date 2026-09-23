@@ -1,0 +1,6 @@
+package BasicSpec
+import NoWurst
+import Spec
+
+@test function oneEqualsOne()
+    assertEquals(1, 1)
