@@ -9,6 +9,6 @@ import NoWurst
 
 @compiletimenative public function testFail(string message)
 
-public function assertEquals(int actual, int expected)
+public function assertEquals<T:>(T actual, T expected)
     if actual != expected
-        testFail("Expected integers to be equal.")
+        testFail("Expected values to be equal.")

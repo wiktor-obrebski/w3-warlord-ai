@@ -2,5 +2,12 @@ package BasicSpec
 import NoWurst
 import Spec
 
+class TestReference
+
 @test function oneEqualsOne()
     assertEquals(1, 1)
+
+@test function equalReferencesAreEqual()
+    let reference = new TestReference()
+    assertEquals(reference, reference)
+    destroy reference
