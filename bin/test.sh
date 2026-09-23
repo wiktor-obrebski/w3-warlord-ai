@@ -20,7 +20,7 @@ cd /tmp
 xargs -0 java -jar "$JAR" \
     -noPJass \
     -runtests \
-    -compactOutput \
+    /workspace/lib/stdlib \
     -lib /workspace/wurst \
     -lib /workspace/spec \
     /workspace/warcraft-api/common.j \

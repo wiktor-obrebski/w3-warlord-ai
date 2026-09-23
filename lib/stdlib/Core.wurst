@@ -1,0 +1,5 @@
+package StdLib_Core
+import NoWurst
+
+public interface Stringifiable
+    function toString() returns string
