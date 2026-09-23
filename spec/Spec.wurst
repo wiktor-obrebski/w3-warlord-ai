@@ -1,0 +1,50 @@
+package Spec
+import NoWurst
+import StdLib_Core
+
+@annotation public function annotation()
+
+@annotation public function compiletimenative()
+
+@annotation public function test()
+
+@compiletimenative public function testFail(string message)
+
+interface Stringifier<T:>
+    function stringify(T value) returns string
+
+/** assertEquals **/
+public function assertEquals(int actual, int expected)
+    _assertEquals(actual, expected, (int a) -> I2S(a))
+
+public function assertEquals(Stringifiable actual, Stringifiable expected)
+    _assertEquals(actual, expected, (Stringifiable a) -> a.toString())
+
+
+function _assertEquals<T:>(T actual, T expected,  Stringifier<T> stringifier)
+    if actual != expected
+        testFail(
+            "Expected <" +
+            stringifier.stringify(expected) +
+            "> to equal <" +
+            stringifier.stringify(actual) +
+            ">"
+        )
+
+/** assertNotEquals **/
+public function assertNotEquals(int actual, int expected)
+    _assertNotEquals(actual, expected, (int a) -> I2S(a))
+
+public function assertNotEquals(Stringifiable actual, Stringifiable expected)
+    _assertNotEquals(actual, expected, (Stringifiable a) -> a.toString())
+
+
+function _assertNotEquals<T:>(T actual, T expected,  Stringifier<T> stringifier)
+    if actual == expected
+        testFail(
+            "Expected <" +
+            stringifier.stringify(expected) +
+            "> to equal <" +
+            stringifier.stringify(actual) +
+            ">"
+        )

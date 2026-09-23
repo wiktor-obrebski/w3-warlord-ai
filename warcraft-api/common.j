@@ -18,6 +18,8 @@ endglobals
 native Sin takes real radians returns real
 native Cos takes real radians returns real
 
+native I2S takes int nb returns string
+
 native CreateGroup takes nothing returns group
 native DestroyGroup takes group whichGroup returns nothing
 native GroupRemoveUnit takes group whichGroup, unit whichUnit returns boolean
