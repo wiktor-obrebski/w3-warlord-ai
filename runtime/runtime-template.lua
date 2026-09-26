@@ -46,6 +46,8 @@ function WarlordRunBundle(warlord_bot_player)
         nativeError(value, level == 0 and 2 or (level or 1) + 1)
     end
 
+    environment.warlord_bot_player = warlord_bot_player
+
     local source = __WARLORD_BUNDLE_SOURCE__
 
     local sourceLines = {}
