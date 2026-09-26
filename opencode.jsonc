@@ -1,4 +1,24 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/gpt-5.6-sol"
+  "model": "opencode/kimi-k2.7-code",
+
+  "agents": {
+    "cheap": {
+      "mode": "subagent",
+      "description": "Use for simple mechanical coding tasks: renames, straightforward edits, boilerplate, simple tests, formatting, and obvious fixes.",
+      "model": "opencode/glm-5.3-flash"
+    },
+
+    "coder": {
+      "mode": "subagent",
+      "description": "Use for normal implementation, refactoring, debugging, and changes requiring moderate reasoning.",
+      "model": "opencode/kimi-k2.7-code"
+    },
+
+    "expert": {
+      "mode": "subagent",
+      "description": "Use only for difficult problems: architecture, unclear bugs, failed previous attempts, cross-cutting design, or problems requiring deep reasoning.",
+      "model": "opencode/gpt-5.6-sol"
+    }
+  }
 }

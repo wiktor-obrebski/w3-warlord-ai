@@ -1,0 +1,8 @@
+{
+  "name": "@lib/warcraft3-api",
+  "private": true,
+  "main": "generated.d",
+  "devDependencies": {
+    "war3-types-strict": "^0.1.3"
+  }
+}
