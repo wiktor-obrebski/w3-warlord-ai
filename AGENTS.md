@@ -6,7 +6,7 @@ WC3 Warlord AI is a Warcraft III melee AI designed from first principles to beha
 
 The AI should reason under fair-information constraints, maintain an explicit world model, pursue multiple concurrent goals, react to changing conditions, and remain understandable, testable, and debuggable.
 
-The project is primarily written in **Wurst** and compiled to a standalone Warcraft III **`.ai` script** using AI-compatible JASS. Generated JASS is a build artifact, not the primary source.
+The project is primarily written in **TypeScript**, compiled with **TypeScriptToLua (TSTL)** to a single Lua bundle, and packaged with a maintained runtime wrapper for Warcraft III **Lua map scripts**. Generated Lua is a build artifact, not the primary source.
 
 For project architecture:
 
@@ -93,48 +93,39 @@ Inspect relevant code and documentation before designing a solution.
 
 When uncertainty materially affects the implementation, state it rather than guessing.
 
-## Wurst / Warcraft AI Runtime Constraints
+## TypeScript / Warcraft Lua Runtime Constraints
 
-- Edit source, configuration, and tests; never treat `_build/`, generated output, or downloaded dependencies as source-of-truth. Patch upstream dependencies at their source.
-- Fix root causes with small, focused changes. Avoid duplicated branches, special-case workarounds, and unrelated refactors.
-- Add narrow tests for changed behavior. Fix relevant compiler warnings unless a warning is intentionally suppressed and explained.
-- Search declarations and existing usages instead of guessing APIs or signatures.
+* Edit TypeScript source, declarations, configuration, packaging scripts, and the maintained Lua wrapper template. Never treat generated output or downloaded dependencies as source-of-truth. Patch upstream dependencies at their source.
+* Search project declarations and existing usages instead of guessing Warcraft APIs, signatures, rawcodes, or order identifiers. Type declarations do not prove runtime support.
+* Keep the established TSTL configuration: Lua 5.3 target, `noImplicitSelf`, `luaLibImport: "require-minimal"`, bundling, and `sourceMapTraceback`. Check the actual configuration before changing compiler behavior.
+* Declare global Warcraft natives without an implicit receiver (`this: void` where needed). Do not introduce accidental Lua `self` arguments.
+* Runtime code executes in Warcraft, not Node.js or a browser. Keep Node.js APIs in build tooling; verify that dependencies can compile and run under TSTL and Warcraft's available Lua libraries.
+* Normal map timers, triggers, callbacks, and closures are available. Use map scheduling mechanisms; do not assume standalone AI thread or sleep semantics apply.
+* Player-paramless AI functions such as `GetUnitCount` and `GetAiPlayer` did not provide a usable AI context in our map-script probes. Prefer explicit player/unit APIs and maintained bot state; verify uncertain natives in-game.
+* Lua objects are garbage-collected. Warcraft handles still need appropriate lifecycle management, such as destroying temporary groups and timers when no longer needed.
+* Keep default melee AI disabled for players controlled by this bot so it does not compete for unit orders.
 
+### Runtime Wrapper and Debugging
 
-Wurst compiles to JASS executed by Warcraft III's standalone **`.ai` runtime**, which has stricter limitations than normal map scripts.
-
-Known constraints:
-
-* The AI runs against `common.j` and `common.ai`; do not depend on `Blizzard.j` or helpers such as `BJDebugMsg`.
-* Do not use normal callback mechanisms such as triggers, `ExecuteFunc`, timer callbacks, `ForGroup` callbacks, `Condition`, or `Filter`.
-* Consequently, avoid Wurst facilities built on those mechanisms, including callback-based events, timers, groups, and closures.
-* `StartThread` and AI `Sleep` are supported and are the normal mechanism for concurrent AI execution.
-* Do not use `I2S` or Wurst conversions that lower to it.
-* Wurst classes require explicit lifetime management; destroy instances when they are no longer needed.
-* Do not assume Wurst standard-library functionality is AI-safe. Check its implementation or generated JASS when compatibility is uncertain.
-* Lambdas and higher-order helpers are acceptable only when they compile to AI-safe JASS without forbidden callback machinery.
-
-High-level Wurst syntax is not forbidden by itself. The generated JASS and runtime behavior determine whether a feature is safe.
+* Maintain runtime glue in `runtime/runtime-template.lua`; do not patch the generated bundle or packaged map script manually.
+* The startup `xpcall` only protects startup execution. Protect timer and trigger callbacks invoked later with the same error-reporting mechanism; do not assume startup protection covers them.
 
 ### Validation
 
 The project does not yet use automated tests.
 
 For now:
-* make sure changed Wurst code compiles:
-`docker compose run --rm wurst ./bin/typecheck.sh`
-* inspect generated JASS for AI-constrains compatibility when directly asked
 
+* Run `npm run build` after meaningful source, configuration, or runtime-wrapper changes. It compiles TypeScript and packages the Lua output; a successful build does not prove Warcraft runtime compatibility.
+* For changes to runtime glue or uncertain Warcraft APIs, ask user for a focused in-game probe and distinguish actual observations from assumptions.
 
 Do not introduce a testing framework or new test infrastructure unless explicitly requested.
 
 Never claim that something was compiled, checked, or verified unless it actually was.
 
 ### Building
-After all work is done and typechecked, build the project with
-`docker compose run --rm wurst ./bin/build.sh`
 
-Do it only after some real changes has been introduced to the project.
+* Build once after meaningful changes; do not rebuild merely for a read-only review or unchanged files. Do not leave a watcher running unless requested.
 
 ## Documentation
 

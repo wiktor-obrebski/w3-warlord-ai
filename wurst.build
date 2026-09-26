@@ -1,9 +1,0 @@
----
-projectName: w3-warlord-ai
-dependencies:
-buildMapData:
-  name: w3-warlord-ai
-  fileName: w3-warlord-ai.w3x
-  author: slimdwarf
-scriptMode: JASS
-wc3Patch: v3.0

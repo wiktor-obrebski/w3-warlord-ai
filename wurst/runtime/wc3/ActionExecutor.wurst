@@ -1,6 +1,0 @@
-package Wc3ActionExecutor
-import NoWurst
-import MoveAction
-
-public function executeMoveAction(MoveAction action)
-    IssuePointOrder(action.unitRef.warcraftUnit, "move", action.destination.x, action.destination.y)

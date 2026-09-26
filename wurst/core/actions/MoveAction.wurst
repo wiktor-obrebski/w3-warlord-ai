@@ -1,6 +1,0 @@
-package MoveAction
-import NoWurst
-
-public tuple Position(real x, real y)
-public tuple UnitRef(unit warcraftUnit)
-public tuple MoveAction(UnitRef unitRef, Position destination)

@@ -1,0 +1,12 @@
+{
+  "name": "w3-warlord-ai",
+  "private": true,
+  "scripts": {
+    "build": "./bin/build.sh"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2",
+    "typescript-to-lua": "^1.37.1",
+    "war3-types-strict": "^0.1.3"
+  }
+}

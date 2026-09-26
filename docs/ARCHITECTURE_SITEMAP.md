@@ -7,8 +7,8 @@
 ```text
 WC3 Warlord AI
 ├─ Runtime / integration
-│  ├─ Wurst
-│  ├─ AI-compatible JASS
+│  ├─ TypeScript
+│  ├─ AI-compatible Lua
 │  ├─ Compatibility layer
 │  ├─ Observe boundary
 │  └─ Execute boundary
@@ -73,15 +73,14 @@ WC3 Warlord AI
    ├─ Unit tests
    ├─ Integration tests
    ├─ End-to-end tests
-   ├─ logical reset
-   └─ generated-JASS validation
+   └─ logical reset
 ```
 
 ## Concepts
 
-* **Wurst** — Primary implementation language for domain and architecture code.
-* **AI-compatible JASS** — Generated deployment artifact executed by Warcraft III's AI runtime.
-* **Compatibility layer** — Small audited bridge exposing only Wurst functionality known to work safely in AI scripts.
+* **TypeScript** — Primary implementation language for domain and architecture code.
+* **AI-compatible Lua** — Generated deployment artifact executed by Warcraft III's AI runtime.
+* **Compatibility layer** — Small audited bridge exposing only to TypeScript only APIs known to work safely in AI scripts.
 * **Observe boundary** — Warcraft-facing boundary through which legitimate game information enters the reasoning system.
 * **Execute boundary** — Warcraft-facing boundary through which selected actions affect the game.
 * **Fair-information boundary** — Prevents reasoning code from using hidden enemy state available only through scripting APIs.
@@ -130,4 +129,3 @@ WC3 Warlord AI
 * **Integration test** — Warcraft-free test feeding mocked Perception output through the normal reasoning architecture.
 * **End-to-end test** — Controlled scenario executed against the real Warcraft III engine.
 * **Logical reset** — Ability to return bot state to a clean condition so multiple tests can run in one Warcraft session.
-* **Generated-JASS validation** — Static build verification for syntax, unsupported dependencies, and AI-runtime compatibility.

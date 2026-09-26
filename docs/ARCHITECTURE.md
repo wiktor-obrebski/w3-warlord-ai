@@ -19,7 +19,7 @@ The bot should be able to:
 
 The architecture combines several complementary ideas:
 
-- **Wurst** as the development language, compiled to Warcraft-compatible JASS;
+- **TypeScript** as the development language, compiled with TypeScriptToLua to Lua map scripts;
 - a strict [Perception](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#perception) boundary between the game and the bot;
 - an explicit [World Model and Beliefs](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#world-model-and-beliefs) representation for partial information;
 - [Assessment](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#assessment) that interprets known information;
@@ -38,38 +38,38 @@ The architecture should be treated as a set of **clear responsibility boundaries
 
 ---
 
-## Runtime environment and Wurst
+## Runtime environment and TypeScriptToLua
 
-Warcraft III melee AI scripts execute in Warcraft's dedicated JASS AI runtime. That environment provides useful game-specific AI functionality, but JASS itself is a poor language for implementing and maintaining a large modern software system.
+The bot executes as a **Lua map script** inside Warcraft III. It is developed primarily in **TypeScript** and compiled with **TypeScriptToLua (TSTL)**, targeting Lua 5.3.
 
-The bot should therefore be developed primarily in **Wurst** and compiled into JASS for execution by Warcraft:
+**TypeScript source → generated Lua bundle → runtime wrapper → Warcraft III Lua map runtime**
 
-**Wurst source → generated JASS AI script → Warcraft III AI runtime**
+TypeScript provides static typing, modules, structured data, reusable abstractions, and familiar development tooling. Generated Lua is a build artifact rather than the primary source representation.
 
-Wurst gives us:
+The runtime is Warcraft, not Node.js or a browser. Runtime dependencies must work with TSTL and the Lua facilities exposed by Warcraft. Build tooling runs outside the game.
 
-- static typing;
-- packages and imports;
-- classes and structured data;
-- better local-variable handling;
-- compiler-managed function ordering;
-- reusable abstractions;
-- substantially better development tooling.
+### Game integration
 
-Generated JASS should be considered a build artifact rather than the primary source representation.
+A small game integration layer should provide:
 
-Warcraft AI scripts run in a more restricted environment than ordinary Warcraft map scripts, so the project should provide a small **AI-specific Wurst runtime layer** rather than assuming the complete map-oriented Wurst standard library is safe.
+- maintained type declarations for the Warcraft natives the project uses;
+- explicit player and unit access behind the Perception and Action boundaries;
+- map timers and event registration for scheduling and execution monitoring;
+- Warcraft handle lifecycle management;
+- error reporting and source-location mapping;
+- project-defined interfaces that can be substituted in tests.
 
-That layer should expose:
+Map timers, triggers, and callbacks are available. Concurrent intentions should progress through scheduled updates and events, rather than each owning a permanent execution loop.
 
-- Warcraft AI natives;
-- known-safe Warcraft functions;
-- AI-compatible timing facilities;
-- data structures suitable for generated JASS;
-- debugging and diagnostics;
-- project-specific abstractions over low-level game APIs.
+Do not assume a usable implicit AI-player context. Our map-script probes did not establish useful behavior for player-paramless AI functions such as `GetUnitCount` and `GetAiPlayer`. Prefer explicit player/unit APIs and maintained bot state. Native declarations alone do not establish runtime compatibility.
 
-This lets the rest of the bot be written in terms of concepts such as beliefs, goals, intentions, resource claims, and assessments rather than JASS implementation details.
+Disable the default melee AI for players controlled by this bot so that it does not issue competing orders. The wider access available to map scripts does not relax the fair-information boundary.
+
+### Packaging and startup
+
+TSTL produces one bundle with the required runtime helpers. A Bash packaging step embeds it in a maintained Lua wrapper template. The resulting script is installed in a Lua-enabled map; a startup trigger invokes `WarlordRunBundle()` after map initialization.
+
+Generated output should never be edited manually.
 
 ---
 
@@ -874,7 +874,7 @@ The bot should therefore maintain a higher-level navigation model above Warcraft
 
 ### Static map model
 
-Where practical, map topology should be preprocessed outside the AI runtime.
+Where practical, map topology should be preprocessed outside the in-game runtime.
 
 The resulting representation should describe useful strategic structure such as:
 
@@ -984,7 +984,7 @@ Prefer one central timing mechanism over unrelated subsystem loops.
 
 The timing scheduler should run at a relatively high base frequency and invoke reasoning or control systems when they are due.
 
-A scheduled system performs one update and returns rather than owning an independent permanent loop.
+A scheduled system performs one update and returns rather than owning an independent permanent loop. In Warcraft, a map timer should drive this scheduler; a test harness should supply a controllable clock. Warcraft event callbacks may request urgent updates without creating independent subsystem timers.
 
 Urgent events may request that a relevant system execute before its normal scheduled time.
 
@@ -1050,7 +1050,7 @@ and
 
 Most reasoning can therefore be tested without Warcraft.
 
-Only the Action executor needs to understand how abstract commands map to Warcraft/JASS operations.
+Only the Action executor needs to understand how abstract commands map to Warcraft native calls from Lua.
 
 It also prevents internal state transitions from becoming coupled to the mechanics of command execution.
 
@@ -1162,9 +1162,11 @@ Diagnostics are most useful if they are cheap when disabled and simple enough th
 
 Testing should influence the architecture from the beginning rather than being added later.
 
-The project should support several complementary levels of testing.
+The project should support several complementary levels of testing. These are architectural targets; an automated test suite is not yet established.
 
 The same core reasoning implementation used by the real bot should also be executable against controlled inputs outside Warcraft. Tests should not depend on maintaining a simplified parallel version of the AI.
+
+Keep core TypeScript reasoning independent of Warcraft globals so it can be exercised in a JavaScript test harness. Such tests validate decision logic, but do not prove that the transpiled Lua behaves identically; generated-Lua checks and real-game tests cover that boundary.
 
 ### Decision-level tests
 
@@ -1207,22 +1209,26 @@ Because the same reasoning code runs in production and in these tests, the test 
 
 ---
 
-### Generated-JASS validation
+### Generated-Lua and packaging validation
 
-Wurst output should be validated as legal Warcraft AI JASS.
+The compiled bundle and wrapped deployment script should be validated separately from TypeScript decision tests.
 
-This verifies:
+This should cover:
 
-- compiler integration;
-- supported runtime usage;
-- generated syntax;
-- compatibility with the Warcraft AI environment.
+- TSTL compilation and supported language features;
+- Lua 5.3 syntax and required bundled helpers;
+- wrapper loading and startup behavior;
+- preservation of bundle line numbers and source-map registration;
+- TypeScript error locations and preservation of caught Error objects;
+- error reporting from callbacks invoked after startup.
+
+Standalone Lua checks can exercise the loader, runtime helpers, and reasoning with substituted game APIs. They cannot establish the behavior of Warcraft natives or engine callbacks.
 
 #### Why this matters
 
-Valid Wurst source does not necessarily guarantee that the generated standalone AI artifact is valid for Warcraft's dedicated AI runtime.
+Valid TypeScript and passing JavaScript tests do not guarantee correct transpiled behavior or compatibility with Warcraft's Lua environment.
 
-The actual deployment artifact must therefore be validated separately.
+The actual deployment artifact must therefore be checked, with focused in-game probes for engine-dependent behavior.
 
 ---
 
@@ -1265,7 +1271,7 @@ These tests exercise the actual Warcraft systems:
 - construction;
 - cooldowns;
 - orders;
-- the JASS AI runtime itself.
+- the Lua map runtime and its timer/event callbacks.
 
 They therefore catch integration failures that pure decision tests cannot.
 
@@ -1279,7 +1285,7 @@ The expected model is:
 
 **launch Warcraft → load test map → run test → reset → run next test → report results**
 
-The bot should therefore support resetting its logical state.
+The bot should therefore support resetting its logical state and releasing or unregistering its timers, triggers, and other owned Warcraft resources so callbacks from a previous scenario do not affect the next one.
 
 A smaller number of tests may still require a fresh Warcraft process when game-engine state cannot be reliably restored.
 
@@ -1447,11 +1453,11 @@ The same core reasoning logic should run in controlled tests and in the real bot
 
 Important behavior should also be reproducible in controlled Warcraft scenarios.
 
-### Generated JASS is an artifact
+### Generated Lua is an artifact
 
-Human development happens in Wurst.
+Human development happens in TypeScript, with a small maintained Lua runtime wrapper and build tooling.
 
-Generated JASS is validated and deployed, but should not dictate the conceptual structure of the bot.
+Generated Lua is validated and deployed, but should not dictate the conceptual structure of the bot.
 
 ---
 
@@ -1480,7 +1486,7 @@ It is a structured autonomous-agent system built from:
 - a strict cognition/action boundary;
 - structured diagnostics suitable for real-match bug reports;
 - extensive model-level and real-engine testing;
-- Wurst as the maintainable source language.
+- TypeScript as the maintainable source language, compiled to Lua with TSTL.
 
 The main value of this architecture is **clarity of responsibility**.
 

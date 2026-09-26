@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/TypeScriptToLua/TypeScriptToLua/master/tsconfig-schema.json",
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "sourceMap": true,
+    "strict": true,
+    "types": ["war3-types-strict/1.33.0"]
+  },
+  "tstl": {
+    "luaTarget": "5.3",
+    "noImplicitSelf": true,
+    "sourceMapTraceback": true,
+    "luaLibImport": "require-minimal",
+    "luaBundleEntry": "src/main.ts",
+    "tstlVerbose": true
+  }
+}

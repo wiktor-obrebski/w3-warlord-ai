@@ -1,61 +1,32 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -eu
+build_dir=_build
+bundle=$build_dir/raw-warlord-ai.lua
+output=$build_dir/warlord-ai.lua
+template=runtime/runtime-template.lua
 
-output_file="_build/w3-warlord.ai"
-project_owner=$(stat -c '%u:%g' .)
+# build raw bundle
+rm -rf $build_dir
+npx tstl --luaBundle $bundle
 
-read_commit_sha() {
-    IFS= read -r head < /workspace/.git/HEAD
-    case "$head" in
-        "ref: "*)
-            ref=${head#ref: }
-            if [ -f "/workspace/.git/$ref" ]; then
-                IFS= read -r commit_sha < "/workspace/.git/$ref"
-                printf '%s' "$commit_sha"
-                return
-            fi
-            while IFS=' ' read -r commit_sha packed_ref; do
-                if [ "$packed_ref" = "$ref" ]; then
-                    printf '%s' "$commit_sha"
-                    return
-                fi
-            done < /workspace/.git/packed-refs
-            return 1
-            ;;
-        *)
-            printf '%s' "$head"
-            ;;
-    esac
-}
+# avoid conflicts with string delimiters inside the bundle
+equals='===='
+while grep -Fq "]${equals}]" "$bundle"; do
+  equals+='='
+done
 
-commit_sha=$(read_commit_sha)
+# inject sources to template
+while IFS= read -r line || [[ -n "$line" ]]; do
+  if [[ "$line" == *'__WARLORD_BUNDLE_SOURCE__'* ]]; then
+    printf '    local source = [%s[\n' "$equals"
+    cat "$bundle"
+    printf '\n]%s]\n' "$equals"
+  else
+    printf '%s\n' "$line"
+  fi
 
-trap 'chown -R "$project_owner" _build 2>/dev/null || true' EXIT
-mkdir -p _build
-(
-    JAR=/home/wurstuser/.wurst/wurst-compiler/wurstscript.jar
+done < "$template" > "$output.tmp"
 
-    cp ./warcraft-api/common.ai /tmp/ai-common.j
-    cd /tmp
-
-    java -jar $JAR \
-        -noPJass \
-        /workspace/warcraft-api/common.j \
-        /tmp/ai-common.j \
-        /workspace/wurst \
-        -out "/workspace/$output_file"
-
-    jar xf "$JAR" pjass
-    chmod +x pjass
-
-    ./pjass /workspace/warcraft-api/common.j /workspace/warcraft-api/common.ai /workspace/$output_file
-)
-
-if ! grep -q '__SCRIPT_COMMIT_SHA' "$output_file"; then
-    printf 'Missing script commit placeholder in %s\n' "$output_file" >&2
-    exit 1
-fi
-sed -i "s/__SCRIPT_COMMIT_SHA/$commit_sha/g" "$output_file"
-
-printf 'Built %s\n' "$output_file"
+mv "$output.tmp" "$output"
+echo "Generated $output"
