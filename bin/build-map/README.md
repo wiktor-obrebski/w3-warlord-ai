@@ -15,7 +15,7 @@ Configure the template's player slots and disable default melee AI for Warlord's
 
 ## Usage
 
-Run from the project root:
+Run:
 
 ```bash
 ./build-map.sh $SOURCE_MAP_PATH $NEW_BOT_MAP_PATH [_build/warlord-ai.lua]

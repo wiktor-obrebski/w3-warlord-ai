@@ -116,8 +116,8 @@ The project does not yet use automated tests.
 
 For now:
 
-* Run `npm run build` after meaningful source, configuration, or runtime-wrapper changes. It compiles TypeScript and packages the Lua output; a successful build does not prove Warcraft runtime compatibility.
-* For changes to runtime glue or uncertain Warcraft APIs, ask user for a focused in-game probe and distinguish actual observations from assumptions.
+* Run `npm run typecheck` after meaningful source, configuration, or runtime-wrapper changes. It validating TypeScript and packages the Lua output; a successful build does not prove Warcraft runtime compatibility.
+* For changes to runtime glue or uncertain Warcraft APIs, build new bundle `npm rm bundle` and ask user for a focused in-game probe and distinguish actual observations from assumptions.
 
 Do not introduce a testing framework or new test infrastructure unless explicitly requested.
 
