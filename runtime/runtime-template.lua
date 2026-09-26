@@ -1,4 +1,21 @@
-function WarlordRunBundle()
+local warlord_ai_started = false
+
+function WarlordAIMain(warlord_bot_player)
+    local timer = CreateTimer()
+    TimerStart(timer, 0.0, false, function()
+        DestroyTimer(timer)
+        WarlordRunBundle(warlord_bot_player)
+    end)
+end
+
+function WarlordRunBundle(warlord_bot_player)
+    if warlord_ai_started then
+        return
+    end
+
+    warlord_ai_started = true
+
+
     local environment = setmetatable({}, { __index = _G })
     environment._G = environment
 

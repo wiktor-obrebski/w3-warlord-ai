@@ -2,7 +2,8 @@
   "name": "w3-warlord-ai",
   "private": true,
   "scripts": {
-    "build": "./bin/build.sh"
+    "build": "./bin/build.sh",
+    "build-map": "./bin/build-map/build-map.sh"
   },
   "devDependencies": {
     "typescript": "^6.0.2",
