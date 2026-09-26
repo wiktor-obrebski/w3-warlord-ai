@@ -5,4 +5,5 @@ declare module "@lib/warcraft3-api/player" {
 
   export function Player(number: number): player | undefined;
   export function GetPlayerId(whichPlayer: player): number;
+  export function GetPlayerStartLocation(whichPlayer: player): number;
 }
