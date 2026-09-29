@@ -55,22 +55,7 @@ function WarlordRunBundle(warlord_bot_player)
         sourceLines[#sourceLines + 1] = line
     end
 
-    local chunk, loadError = load(
-        source,
-        "@warlord.lua",
-        "t",
-        environment
-    )
-
-    if not chunk then
-        DisplayTimedTextToPlayer(
-            Player(0), 0, 0, 60,
-            "Bundle load error: " .. tostring(loadError)
-        )
-        return
-    end
-
-    local ok, result = xpcall(chunk, function(err)
+    local function describeError(err)
         local location = type(err) == "table" and errorLocations[err]
         local message = (location or "") .. tostring(err)
 
@@ -95,12 +80,41 @@ function WarlordRunBundle(warlord_bot_player)
                 return "warlord.lua:" .. line
             end
         ))
-    end)
+    end
 
-    if not ok then
+    local function runProtected(callback, ...)
+        local ok, result = xpcall(callback, describeError, ...)
+
+        if not ok then
+            DisplayTimedTextToPlayer(
+                Player(0), 0, 0, 60,
+                "ERROR: " .. tostring(result)
+            )
+        end
+    end
+
+    -- Timer and trigger callbacks run outside the startup xpcall, so bot code
+    -- wraps them with guard to get the same error reporting.
+    environment.guard = function(callback)
+        return function(...)
+            runProtected(callback, ...)
+        end
+    end
+
+    local chunk, loadError = load(
+        source,
+        "@warlord.lua",
+        "t",
+        environment
+    )
+
+    if not chunk then
         DisplayTimedTextToPlayer(
             Player(0), 0, 0, 60,
-            "ERROR: " .. tostring(result)
+            "Bundle load error: " .. tostring(loadError)
         )
+        return
     end
+
+    runProtected(chunk)
 end
