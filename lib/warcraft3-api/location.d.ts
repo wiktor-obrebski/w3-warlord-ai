@@ -1,5 +1,7 @@
 declare module "@lib/warcraft3-api/location" {
   export function GetStartLocationLoc(whichStartLocation: number): location | undefined;
+  export function GetStartLocationX(whichStartLocation: number): number;
+  export function GetStartLocationY(whichStartLocation: number): number;
 
   export function GetLocationX(whichLocation: location): number;
   export function GetLocationY(whichLocation: location): number;
