@@ -47,11 +47,28 @@ Player(0)
 
 ## Declarations
 
-Declarations are currently maintained manually.
+Declarations are maintained manually.
 
-`war3-types-strict` should be treated as the reference for Warcraft III types and native function signatures.
+`war3-types-strict` is the reference for Warcraft III types and native function signatures.
 
-When adding a Warcraft API function, copy its type signature from `war3-types-strict` into the appropriate module.
+When adding a new Warcraft API declaration:
+
+1. Copy the TypeScript type signature from `war3-types-strict`.
+2. Use `bin/jassdoc/jassdoc.sh` to retrieve the corresponding Jassdoc documentation.
+3. Add the Jassdoc-derived documentation as JSDoc above the declaration.
+4. Place the declaration in the appropriate API module.
+
+Example:
+
+```bash
+bin/jassdoc/jassdoc.sh GroupEnumUnitsOfPlayer
+```
+
+The Jassdoc output includes the original JASS declaration together with documentation such as descriptions, parameters, notes, bugs, and patch information.
+
+The TypeScript signature must still come from `war3-types-strict`. Jassdoc is used as the documentation source, not as the source of TypeScript types.
+
+Every newly added Warcraft API function should include JSDoc based on the Jassdoc output when documentation is available.
 
 ## Usage
 
