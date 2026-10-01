@@ -4,7 +4,7 @@
 
 It is written in **TypeScript**, compiled with **TypeScriptToLua (TSTL)** to a single Lua bundle.
 
-## Build
+## Build manually
 
 There is 2 steps to use W3 Warlord AI in games.
 
@@ -22,3 +22,10 @@ npm run build-map $SOURCE_MAP $DESTINATION_PATH [_build/warlord-ai.lua]
 Last parameter is optional.
 On the new map all slots set to `Computer (Normal)` will be controlled by Warlord AI. 
 
+## Docker Sandbox Kit
+
+This project includes a custom [Docker Sandbox](https://docs.docker.com/ai/sandboxes/) kit used to provide a reproducible environment for running coding agents such as OpenCode.
+
+The kit defines the sandbox image, required tools, environment configuration, and project-specific defaults. This keeps the agent environment isolated from the host system and makes it easier to reproduce the same setup across machines.
+
+See [`sandbox/README.md`](sandbox/README.md) for setup, configuration, and usage instructions.

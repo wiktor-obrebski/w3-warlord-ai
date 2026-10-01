@@ -1,0 +1,51 @@
+# syntax=docker/sandbox-kit:3
+schemaVersion: "3"
+kind: workload
+
+capabilities:
+  - type: com.docker.sandbox/sbx@1
+
+  - type: com.docker.sandbox/network-policy@1
+    config:
+      runtime:
+        allow:
+          - api.anthropic.com:443
+          - claude.ai:443
+          - console.anthropic.com:443
+
+          - api.business.githubcopilot.com:443
+          - api.enterprise.githubcopilot.com:443
+          - api.github.com:443
+          - api.githubcopilot.com:443
+          - api.individual.githubcopilot.com:443
+          - copilot.github.com:443
+          - github.com:443
+          - "**.githubusercontent.com:443"
+          - raw.githubusercontent.com:443
+          - codeload.github.com:443
+
+          - aiplatform.googleapis.com:443
+          - generativelanguage.googleapis.com:443
+          - oauth2.googleapis.com:443
+          - vertexai.googleapis.com:443
+
+          - api.groq.com:443
+
+          - api.openai.com:443
+          - openai.com:443
+          - auth.openai.com:443
+          - chatgpt.com:443
+
+          - openrouter.ai:443
+          - api.x.ai:443
+
+          - registry.npmjs.org:443
+
+          - opencode.ai:443
+          - "*.opencode.ai:443"
+
+          - archive.ubuntu.com:80
+          - security.ubuntu.com:80
+          - ports.ubuntu.com:80
+
+          - download.docker.com:443
