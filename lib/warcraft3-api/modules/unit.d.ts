@@ -122,6 +122,46 @@ declare module "@lib/warcraft3-api/unit" {
   export function IsUnitType(whichUnit: unit, whichUnitType: unittype): boolean;
 
   /**
+   * Returns: integer
+   *
+   * Returns the level of the ability for the unit.
+   *
+   * @param whichUnit (unit) Target unit.
+   * @param abilcode (integer) Abilities' raw code identifier.
+   *
+   * @note Building abilities {'ANbu','AHbu','AEbu','AObu','AUbu','AGbu'} are considered equivalent by the game (identical ability instance).
+   *   If the unit has one of them, it has all of them (and vice-versa). Therefore a wisp with 'ANbu'==1 also has 'AHbu'==1.
+   *   See: <https://github.com/lep/jassdoc/issues/152>
+   * @note 'ABnP' can be used to detect building in construction and 'AUnP' for upgrading building
+   * @patch 1.13
+   */
+  export function GetUnitAbilityLevel(whichUnit: unit, abilcode: number): number;
+
+  /**
+   * Returns: boolean
+   *
+   * Removes the ability from target unit.
+   *
+   * Returns:
+   *
+   * - true if the removal was successful (hero did have this ability before)
+   * - false otherwise (hero does not have this ability)
+   *
+   * @param whichUnit (unit) Target unit.
+   * @param abilityId (integer) Abilities' raw code identifier.
+   *
+   * @bug Removing non-interrupt abilities like divine shield while they're being
+   *   cast (at the EVENT_PLAYER_UNIT_SPELL_EFFECT point), and while the caster is
+   *   moving, will cause the caster to become unresponsive to new commands until
+   *   they reach their ordered move point.
+   * @note See `UnitModifySkillPoints`/`ModifyHeroSkillPoints` to grant a hero skill points.
+   * @note All different building ability codes like 'AHbu', 'ANbu' are considered equivalent. For example, removing 'AHbu' on a unit with only 'ANbu' would remove 'ANbu' instead.
+   *   See `GetUnitAbilityLevel`.
+   * @patch 1.00
+   */
+  export function UnitRemoveAbility(whichUnit: unit, abilityId: number): boolean;
+
+  /**
    * Returns: real
    *
    * Returns X map coordinate of whichUnit (alive or dead). Returns 0.0 if unit was removed or is null.

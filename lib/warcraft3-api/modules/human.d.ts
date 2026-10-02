@@ -4,6 +4,10 @@ declare module "@lib/warcraft3-api/human" {
     MILITIA = 1752000876, // hmil
   }
 
+  export const enum Ability {
+    HARVEST = 1097359730, // Ahar
+  }
+
   export const enum Building {
     TOWN_HALL = 1752461175, // htow
     LUMBER_MILL = 1751938413, // hlum
