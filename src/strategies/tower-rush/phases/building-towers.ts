@@ -46,8 +46,9 @@ interface PlacementRules {
 // An accepted build order can still fail when the Peasant arrives (blocked
 // spot, missing resources), so towers are counted from what actually exists
 // or is on its way, and missing ones are re-ordered one Peasant at a time.
-// Forward Peasants with nothing to build help unfinished towers, then hide
-// behind a tower; the phase ends once all of them are hidden.
+// Only once every tower is accounted for do free forward Peasants help
+// unfinished towers, then hide behind a tower; the phase ends once all of
+// them are hidden.
 export function updateBuildingTowers(
   world: WorldState,
   context: TowerRushContext,
@@ -69,19 +70,17 @@ export function updateBuildingTowers(
   const sitesAwaitingTower = context.pendingTowerSites.filter(
     (site) => !hasStartedTower(site, towerPositions),
   );
-  let towerMissing =
-    towerPositions.length + sitesAwaitingTower.length < TOWER_COUNT;
+  const freeWorkers = context.forwardWorkers.filter((worker) =>
+    isAvailableForwardPeasant(worker, world),
+  );
 
-  for (const worker of context.forwardWorkers) {
-    if (!isAvailableForwardPeasant(worker, world)) {
-      continue;
-    }
+  if (towerPositions.length + sitesAwaitingTower.length < TOWER_COUNT) {
+    const builder = freeWorkers[0];
 
-    if (towerMissing) {
-      towerMissing = false;
-      forgetSentToSafety(worker, context);
+    if (builder) {
+      forgetSentToSafety(builder, context);
       orderScoutTower(
-        worker,
+        builder,
         {
           mine: positionOf(world.enemyMainGoldMine),
           enemyMain,
@@ -93,7 +92,9 @@ export function updateBuildingTowers(
         },
         context,
       );
-    } else {
+    }
+  } else {
+    for (const worker of freeWorkers) {
       helpTowerOrHide(worker, world, enemyMain, context);
     }
   }
