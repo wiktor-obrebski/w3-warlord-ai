@@ -5,6 +5,12 @@ export enum TowerRushPhase {
   Start,
   MovingToEnemy,
   BuildingTowers,
+  UpgradingTowers,
+}
+
+export interface TowerSite {
+  builder: W3UnitApi.unit;
+  position: Point;
 }
 
 export interface TowerRushContext {
@@ -17,6 +23,7 @@ export interface TowerRushContext {
   peasantInTraining: boolean;
 
   enemyMainPosition?: Point;
+  towerSites: TowerSite[];
 }
 
 export function createTowerRushContext(): TowerRushContext {
@@ -24,6 +31,7 @@ export function createTowerRushContext(): TowerRushContext {
     phase: TowerRushPhase.Start,
     forwardWorkers: [],
     forwardWorkersSentToEnemy: [],
+    towerSites: [],
     goldWorkers: [],
     lumberWorkers: [],
     peasantInTraining: false,

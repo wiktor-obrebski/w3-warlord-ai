@@ -17,5 +17,6 @@ export interface WorldState {
 
   gold: number;
   homeGoldMine?: W3UnitApi.unit;
+  enemyMainGoldMine?: W3UnitApi.unit;
   destructablesNearHomeByDistance: W3DestructableApi.destructable[];
 }

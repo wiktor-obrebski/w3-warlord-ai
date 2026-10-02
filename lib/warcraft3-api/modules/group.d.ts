@@ -70,6 +70,8 @@ declare module "@lib/warcraft3-api/group" {
    * @note The origin of the unit must be within the area of the circle to be considered. The collision size of the unit
    *   does not matter.
    * @note Hidden units are not enumerated with this function.
+   * @note Observed in a Lua map script: at a Night Elf melee start the main gold mine is found only as the Entangled Gold Mine
+   *   (`egol`), not as the original `ngol`, which is hidden. Undead Haunted Gold Mines (`ugol`) are assumed to behave the same.
    * @note See: `GroupEnumUnitsInRect`, `GroupEnumUnitsInRangeOfLoc`.
    * @patch 1.00
    */

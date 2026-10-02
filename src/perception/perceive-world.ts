@@ -4,14 +4,24 @@ import * as W3GroupApi from "@lib/warcraft3-api/group";
 import * as W3LocationApi from "@lib/warcraft3-api/location";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import * as W3NeutralApi from "@lib/warcraft3-api/neutral";
+import * as W3NightElfApi from "@lib/warcraft3-api/nightelf";
+import * as W3UndeadApi from "@lib/warcraft3-api/undead";
 import * as W3RectApi from "@lib/warcraft3-api/rect";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import { Point, WorldState } from "./world-state";
 
 type UnitGroup = ReturnType<typeof W3GroupApi.CreateGroup>;
 
-const HOME_GOLD_MINE_SEARCH_RADIUS = 1500;
+const MAIN_GOLD_MINE_SEARCH_RADIUS = 1500;
 const HOME_DESTRUCTABLE_SEARCH_RADIUS = 1500;
+// Night Elf and Undead melee starts replace their main mine with an
+// entangled or haunted one and hide the original, which range enumeration
+// then skips.
+const GOLD_MINE_TYPES: number[] = [
+  W3NeutralApi.Building.GOLD_MINE,
+  W3NightElfApi.Building.ENTANGLED_GOLD_MINE,
+  W3UndeadApi.Building.HAUNTED_GOLD_MINE,
+];
 const NO_ORDER = 0;
 // Warcraft treats units at or below this life as dead.
 const DEAD_UNIT_LIFE = 0.405;
@@ -19,15 +29,20 @@ const DEAD_UNIT_LIFE = 0.405;
 export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
   const ownStartPosition = startPositionOf(bot);
   const enemy = findEnemyPlayer(bot);
+  const enemyStartPosition = enemy && startPositionOf(enemy);
 
   const world: WorldState = {
     ownStartPosition,
-    enemyStartPosition: enemy && startPositionOf(enemy),
+    enemyStartPosition,
     peasants: [],
     militia: [],
     idleUnits: [],
     gold: W3PlayerApi.GetPlayerState(bot, W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD),
     homeGoldMine: findClosestGoldMine(ownStartPosition),
+    // Gold mine placement is static map knowledge, visible to any player
+    // before scouting, so reading it under fog is fair.
+    enemyMainGoldMine:
+      enemyStartPosition && findClosestGoldMine(enemyStartPosition),
     destructablesNearHomeByDistance: destructablesByDistance(
       ownStartPosition,
       HOME_DESTRUCTABLE_SEARCH_RADIUS,
@@ -101,8 +116,8 @@ function findClosestGoldMine(position: Point): W3UnitApi.unit | undefined {
   let closest: W3UnitApi.unit | undefined;
   let closestDistance = Infinity;
 
-  for (const unit of unitsInRange(position, HOME_GOLD_MINE_SEARCH_RADIUS)) {
-    if (W3UnitApi.GetUnitTypeId(unit) !== W3NeutralApi.Building.GOLD_MINE) {
+  for (const unit of unitsInRange(position, MAIN_GOLD_MINE_SEARCH_RADIUS)) {
+    if (!GOLD_MINE_TYPES.includes(W3UnitApi.GetUnitTypeId(unit))) {
       continue;
     }
 

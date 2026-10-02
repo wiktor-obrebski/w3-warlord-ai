@@ -29,6 +29,8 @@ declare module "@lib/warcraft3-api/unit" {
    *   will be pinged on the minimap in yellow for its owning player.
    * @bug If the order is to build a structure and the unit can build that structure in principle (and the spot is not blocked, either),
    *   this function will still return `true` even if the player lacks the resources for it.
+   * @note Observed in a Lua map script: returns `false` when the target spot is blocked or unbuildable, so trying candidate points
+   *   until one is accepted works as a placement search. A Peasant reverted from Militia accepts build orders normally.
    * @patch 1.00
    */
   export function IssueBuildOrderById(whichPeon: unit, unitId: number, x: number, y: number): boolean;
