@@ -41,7 +41,6 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
     harvestingUnits: [],
     holdingPositionUnits: [],
     scoutTowers: [],
-    scoutTowersBelowFullLife: [],
     gold: W3PlayerApi.GetPlayerState(bot, W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD),
     homeGoldMine: findClosestGoldMine(ownStartPosition),
     // Gold mine placement is static map knowledge, visible to any player
@@ -85,10 +84,6 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
       world.townHall = unit;
     } else if (typeId === W3HumanApi.Building.SCOUT_TOWER) {
       world.scoutTowers.push(unit);
-
-      if (isBelowFullLife(unit)) {
-        world.scoutTowersBelowFullLife.push(unit);
-      }
     }
   }
 
@@ -98,13 +93,6 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
 function isUnitAlive(unit: W3UnitApi.unit): boolean {
   return (
     W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE) > DEAD_UNIT_LIFE
-  );
-}
-
-function isBelowFullLife(unit: W3UnitApi.unit): boolean {
-  return (
-    W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE) <
-    W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_MAX_LIFE)
   );
 }
 

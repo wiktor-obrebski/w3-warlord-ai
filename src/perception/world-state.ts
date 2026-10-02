@@ -18,9 +18,6 @@ export interface WorldState {
   holdingPositionUnits: W3UnitApi.unit[];
   // Includes towers still under construction.
   scoutTowers: W3UnitApi.unit[];
-  // Under construction or damaged; Warcraft offers no direct way to tell
-  // these apart.
-  scoutTowersBelowFullLife: W3UnitApi.unit[];
 
   gold: number;
   homeGoldMine?: W3UnitApi.unit;

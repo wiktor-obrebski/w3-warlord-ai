@@ -13,6 +13,11 @@ export interface TowerSite {
   position: Point;
 }
 
+export interface TowerHelper {
+  helper: W3UnitApi.unit;
+  tower: W3UnitApi.unit;
+}
+
 export interface TowerRushContext {
   phase: TowerRushPhase;
 
@@ -26,6 +31,8 @@ export interface TowerRushContext {
 
   // Build orders whose builder is still busy with them.
   pendingTowerSites: TowerSite[];
+  // Repair orders on unfinished towers whose helper is still busy with them.
+  towerHelpers: TowerHelper[];
 }
 
 export function createTowerRushContext(): TowerRushContext {
@@ -36,6 +43,7 @@ export function createTowerRushContext(): TowerRushContext {
     forwardWorkersHoldingPosition: [],
     forwardWorkersSentToSafety: [],
     pendingTowerSites: [],
+    towerHelpers: [],
     goldWorkers: [],
     lumberWorkers: [],
     peasantInTraining: false,

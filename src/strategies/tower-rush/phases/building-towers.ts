@@ -30,6 +30,9 @@ const MIN_TOWER_CENTER_OFFSET = 160;
 // How far Warcraft's grid snapping may move a tower from its ordered spot.
 const STARTED_TOWER_MATCH_DISTANCE = 64;
 const ATTEMPTS_NEXT_TO_FIRST_TOWER = 10;
+const MAX_BUILD_PROGRESS_WORTH_HELPING = 0.5;
+// Assumed, not verified in-game.
+const CONSTRUCTION_START_LIFE_FRACTION = 0.1;
 // Clears the tower's 128x128 footprint with room for the Peasant.
 const HIDING_DISTANCE_BEHIND_TOWER = 160;
 
@@ -60,6 +63,7 @@ export function updateBuildingTowers(
   }
 
   forgetAbandonedTowerSites(world, context);
+  forgetFinishedTowerHelpers(world, context);
 
   const towerPositions = world.scoutTowers.map((tower) => positionOf(tower));
   const sitesAwaitingTower = context.pendingTowerSites.filter(
@@ -105,13 +109,19 @@ function helpTowerOrHide(
   enemyMain: Point,
   context: TowerRushContext,
 ) {
-  const towerToHelp = closestUnit(world.scoutTowersBelowFullLife, worker);
+  const towerToHelp = closestUnit(
+    world.scoutTowers.filter((tower) => needsHelp(tower, context)),
+    worker,
+  );
 
   if (towerToHelp) {
     // Human Peasants help an unfinished building through the repair order.
     if (W3UnitApi.IssueTargetOrder(worker, "repair", towerToHelp)) {
       forgetSentToSafety(worker, context);
-      debug("Tower rush: forward Peasant helps an unfinished or damaged tower.");
+      context.towerHelpers.push({ helper: worker, tower: towerToHelp });
+      debug(
+        `Tower rush: forward Peasant helps a tower at ${Math.floor(buildProgress(towerToHelp) * 100)}% progress.`,
+      );
       return;
     }
 
@@ -139,6 +149,51 @@ function helpTowerOrHide(
   } else {
     debug("Tower rush: move to safety rejected.");
   }
+}
+
+// A second worker only pays off early in construction; later it would just
+// keep the Peasant exposed for little gain.
+function needsHelp(tower: W3UnitApi.unit, context: TowerRushContext): boolean {
+  const towerPosition = positionOf(tower);
+  const builtByPendingSite = context.pendingTowerSites.some(
+    (site) =>
+      distanceBetween(site.position, towerPosition) <=
+      STARTED_TOWER_MATCH_DISTANCE,
+  );
+  const helped = context.towerHelpers.some((help) => help.tower === tower);
+
+  return (
+    !builtByPendingSite &&
+    !helped &&
+    buildProgress(tower) < MAX_BUILD_PROGRESS_WORTH_HELPING
+  );
+}
+
+// Warcraft exposes no construction progress, but a building's life rises
+// linearly from a fraction of its maximum while it is built. A damaged
+// finished tower reads as low progress too.
+function buildProgress(tower: W3UnitApi.unit): number {
+  const lifeFraction =
+    W3UnitApi.GetUnitState(tower, W3UnitApi.UNIT_STATE_LIFE) /
+    W3UnitApi.GetUnitState(tower, W3UnitApi.UNIT_STATE_MAX_LIFE);
+
+  return (
+    (lifeFraction - CONSTRUCTION_START_LIFE_FRACTION) /
+    (1 - CONSTRUCTION_START_LIFE_FRACTION)
+  );
+}
+
+// Helpers that are free again have finished or abandoned their help.
+function forgetFinishedTowerHelpers(
+  world: WorldState,
+  context: TowerRushContext,
+) {
+  context.towerHelpers = context.towerHelpers.filter(
+    (help) =>
+      world.peasants.includes(help.helper) &&
+      !isAvailableForwardPeasant(help.helper, world) &&
+      world.scoutTowers.includes(help.tower),
+  );
 }
 
 // A Peasant sent to safety that has finished its move is hidden.
