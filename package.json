@@ -6,10 +6,13 @@
   ],
   "scripts": {
     "bundle": "./bin/bundle.sh",
+    "lint": "oxlint .",
     "typecheck": "tstl --noEmit",
     "build-map": "./bin/build-map/build-map.sh"
   },
   "devDependencies": {
+    "oxlint": "^1.86.0",
+    "oxlint-tsgolint": "^7.0.2003",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2",
     "typescript-to-lua": "^1.37.1"

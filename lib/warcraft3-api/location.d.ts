@@ -1,4 +1,8 @@
 declare module "@lib/warcraft3-api/location" {
+  export interface location extends agent {
+    __location: never;
+  }
+
   /**
    * Returns: location
    *

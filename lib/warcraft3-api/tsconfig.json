@@ -1,4 +1,5 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "types": ["war3-types-strict/1.33.0"]
   }

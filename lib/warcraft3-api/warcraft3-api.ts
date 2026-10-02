@@ -1,0 +1,1 @@
+export { UnexpectedWarcraftApiResponseError } from './errors';

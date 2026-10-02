@@ -5,6 +5,11 @@ declare module "@lib/warcraft3-api/group" {
   export interface group extends agent { __group: never; }
 
   /**
+   * @patch 1.00
+   */
+  export interface unit extends widget { __unit: never; }
+
+  /**
    * Returns: group
    *
    * @patch 1.00
