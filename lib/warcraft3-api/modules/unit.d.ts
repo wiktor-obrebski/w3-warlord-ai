@@ -14,6 +14,13 @@ declare module "@lib/warcraft3-api/unit" {
   export const UNIT_STATE_LIFE: unitstate;
 
   /**
+   * @ai-generated Unit state selecting the unit's maximum hit points.
+   *
+   * @patch 1.00
+   */
+  export const UNIT_STATE_MAX_LIFE: unitstate;
+
+  /**
    * A single unit reference.
    *
    * @patch 1.00

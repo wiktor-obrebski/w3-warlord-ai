@@ -19,6 +19,7 @@ export interface TowerRushContext {
   forwardWorkers: W3UnitApi.unit[];
   forwardWorkersSentToEnemy: W3UnitApi.unit[];
   forwardWorkersHoldingPosition: W3UnitApi.unit[];
+  forwardWorkersSentToSafety: W3UnitApi.unit[];
   goldWorkers: W3UnitApi.unit[];
   lumberWorkers: W3UnitApi.unit[];
   peasantInTraining: boolean;
@@ -33,6 +34,7 @@ export function createTowerRushContext(): TowerRushContext {
     forwardWorkers: [],
     forwardWorkersSentToEnemy: [],
     forwardWorkersHoldingPosition: [],
+    forwardWorkersSentToSafety: [],
     pendingTowerSites: [],
     goldWorkers: [],
     lumberWorkers: [],

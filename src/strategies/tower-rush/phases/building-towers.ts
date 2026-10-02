@@ -30,6 +30,8 @@ const MIN_TOWER_CENTER_OFFSET = 160;
 // How far Warcraft's grid snapping may move a tower from its ordered spot.
 const STARTED_TOWER_MATCH_DISTANCE = 64;
 const ATTEMPTS_NEXT_TO_FIRST_TOWER = 10;
+// Clears the tower's 128x128 footprint with room for the Peasant.
+const HIDING_DISTANCE_BEHIND_TOWER = 160;
 
 interface PlacementRules {
   mine: Point;
@@ -41,6 +43,8 @@ interface PlacementRules {
 // An accepted build order can still fail when the Peasant arrives (blocked
 // spot, missing resources), so towers are counted from what actually exists
 // or is on its way, and missing ones are re-ordered one Peasant at a time.
+// Forward Peasants with nothing to build help unfinished towers, then hide
+// behind a tower; the phase ends once all of them are hidden.
 export function updateBuildingTowers(
   world: WorldState,
   context: TowerRushContext,
@@ -55,41 +59,142 @@ export function updateBuildingTowers(
     throw new Error("Tower rush: enemy main gold mine not found.");
   }
 
-  if (world.scoutTowers.length >= TOWER_COUNT) {
-    context.phase = TowerRushPhase.UpgradingTowers;
-    return;
-  }
-
   forgetAbandonedTowerSites(world, context);
 
   const towerPositions = world.scoutTowers.map((tower) => positionOf(tower));
   const sitesAwaitingTower = context.pendingTowerSites.filter(
     (site) => !hasStartedTower(site, towerPositions),
   );
+  let towerMissing =
+    towerPositions.length + sitesAwaitingTower.length < TOWER_COUNT;
 
-  if (towerPositions.length + sitesAwaitingTower.length >= TOWER_COUNT) {
+  for (const worker of context.forwardWorkers) {
+    if (!isAvailableForwardPeasant(worker, world)) {
+      continue;
+    }
+
+    if (towerMissing) {
+      towerMissing = false;
+      forgetSentToSafety(worker, context);
+      orderScoutTower(
+        worker,
+        {
+          mine: positionOf(world.enemyMainGoldMine),
+          enemyMain,
+          occupied: [
+            ...towerPositions,
+            ...sitesAwaitingTower.map((site) => site.position),
+          ],
+          requireEnemyMainInReach: true,
+        },
+        context,
+      );
+    } else {
+      helpTowerOrHide(worker, world, enemyMain, context);
+    }
+  }
+
+  if (towerBuildingFinished(world, context)) {
+    context.phase = TowerRushPhase.UpgradingTowers;
+  }
+}
+
+function helpTowerOrHide(
+  worker: W3UnitApi.unit,
+  world: WorldState,
+  enemyMain: Point,
+  context: TowerRushContext,
+) {
+  const towerToHelp = closestUnit(world.scoutTowersBelowFullLife, worker);
+
+  if (towerToHelp) {
+    // Human Peasants help an unfinished building through the repair order.
+    if (W3UnitApi.IssueTargetOrder(worker, "repair", towerToHelp)) {
+      forgetSentToSafety(worker, context);
+      debug("Tower rush: forward Peasant helps an unfinished or damaged tower.");
+      return;
+    }
+
+    debug("Tower rush: repair order rejected.");
+  }
+
+  if (context.forwardWorkersSentToSafety.includes(worker)) {
+    if (!world.holdingPositionUnits.includes(worker)) {
+      W3UnitApi.IssueImmediateOrder(worker, "holdposition");
+    }
     return;
   }
 
-  const builder = context.forwardWorkers.find((worker) =>
-    isAvailableForwardPeasant(worker, world),
+  const shelter = closestUnit(world.scoutTowers, worker);
+
+  if (!shelter) {
+    return;
+  }
+
+  const spot = spotBehind(positionOf(shelter), enemyMain);
+
+  if (W3UnitApi.IssuePointOrder(worker, "move", spot.x, spot.y)) {
+    context.forwardWorkersSentToSafety.push(worker);
+    debug("Tower rush: forward Peasant hides behind a tower.");
+  } else {
+    debug("Tower rush: move to safety rejected.");
+  }
+}
+
+// A Peasant sent to safety that has finished its move is hidden.
+function towerBuildingFinished(
+  world: WorldState,
+  context: TowerRushContext,
+): boolean {
+  const livingForwardPeasants = context.forwardWorkers.filter((worker) =>
+    world.peasants.includes(worker),
   );
 
-  if (!builder) {
-    return;
+  return (
+    (world.scoutTowers.length >= TOWER_COUNT ||
+      livingForwardPeasants.length === 0) &&
+    livingForwardPeasants.every(
+      (worker) =>
+        context.forwardWorkersSentToSafety.includes(worker) &&
+        isAvailableForwardPeasant(worker, world),
+    )
+  );
+}
+
+function forgetSentToSafety(worker: W3UnitApi.unit, context: TowerRushContext) {
+  context.forwardWorkersSentToSafety = context.forwardWorkersSentToSafety.filter(
+    (sent) => sent !== worker,
+  );
+}
+
+// On the far side of the tower as seen from the enemy main hall.
+function spotBehind(tower: Point, enemyMain: Point): Point {
+  const distance = distanceBetween(enemyMain, tower);
+
+  return {
+    x: tower.x + ((tower.x - enemyMain.x) / distance) * HIDING_DISTANCE_BEHIND_TOWER,
+    y: tower.y + ((tower.y - enemyMain.y) / distance) * HIDING_DISTANCE_BEHIND_TOWER,
+  };
+}
+
+function closestUnit(
+  units: W3UnitApi.unit[],
+  to: W3UnitApi.unit,
+): W3UnitApi.unit | undefined {
+  const origin = positionOf(to);
+  let closest: W3UnitApi.unit | undefined;
+  let closestDistance = Infinity;
+
+  for (const unit of units) {
+    const distance = distanceBetween(origin, positionOf(unit));
+
+    if (distance < closestDistance) {
+      closest = unit;
+      closestDistance = distance;
+    }
   }
 
-  const rules = {
-    mine: positionOf(world.enemyMainGoldMine),
-    enemyMain,
-    occupied: [
-      ...towerPositions,
-      ...sitesAwaitingTower.map((site) => site.position),
-    ],
-    requireEnemyMainInReach: true,
-  };
-
-  orderScoutTower(builder, rules, context);
+  return closest;
 }
 
 // A builder that is no longer busy has either started its tower, which is
