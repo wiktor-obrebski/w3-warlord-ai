@@ -45,7 +45,10 @@ export function updateStart(world: WorldState, context: TowerRushContext) {
 
   orderLumberMill(lumberMillBuilder, world.ownStartPosition);
   W3UnitApi.IssueTargetOrder(homeWorker, "harvest", homeGoldMine);
-  W3UnitApi.IssueImmediateOrderById(townHall, W3HumanApi.Unit.PEASANT);
+  context.peasantInTraining = W3UnitApi.IssueImmediateOrderById(
+    townHall,
+    W3HumanApi.Unit.PEASANT,
+  );
 
   context.phase = TowerRushPhase.MovingToEnemy;
 }

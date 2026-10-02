@@ -36,6 +36,8 @@ function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
       continue;
     }
 
+    context.peasantInTraining = false;
+
     if (context.goldWorkers.length < GOLD_WORKER_TARGET) {
       if (orderHarvestGold(peasant, world)) {
         context.goldWorkers.push(peasant);
@@ -67,6 +69,8 @@ function returnIdleWorkersToTheirResource(
   }
 }
 
+// A training Town Hall still reports no current order, so production tracks
+// its own in-flight Peasant to avoid queueing more than are needed.
 function maintainPeasantProduction(
   world: WorldState,
   context: TowerRushContext,
@@ -78,11 +82,15 @@ function maintainPeasantProduction(
 
   if (
     homeWorkersMissing &&
+    !context.peasantInTraining &&
     townHall &&
-    world.idleUnits.includes(townHall) &&
     world.gold >= PEASANT_GOLD_COST
   ) {
-    W3UnitApi.IssueImmediateOrderById(townHall, W3HumanApi.Unit.PEASANT);
+    context.peasantInTraining = W3UnitApi.IssueImmediateOrderById(
+      townHall,
+      W3HumanApi.Unit.PEASANT,
+    );
+    debug("Tower rush: Peasant training ordered.");
   }
 }
 
