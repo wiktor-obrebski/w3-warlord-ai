@@ -17,6 +17,12 @@ declare module "@lib/warcraft3-api/player" {
    * @patch 1.00
    */
   export const PLAYER_SLOT_STATE_PLAYING: playerslotstate;
+  /**
+   * @ai-generated Player state selecting the player's current gold.
+   *
+   * @patch 1.00
+   */
+  export const PLAYER_STATE_RESOURCE_GOLD: playerstate;
 
   /**
    * Returns: player
@@ -73,4 +79,13 @@ declare module "@lib/warcraft3-api/player" {
    * @patch 1.00
    */
   export function IsPlayerEnemy(whichPlayer: player, otherPlayer: player): boolean;
+
+  /**
+   * Returns: integer
+   *
+   * @ai-generated Returns the value of the given player state, such as current gold or lumber.
+   *
+   * @patch 1.00
+   */
+  export function GetPlayerState(whichPlayer: player, whichPlayerState: playerstate): number;
 }

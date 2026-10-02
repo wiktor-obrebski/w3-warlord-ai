@@ -37,7 +37,7 @@ export function updateStart(world: WorldState, context: TowerRushContext) {
 
   context.forwardWorkers = world.peasants.slice(0, FORWARD_WORKER_COUNT);
   context.lumberMillBuilder = lumberMillBuilder;
-  context.homeWorker = homeWorker;
+  context.goldWorkers = [homeWorker];
 
   for (const worker of context.forwardWorkers) {
     W3UnitApi.IssueImmediateOrder(worker, "militia");

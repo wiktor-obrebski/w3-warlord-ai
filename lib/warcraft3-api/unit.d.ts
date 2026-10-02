@@ -3,6 +3,12 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.00
    */
   export const UNIT_TYPE_PEON: unittype;
+  /**
+   * @ai-generated Unit state selecting the unit's current hit points.
+   *
+   * @patch 1.00
+   */
+  export const UNIT_STATE_LIFE: unitstate;
 
   /**
    * @patch 1.00
@@ -109,4 +115,26 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.00
    */
   export function GetUnitY(whichUnit: unit): number;
+
+  /**
+   * Returns: integer
+   *
+   * @ai-generated Returns the order id of the unit's current order, or 0 if the unit has no order.
+   *
+   * @patch 1.13
+   */
+  export function GetUnitCurrentOrder(whichUnit: unit): number;
+  /**
+   * Returns: real
+   *
+   * Returns unit's current unit state as an absolute value.
+   *
+   * **Example:** Retrieve a unit's current/max HP and mana:
+   *
+   *     call GetUnitState(myUnit, UNIT_STATE_MAX_MANA) // returns 285.0
+   *
+   * @note See: `SetUnitState`.
+   * @patch 1.00
+   */
+  export function GetUnitState(whichUnit: unit, whichUnitState: unitstate): number;
 }

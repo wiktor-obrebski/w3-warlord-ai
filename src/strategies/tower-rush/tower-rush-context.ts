@@ -4,6 +4,7 @@ import { Point } from "../../perception/world-state";
 export enum TowerRushPhase {
   Start,
   MovingToEnemy,
+  BuildingTowers,
 }
 
 export interface TowerRushContext {
@@ -12,7 +13,8 @@ export interface TowerRushContext {
   forwardWorkers: W3UnitApi.unit[];
   forwardWorkersSentToEnemy: W3UnitApi.unit[];
   lumberMillBuilder?: W3UnitApi.unit;
-  homeWorker?: W3UnitApi.unit;
+  goldWorkers: W3UnitApi.unit[];
+  lumberWorkers: W3UnitApi.unit[];
 
   enemyMainPosition?: Point;
 }
@@ -22,5 +24,7 @@ export function createTowerRushContext(): TowerRushContext {
     phase: TowerRushPhase.Start,
     forwardWorkers: [],
     forwardWorkersSentToEnemy: [],
+    goldWorkers: [],
+    lumberWorkers: [],
   };
 }

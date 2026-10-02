@@ -12,5 +12,8 @@ export function updateTowerRush(world: WorldState, context: TowerRushContext) {
     case TowerRushPhase.MovingToEnemy:
       updateMovingToEnemy(world, context);
       break;
+
+    case TowerRushPhase.BuildingTowers:
+      break;
   }
 }
