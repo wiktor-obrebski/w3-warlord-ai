@@ -19,7 +19,8 @@ Do not duplicate architectural documentation in this file.
 
 ## Technical Requirements
 
-* At the start of every new session, pull `main` from `origin` before inspecting or modifying the repository.
+* At the start of every new session, pull `main` from `origin` before inspecting or modifying the repository and switch to new branch
+* After and of current work commit changes if not instructed otherwise
 
 ## Engineering Principles
 

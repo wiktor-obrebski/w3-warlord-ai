@@ -2,46 +2,6 @@
 
 Scoped TypeScript declarations for the Warcraft III API.
 
-## Declarations
-
-Use `war3-types-strict` as the reference for API names, parameters, and TypeScript signatures.
-
-Do not blindly copy its nullability. It conservatively marks many handle/reference returns as `| undefined`, even when no real failure case is documented.
-
-For example, use:
-
-```ts
-export function CreateGroup(): group;
-```
-
-not:
-
-```ts
-export function CreateGroup(): group | undefined;
-```
-
-Use `null` when a Warcraft API is documented to return JASS `null`:
-
-```ts
-unit | null
-```
-
-Use `void` for functions that return nothing.
-
-When nullability is unclear, check Jassdoc and documented runtime behavior.
-
-## Documentation
-
-Every new API declaration should include JSDoc based on:
-
-```bash
-bin/jassdoc/jassdoc.sh <symbol>
-```
-
-Preserve useful descriptions and tags such as `@param`, `@note`, `@bug`, and `@patch`.
-
-Use Jassdoc for documentation and semantic behavior. Use `war3-types-strict` for the TypeScript declaration shape.
-
 ## Modules
 
 Add declarations to the appropriate scoped module, for example:
@@ -61,6 +21,73 @@ UnitApi.KillUnit(unit);
 ```
 
 Do not use named imports or import `war3-types-strict` directly in application code.
+
+## Declarations
+
+Use `war3-types-strict` as the reference for API names, parameters, and TypeScript signatures.
+
+Do not blindly copy its nullability. It conservatively marks many handle/reference returns as `| undefined`,
+even when no real failure case is documented.
+
+Use:
+
+```ts
+export function CreateGroup(): group;
+```
+
+not:
+
+```ts
+export function CreateGroup(): group | undefined;
+```
+
+Use `null` when a Warcraft API is documented to return JASS `null` or you have other good reason to think the `null` can be returned.. 
+When nullability is unclear, check Jassdoc and documented runtime behavior.
+
+Use `void` for functions that return nothing.
+
+## Types
+
+If a function in a module uses a Warcraft type in its return type,
+that module must also declare and export that type.
+
+Duplicating the same Warcraft type across multiple API modules is intentional.
+
+Example:
+
+```ts
+export interface group extends agent {
+  __group: never;
+}
+
+export function CreateGroup(): group;
+```
+
+Document type declarations using the same Jassdoc-based rules as functions.
+
+## Documentation
+
+Every new API declaration must include JSDoc.
+
+Get Jassdoc data with:
+
+```bash
+bin/jassdoc/jassdoc.sh <symbol>
+```
+
+Preserve useful descriptions and tags such as `@param`, `@note`, `@bug`, and `@patch`.
+
+Use Jassdoc for documentation and semantic behavior. Use `war3-types-strict` for the TypeScript declaration shape.
+
+If Jassdoc provides no description, write a concise description based on known Warcraft API behavior and mark it:
+
+```ts
+/**
+ * @ai-generated Creates a new empty group.
+ */
+```
+
+Do not add `@ai-generated` to documentation copied or derived from Jassdoc.
 
 ## Runtime
 
