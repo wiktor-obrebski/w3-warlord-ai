@@ -13,6 +13,8 @@ export function disableBuiltInAi(bot: W3PlayerApi.player) {
 
   W3AiApi.SetPeonsRepair(false);
 
+  W3AiApi.ClearHarvestAI();
+
   W3AiApi.SetTargetHeroes(false);
   W3AiApi.SetWatchMegaTargets(false);
   W3AiApi.SetSmartArtillery(false);

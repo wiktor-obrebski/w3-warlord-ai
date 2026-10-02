@@ -1,7 +1,7 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3TimerApi from "@lib/warcraft3-api/timer";
 import { debug } from "./debug";
-import { disableBuiltInAi } from "./disable-built-in-ai";
+import { disableBuiltInAi } from "./core/disable-built-in-ai";
 import { perceiveWorld } from "./perception/perceive-world";
 import { createTowerRushContext } from "./strategies/tower-rush/tower-rush-context";
 import { updateTowerRush } from "./strategies/tower-rush/tower-rush";

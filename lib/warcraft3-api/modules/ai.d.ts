@@ -2,6 +2,15 @@ declare module "@lib/warcraft3-api/ai" {
   /**
    * Returns: nothing
    *
+   * @ai-generated Clears the built-in AI's gold and lumber harvesting assignments set by `HarvestGold` and `HarvestWood`.
+   *
+   * @patch 1.00
+   */
+  export function ClearHarvestAI(): void;
+
+  /**
+   * Returns: nothing
+   *
    * @ai-generated Toggles whether the built-in AI sends its units to defend allied players.
    *
    * @patch 1.07
