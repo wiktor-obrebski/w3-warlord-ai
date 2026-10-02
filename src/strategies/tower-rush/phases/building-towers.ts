@@ -21,6 +21,7 @@ const MAX_DISTANCE_FROM_MINE = 800;
 const MIN_DISTANCE_FROM_ENEMY_MAIN = 560;
 // A Scout Tower occupies 128x128, so closer sites would overlap.
 const MIN_DISTANCE_BETWEEN_TOWERS = 160;
+const ATTEMPTS_NEXT_TO_FIRST_TOWER = 10;
 
 export function updateBuildingTowers(
   world: WorldState,
@@ -43,7 +44,9 @@ export function updateBuildingTowers(
 
   for (const worker of context.forwardWorkers) {
     if (world.peasants.includes(worker) && !hasTowerSite(worker, context)) {
-      orderScoutTowerNearMine(worker, mine, enemyMain, context);
+      if (!orderScoutTowerNextToFirstTower(worker, enemyMain, context)) {
+        orderScoutTowerNearMine(worker, mine, enemyMain, context);
+      }
     }
   }
 
@@ -52,9 +55,38 @@ export function updateBuildingTowers(
   }
 }
 
-// IssueBuildOrderById returns false for blocked or unbuildable spots (but
-// true when only resources are missing), so the order itself is used as the
-// placement test.
+function orderScoutTowerNextToFirstTower(
+  worker: W3UnitApi.unit,
+  enemyMain: Point,
+  context: TowerRushContext,
+): boolean {
+  const firstSite = context.towerSites[0];
+
+  if (!firstSite) {
+    return false;
+  }
+
+  for (let attempt = 0; attempt < ATTEMPTS_NEXT_TO_FIRST_TOWER; attempt++) {
+    const position = randomPointAround(
+      firstSite.position,
+      MIN_DISTANCE_BETWEEN_TOWERS,
+    );
+
+    if (tryOrderScoutTower(worker, position, enemyMain, context)) {
+      debug(
+        `Tower rush: Scout Tower ordered next to the first tower after ${attempt} rejections.`,
+      );
+      return true;
+    }
+  }
+
+  debug(
+    "Tower rush: no spot next to the first tower accepted; searching around the mine.",
+  );
+
+  return false;
+}
+
 function orderScoutTowerNearMine(
   worker: W3UnitApi.unit,
   mine: Point,
@@ -65,23 +97,9 @@ function orderScoutTowerNearMine(
   let rejections = 0;
 
   while (distance <= MAX_DISTANCE_FROM_MINE) {
-    const angle = W3MathApi.GetRandomReal(0, Math.PI * 2);
-    const position = {
-      x: mine.x + Math.cos(angle) * distance,
-      y: mine.y + Math.sin(angle) * distance,
-    };
+    const position = randomPointAround(mine, distance);
 
-    if (
-      distanceBetween(enemyMain, position) >= MIN_DISTANCE_FROM_ENEMY_MAIN &&
-      !overlapsTowerSite(position, context.towerSites) &&
-      W3UnitApi.IssueBuildOrderById(
-        worker,
-        W3HumanApi.Building.SCOUT_TOWER,
-        position.x,
-        position.y,
-      )
-    ) {
-      context.towerSites.push({ builder: worker, position });
+    if (tryOrderScoutTower(worker, position, enemyMain, context)) {
       debug(
         `Tower rush: Scout Tower ordered ${distance} from the mine after ${rejections} rejections.`,
       );
@@ -98,6 +116,41 @@ function orderScoutTowerNearMine(
   debug(
     `Tower rush: no Scout Tower placement accepted within ${MAX_DISTANCE_FROM_MINE} of the mine.`,
   );
+}
+
+// IssueBuildOrderById returns false for blocked or unbuildable spots (but
+// true when only resources are missing), so the order itself is used as the
+// placement test.
+function tryOrderScoutTower(
+  worker: W3UnitApi.unit,
+  position: Point,
+  enemyMain: Point,
+  context: TowerRushContext,
+): boolean {
+  const accepted =
+    distanceBetween(enemyMain, position) >= MIN_DISTANCE_FROM_ENEMY_MAIN &&
+    !overlapsTowerSite(position, context.towerSites) &&
+    W3UnitApi.IssueBuildOrderById(
+      worker,
+      W3HumanApi.Building.SCOUT_TOWER,
+      position.x,
+      position.y,
+    );
+
+  if (accepted) {
+    context.towerSites.push({ builder: worker, position });
+  }
+
+  return accepted;
+}
+
+function randomPointAround(center: Point, distance: number): Point {
+  const angle = W3MathApi.GetRandomReal(0, Math.PI * 2);
+
+  return {
+    x: center.x + Math.cos(angle) * distance,
+    y: center.y + Math.sin(angle) * distance,
+  };
 }
 
 function overlapsTowerSite(position: Point, sites: TowerSite[]): boolean {
