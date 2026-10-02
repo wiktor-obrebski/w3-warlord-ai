@@ -19,8 +19,10 @@ const MAX_DISTANCE_FROM_MINE = 800;
 // Observed: a rooted Tree of Life attacks, and killed Peasants and towers
 // placed about 450 from the enemy start location where it stands.
 const MIN_DISTANCE_FROM_ENEMY_MAIN = 560;
-// A Scout Tower occupies 128x128, so closer sites would overlap.
-const MIN_DISTANCE_BETWEEN_TOWERS = 160;
+// A Scout Tower occupies a 128x128 square; the margin allows for Warcraft
+// shifting the placement onto its build grid. Pending sites must be checked
+// here because Warcraft only sees a tower once its construction has started.
+const MIN_TOWER_CENTER_OFFSET = 160;
 const ATTEMPTS_NEXT_TO_FIRST_TOWER = 10;
 
 export function updateBuildingTowers(
@@ -67,9 +69,9 @@ function orderScoutTowerNextToFirstTower(
   }
 
   for (let attempt = 0; attempt < ATTEMPTS_NEXT_TO_FIRST_TOWER; attempt++) {
-    const position = randomPointAround(
+    const position = randomPointOnSquareAround(
       firstSite.position,
-      MIN_DISTANCE_BETWEEN_TOWERS,
+      MIN_TOWER_CENTER_OFFSET,
     );
 
     if (tryOrderScoutTower(worker, position, enemyMain, context)) {
@@ -153,10 +155,22 @@ function randomPointAround(center: Point, distance: number): Point {
   };
 }
 
+// A point on the square of the given half-size, so that a tower placed there
+// sits flush against the one at the center from any direction.
+function randomPointOnSquareAround(center: Point, halfSize: number): Point {
+  const angle = W3MathApi.GetRandomReal(0, Math.PI * 2);
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const scale = halfSize / Math.max(Math.abs(cos), Math.abs(sin));
+
+  return { x: center.x + cos * scale, y: center.y + sin * scale };
+}
+
 function overlapsTowerSite(position: Point, sites: TowerSite[]): boolean {
   return sites.some(
     (site) =>
-      distanceBetween(site.position, position) < MIN_DISTANCE_BETWEEN_TOWERS,
+      Math.abs(site.position.x - position.x) < MIN_TOWER_CENTER_OFFSET &&
+      Math.abs(site.position.y - position.y) < MIN_TOWER_CENTER_OFFSET,
   );
 }
 
