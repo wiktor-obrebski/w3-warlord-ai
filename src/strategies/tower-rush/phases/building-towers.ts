@@ -16,9 +16,10 @@ const MIN_DISTANCE_FROM_MINE = 64;
 const DISTANCE_INCREASE = 16;
 const REJECTIONS_PER_DISTANCE_INCREASE = 10;
 const MAX_DISTANCE_FROM_MINE = 800;
-// Observed: a rooted Tree of Life attacks, and killed Peasants and towers
-// placed about 450 from the enemy start location where it stands.
-const MIN_DISTANCE_FROM_ENEMY_MAIN = 560;
+// Observed: a rooted Tree of Life attacks. It killed Peasants and towers
+// placed about 450 from the enemy start location where it stands, and still
+// occasionally reached towers at 560.
+const MIN_DISTANCE_FROM_ENEMY_MAIN = 620;
 // A Scout Tower occupies a 128x128 square; the margin allows for Warcraft
 // shifting the placement onto its build grid. Pending sites must be checked
 // here because Warcraft only sees a tower once its construction has started.
