@@ -17,10 +17,10 @@ export function updateMovingToEnemy(
 // Call to Arms order would cancel the transformation. Forward workers are
 // sent only once they have become Militia.
 function sendNewMilitiaToEnemy(world: WorldState, context: TowerRushContext) {
-  const destination = context.enemyMainPosition;
+  const destination = world.enemyMainGoldMine;
 
   if (!destination) {
-    throw new Error("Tower rush: enemy main position is not known.");
+    throw new Error("Tower rush: enemy main gold mine not found.");
   }
 
   for (const worker of context.forwardWorkers) {
@@ -28,7 +28,12 @@ function sendNewMilitiaToEnemy(world: WorldState, context: TowerRushContext) {
       world.militia.includes(worker) &&
       !context.forwardWorkersSentToEnemy.includes(worker)
     ) {
-      W3UnitApi.IssuePointOrder(worker, "move", destination.x, destination.y);
+      W3UnitApi.IssuePointOrder(
+        worker,
+        "move",
+        W3UnitApi.GetUnitX(destination),
+        W3UnitApi.GetUnitY(destination),
+      );
       context.forwardWorkersSentToEnemy.push(worker);
     }
   }
