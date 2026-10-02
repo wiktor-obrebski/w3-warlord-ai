@@ -79,6 +79,12 @@ Preserve useful descriptions and tags such as `@param`, `@note`, `@bug`, and `@p
 
 Use Jassdoc for documentation and semantic behavior. Use `war3-types-strict` for the TypeScript declaration shape.
 
+If there is "in-code" comment in Jassdoc data add it to our description.
+
+```jass
+type player             extends     agent  // a single player reference
+```
+
 If Jassdoc provides no description, write a concise description based on known Warcraft API behavior and mark it:
 
 ```ts
