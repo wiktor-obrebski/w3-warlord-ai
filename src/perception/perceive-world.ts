@@ -39,6 +39,8 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
     militia: [],
     idleUnits: [],
     harvestingUnits: [],
+    holdingPositionUnits: [],
+    scoutTowers: [],
     gold: W3PlayerApi.GetPlayerState(bot, W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD),
     homeGoldMine: findClosestGoldMine(ownStartPosition),
     // Gold mine placement is static map knowledge, visible to any player
@@ -55,6 +57,7 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
   const harvestOrders = HARVEST_ORDER_STRINGS.map((order) =>
     W3UnitApi.OrderId(order),
   );
+  const holdPositionOrder = W3UnitApi.OrderId("holdposition");
 
   for (const unit of unitsOfPlayer(bot)) {
     if (!isUnitAlive(unit)) {
@@ -67,6 +70,8 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
       world.idleUnits.push(unit);
     } else if (harvestOrders.includes(order)) {
       world.harvestingUnits.push(unit);
+    } else if (order === holdPositionOrder) {
+      world.holdingPositionUnits.push(unit);
     }
 
     const typeId = W3UnitApi.GetUnitTypeId(unit);
@@ -77,6 +82,8 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
       world.militia.push(unit);
     } else if (typeId === W3HumanApi.Building.TOWN_HALL) {
       world.townHall = unit;
+    } else if (typeId === W3HumanApi.Building.SCOUT_TOWER) {
+      world.scoutTowers.push(unit);
     }
   }
 

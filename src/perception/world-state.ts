@@ -15,6 +15,9 @@ export interface WorldState {
   militia: W3UnitApi.unit[];
   idleUnits: W3UnitApi.unit[];
   harvestingUnits: W3UnitApi.unit[];
+  holdingPositionUnits: W3UnitApi.unit[];
+  // Includes towers still under construction.
+  scoutTowers: W3UnitApi.unit[];
 
   gold: number;
   homeGoldMine?: W3UnitApi.unit;

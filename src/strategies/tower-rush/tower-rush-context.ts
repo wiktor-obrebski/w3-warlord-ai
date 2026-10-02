@@ -23,7 +23,8 @@ export interface TowerRushContext {
   lumberWorkers: W3UnitApi.unit[];
   peasantInTraining: boolean;
 
-  towerSites: TowerSite[];
+  // Build orders whose builder is still busy with them.
+  pendingTowerSites: TowerSite[];
 }
 
 export function createTowerRushContext(): TowerRushContext {
@@ -32,7 +33,7 @@ export function createTowerRushContext(): TowerRushContext {
     forwardWorkers: [],
     forwardWorkersSentToEnemy: [],
     forwardWorkersHoldingPosition: [],
-    towerSites: [],
+    pendingTowerSites: [],
     goldWorkers: [],
     lumberWorkers: [],
     peasantInTraining: false,
