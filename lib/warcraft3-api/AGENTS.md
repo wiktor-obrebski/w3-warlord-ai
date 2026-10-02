@@ -4,6 +4,8 @@ Scoped TypeScript declarations for the Warcraft III API.
 
 ## Modules
 
+Declaration files live in `modules/`, one file per scoped module (e.g. `modules/unit.d.ts`).
+
 Add declarations to the appropriate scoped module, for example:
 
 ```ts
