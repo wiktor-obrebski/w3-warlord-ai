@@ -1,9 +1,20 @@
 declare module "@lib/warcraft3-api/player" {
   /**
+   * A single player reference.
+   *
    * @patch 1.00
    */
   export interface player extends agent {
     __player: never;
+  }
+
+  /**
+   * @ai-generated State of a player slot, such as empty, playing, or left.
+   *
+   * @patch 1.00
+   */
+  export interface playerslotstate extends handle {
+    __playerslotstate: never;
   }
 
   /**
@@ -13,10 +24,14 @@ declare module "@lib/warcraft3-api/player" {
    * @patch 1.00
    */
   export const bj_MAX_PLAYERS: number;
+
   /**
+   * @ai-generated Slot state of a player who is currently playing.
+   *
    * @patch 1.00
    */
   export const PLAYER_SLOT_STATE_PLAYING: playerslotstate;
+
   /**
    * @ai-generated Player state selecting the player's current gold.
    *
@@ -41,7 +56,8 @@ declare module "@lib/warcraft3-api/player" {
    * @pure
    * @patch 1.00
    */
-  export function Player(number: number): player | undefined;
+  export function Player(number: number): player | null;
+
   /**
    * Returns: integer
    *
@@ -53,6 +69,7 @@ declare module "@lib/warcraft3-api/player" {
    * @patch 1.00
    */
   export function GetPlayerId(whichPlayer: player): number;
+
   /**
    * Returns: integer
    *
@@ -67,14 +84,20 @@ declare module "@lib/warcraft3-api/player" {
    * @patch 1.00
    */
   export function GetPlayerStartLocation(whichPlayer: player): number;
+
   /**
    * Returns: playerslotstate
+   *
+   * @ai-generated Returns the slot state of the player, such as empty, playing, or left.
    *
    * @patch 1.00
    */
   export function GetPlayerSlotState(whichPlayer: player): playerslotstate;
+
   /**
    * Returns: boolean
+   *
+   * @ai-generated Returns true if `whichPlayer` treats `otherPlayer` as an enemy.
    *
    * @patch 1.00
    */

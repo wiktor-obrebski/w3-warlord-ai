@@ -95,6 +95,8 @@ If Jassdoc provides no description, write a concise description based on known W
 
 Do not add `@ai-generated` to documentation copied or derived from Jassdoc.
 
+Separate each declaration from the next declaration's documentation with exactly one blank line.
+
 ## Runtime
 
 These modules contain declarations only.

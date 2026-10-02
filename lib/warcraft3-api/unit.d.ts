@@ -1,8 +1,11 @@
 declare module "@lib/warcraft3-api/unit" {
   /**
+   * @ai-generated Unit classification for workers, used with `IsUnitType`.
+   *
    * @patch 1.00
    */
   export const UNIT_TYPE_PEON: unittype;
+
   /**
    * @ai-generated Unit state selecting the unit's current hit points.
    *
@@ -11,12 +14,16 @@ declare module "@lib/warcraft3-api/unit" {
   export const UNIT_STATE_LIFE: unitstate;
 
   /**
+   * A single unit reference.
+   *
    * @patch 1.00
    */
   export interface unit extends widget { __unit: never; }
 
   /**
    * Returns: boolean
+   *
+   * @ai-generated Orders the worker to build the structure with the given type id at the given point. Returns true if the order was issued.
    *
    * @note If the order is to build a structure and the unit can build that structure in principle but the player lacks the resources for it, then the unit
    *   will be pinged on the minimap in yellow for its owning player.
@@ -25,12 +32,16 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.00
    */
   export function IssueBuildOrderById(whichPeon: unit, unitId: number, x: number, y: number): boolean;
+
   /**
    * Returns: boolean
+   *
+   * @ai-generated Issues a targetless order by its order string. Returns true if the order was issued.
    *
    * @patch 1.00
    */
   export function IssueImmediateOrder(whichUnit: unit, order: string): boolean;
+
   /**
    * Returns: boolean
    *
@@ -56,8 +67,11 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.00
    */
   export function IssueImmediateOrderById(whichUnit: unit, order: number): boolean;
+
   /**
    * Returns: boolean
+   *
+   * @ai-generated Issues an order targeting a point by its order string. Returns true if the order was issued.
    *
    * @note If the order is to build a structure and the unit can build that structure in principle but the player lacks the resources for it, then the unit
    *   will be pinged on the minimap in yellow for its owning player.
@@ -65,8 +79,11 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.00
    */
   export function IssuePointOrder(whichUnit: unit, order: string, x: number, y: number): boolean;
+
   /**
    * Returns: boolean
+   *
+   * @ai-generated Issues an order targeting a widget by its order string. Returns true if the order was issued.
    *
    * @patch 1.00
    */
@@ -75,11 +92,16 @@ declare module "@lib/warcraft3-api/unit" {
   /**
    * Returns: integer
    *
+   * @ai-generated Returns the unit type id (rawcode) of the unit.
+   *
    * @patch 1.00
    */
   export function GetUnitTypeId(whichUnit: unit): number;
+
   /**
    * Returns: boolean
+   *
+   * @ai-generated Returns true if the unit has the given classification.
    *
    * @note This native returns a boolean, which when typecasted to integer might
    *   be greater than 1. It's probably implemented via a bitset.
@@ -89,6 +111,7 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.00
    */
   export function IsUnitType(whichUnit: unit, whichUnitType: unittype): boolean;
+
   /**
    * Returns: real
    *
@@ -102,6 +125,7 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.00
    */
   export function GetUnitX(whichUnit: unit): number;
+
   /**
    * Returns: real
    *
@@ -124,6 +148,7 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.13
    */
   export function GetUnitCurrentOrder(whichUnit: unit): number;
+
   /**
    * Returns: real
    *

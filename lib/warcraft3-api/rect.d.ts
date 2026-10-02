@@ -1,5 +1,7 @@
 declare module "@lib/warcraft3-api/rect" {
   /**
+   * @ai-generated A rectangular area of the map.
+   *
    * @patch 1.00
    */
   export interface rect extends agent { __rect: never; }
@@ -19,6 +21,7 @@ declare module "@lib/warcraft3-api/rect" {
    * @patch 1.00
    */
   export function Rect(minx: number, miny: number, maxx: number, maxy: number): rect;
+
   /**
    * Returns: nothing
    *

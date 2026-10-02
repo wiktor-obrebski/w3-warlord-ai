@@ -1,10 +1,20 @@
 declare module "@lib/warcraft3-api/timer" {
   /**
+   * @ai-generated A countdown that calls a function when it expires.
+   *
+   * @patch 1.00
+   */
+  export interface timer extends agent { __timer: never; }
+
+  /**
    * Returns: timer
+   *
+   * @ai-generated Creates a new stopped timer.
    *
    * @patch 1.00
    */
   export function CreateTimer(): timer;
+
   /**
    * Returns: nothing
    *

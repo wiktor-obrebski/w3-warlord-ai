@@ -1,10 +1,14 @@
 declare module "@lib/warcraft3-api/group" {
   /**
+   * @ai-generated A collection of unit references.
+   *
    * @patch 1.00
    */
   export interface group extends agent { __group: never; }
 
   /**
+   * A single unit reference.
+   *
    * @patch 1.00
    */
   export interface unit extends widget { __unit: never; }
@@ -12,9 +16,12 @@ declare module "@lib/warcraft3-api/group" {
   /**
    * Returns: group
    *
+   * @ai-generated Creates a new empty unit group.
+   *
    * @patch 1.00
    */
   export function CreateGroup(): group;
+
   /**
    * Returns: nothing
    *
@@ -35,6 +42,7 @@ declare module "@lib/warcraft3-api/group" {
    * @patch 1.00
    */
   export function GroupEnumUnitsOfPlayer(whichGroup: group, whichPlayer: player, filter: boolexpr | null): void;
+
   /**
    * Returns: nothing
    *
@@ -66,6 +74,7 @@ declare module "@lib/warcraft3-api/group" {
    * @patch 1.00
    */
   export function GroupEnumUnitsInRange(whichGroup: group, x: number, y: number, radius: number, filter?: boolexpr): void;
+
   /**
    * Returns: unit
    *
@@ -79,8 +88,8 @@ declare module "@lib/warcraft3-api/group" {
    * @note See [GroupUtils Library](https://web.archive.org/web/20200918161954/http://wc3c.net/showthread.php?t=104464) for vJass.
    * @patch 1.00
    */
-  // TODO: check it returns null or undefined
   export function FirstOfGroup(whichGroup: group): unit | null;
+
   /**
    * Returns: boolean
    *
@@ -91,6 +100,7 @@ declare module "@lib/warcraft3-api/group" {
    * @patch 1.00
    */
   export function GroupRemoveUnit(whichGroup: group, whichUnit: unit): boolean;
+
   /**
    * Returns: nothing
    *

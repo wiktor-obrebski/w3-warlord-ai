@@ -1,4 +1,9 @@
 declare module "@lib/warcraft3-api/location" {
+  /**
+   * @ai-generated A point on the map defined by X and Y coordinates.
+   *
+   * @patch 1.00
+   */
   export interface location extends agent {
     __location: never;
   }
@@ -6,17 +11,25 @@ declare module "@lib/warcraft3-api/location" {
   /**
    * Returns: location
    *
+   * @ai-generated Creates a new location at the given start location. Remove it with `RemoveLocation` when no longer needed.
+   *
    * @patch 1.00
    */
-  export function GetStartLocationLoc(whichStartLocation: number): location | undefined;
+  export function GetStartLocationLoc(whichStartLocation: number): location;
+
   /**
    * Returns: real
+   *
+   * @ai-generated Returns the X map coordinate of the given start location.
    *
    * @patch 1.00
    */
   export function GetStartLocationX(whichStartLocation: number): number;
+
   /**
    * Returns: real
+   *
+   * @ai-generated Returns the Y map coordinate of the given start location.
    *
    * @patch 1.00
    */
@@ -25,15 +38,21 @@ declare module "@lib/warcraft3-api/location" {
   /**
    * Returns: real
    *
+   * @ai-generated Returns the X map coordinate of the location.
+   *
    * @patch 1.00
    */
   export function GetLocationX(whichLocation: location): number;
+
   /**
    * Returns: real
+   *
+   * @ai-generated Returns the Y map coordinate of the location.
    *
    * @patch 1.00
    */
   export function GetLocationY(whichLocation: location): number;
+
   /**
    * Returns: real
    *
@@ -76,6 +95,8 @@ declare module "@lib/warcraft3-api/location" {
 
   /**
    * Returns: nothing
+   *
+   * @ai-generated Destroys the location.
    *
    * @patch 1.00
    */

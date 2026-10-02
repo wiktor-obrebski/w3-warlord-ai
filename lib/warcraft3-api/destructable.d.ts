@@ -1,10 +1,14 @@
 declare module "@lib/warcraft3-api/destructable" {
   /**
+   * @ai-generated A destructable object on the map, such as a tree or a gate.
+   *
    * @patch 1.00
    */
   export interface destructable extends widget { __destructable: never; }
 
   /**
+   * @ai-generated A rectangular area of the map.
+   *
    * @patch 1.00
    */
   export interface rect extends agent { __rect: never; }
@@ -19,6 +23,7 @@ declare module "@lib/warcraft3-api/destructable" {
    * @patch 1.00
    */
   export function EnumDestructablesInRect(r: rect, filter: boolexpr | undefined, actionFunc: () => void): void;
+
   /**
    * Returns: destructable
    *
@@ -27,6 +32,7 @@ declare module "@lib/warcraft3-api/destructable" {
    * @patch 1.00
    */
   export function GetEnumDestructable(): destructable | null;
+
   /**
    * Returns: real
    *
@@ -36,6 +42,7 @@ declare module "@lib/warcraft3-api/destructable" {
    * @patch 1.00
    */
   export function GetDestructableX(d: destructable): number;
+
   /**
    * Returns: real
    *
@@ -45,6 +52,7 @@ declare module "@lib/warcraft3-api/destructable" {
    * @patch 1.00
    */
   export function GetDestructableY(d: destructable): number;
+
   /**
    * Returns: real
    *
