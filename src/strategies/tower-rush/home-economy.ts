@@ -37,6 +37,7 @@ function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
     }
 
     context.peasantInTraining = false;
+    logNewHomeWorkerIdentity(peasant, world, context);
 
     if (context.goldWorkers.length < GOLD_WORKER_TARGET) {
       if (orderHarvestGold(peasant, world)) {
@@ -50,6 +51,26 @@ function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
       debug(`Tower rush: Peasant sent to lumber (${context.lumberWorkers.length}/${LUMBER_WORKER_TARGET}).`);
     }
   }
+}
+
+// TEMPORARY instrumentation: forward Peasants have been observed being
+// assigned as new home workers. This shows whether the assigned unit shares a
+// handle id with a forward worker (Lua identity mismatch) or is a different
+// unit, and how far from home it stands.
+function logNewHomeWorkerIdentity(
+  peasant: W3UnitApi.unit,
+  world: WorldState,
+  context: TowerRushContext,
+) {
+  const dx = W3UnitApi.GetUnitX(peasant) - world.ownStartPosition.x;
+  const dy = W3UnitApi.GetUnitY(peasant) - world.ownStartPosition.y;
+  const forwardIds = context.forwardWorkers
+    .map((worker) => W3UnitApi.GetHandleId(worker))
+    .join(",");
+
+  debug(
+    `Tower rush identity: new home worker id ${W3UnitApi.GetHandleId(peasant)}, ${Math.floor(Math.sqrt(dx * dx + dy * dy))} from home; forward ids ${forwardIds}.`,
+  );
 }
 
 function returnIdleWorkersToTheirResource(

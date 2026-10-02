@@ -172,6 +172,36 @@ declare module "@lib/warcraft3-api/unit" {
   export function OrderId(orderIdString: string): number;
 
   /**
+   * Returns: integer
+   *
+   * Returns the internal index of the given handle; returns 0 if `h` is `null`.
+   *
+   * Typical handles of game objects are offset by positive `0x100000`.
+   *
+   * For text tags, returns the text tag ID, which count from 0 to 99 (inclusive).
+   *
+   * **Example:** `GetHandleId(Player(0)) --> 1048584`
+   *
+   * @param h (handle) handle of a game object
+   *
+   * @note Removing a game object does not automatically invalidate an allocated handle:
+   *
+   *   ```{.lua}
+   *   uf = CreateUnit(Player(0), FourCC("hfoo"), -30, 0, 90)
+   *   print(GetHandleId(uf)) --> 1049016
+   *   RemoveUnit(uf)
+   *   print(GetHandleId(uf)) --> 1049016
+   *   uf = nil
+   *   print(GetHandleId(uf)) --> 0
+   *   ```
+   * @note Sometimes the handle ID may be different between clients.
+   * @note The handle index returned here is only a weak and not a conclusive indicator
+   *   of leaking game objects. In other words, the number may be high without an actual leak.
+   * @patch 1.24a
+   */
+  export function GetHandleId(h: handle): number;
+
+  /**
    * Returns: real
    *
    * Returns unit's current unit state as an absolute value.
