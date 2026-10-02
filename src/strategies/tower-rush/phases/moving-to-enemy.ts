@@ -1,5 +1,6 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
+import { debug } from "../../../debug";
 import { WorldState } from "../../../perception/world-state";
 import { TowerRushContext, TowerRushPhase } from "../tower-rush-context";
 
@@ -69,12 +70,12 @@ function sendIdleLumberMillBuilderToLumber(
   }
 }
 
+// New Peasants are assigned on first sight rather than when idle, because
+// Warcraft can start them harvesting on its own (e.g. via the Town Hall rally
+// point), which would keep them on gold beyond the target.
 function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
   for (const peasant of world.peasants) {
-    if (
-      !world.idleUnits.includes(peasant) ||
-      isAssignedWorker(peasant, context)
-    ) {
+    if (isAssignedWorker(peasant, context)) {
       continue;
     }
 
@@ -122,6 +123,8 @@ function orderHarvestNearestTree(
       return true;
     }
   }
+
+  debug("Tower rush: no nearby tree accepted a harvest order.");
 
   return false;
 }
