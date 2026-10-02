@@ -82,9 +82,13 @@ function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
     if (context.goldWorkers.length < GOLD_WORKER_TARGET) {
       if (orderHarvestGold(peasant, world)) {
         context.goldWorkers.push(peasant);
+        debug(`Tower rush: Peasant sent to gold (${context.goldWorkers.length}/${GOLD_WORKER_TARGET}).`);
+      } else {
+        debug("Tower rush: gold harvest order rejected.");
       }
     } else if (orderHarvestNearestTree(peasant, world)) {
       context.lumberWorkers.push(peasant);
+      debug(`Tower rush: Peasant sent to lumber (${context.lumberWorkers.length}).`);
     }
   }
 }
