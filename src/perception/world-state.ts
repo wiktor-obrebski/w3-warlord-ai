@@ -14,6 +14,7 @@ export interface WorldState {
   peasants: W3UnitApi.unit[];
   militia: W3UnitApi.unit[];
   idleUnits: W3UnitApi.unit[];
+  harvestingUnits: W3UnitApi.unit[];
 
   gold: number;
   homeGoldMine?: W3UnitApi.unit;

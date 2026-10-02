@@ -5,6 +5,7 @@ import { updateStart } from "./phases/start";
 import { updateMovingToEnemy } from "./phases/moving-to-enemy";
 import { updateBuildingTowers } from "./phases/building-towers";
 import { maintainHomeEconomy } from "./home-economy";
+import { holdForwardWorkersSentBackToWork } from "./forward-workers";
 
 export function updateTowerRush(world: WorldState, context: TowerRushContext) {
   const previousPhase = context.phase;
@@ -25,10 +26,12 @@ export function updateTowerRush(world: WorldState, context: TowerRushContext) {
       break;
 
     case TowerRushPhase.BuildingTowers:
+      holdForwardWorkersSentBackToWork(world, context);
       updateBuildingTowers(world, context);
       break;
 
     case TowerRushPhase.UpgradingTowers:
+      holdForwardWorkersSentBackToWork(world, context);
       break;
   }
 

@@ -23,6 +23,7 @@ const GOLD_MINE_TYPES: number[] = [
   W3UndeadApi.Building.HAUNTED_GOLD_MINE,
 ];
 const NO_ORDER = 0;
+const HARVEST_ORDER_STRINGS = ["harvest", "resumeharvesting", "returnresources"];
 // Warcraft treats units at or below this life as dead.
 const DEAD_UNIT_LIFE = 0.405;
 
@@ -37,6 +38,7 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
     peasants: [],
     militia: [],
     idleUnits: [],
+    harvestingUnits: [],
     gold: W3PlayerApi.GetPlayerState(bot, W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD),
     homeGoldMine: findClosestGoldMine(ownStartPosition),
     // Gold mine placement is static map knowledge, visible to any player
@@ -49,13 +51,22 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
     ),
   };
 
+  // Looked up per call because OrderId returns 0 during map init.
+  const harvestOrders = HARVEST_ORDER_STRINGS.map((order) =>
+    W3UnitApi.OrderId(order),
+  );
+
   for (const unit of unitsOfPlayer(bot)) {
     if (!isUnitAlive(unit)) {
       continue;
     }
 
-    if (W3UnitApi.GetUnitCurrentOrder(unit) === NO_ORDER) {
+    const order = W3UnitApi.GetUnitCurrentOrder(unit);
+
+    if (order === NO_ORDER) {
       world.idleUnits.push(unit);
+    } else if (harvestOrders.includes(order)) {
+      world.harvestingUnits.push(unit);
     }
 
     const typeId = W3UnitApi.GetUnitTypeId(unit);

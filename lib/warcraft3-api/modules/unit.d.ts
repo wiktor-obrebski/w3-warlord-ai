@@ -152,6 +152,26 @@ declare module "@lib/warcraft3-api/unit" {
   export function GetUnitCurrentOrder(whichUnit: unit): number;
 
   /**
+   * Returns: integer
+   *
+   * Returns an internal ID for the unit order string.
+   *
+   * **Example (Lua):**
+   *
+   * ```{.lua}
+   * OrderId("humanbuild") == 851995 -- this order opens the human build menu
+   * ```
+   *
+   * @note See: `OrderId2String`, `GetIssuedOrderId`
+   * @bug Do not use this in a global initialisation (map init) as it returns 0 there.
+   * @bug
+   *   Orders: `humainbuild` / `orcbuild` / `nightelfbuild` / `undeadbuild` are [totally broken](https://www.hiveworkshop.com/threads/build-order-causing-all-player-builders-to-open-build-menu.339196/post-3529953), don't issue them.
+   * @pure
+   * @patch 1.00
+   */
+  export function OrderId(orderIdString: string): number;
+
+  /**
    * Returns: real
    *
    * Returns unit's current unit state as an absolute value.
