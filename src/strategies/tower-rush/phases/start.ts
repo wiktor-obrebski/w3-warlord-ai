@@ -10,14 +10,14 @@ const FORWARD_WORKER_COUNT = 3;
 const LUMBER_MILL_PLACEMENT_ATTEMPTS = 20;
 
 export function updateStart(world: WorldState, context: TowerRushContext) {
-  const { townHall, enemyStartPosition, homeGoldMine } = world;
+  const { townHall, enemyMainGoldMine, homeGoldMine } = world;
 
   if (!townHall) {
     throw new Error("Tower rush start: Town Hall not found.");
   }
 
-  if (!enemyStartPosition) {
-    throw new Error("Tower rush start: enemy start position not found.");
+  if (!enemyMainGoldMine) {
+    throw new Error("Tower rush start: enemy main gold mine not found.");
   }
 
   if (!homeGoldMine) {
@@ -29,8 +29,6 @@ export function updateStart(world: WorldState, context: TowerRushContext) {
       `Tower rush start: expected ${STARTING_PEASANT_COUNT} Peasants, found ${world.peasants.length}.`,
     );
   }
-
-  context.enemyMainPosition = enemyStartPosition;
 
   const [lumberMillBuilder, homeWorker] =
     world.peasants.slice(FORWARD_WORKER_COUNT);

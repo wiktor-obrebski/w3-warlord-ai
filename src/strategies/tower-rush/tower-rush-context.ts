@@ -22,7 +22,6 @@ export interface TowerRushContext {
   lumberWorkers: W3UnitApi.unit[];
   peasantInTraining: boolean;
 
-  enemyMainPosition?: Point;
   towerSites: TowerSite[];
 }
 
