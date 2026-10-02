@@ -95,6 +95,7 @@ function unitsOfPlayer(whichPlayer: W3PlayerApi.player): W3UnitApi.unit[] {
 
 function unitsInRange(position: Point, radius: number): W3UnitApi.unit[] {
   const group = W3GroupApi.CreateGroup();
+
   W3GroupApi.GroupEnumUnitsInRange(group, position.x, position.y, radius, null);
   return drainGroup(group);
 }

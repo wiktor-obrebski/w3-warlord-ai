@@ -20,6 +20,7 @@ function main(bot: W3PlayerApi.player) {
   const update = () => updateTowerRush(perceiveWorld(bot), towerRush);
 
   update();
+
   W3TimerApi.TimerStart(
     W3TimerApi.CreateTimer(),
     UPDATE_INTERVAL_SECONDS,

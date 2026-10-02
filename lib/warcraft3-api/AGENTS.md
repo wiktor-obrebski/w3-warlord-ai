@@ -1,52 +1,56 @@
 # Warcraft III API declarations
 
-This directory contains scoped TypeScript declarations for the Warcraft III API.
+Scoped TypeScript declarations for the Warcraft III API.
 
-## Source of truth
+## Declarations
 
-Use `war3-types-strict` as the source of truth for:
+Use `war3-types-strict` as the reference for API names, parameters, and TypeScript signatures.
 
-- TypeScript types
-- function signatures
-- parameter types
-- return types
-- nullability
+Do not blindly copy its nullability. It conservatively marks many handle/reference returns as `| undefined`, even when no real failure case is documented.
 
-Do not reconstruct TypeScript signatures from JASS declarations.
+For example, use:
+
+```ts
+export function CreateGroup(): group;
+```
+
+not:
+
+```ts
+export function CreateGroup(): group | undefined;
+```
+
+Use `null` when a Warcraft API is documented to return JASS `null`:
+
+```ts
+unit | null
+```
+
+Use `void` for functions that return nothing.
+
+When nullability is unclear, check Jassdoc and documented runtime behavior.
 
 ## Documentation
 
-Every newly added Warcraft III API declaration should include JSDoc based on Jassdoc when documentation is available.
-
-Use:
+Every new API declaration should include JSDoc based on:
 
 ```bash
 bin/jassdoc/jassdoc.sh <symbol>
 ```
 
-Example:
+Preserve useful descriptions and tags such as `@param`, `@note`, `@bug`, and `@patch`.
 
-```bash
-bin/jassdoc/jassdoc.sh GroupEnumUnitsOfPlayer
-```
+Use Jassdoc for documentation and semantic behavior. Use `war3-types-strict` for the TypeScript declaration shape.
 
-Preserve useful Jassdoc information.
-Use Jassdoc only as the documentation source. 
-The TypeScript declaration must still follow `war3-types-strict`.
+## Modules
 
-## Module structure
-
-Add declarations to the most appropriate scoped API module, such as:
+Add declarations to the appropriate scoped module, for example:
 
 ```ts
 @lib/warcraft3-api/player
 @lib/warcraft3-api/unit
 @lib/warcraft3-api/ui
 ```
-
-Do not expose the full `war3-types-strict` declaration set globally.
-
-## Imports
 
 Application code should use namespace imports:
 
@@ -56,26 +60,12 @@ import * as UnitApi from "@lib/warcraft3-api/unit";
 UnitApi.KillUnit(unit);
 ```
 
-Types should be accessed through the same namespace:
-
-```ts
-import * as PlayerApi from "@lib/warcraft3-api/player";
-
-function handlePlayer(player: PlayerApi.player) {}
-```
-
-Do not use named imports from these API modules:
-
-```ts
-import { KillUnit } from "@lib/warcraft3-api/unit";
-```
-
-Do not import `war3-types-strict` directly in application code.
+Do not use named imports or import `war3-types-strict` directly in application code.
 
 ## Runtime
 
-These modules are declarations only. They do not exist as Lua modules at runtime.
+These modules contain declarations only.
 
-`@lib/warcraft-tstl-plugin` removes the namespace imports and rewrites API calls to their Warcraft III global equivalents during compilation.
+`@lib/warcraft-tstl-plugin` removes their imports and rewrites calls to Warcraft III globals during TSTL compilation.
 
-Do not add runtime implementations for these declarations.
+Do not add runtime implementations.

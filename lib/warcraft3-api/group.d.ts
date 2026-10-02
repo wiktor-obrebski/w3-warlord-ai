@@ -1,10 +1,15 @@
 declare module "@lib/warcraft3-api/group" {
   /**
+   * @patch 1.00
+   */
+  export interface group extends agent { __group: never; }
+
+  /**
    * Returns: group
    *
    * @patch 1.00
    */
-  export function CreateGroup(): group | undefined;
+  export function CreateGroup(): group;
   /**
    * Returns: nothing
    *
