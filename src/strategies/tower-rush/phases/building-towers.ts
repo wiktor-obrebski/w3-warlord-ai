@@ -9,13 +9,15 @@ import {
   TowerSite,
 } from "../tower-rush-context";
 
+// Center distance at which a target still counts as within reach of the
+// upgraded tower (Guard Tower range is 700). Not verified in-game.
+const TOWER_REACH = 700;
 // The exact gold mine and Scout Tower footprints are not known here, so the
 // search starts at the smallest plausible non-colliding distance and widens
 // on rejection. The accepted distances are logged to tune these values.
 const MIN_DISTANCE_FROM_MINE = 64;
 const DISTANCE_INCREASE = 16;
 const REJECTIONS_PER_DISTANCE_INCREASE = 10;
-const MAX_DISTANCE_FROM_MINE = 800;
 // Observed: a rooted Tree of Life attacks. It killed Peasants and towers
 // placed about 450 from the enemy start location where it stands, and still
 // occasionally reached towers at 560.
@@ -25,6 +27,12 @@ const MIN_DISTANCE_FROM_ENEMY_MAIN = 620;
 // here because Warcraft only sees a tower once its construction has started.
 const MIN_TOWER_CENTER_OFFSET = 160;
 const ATTEMPTS_NEXT_TO_FIRST_TOWER = 10;
+
+interface PlacementRules {
+  mine: Point;
+  enemyMain: Point;
+  requireEnemyMainInReach: boolean;
+}
 
 export function updateBuildingTowers(
   world: WorldState,
@@ -47,9 +55,7 @@ export function updateBuildingTowers(
 
   for (const worker of context.forwardWorkers) {
     if (world.peasants.includes(worker) && !hasTowerSite(worker, context)) {
-      if (!orderScoutTowerNextToFirstTower(worker, enemyMain, context)) {
-        orderScoutTowerNearMine(worker, mine, enemyMain, context);
-      }
+      orderScoutTower(worker, mine, enemyMain, context);
     }
   }
 
@@ -58,9 +64,29 @@ export function updateBuildingTowers(
   }
 }
 
+// Spots covering both the mine and the main hall are preferred; covering
+// only the mine is accepted once the whole search has found no such spot.
+function orderScoutTower(
+  worker: W3UnitApi.unit,
+  mine: Point,
+  enemyMain: Point,
+  context: TowerRushContext,
+) {
+  for (const requireEnemyMainInReach of [true, false]) {
+    const rules = { mine, enemyMain, requireEnemyMainInReach };
+
+    if (
+      orderScoutTowerNextToFirstTower(worker, rules, context) ||
+      orderScoutTowerNearMine(worker, rules, context)
+    ) {
+      return;
+    }
+  }
+}
+
 function orderScoutTowerNextToFirstTower(
   worker: W3UnitApi.unit,
-  enemyMain: Point,
+  rules: PlacementRules,
   context: TowerRushContext,
 ): boolean {
   const firstSite = context.towerSites[0];
@@ -75,16 +101,16 @@ function orderScoutTowerNextToFirstTower(
       MIN_TOWER_CENTER_OFFSET,
     );
 
-    if (tryOrderScoutTower(worker, position, enemyMain, context)) {
+    if (tryOrderScoutTower(worker, position, rules, context)) {
       debug(
-        `Tower rush: Scout Tower ordered next to the first tower after ${attempt} rejections.`,
+        `Tower rush: Scout Tower ordered next to the first tower after ${attempt} rejections${describeReach(rules)}.`,
       );
       return true;
     }
   }
 
   debug(
-    "Tower rush: no spot next to the first tower accepted; searching around the mine.",
+    `Tower rush: no spot next to the first tower accepted${describeReach(rules)}; searching around the mine.`,
   );
 
   return false;
@@ -92,21 +118,20 @@ function orderScoutTowerNextToFirstTower(
 
 function orderScoutTowerNearMine(
   worker: W3UnitApi.unit,
-  mine: Point,
-  enemyMain: Point,
+  rules: PlacementRules,
   context: TowerRushContext,
-) {
+): boolean {
   let distance = MIN_DISTANCE_FROM_MINE;
   let rejections = 0;
 
-  while (distance <= MAX_DISTANCE_FROM_MINE) {
-    const position = randomPointAround(mine, distance);
+  while (distance <= TOWER_REACH) {
+    const position = randomPointAround(rules.mine, distance);
 
-    if (tryOrderScoutTower(worker, position, enemyMain, context)) {
+    if (tryOrderScoutTower(worker, position, rules, context)) {
       debug(
-        `Tower rush: Scout Tower ordered ${distance} from the mine after ${rejections} rejections.`,
+        `Tower rush: Scout Tower ordered ${distance} from the mine after ${rejections} rejections${describeReach(rules)}.`,
       );
-      return;
+      return true;
     }
 
     rejections++;
@@ -117,8 +142,10 @@ function orderScoutTowerNearMine(
   }
 
   debug(
-    `Tower rush: no Scout Tower placement accepted within ${MAX_DISTANCE_FROM_MINE} of the mine.`,
+    `Tower rush: no Scout Tower placement accepted within reach of the mine${describeReach(rules)}.`,
   );
+
+  return false;
 }
 
 // IssueBuildOrderById returns false for blocked or unbuildable spots (but
@@ -127,11 +154,14 @@ function orderScoutTowerNearMine(
 function tryOrderScoutTower(
   worker: W3UnitApi.unit,
   position: Point,
-  enemyMain: Point,
+  rules: PlacementRules,
   context: TowerRushContext,
 ): boolean {
+  const distanceToEnemyMain = distanceBetween(rules.enemyMain, position);
   const accepted =
-    distanceBetween(enemyMain, position) >= MIN_DISTANCE_FROM_ENEMY_MAIN &&
+    distanceToEnemyMain >= MIN_DISTANCE_FROM_ENEMY_MAIN &&
+    (!rules.requireEnemyMainInReach || distanceToEnemyMain <= TOWER_REACH) &&
+    distanceBetween(rules.mine, position) <= TOWER_REACH &&
     !overlapsTowerSite(position, context.towerSites) &&
     W3UnitApi.IssueBuildOrderById(
       worker,
@@ -145,6 +175,12 @@ function tryOrderScoutTower(
   }
 
   return accepted;
+}
+
+function describeReach(rules: PlacementRules): string {
+  return rules.requireEnemyMainInReach
+    ? " (mine and main hall in reach)"
+    : " (only mine in reach)";
 }
 
 function randomPointAround(center: Point, distance: number): Point {
