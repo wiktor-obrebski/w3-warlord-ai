@@ -6,6 +6,7 @@ export enum TowerRushPhase {
   MovingToEnemy,
   BuildingTowers,
   UpgradingTowers,
+  HoldingPosition,
 }
 
 export interface TowerSite {
@@ -33,6 +34,8 @@ export interface TowerRushContext {
   pendingTowerSites: TowerSite[];
   // Repair orders on unfinished towers whose helper is still busy with them.
   towerHelpers: TowerHelper[];
+  // Where the rush towers stood when BuildingTowers ended.
+  towerPositions: Point[];
 }
 
 export function createTowerRushContext(): TowerRushContext {
@@ -44,6 +47,7 @@ export function createTowerRushContext(): TowerRushContext {
     forwardWorkersSentToSafety: [],
     pendingTowerSites: [],
     towerHelpers: [],
+    towerPositions: [],
     goldWorkers: [],
     lumberWorkers: [],
     peasantInTraining: false,

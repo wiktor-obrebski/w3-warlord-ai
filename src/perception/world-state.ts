@@ -18,8 +18,14 @@ export interface WorldState {
   holdingPositionUnits: W3UnitApi.unit[];
   // Includes towers still under construction.
   scoutTowers: W3UnitApi.unit[];
+  guardTowers: W3UnitApi.unit[];
+  // Includes Lumber Mills still under construction.
+  lumberMills: W3UnitApi.unit[];
+  buildingsUnderConstruction: W3UnitApi.unit[];
+  buildingsUpgrading: W3UnitApi.unit[];
 
   gold: number;
+  lumber: number;
   homeGoldMine?: W3UnitApi.unit;
   enemyMainGoldMine?: W3UnitApi.unit;
   destructablesNearHomeByDistance: W3DestructableApi.destructable[];

@@ -100,6 +100,7 @@ export function updateBuildingTowers(
   }
 
   if (towerBuildingFinished(world, context)) {
+    context.towerPositions = towerPositions;
     context.phase = TowerRushPhase.UpgradingTowers;
   }
 }

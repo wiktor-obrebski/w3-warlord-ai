@@ -41,7 +41,15 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
     harvestingUnits: [],
     holdingPositionUnits: [],
     scoutTowers: [],
+    guardTowers: [],
+    lumberMills: [],
+    buildingsUnderConstruction: [],
+    buildingsUpgrading: [],
     gold: W3PlayerApi.GetPlayerState(bot, W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD),
+    lumber: W3PlayerApi.GetPlayerState(
+      bot,
+      W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER,
+    ),
     homeGoldMine: findClosestGoldMine(ownStartPosition),
     // Gold mine placement is static map knowledge, visible to any player
     // before scouting, so reading it under fog is fair.
@@ -84,6 +92,24 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
       world.townHall = unit;
     } else if (typeId === W3HumanApi.Building.SCOUT_TOWER) {
       world.scoutTowers.push(unit);
+    } else if (typeId === W3HumanApi.Building.GUARD_TOWER) {
+      world.guardTowers.push(unit);
+    } else if (typeId === W3HumanApi.Building.LUMBER_MILL) {
+      world.lumberMills.push(unit);
+    }
+
+    if (
+      W3UnitApi.GetUnitAbilityLevel(
+        unit,
+        W3UnitApi.Ability.BUILDING_UNDER_CONSTRUCTION,
+      ) > 0
+    ) {
+      world.buildingsUnderConstruction.push(unit);
+    } else if (
+      W3UnitApi.GetUnitAbilityLevel(unit, W3UnitApi.Ability.BUILDING_UPGRADING) >
+      0
+    ) {
+      world.buildingsUpgrading.push(unit);
     }
   }
 

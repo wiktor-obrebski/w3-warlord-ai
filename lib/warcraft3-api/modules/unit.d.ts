@@ -1,4 +1,11 @@
 declare module "@lib/warcraft3-api/unit" {
+  export const enum Ability {
+    // Present while a building is under construction.
+    BUILDING_UNDER_CONSTRUCTION = 1094872656, // ABnP
+    // Present while a building is upgrading.
+    BUILDING_UPGRADING = 1096117840, // AUnP
+  }
+
   /**
    * @ai-generated Unit classification for workers, used with `IsUnitType`.
    *
@@ -221,4 +228,20 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.00
    */
   export function GetUnitState(whichUnit: unit, whichUnitState: unitstate): number;
+
+  /**
+   * Returns: integer
+   *
+   * Returns the level of the ability for the unit.
+   *
+   * @param whichUnit (unit) Target unit.
+   * @param abilcode (integer) Abilities' raw code identifier.
+   *
+   * @note Building abilities {'ANbu','AHbu','AEbu','AObu','AUbu','AGbu'} are considered equivalent by the game (identical ability instance).
+   *   If the unit has one of them, it has all of them (and vice-versa). Therefore a wisp with 'ANbu'==1 also has 'AHbu'==1.
+   *   See: <https://github.com/lep/jassdoc/issues/152>
+   * @note 'ABnP' can be used to detect building in construction and 'AUnP' for upgrading building
+   * @patch 1.13
+   */
+  export function GetUnitAbilityLevel(whichUnit: unit, abilcode: number): number;
 }
