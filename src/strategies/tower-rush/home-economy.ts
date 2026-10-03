@@ -5,8 +5,23 @@ import { WorldState } from "../../perception/world-state";
 import { TowerRushContext } from "./tower-rush-context";
 
 const PEASANT_GOLD_COST = 75;
-const GOLD_WORKER_TARGET = 5;
-const LUMBER_WORKER_TARGET = 3;
+
+interface WorkerTargets {
+  gold: number;
+  lumber: number;
+}
+
+// Lumber counts include the Lumber Mill builder, which is a lumber worker
+// from the start but only harvests once the mill is finished. Lumber workers
+// come in early so Guard Tower upgrades are not starved of lumber.
+const WORKER_TARGET_STAGES: WorkerTargets[] = [
+  { gold: 2, lumber: 1 },
+  { gold: 2, lumber: 2 },
+  { gold: 2, lumber: 3 },
+  { gold: 3, lumber: 3 },
+  { gold: 4, lumber: 3 },
+  { gold: 5, lumber: 3 },
+];
 
 export function maintainHomeEconomy(
   world: WorldState,
@@ -38,18 +53,35 @@ function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
 
     context.peasantInTraining = false;
 
-    if (context.goldWorkers.length < GOLD_WORKER_TARGET) {
+    const targets = currentWorkerTargets(context);
+
+    if (targets && context.goldWorkers.length < targets.gold) {
       if (orderHarvestGold(peasant, world)) {
         context.goldWorkers.push(peasant);
-        debug(`Tower rush: Peasant sent to gold (${context.goldWorkers.length}/${GOLD_WORKER_TARGET}).`);
+        debug(`Tower rush: Peasant sent to gold (${describeWorkers(context)}).`);
       } else {
         debug("Tower rush: gold harvest order rejected.");
       }
     } else if (orderHarvestNearestTree(peasant, world)) {
       context.lumberWorkers.push(peasant);
-      debug(`Tower rush: Peasant sent to lumber (${context.lumberWorkers.length}/${LUMBER_WORKER_TARGET}).`);
+      debug(`Tower rush: Peasant sent to lumber (${describeWorkers(context)}).`);
     }
   }
+}
+
+// The first stage not yet reached; undefined once all are.
+function currentWorkerTargets(
+  context: TowerRushContext,
+): WorkerTargets | undefined {
+  return WORKER_TARGET_STAGES.find(
+    (targets) =>
+      context.goldWorkers.length < targets.gold ||
+      context.lumberWorkers.length < targets.lumber,
+  );
+}
+
+function describeWorkers(context: TowerRushContext): string {
+  return `${context.goldWorkers.length} gold, ${context.lumberWorkers.length} lumber`;
 }
 
 function returnIdleWorkersToTheirResource(
@@ -76,9 +108,7 @@ function maintainPeasantProduction(
   context: TowerRushContext,
 ) {
   const { townHall } = world;
-  const homeWorkersMissing =
-    context.goldWorkers.length < GOLD_WORKER_TARGET ||
-    context.lumberWorkers.length < LUMBER_WORKER_TARGET;
+  const homeWorkersMissing = currentWorkerTargets(context) !== undefined;
 
   if (
     homeWorkersMissing &&
