@@ -67,7 +67,11 @@ Disable the default melee AI for players controlled by this bot so that it does 
 
 ### Packaging and startup
 
-TSTL produces one bundle with the required runtime helpers. A Bash packaging step embeds it in a maintained Lua wrapper template. The resulting script is installed in a Lua-enabled map; a startup trigger invokes `WarlordRunBundle()` after map initialization.
+TSTL produces one bundle with the required runtime helpers. A Bash packaging step embeds it in a maintained Lua wrapper template. The resulting script is installed in a Lua-enabled map, where the wrapper replaces `StartMeleeAI` and runs one bundle instance per `Computer (Normal)` slot during melee initialization.
+
+Units of a computer slot keep some built-in Warcraft AI behaviour even without a melee AI script, so on startup the bundle moves the computer player's units, resources, and start location to an empty slot and controls that player instead. Bot installations are registered in the map globals, shared by all bundle instances, and a single `GetPlayerSlotState` override makes melee victory/defeat see every bot player as playing and every abandoned computer player as gone; this must happen before `MeleeInitVictoryDefeat`. Gameplay starts on the next timer tick.
+
+Installation and test-only code with access beyond normal gameplay, such as replacing map globals, lives in `src/privileged/`, with its Warcraft APIs declared in `@lib/warcraft3-api/privileged`. Only the startup entry point and automated tests may use either; see [`src/privileged/README.md`](../src/privileged/README.md).
 
 Generated output should never be edited manually.
 

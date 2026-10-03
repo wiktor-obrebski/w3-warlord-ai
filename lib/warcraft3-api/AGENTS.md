@@ -14,6 +14,10 @@ Add declarations to the appropriate scoped module, for example:
 @lib/warcraft3-api/ui
 ```
 
+APIs not needed for normal bot gameplay (installation and tests only) belong in
+`@lib/warcraft3-api/privileged`, even when they would otherwise fit another module.
+Only code in `src/privileged/` may use it; see `src/privileged/README.md`.
+
 Application code should use namespace imports:
 
 ```ts

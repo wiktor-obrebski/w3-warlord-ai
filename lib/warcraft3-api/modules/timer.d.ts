@@ -47,4 +47,15 @@ declare module "@lib/warcraft3-api/timer" {
    * @patch 1.00
    */
   export function TimerStart(whichTimer: timer, timeout: number, periodic: boolean, handlerFunc: () => void): void;
+
+  /**
+   * Returns: nothing
+   *
+   * @ai-generated Destroys the timer and releases its handle.
+   *
+   * @bug Destroying does not pause timer, so if call of its callback is scheduled,
+   *   then callback is called with `GetElapsedTimer` being `null`.
+   * @patch 1.00
+   */
+  export function DestroyTimer(whichTimer: timer): void;
 }

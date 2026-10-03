@@ -40,6 +40,13 @@ declare module "@lib/warcraft3-api/player" {
   export const PLAYER_STATE_RESOURCE_GOLD: playerstate;
 
   /**
+   * @ai-generated Player state selecting the player's current lumber.
+   *
+   * @patch 1.00
+   */
+  export const PLAYER_STATE_RESOURCE_LUMBER: playerstate;
+
+  /**
    * Returns: player
    *
    * Returns the instance of player based on ID number.
