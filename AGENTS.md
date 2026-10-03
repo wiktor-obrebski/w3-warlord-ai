@@ -291,5 +291,6 @@ When working in this repository:
 * Do not hide architectural problems behind patches.
 * Preserve user changes.
 * Leave the repository in a coherent state.
+* Modify files only with the built-in file tools (Edit, Write). Avoid using Python, `sed`, `awk`, shell redirection, or other scripts to change files.
 
 When several solutions are valid, prefer the one with the smallest conceptual and maintenance cost.
