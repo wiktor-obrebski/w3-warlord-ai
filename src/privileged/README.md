@@ -1,8 +1,8 @@
 # Privileged code
 
 Code here does things normal bot gameplay must never do: take over players,
-move units between owners, replace map globals. It exists only for
-**installation** and **automated tests**.
+move units between owners, replace map globals, reveal the map. It exists
+only for **installation**, **debug mode** and **automated tests**.
 
 ## Rules
 
