@@ -1,8 +1,9 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
+import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import { debug } from "../../debug";
 import { WorldState } from "../../perception/world-state";
-import { TowerRushContext } from "./tower-rush-context";
+import { HomeResource, TowerRushContext } from "./tower-rush-context";
 
 const PEASANT_GOLD_COST = 75;
 
@@ -42,31 +43,44 @@ function forgetDeadWorkers(world: WorldState, context: TowerRushContext) {
   );
 }
 
-// New Peasants are assigned on first sight rather than when idle, because
-// Warcraft can start them harvesting on its own (e.g. via the Town Hall rally
-// point), which would keep them on gold beyond the target.
+// A trained Peasant leaves the Town Hall already harvesting the resource it
+// was rallied to. It is only ordered when the rally did not start it
+// harvesting, e.g. when the rallied destructable is not a tree.
 function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
   for (const peasant of world.peasants) {
     if (isAssignedWorker(peasant, context)) {
       continue;
     }
 
-    context.peasantInTraining = false;
+    const resource =
+      context.trainingPeasantResource ?? nextWorkerResource(context);
+    context.trainingPeasantResource = undefined;
 
-    const targets = currentWorkerTargets(context);
-
-    if (targets && context.goldWorkers.length < targets.gold) {
-      if (orderHarvestGold(peasant, world)) {
-        context.goldWorkers.push(peasant);
-        debug(`Tower rush: Peasant sent to gold (${describeWorkers(context)}).`);
-      } else {
-        debug("Tower rush: gold harvest order rejected.");
-      }
-    } else if (orderHarvestNearestTree(peasant, world)) {
+    if (resource === HomeResource.Gold) {
+      context.goldWorkers.push(peasant);
+    } else {
       context.lumberWorkers.push(peasant);
-      debug(`Tower rush: Peasant sent to lumber (${describeWorkers(context)}).`);
+    }
+
+    debug(
+      `Tower rush: new Peasant joins ${HomeResource[resource]} (${describeWorkers(context)}).`,
+    );
+
+    if (
+      !world.harvestingUnits.includes(peasant) &&
+      !orderHarvest(peasant, resource, world)
+    ) {
+      debug(`Tower rush: ${HomeResource[resource]} harvest order rejected.`);
     }
   }
+}
+
+function nextWorkerResource(context: TowerRushContext): HomeResource {
+  const targets = currentWorkerTargets(context);
+
+  return targets && context.goldWorkers.length < targets.gold
+    ? HomeResource.Gold
+    : HomeResource.Lumber;
 }
 
 // The first stage not yet reached; undefined once all are.
@@ -112,16 +126,55 @@ function maintainPeasantProduction(
 
   if (
     homeWorkersMissing &&
-    !context.peasantInTraining &&
+    context.trainingPeasantResource === undefined &&
     townHall &&
     world.gold >= PEASANT_GOLD_COST
   ) {
-    context.peasantInTraining = W3UnitApi.IssueImmediateOrderById(
-      townHall,
-      W3HumanApi.Unit.PEASANT,
-    );
-    debug("Tower rush: Peasant training ordered.");
+    trainPeasant(townHall, world, context);
   }
+}
+
+export function trainPeasant(
+  townHall: W3UnitApi.unit,
+  world: WorldState,
+  context: TowerRushContext,
+) {
+  const resource = nextWorkerResource(context);
+
+  if (!W3UnitApi.IssueTargetOrder(townHall, "setrally", rallyTarget(resource, world))) {
+    debug(`Tower rush: rally to ${HomeResource[resource]} rejected.`);
+  }
+
+  if (W3UnitApi.IssueImmediateOrderById(townHall, W3HumanApi.Unit.PEASANT)) {
+    context.trainingPeasantResource = resource;
+    debug(`Tower rush: Peasant training ordered for ${HomeResource[resource]}.`);
+  } else {
+    debug("Tower rush: Peasant training order rejected.");
+  }
+}
+
+// The nearest destructable is used for lumber without checking that it is a
+// tree; a Peasant rallied to anything else does not start harvesting and is
+// then ordered to a real tree.
+function rallyTarget(
+  resource: HomeResource,
+  world: WorldState,
+): W3UnitApi.unit | W3DestructableApi.destructable {
+  if (resource === HomeResource.Gold) {
+    if (!world.homeGoldMine) {
+      throw new Error("Tower rush: home gold mine not found.");
+    }
+
+    return world.homeGoldMine;
+  }
+
+  const nearest = world.destructablesNearHomeByDistance[0];
+
+  if (!nearest) {
+    throw new Error("Tower rush: no destructable near home to rally to.");
+  }
+
+  return nearest;
 }
 
 function isAssignedWorker(
@@ -133,6 +186,16 @@ function isAssignedWorker(
     context.goldWorkers.includes(peasant) ||
     context.lumberWorkers.includes(peasant)
   );
+}
+
+function orderHarvest(
+  worker: W3UnitApi.unit,
+  resource: HomeResource,
+  world: WorldState,
+): boolean {
+  return resource === HomeResource.Gold
+    ? orderHarvestGold(worker, world)
+    : orderHarvestNearestTree(worker, world);
 }
 
 function orderHarvestGold(

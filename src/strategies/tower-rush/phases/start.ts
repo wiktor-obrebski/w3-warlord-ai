@@ -4,6 +4,7 @@ import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, WorldState } from "../../../perception/world-state";
 import { TowerRushContext, TowerRushPhase } from "../tower-rush-context";
+import { trainPeasant } from "../home-economy";
 
 const STARTING_PEASANT_COUNT = 5;
 const FORWARD_WORKER_COUNT = 3;
@@ -43,10 +44,7 @@ export function updateStart(world: WorldState, context: TowerRushContext) {
 
   orderLumberMill(lumberMillBuilder, world.ownStartPosition);
   W3UnitApi.IssueTargetOrder(homeWorker, "harvest", homeGoldMine);
-  context.peasantInTraining = W3UnitApi.IssueImmediateOrderById(
-    townHall,
-    W3HumanApi.Unit.PEASANT,
-  );
+  trainPeasant(townHall, world, context);
 
   context.phase = TowerRushPhase.MovingToEnemy;
 }

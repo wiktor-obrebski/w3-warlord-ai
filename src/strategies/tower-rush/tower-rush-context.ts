@@ -9,6 +9,11 @@ export enum TowerRushPhase {
   HoldingPosition,
 }
 
+export enum HomeResource {
+  Gold,
+  Lumber,
+}
+
 export interface TowerSite {
   builder: W3UnitApi.unit;
   position: Point;
@@ -28,7 +33,8 @@ export interface TowerRushContext {
   forwardWorkersSentToSafety: W3UnitApi.unit[];
   goldWorkers: W3UnitApi.unit[];
   lumberWorkers: W3UnitApi.unit[];
-  peasantInTraining: boolean;
+  // Where the Peasant in training is rallied to; undefined when none is.
+  trainingPeasantResource: HomeResource | undefined;
 
   // Build orders whose builder is still busy with them.
   pendingTowerSites: TowerSite[];
@@ -50,6 +56,6 @@ export function createTowerRushContext(): TowerRushContext {
     towerPositions: [],
     goldWorkers: [],
     lumberWorkers: [],
-    peasantInTraining: false,
+    trainingPeasantResource: undefined,
   };
 }
