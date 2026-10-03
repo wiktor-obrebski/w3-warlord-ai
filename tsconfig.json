@@ -20,7 +20,7 @@
     "sourceMapTraceback": true,
     "luaLibImport": "require-minimal",
     "luaBundleEntry": "src/main.ts",
-    "tstlVerbose": true,
+    "tstlVerbose": false,
     "luaPlugins": [{
       "name": "./lib/warcraft-tstl-plugin/warcraft-tstl-plugin.ts"
     }]
