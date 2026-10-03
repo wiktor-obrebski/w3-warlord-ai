@@ -31,7 +31,7 @@ declare const map_globals: MapGlobals;
 export function installBotPlayer(
   computerPlayer: W3PlayerApi.player,
 ): W3PlayerApi.player {
-  const installations = botInstallations();
+  const installations = setupBotInstallations();
   const botPlayer = findEmptyPlayerSlot();
 
   if (!botPlayer) {
@@ -52,7 +52,7 @@ export function installBotPlayer(
  * installations only register themselves, which also keeps them from picking
  * a slot already taken by an earlier bot.
  */
-function botInstallations(): BotInstallation[] {
+function setupBotInstallations(): BotInstallation[] {
   const existing = map_globals.WarlordBotInstallations;
 
   if (existing) {

@@ -1,7 +1,6 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3TimerApi from "@lib/warcraft3-api/timer";
 import { debug } from "./debug";
-import { disableBuiltInAi } from "./core/disable-built-in-ai";
 import { perceiveWorld } from "./perception/perceive-world";
 import { installBotPlayer } from "./privileged/install-bot-player";
 import { createTowerRushContext } from "./strategies/tower-rush/tower-rush-context";
@@ -23,8 +22,6 @@ export function main(computerPlayer: W3PlayerApi.player) {
 
 function play(bot: W3PlayerApi.player) {
   debug(`Bot player id: ${W3PlayerApi.GetPlayerId(bot)}`);
-
-  disableBuiltInAi(bot);
 
   const towerRush = createTowerRushContext();
 

@@ -17,15 +17,5 @@ move units between owners, replace map globals. It exists only for
 
 The runtime wrapper (`runtime/runtime-template.lua`) runs one sandboxed bundle
 instance per bot, so the bundle's globals are private to that bot. The wrapper
-exposes the real map script globals as `map_globals`. Use it only to:
-
-* replace natives that Blizzard.j code must see differently, and
-* keep state that has to be shared between installed bots.
-
-## Bot player installation
-
-`install-bot-player.ts` takes each `Computer (Normal)` player chosen in the
-lobby and moves it into an empty slot, because units of a computer slot keep
-some built-in Warcraft AI behaviour that competes with our orders. See
-[`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md#packaging-and-startup) for
-how this fits into startup.
+exposes the real map script globals as `map_globals`. 
+Use it only to replace natives that Blizzard.j code must see differently
