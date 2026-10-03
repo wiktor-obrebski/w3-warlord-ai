@@ -29,8 +29,6 @@ function WarlordRunBundle(warlord_computer_player)
         nativeError(value, level == 0 and 2 or (level or 1) + 1)
     end
 
-    environment.warlord_computer_player = warlord_computer_player
-
     -- The bundle's own globals are sandboxed in `environment`, one per bot;
     -- installation code needs the real table to override natives seen by
     -- Blizzard.j and to share state between bots.
@@ -104,7 +102,9 @@ function WarlordRunBundle(warlord_computer_player)
         return
     end
 
-    runProtected(chunk)
+    runProtected(function()
+        chunk().main(warlord_computer_player)
+    end)
 end
 
 -- Runs synchronously so the bundle can install its player before the melee

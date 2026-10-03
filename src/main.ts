@@ -7,15 +7,21 @@ import { installBotPlayer } from "./privileged/install-bot-player";
 import { createTowerRushContext } from "./strategies/tower-rush/tower-rush-context";
 import { updateTowerRush } from "./strategies/tower-rush/tower-rush";
 
-declare const warlord_computer_player: W3PlayerApi.player;
 declare function guard(this: void, callback: (this: void) => void): (this: void) => void;
 
 const UPDATE_INTERVAL_SECONDS = 1;
 
-const bot = installBotPlayer(warlord_computer_player);
-runAfterMapInitialization(() => main(bot));
+/**
+ * Entry point called by the runtime wrapper during melee initialization,
+ * once per computer player handed over to Warlord AI.
+ */
+export function main(computerPlayer: W3PlayerApi.player) {
+  const bot = installBotPlayer(computerPlayer);
 
-function main(bot: W3PlayerApi.player) {
+  runAfterMapInitialization(() => play(bot));
+}
+
+function play(bot: W3PlayerApi.player) {
   debug(`Bot player id: ${W3PlayerApi.GetPlayerId(bot)}`);
 
   disableBuiltInAi(bot);
