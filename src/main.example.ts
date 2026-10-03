@@ -1,5 +1,3 @@
-import { UnexpectedWarcraftApiResponseError } from "@lib/warcraft3-api";
-
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3UiApi from "@lib/warcraft3-api/ui";
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
@@ -48,9 +46,6 @@ function buildAltar(bot: W3PlayerApi.player) {
 
   const startLocation =
     W3LocationApi.GetStartLocationLoc(startLocationIndex);
-  if (startLocation === undefined) {
-    throw new UnexpectedWarcraftApiResponseError('GetStartLocationLoc', startLocation);
-  }
 
   const baseX = W3LocationApi.GetLocationX(startLocation);
   const baseY = W3LocationApi.GetLocationY(startLocation);

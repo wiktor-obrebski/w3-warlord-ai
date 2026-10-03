@@ -129,13 +129,6 @@ function helpTowerOrHide(
     debug("Tower rush: repair order rejected.");
   }
 
-  if (context.forwardWorkersSentToSafety.includes(worker)) {
-    if (!world.holdingPositionUnits.includes(worker)) {
-      W3UnitApi.IssueImmediateOrder(worker, "holdposition");
-    }
-    return;
-  }
-
   const shelter = closestUnit(world.scoutTowers, worker);
 
   if (!shelter) {

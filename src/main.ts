@@ -16,9 +16,7 @@ main(warlord_bot_player);
 function main(bot: W3PlayerApi.player) {
   debug(`Bot player id: ${W3PlayerApi.GetPlayerId(bot)}`);
 
-  // These are AI-script natives that may not exist in a map script; guarding
-  // reports such a failure without preventing the bot from starting.
-  guard(() => disableBuiltInAi(bot))();
+  disableBuiltInAi(bot);
 
   const towerRush = createTowerRushContext();
 

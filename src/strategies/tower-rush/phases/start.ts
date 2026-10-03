@@ -24,14 +24,14 @@ export function updateStart(world: WorldState, context: TowerRushContext) {
     throw new Error("Tower rush start: home gold mine not found.");
   }
 
-  if (world.peasants.length < STARTING_PEASANT_COUNT) {
+  const [lumberMillBuilder, homeWorker] =
+    world.peasants.slice(FORWARD_WORKER_COUNT);
+
+  if (!lumberMillBuilder || !homeWorker) {
     throw new Error(
       `Tower rush start: expected ${STARTING_PEASANT_COUNT} Peasants, found ${world.peasants.length}.`,
     );
   }
-
-  const [lumberMillBuilder, homeWorker] =
-    world.peasants.slice(FORWARD_WORKER_COUNT);
 
   context.forwardWorkers = world.peasants.slice(0, FORWARD_WORKER_COUNT);
   context.goldWorkers = [homeWorker];

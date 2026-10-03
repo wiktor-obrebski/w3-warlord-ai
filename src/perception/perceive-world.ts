@@ -120,7 +120,7 @@ function findEnemyPlayer(
     if (
       candidate &&
       W3PlayerApi.GetPlayerSlotState(candidate) ===
-        W3PlayerApi.PLAYER_SLOT_STATE_PLAYING &&
+      W3PlayerApi.PLAYER_SLOT_STATE_PLAYING &&
       W3PlayerApi.IsPlayerEnemy(bot, candidate)
     ) {
       return candidate;

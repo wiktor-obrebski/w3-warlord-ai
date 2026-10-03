@@ -20,6 +20,15 @@ declare module "@lib/warcraft3-api/ai" {
   /**
    * Returns: nothing
    *
+   * This native must be called at the start of an AI file so that the following native `FillGuardPosts` works, if not then `FillGuardPosts` will continuosly train units if it is nested in a loop and also will cause the trained units not to go to replace the killed ones, instead they will remain near the building that trained them.
+   *
+   * @patch 1.00
+   */
+  export function StopGathering(): void;
+
+  /**
+   * Returns: nothing
+   *
    * Toggle the feature of making the heroes flee when they are seriously damaged.
    *
    * @param state (boolean) True: turned on. False: turned off.
