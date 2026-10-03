@@ -34,20 +34,6 @@ fi
 
   cat -- "$bundle"
 
-  cat <<LUA
-do
-    local startMeleeAI = StartMeleeAI
-
-    function StartMeleeAI(player, script)
-        if GetAIDifficulty(player) == AI_DIFFICULTY_NORMAL then
-            return WarlordAIMain(player)
-        end
-
-        return startMeleeAI(player, script)
-    end
-end
-LUA
-
   printf '\n-- W3 WARLORD INJECTION END\n'
 
   cat war3map.lua

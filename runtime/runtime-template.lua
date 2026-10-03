@@ -1,5 +1,3 @@
-local warlord_ai_started = false
-
 function WarlordAIMain(warlord_bot_player)
     local timer = CreateTimer()
     TimerStart(timer, 0.0, false, function()
@@ -9,13 +7,6 @@ function WarlordAIMain(warlord_bot_player)
 end
 
 function WarlordRunBundle(warlord_bot_player)
-    if warlord_ai_started then
-        return
-    end
-
-    warlord_ai_started = true
-
-
     local environment = setmetatable({}, { __index = _G })
     environment._G = environment
 
@@ -117,4 +108,105 @@ function WarlordRunBundle(warlord_bot_player)
     end
 
     runProtected(chunk)
+end
+
+do
+    local startMeleeAI = StartMeleeAI
+    StartMeleeAI = function (player, script)
+        if GetAIDifficulty(player) == AI_DIFFICULTY_NORMAL then
+            return installBotPlayer(player)
+        end
+
+        return startMeleeAI(player, script)
+    end
+end
+
+local realGetPlayerSlotState = GetPlayerSlotState
+local facadePlayers = {}
+local transferredPlayers = {}
+
+function installBotPlayer(botPlayer)
+    local warlordPlayer = findEmptyPlayerSlot()
+
+    if warlordPlayer == nil then
+        error("No empty player slot available for Warlord AI")
+    end
+
+    transferPlayerOwnership(botPlayer, warlordPlayer)
+    WarlordAIMain(warlordPlayer)
+
+    facadePlayers[botPlayer] = true
+    transferredPlayers[warlordPlayer] = true
+
+    SetPlayerName(warlordPlayer, "Warlord AI")
+
+    installPlayerSlotStateOverride()
+
+    return warlordPlayer
+end
+
+function findEmptyPlayerSlot()
+    for playerIndex = 0, bj_MAX_PLAYERS - 1 do
+        local player = Player(playerIndex)
+
+        if realGetPlayerSlotState(player) == PLAYER_SLOT_STATE_EMPTY then
+            return player
+        end
+    end
+
+    return nil
+end
+
+function transferPlayerOwnership(fromPlayer, toPlayer)
+    local group = CreateGroup()
+
+    GroupEnumUnitsOfPlayer(group, fromPlayer, nil)
+
+    ForGroup(group, function()
+        SetUnitOwner(GetEnumUnit(), toPlayer, true)
+    end)
+
+    DestroyGroup(group)
+
+    SetPlayerStartLocation(
+        toPlayer,
+        GetPlayerStartLocation(fromPlayer)
+    )
+
+    SetPlayerColor(
+        toPlayer,
+        GetPlayerColor(fromPlayer)
+    )
+
+    SetPlayerState(
+        toPlayer,
+        PLAYER_STATE_RESOURCE_GOLD,
+        GetPlayerState(fromPlayer, PLAYER_STATE_RESOURCE_GOLD)
+    )
+
+    SetPlayerState(
+        toPlayer,
+        PLAYER_STATE_RESOURCE_LUMBER,
+        GetPlayerState(fromPlayer, PLAYER_STATE_RESOURCE_LUMBER)
+    )
+
+    SetPlayerState(
+        toPlayer,
+        PLAYER_STATE_RESOURCE_HERO_TOKENS,
+        GetPlayerState(fromPlayer, PLAYER_STATE_RESOURCE_HERO_TOKENS)
+    )
+end
+
+function installPlayerSlotStateOverride()
+    GetPlayerSlotState = function(player)
+        if transferredPlayers[player] then
+            return PLAYER_SLOT_STATE_PLAYING
+        end
+
+        if facadePlayers[player] then
+            return PLAYER_SLOT_STATE_LEFT
+        end
+
+        return realGetPlayerSlotState(player)
+    end
 end
