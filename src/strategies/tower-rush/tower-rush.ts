@@ -5,6 +5,7 @@ import { updateStart } from "./phases/start";
 import { updateMovingToEnemy } from "./phases/moving-to-enemy";
 import { updateBuildingTowers } from "./phases/building-towers";
 import { updateUpgradingTowers } from "./phases/upgrading-towers";
+import { updateHoldingPosition } from "./phases/holding-position";
 import { maintainHomeEconomy } from "./home-economy";
 
 export function updateTowerRush(world: WorldState, context: TowerRushContext) {
@@ -34,6 +35,7 @@ export function updateTowerRush(world: WorldState, context: TowerRushContext) {
       break;
 
     case TowerRushPhase.HoldingPosition:
+      updateHoldingPosition(world, context);
       break;
   }
 

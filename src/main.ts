@@ -2,6 +2,7 @@ import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3TimerApi from "@lib/warcraft3-api/timer";
 import { debug } from "./debug";
 import { perceiveWorld } from "./perception/perceive-world";
+import { observeAttacksOn } from "./perception/attack-observer";
 import { installBotPlayer } from "./privileged/install-bot-player";
 import { enableDebugMode, updateDebugMode } from "./privileged/debug-mode";
 import { createTowerRushContext } from "./strategies/tower-rush/tower-rush-context";
@@ -26,10 +27,11 @@ function play(bot: W3PlayerApi.player) {
   debug(`Bot player id: ${W3PlayerApi.GetPlayerId(bot)}`);
 
   const towerRush = createTowerRushContext();
+  const attackObserver = observeAttacksOn(bot);
   const debugMode = DEBUG_MODE ? enableDebugMode(debugObserver()) : undefined;
 
   const update = () => {
-    updateTowerRush(perceiveWorld(bot), towerRush);
+    updateTowerRush(perceiveWorld(bot, attackObserver), towerRush);
 
     if (debugMode) {
       updateDebugMode(debugMode, bot);

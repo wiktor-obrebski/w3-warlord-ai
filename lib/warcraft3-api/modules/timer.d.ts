@@ -49,6 +49,19 @@ declare module "@lib/warcraft3-api/timer" {
   export function TimerStart(whichTimer: timer, timeout: number, periodic: boolean, handlerFunc: () => void): void;
 
   /**
+   * Returns: real
+   *
+   * @ai-generated Returns the time in seconds since the timer was started.
+   *
+   * @note If passed timer is paused or has expired,
+   *   this function returns `(TimerGetTimeout - TimerGetRemaining)`.
+   * @bug If passed timer was resumed by `ResumeTimer`,
+   *   this function returns amount of time elapsed after last resuming.
+   * @patch 1.00
+   */
+  export function TimerGetElapsed(whichTimer: timer): number;
+
+  /**
    * Returns: nothing
    *
    * @ai-generated Destroys the timer and releases its handle.

@@ -14,6 +14,27 @@ declare module "@lib/warcraft3-api/unit" {
   export const UNIT_TYPE_PEON: unittype;
 
   /**
+   * @ai-generated Unit classification for buildings, used with `IsUnitType`.
+   *
+   * @patch 1.00
+   */
+  export const UNIT_TYPE_STRUCTURE: unittype;
+
+  /**
+   * @ai-generated Unit classification for units with a melee attack, used with `IsUnitType`.
+   *
+   * @patch 1.00
+   */
+  export const UNIT_TYPE_MELEE_ATTACKER: unittype;
+
+  /**
+   * @ai-generated Unit classification for units with a ranged attack, used with `IsUnitType`.
+   *
+   * @patch 1.00
+   */
+  export const UNIT_TYPE_RANGED_ATTACKER: unittype;
+
+  /**
    * @ai-generated Unit state selecting the unit's current hit points.
    *
    * @patch 1.00
@@ -127,6 +148,25 @@ declare module "@lib/warcraft3-api/unit" {
    * @patch 1.00
    */
   export function IsUnitType(whichUnit: unit, whichUnitType: unittype): boolean;
+
+  /**
+   * Returns: boolean
+   *
+   * @ai-generated Returns true if `otherUnit` is within `distance` of `whichUnit`, taking the
+   *   units' collision sizes into account.
+   *
+   * @patch 1.00
+   */
+  export function IsUnitInRange(whichUnit: unit, otherUnit: unit, distance: number): boolean;
+
+  /**
+   * Returns: boolean
+   *
+   * @ai-generated Returns true if the unit is currently visible to the player.
+   *
+   * @patch 1.00
+   */
+  export function IsUnitVisible(whichUnit: unit, whichPlayer: player): boolean;
 
   /**
    * Returns: real

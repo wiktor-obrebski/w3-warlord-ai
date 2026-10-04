@@ -6,6 +6,19 @@ export interface Point {
   y: number;
 }
 
+// The handle is only for targeting orders; reasoning reads the observed
+// properties, which perception collects only while the unit is visible.
+export interface VisibleEnemy {
+  unit: W3UnitApi.unit;
+  life: number;
+  isMelee: boolean;
+  isRanged: boolean;
+  isSiege: boolean;
+  isStructure: boolean;
+  // The bot's unit it was recently seen starting an attack on.
+  attackTarget?: W3UnitApi.unit;
+}
+
 export interface WorldState {
   ownStartPosition: Point;
   enemyStartPosition?: Point;
@@ -16,6 +29,7 @@ export interface WorldState {
   idleUnits: W3UnitApi.unit[];
   harvestingUnits: W3UnitApi.unit[];
   holdingPositionUnits: W3UnitApi.unit[];
+  repairingUnits: W3UnitApi.unit[];
   // Includes towers still under construction.
   scoutTowers: W3UnitApi.unit[];
   guardTowers: W3UnitApi.unit[];
@@ -23,6 +37,8 @@ export interface WorldState {
   lumberMills: W3UnitApi.unit[];
   buildingsUnderConstruction: W3UnitApi.unit[];
   buildingsUpgrading: W3UnitApi.unit[];
+
+  visibleEnemies: VisibleEnemy[];
 
   gold: number;
   lumber: number;

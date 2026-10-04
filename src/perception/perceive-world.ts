@@ -8,7 +8,9 @@ import * as W3NightElfApi from "@lib/warcraft3-api/nightelf";
 import * as W3UndeadApi from "@lib/warcraft3-api/undead";
 import * as W3RectApi from "@lib/warcraft3-api/rect";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
-import { Point, WorldState } from "./world-state";
+import * as W3OrcApi from "@lib/warcraft3-api/orc";
+import { Point, VisibleEnemy, WorldState } from "./world-state";
+import { AttackObserver, recentAttackTarget } from "./attack-observer";
 
 type UnitGroup = ReturnType<typeof W3GroupApi.CreateGroup>;
 
@@ -22,14 +24,28 @@ const GOLD_MINE_TYPES: number[] = [
   W3NightElfApi.Building.ENTANGLED_GOLD_MINE,
   W3UndeadApi.Building.HAUNTED_GOLD_MINE,
 ];
+// Warcraft has no siege classification for units; these are the units whose
+// attack type is siege.
+const SIEGE_UNIT_TYPES: number[] = [
+  W3HumanApi.Unit.MORTAR_TEAM,
+  W3HumanApi.Unit.SIEGE_ENGINE,
+  W3HumanApi.Unit.SIEGE_ENGINE_WITH_BARRAGE,
+  W3OrcApi.Unit.DEMOLISHER,
+  W3NightElfApi.Unit.GLAIVE_THROWER,
+  W3UndeadApi.Unit.MEAT_WAGON,
+];
 const NO_ORDER = 0;
 const HARVEST_ORDER_STRINGS = ["harvest", "resumeharvesting", "returnresources"];
 // Warcraft treats units at or below this life as dead.
 const DEAD_UNIT_LIFE = 0.405;
 
-export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
+export function perceiveWorld(
+  bot: W3PlayerApi.player,
+  attackObserver: AttackObserver,
+): WorldState {
   const ownStartPosition = startPositionOf(bot);
-  const enemy = findEnemyPlayer(bot);
+  const enemies = enemyPlayers(bot);
+  const enemy = enemies[0];
   const enemyStartPosition = enemy && startPositionOf(enemy);
 
   const world: WorldState = {
@@ -40,11 +56,13 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
     idleUnits: [],
     harvestingUnits: [],
     holdingPositionUnits: [],
+    repairingUnits: [],
     scoutTowers: [],
     guardTowers: [],
     lumberMills: [],
     buildingsUnderConstruction: [],
     buildingsUpgrading: [],
+    visibleEnemies: visibleEnemies(bot, enemies, attackObserver),
     gold: W3PlayerApi.GetPlayerState(bot, W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD),
     lumber: W3PlayerApi.GetPlayerState(
       bot,
@@ -66,6 +84,8 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
     W3UnitApi.OrderId(order),
   );
   const holdPositionOrder = W3UnitApi.OrderId("holdposition");
+  // Assumed, not verified in-game, to stay the current order while repairing.
+  const repairOrder = W3UnitApi.OrderId("repair");
 
   for (const unit of unitsOfPlayer(bot)) {
     if (!isUnitAlive(unit)) {
@@ -80,6 +100,8 @@ export function perceiveWorld(bot: W3PlayerApi.player): WorldState {
       world.harvestingUnits.push(unit);
     } else if (order === holdPositionOrder) {
       world.holdingPositionUnits.push(unit);
+    } else if (order === repairOrder) {
+      world.repairingUnits.push(unit);
     }
 
     const typeId = W3UnitApi.GetUnitTypeId(unit);
@@ -137,9 +159,9 @@ function startPositionOf(whichPlayer: W3PlayerApi.player): Point {
   };
 }
 
-function findEnemyPlayer(
-  bot: W3PlayerApi.player,
-): W3PlayerApi.player | undefined {
+function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
+  const enemies: W3PlayerApi.player[] = [];
+
   for (let id = 0; id < W3PlayerApi.bj_MAX_PLAYERS; id++) {
     const candidate = W3PlayerApi.Player(id);
 
@@ -149,11 +171,42 @@ function findEnemyPlayer(
       W3PlayerApi.PLAYER_SLOT_STATE_PLAYING &&
       W3PlayerApi.IsPlayerEnemy(bot, candidate)
     ) {
-      return candidate;
+      enemies.push(candidate);
     }
   }
 
-  return undefined;
+  return enemies;
+}
+
+function visibleEnemies(
+  bot: W3PlayerApi.player,
+  enemies: W3PlayerApi.player[],
+  attackObserver: AttackObserver,
+): VisibleEnemy[] {
+  const visible: VisibleEnemy[] = [];
+
+  for (const enemy of enemies) {
+    for (const unit of unitsOfPlayer(enemy)) {
+      if (!isUnitAlive(unit) || !W3UnitApi.IsUnitVisible(unit, bot)) {
+        continue;
+      }
+
+      visible.push({
+        unit,
+        life: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE),
+        isMelee: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_MELEE_ATTACKER),
+        isRanged: W3UnitApi.IsUnitType(
+          unit,
+          W3UnitApi.UNIT_TYPE_RANGED_ATTACKER,
+        ),
+        isSiege: SIEGE_UNIT_TYPES.includes(W3UnitApi.GetUnitTypeId(unit)),
+        isStructure: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_STRUCTURE),
+        attackTarget: recentAttackTarget(attackObserver, unit),
+      });
+    }
+  }
+
+  return visible;
 }
 
 function findClosestGoldMine(position: Point): W3UnitApi.unit | undefined {

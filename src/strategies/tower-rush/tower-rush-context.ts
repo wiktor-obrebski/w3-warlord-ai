@@ -24,6 +24,11 @@ export interface TowerHelper {
   tower: W3UnitApi.unit;
 }
 
+export interface TowerTarget {
+  tower: W3UnitApi.unit;
+  target: W3UnitApi.unit;
+}
+
 export interface TowerRushContext {
   phase: TowerRushPhase;
 
@@ -42,6 +47,12 @@ export interface TowerRushContext {
   towerHelpers: TowerHelper[];
   // Where the rush towers stood when BuildingTowers ended.
   towerPositions: Point[];
+
+  // The tower the forward Peasants are repairing.
+  repairTarget?: W3UnitApi.unit;
+  // The last attack order of each Guard Tower, so it is not re-issued while
+  // the tower is still carrying it out.
+  towerTargets: TowerTarget[];
 }
 
 export function createTowerRushContext(): TowerRushContext {
@@ -54,6 +65,7 @@ export function createTowerRushContext(): TowerRushContext {
     pendingTowerSites: [],
     towerHelpers: [],
     towerPositions: [],
+    towerTargets: [],
     goldWorkers: [],
     lumberWorkers: [],
     trainingPeasantResource: undefined,
