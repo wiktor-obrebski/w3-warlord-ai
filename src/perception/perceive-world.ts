@@ -36,6 +36,9 @@ const SIEGE_UNIT_TYPES: number[] = [
   W3UndeadApi.Unit.MEAT_WAGON,
 ];
 const NO_ORDER = 0;
+// Assumed, not verified in-game: a build order's id is the rawcode of the
+// building, as with IssueBuildOrderById.
+const SCOUT_TOWER_BUILD_ORDER: number = W3HumanApi.Building.SCOUT_TOWER;
 const HARVEST_ORDER_STRINGS = ["harvest", "resumeharvesting", "returnresources"];
 // Warcraft treats units at or below this life as dead.
 const DEAD_UNIT_LIFE = 0.405;
@@ -62,6 +65,7 @@ export function perceiveWorld(
     returningResourcesUnits: [],
     holdingPositionUnits: [],
     repairingUnits: [],
+    scoutTowerBuildOrderUnits: [],
     scoutTowers: [],
     guardTowers: [],
     lumberMills: [],
@@ -114,6 +118,8 @@ export function perceiveWorld(
       world.holdingPositionUnits.push(unit);
     } else if (order === repairOrder) {
       world.repairingUnits.push(unit);
+    } else if (order === SCOUT_TOWER_BUILD_ORDER) {
+      world.scoutTowerBuildOrderUnits.push(unit);
     }
 
     const typeId = W3UnitApi.GetUnitTypeId(unit);

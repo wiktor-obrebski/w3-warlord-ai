@@ -94,10 +94,13 @@ export function updateBuildingTowers(
   // so free Peasants only help or hide once every tower has started; until
   // then they stay free to retry a failed build.
   if (towerPositions.length + sitesAwaitingTower.length < TOWER_COUNT) {
-    const builder = freeWorkers[0];
+    const builder = freeWorkers[0] ?? busyNonBuilder(world, context);
 
     if (builder) {
       forgetSentToSafety(builder, context);
+      context.towerHelpers = context.towerHelpers.filter(
+        (help) => help.helper !== builder,
+      );
       orderScoutTower(
         builder,
         {
@@ -136,6 +139,29 @@ export function updateBuildingTowers(
     context.towerPositions = towerPositions;
     context.phase = TowerRushPhase.UpgradingTowers;
   }
+}
+
+// A missing tower must not wait for a free Peasant: Warcraft can keep a
+// Peasant busy on its own, e.g. attacking or repairing, until the other
+// towers finish. Any living forward Peasant that is not building a tower is
+// taken off its order instead.
+function busyNonBuilder(
+  world: WorldState,
+  context: TowerRushContext,
+): W3UnitApi.unit | undefined {
+  const builders = context.pendingTowerSites.map((site) => site.builder);
+  const worker = context.forwardWorkers.find(
+    (candidate) =>
+      world.peasants.includes(candidate) && !builders.includes(candidate),
+  );
+
+  if (worker) {
+    debug(
+      "Tower rush: forward Peasant taken off its current order to build the missing tower.",
+    );
+  }
+
+  return worker;
 }
 
 function allTowersBuilt(world: WorldState): boolean {
@@ -261,8 +287,10 @@ function towerBuildingFinished(
   );
 }
 
-// A builder that is no longer busy has either started its tower, which is
-// then counted from perception, or given up on it.
+// Before its tower starts, a site lasts only while its builder still carries
+// the build order; any other order means the build was given up, even when
+// Warcraft gave that order on its own. Once the tower has started, the site
+// marks the tower's builder until the builder is free again.
 function forgetAbandonedTowerSites(
   world: WorldState,
   context: TowerRushContext,
@@ -270,11 +298,14 @@ function forgetAbandonedTowerSites(
   const towerPositions = world.scoutTowers.map((tower) => positionOf(tower));
 
   context.pendingTowerSites = context.pendingTowerSites.filter((site) => {
+    const started = hasStartedTower(site, towerPositions);
+    const builderAlive = world.peasants.includes(site.builder);
     const builderBusy =
-      world.peasants.includes(site.builder) &&
-      !isAvailableForwardPeasant(site.builder, world);
+      builderAlive &&
+      (world.scoutTowerBuildOrderUnits.includes(site.builder) ||
+        (started && !isAvailableForwardPeasant(site.builder, world)));
 
-    if (!builderBusy && !hasStartedTower(site, towerPositions)) {
+    if (!builderBusy && !started) {
       // PROBE (temporary): gold, lumber, and how far the nearest tower stands.
       debug(
         `Tower rush: Scout Tower build failed before it started; retrying. PROBE gold ${world.gold}, lumber ${world.lumber}, nearest tower ${probeNearestTower(site.position, towerPositions)} away.`,
