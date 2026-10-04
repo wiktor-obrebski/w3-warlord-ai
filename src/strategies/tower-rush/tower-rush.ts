@@ -7,14 +7,22 @@ import { updateBuildingTowers } from "./phases/building-towers";
 import { updateUpgradingTowers } from "./phases/upgrading-towers";
 import { updateHoldingPosition } from "./phases/holding-position";
 import { maintainHomeEconomy } from "./home-economy";
+import { forgetHidingOfUnsafeWorkers } from "./forward-workers";
+import { WorkerSafety } from "../../capabilities/worker-safety";
 
-export function updateTowerRush(world: WorldState, context: TowerRushContext) {
+export function updateTowerRush(
+  world: WorldState,
+  context: TowerRushContext,
+  workerSafety: WorkerSafety,
+) {
   const previousPhase = context.phase;
+
+  forgetHidingOfUnsafeWorkers(world, context, workerSafety);
 
   // The economy works from this tick's perception, which predates the orders
   // Start issues; running it on that tick would override them.
   if (previousPhase !== TowerRushPhase.Start) {
-    maintainHomeEconomy(world, context);
+    maintainHomeEconomy(world, context, workerSafety);
   }
 
   switch (context.phase) {
@@ -27,15 +35,15 @@ export function updateTowerRush(world: WorldState, context: TowerRushContext) {
       break;
 
     case TowerRushPhase.BuildingTowers:
-      updateBuildingTowers(world, context);
+      updateBuildingTowers(world, context, workerSafety);
       break;
 
     case TowerRushPhase.UpgradingTowers:
-      updateUpgradingTowers(world, context);
+      updateUpgradingTowers(world, context, workerSafety);
       break;
 
     case TowerRushPhase.HoldingPosition:
-      updateHoldingPosition(world, context);
+      updateHoldingPosition(world, context, workerSafety);
       break;
   }
 

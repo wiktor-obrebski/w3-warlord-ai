@@ -14,6 +14,10 @@ import {
   hideBehindClosestTower,
   isAvailableForwardPeasant,
 } from "../forward-workers";
+import {
+  isWorkerSafe,
+  WorkerSafety,
+} from "../../../capabilities/worker-safety";
 
 const TOWER_COUNT = 3;
 // Center distance at which a target still counts as within reach of the
@@ -57,6 +61,7 @@ interface PlacementRules {
 export function updateBuildingTowers(
   world: WorldState,
   context: TowerRushContext,
+  workerSafety: WorkerSafety,
 ) {
   const enemyMain = world.enemyStartPosition;
 
@@ -75,7 +80,10 @@ export function updateBuildingTowers(
   const sitesAwaitingTower = context.pendingTowerSites.filter(
     (site) => !hasStartedTower(site, towerPositions),
   );
-  const freeWorkers = context.forwardWorkers.filter((worker) =>
+  const safeWorkers = context.forwardWorkers.filter((worker) =>
+    isWorkerSafe(workerSafety, worker, world.time),
+  );
+  const freeWorkers = safeWorkers.filter((worker) =>
     isAvailableForwardPeasant(worker, world),
   );
 
@@ -94,7 +102,8 @@ export function updateBuildingTowers(
   // so free Peasants only help or hide once every tower has started; until
   // then they stay free to retry a failed build.
   if (towerPositions.length + sitesAwaitingTower.length < TOWER_COUNT) {
-    const builder = freeWorkers[0] ?? busyNonBuilder(world, context);
+    const builder =
+      freeWorkers[0] ?? busyNonBuilder(safeWorkers, world, context);
 
     if (builder) {
       forgetSentToSafety(builder, context);
@@ -143,14 +152,15 @@ export function updateBuildingTowers(
 
 // A missing tower must not wait for a free Peasant: Warcraft can keep a
 // Peasant busy on its own, e.g. attacking or repairing, until the other
-// towers finish. Any living forward Peasant that is not building a tower is
-// taken off its order instead.
+// towers finish. Any living, safe forward Peasant that is not building a
+// tower is taken off its order instead.
 function busyNonBuilder(
+  safeWorkers: W3UnitApi.unit[],
   world: WorldState,
   context: TowerRushContext,
 ): W3UnitApi.unit | undefined {
   const builders = context.pendingTowerSites.map((site) => site.builder);
-  const worker = context.forwardWorkers.find(
+  const worker = safeWorkers.find(
     (candidate) =>
       world.peasants.includes(candidate) && !builders.includes(candidate),
   );

@@ -5,6 +5,7 @@ import { debug } from "../../debug";
 import { WorldState } from "../../perception/world-state";
 import { HomeResource, TowerRushContext } from "./tower-rush-context";
 import { GUARD_TOWER_UPGRADE_GOLD_COST } from "./phases/upgrading-towers";
+import { isWorkerSafe, WorkerSafety } from "../../capabilities/worker-safety";
 
 const PEASANT_GOLD_COST = 75;
 // Warcraft's listed Peasant training time; not verified in-game.
@@ -33,10 +34,11 @@ const WORKER_TARGET_STAGES: WorkerTargets[] = [
 export function maintainHomeEconomy(
   world: WorldState,
   context: TowerRushContext,
+  workerSafety: WorkerSafety,
 ) {
   forgetDeadWorkers(world, context);
-  assignNewHomeWorkers(world, context);
-  returnIdleWorkersToTheirResource(world, context);
+  assignNewHomeWorkers(world, context, workerSafety);
+  returnIdleWorkersToTheirResource(world, context, workerSafety);
   maintainPeasantProduction(world, context);
 }
 
@@ -58,7 +60,11 @@ function completedLumberMill(world: WorldState): W3UnitApi.unit | undefined {
 // A trained Peasant leaves the Town Hall already harvesting the resource it
 // was rallied to. It is only ordered when the rally did not start it
 // harvesting, e.g. when the rallied destructable is not a tree.
-function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
+function assignNewHomeWorkers(
+  world: WorldState,
+  context: TowerRushContext,
+  workerSafety: WorkerSafety,
+) {
   for (const peasant of world.peasants) {
     if (isAssignedWorker(peasant, context)) {
       continue;
@@ -79,6 +85,7 @@ function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
 
     if (
       !world.harvestingUnits.includes(peasant) &&
+      isWorkerSafe(workerSafety, peasant, world.time) &&
       !orderHarvest(peasant, resource, world)
     ) {
       debug(`Tower rush: ${HomeResource[resource]} harvest order rejected.`);
@@ -144,15 +151,20 @@ function describeWorkers(context: TowerRushContext): string {
 function returnIdleWorkersToTheirResource(
   world: WorldState,
   context: TowerRushContext,
+  workerSafety: WorkerSafety,
 ) {
+  const isReturning = (worker: W3UnitApi.unit) =>
+    world.idleUnits.includes(worker) &&
+    isWorkerSafe(workerSafety, worker, world.time);
+
   for (const worker of context.goldWorkers) {
-    if (world.idleUnits.includes(worker)) {
+    if (isReturning(worker)) {
       orderHarvestGold(worker, world);
     }
   }
 
   for (const worker of context.lumberWorkers) {
-    if (world.idleUnits.includes(worker)) {
+    if (isReturning(worker)) {
       orderHarvestPreferredTree(worker, world);
     }
   }

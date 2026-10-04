@@ -29,13 +29,6 @@ export interface TowerTarget {
   target: W3UnitApi.unit;
 }
 
-export interface ForwardWorkerSafety {
-  worker: W3UnitApi.unit;
-  lastAttackedAt?: number;
-  // Set for the duration of one flee round.
-  fleeDestination?: Point;
-}
-
 export interface TowerRushContext {
   phase: TowerRushPhase;
 
@@ -66,7 +59,6 @@ export interface TowerRushContext {
   // The last attack order of each Guard Tower, so it is not re-issued while
   // the tower is still carrying it out.
   towerTargets: TowerTarget[];
-  forwardWorkerSafety: ForwardWorkerSafety[];
 }
 
 export function createTowerRushContext(): TowerRushContext {
@@ -80,7 +72,6 @@ export function createTowerRushContext(): TowerRushContext {
     towerHelpers: [],
     towerPositions: [],
     towerTargets: [],
-    forwardWorkerSafety: [],
     goldWorkers: [],
     lumberWorkers: [],
     peasantsInTraining: [],

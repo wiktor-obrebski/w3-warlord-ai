@@ -149,7 +149,7 @@ export function perceiveWorld(
   return world;
 }
 
-function isUnitAlive(unit: W3UnitApi.unit): boolean {
+export function isUnitAlive(unit: W3UnitApi.unit): boolean {
   return (
     W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE) > DEAD_UNIT_LIFE
   );
@@ -170,7 +170,7 @@ function startPositionOf(whichPlayer: W3PlayerApi.player): Point {
   };
 }
 
-function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
+export function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
   const enemies: W3PlayerApi.player[] = [];
 
   for (let id = 0; id < W3PlayerApi.bj_MAX_PLAYERS; id++) {
@@ -189,7 +189,7 @@ function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
   return enemies;
 }
 
-function visibleEnemies(
+export function visibleEnemies(
   bot: W3PlayerApi.player,
   enemies: W3PlayerApi.player[],
   attackObserver: AttackObserver,
@@ -295,7 +295,9 @@ function distanceBetween(a: Point, b: Point): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-function unitsOfPlayer(whichPlayer: W3PlayerApi.player): W3UnitApi.unit[] {
+export function unitsOfPlayer(
+  whichPlayer: W3PlayerApi.player,
+): W3UnitApi.unit[] {
   const group = W3GroupApi.CreateGroup();
   W3GroupApi.GroupEnumUnitsOfPlayer(group, whichPlayer, null);
   return drainGroup(group);

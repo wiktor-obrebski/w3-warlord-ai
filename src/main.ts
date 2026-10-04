@@ -4,6 +4,11 @@ import { debug } from "./debug";
 import { perceiveWorld } from "./perception/perceive-world";
 import { observeAttacksOn } from "./perception/attack-observer";
 import { startGameClock } from "./perception/game-clock";
+import { perceiveWorkerThreats } from "./perception/perceive-worker-threats";
+import {
+  createWorkerSafety,
+  updateWorkerSafety,
+} from "./capabilities/worker-safety";
 import { installBotPlayer } from "./privileged/install-bot-player";
 import { enableDebugMode, updateDebugMode } from "./privileged/debug-mode";
 import { createTowerRushContext } from "./strategies/tower-rush/tower-rush-context";
@@ -11,7 +16,8 @@ import { updateTowerRush } from "./strategies/tower-rush/tower-rush";
 
 declare function guard(this: void, callback: (this: void) => void): (this: void) => void;
 
-const UPDATE_INTERVAL_SECONDS = 1;
+const TICK_SECONDS = 0.1;
+const TICKS_PER_STRATEGY_UPDATE = 10;
 const DEBUG_MODE = true;
 
 /**
@@ -32,9 +38,25 @@ function play(bot: W3PlayerApi.player) {
   const attackObserver = observeAttacksOn(bot, clock);
   const debugMode = DEBUG_MODE ? enableDebugMode(debugObserver()) : undefined;
 
-  const loop = W3TimerApi.CreateTimer();
+  const workerSafety = createWorkerSafety();
 
+  const loop = W3TimerApi.CreateTimer();
+  let tick = 0;
+
+  // Worker safety runs first so the strategy perceives the flee orders it
+  // issues on the same tick.
   const update = () => {
+    updateWorkerSafety(
+      workerSafety,
+      perceiveWorkerThreats(bot, clock, attackObserver),
+    );
+
+    if (tick++ % TICKS_PER_STRATEGY_UPDATE === 0) {
+      updateStrategy();
+    }
+  };
+
+  const updateStrategy = () => {
     const world = perceiveWorld(bot, clock, attackObserver);
 
     if (world.enemyPlayersPlaying === 0) {
@@ -42,14 +64,14 @@ function play(bot: W3PlayerApi.player) {
       return;
     }
 
-    updateTowerRush(world, towerRush);
+    updateTowerRush(world, towerRush, workerSafety);
 
     if (debugMode) {
       updateDebugMode(debugMode, bot);
     }
   };
 
-  W3TimerApi.TimerStart(loop, UPDATE_INTERVAL_SECONDS, true, guard(update));
+  W3TimerApi.TimerStart(loop, TICK_SECONDS, true, guard(update));
   update();
 }
 

@@ -3,6 +3,7 @@ import { debug } from "../../../debug";
 import { VisibleEnemy, WorldState } from "../../../perception/world-state";
 import { TowerRushContext } from "../tower-rush-context";
 import { maintainTowers } from "../tower-repair";
+import { WorkerSafety } from "../../../capabilities/worker-safety";
 
 // Not verified in-game that IsUnitInRange matches the tower's own reach.
 const GUARD_TOWER_ATTACK_RANGE = 700;
@@ -30,8 +31,9 @@ interface RankedTarget {
 export function updateHoldingPosition(
   world: WorldState,
   context: TowerRushContext,
+  workerSafety: WorkerSafety,
 ) {
-  maintainTowers(world, context);
+  maintainTowers(world, context, workerSafety);
   controlTowerAggression(world, context);
 }
 

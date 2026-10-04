@@ -58,6 +58,16 @@ export function recentAttackTarget(
   )?.target;
 }
 
+/** Whether any attacker recently started an attack on the bot's unit. */
+export function isRecentlyAttacked(
+  observer: AttackObserver,
+  target: W3UnitApi.unit,
+): boolean {
+  return observer.attacks.some(
+    (attack) => attack.target === target && isRecent(attack, observer),
+  );
+}
+
 function recordAttack(observer: AttackObserver) {
   const attacker = W3TriggerApi.GetAttacker();
   const target = W3TriggerApi.GetTriggerUnit();

@@ -2,6 +2,7 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { debug } from "../../debug";
 import { Point, WorldState } from "../../perception/world-state";
 import { TowerRushContext } from "./tower-rush-context";
+import { isWorkerSafe, WorkerSafety } from "../../capabilities/worker-safety";
 
 // Clears the tower's 128x128 footprint with room for the Peasant.
 const HIDING_DISTANCE_BEHIND_TOWER = 160;
@@ -34,6 +35,19 @@ export function forgetSentToSafety(
 ) {
   context.forwardWorkersSentToSafety = context.forwardWorkersSentToSafety.filter(
     (sent) => sent !== worker,
+  );
+}
+
+// An attacked Peasant may have fled its hiding spot, so it is sent to hide
+// again. A flee round can start and end between two strategy updates, so
+// this does not wait to see the Peasant fleeing.
+export function forgetHidingOfUnsafeWorkers(
+  world: WorldState,
+  context: TowerRushContext,
+  workerSafety: WorkerSafety,
+) {
+  context.forwardWorkersSentToSafety = context.forwardWorkersSentToSafety.filter(
+    (worker) => isWorkerSafe(workerSafety, worker, world.time),
   );
 }
 
@@ -81,11 +95,11 @@ export function closestUnit(
   return closest;
 }
 
-export function positionOf(unit: W3UnitApi.unit): Point {
+function positionOf(unit: W3UnitApi.unit): Point {
   return { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) };
 }
 
-export function distanceBetween(a: Point, b: Point): number {
+function distanceBetween(a: Point, b: Point): number {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   return Math.sqrt(dx * dx + dy * dy);
