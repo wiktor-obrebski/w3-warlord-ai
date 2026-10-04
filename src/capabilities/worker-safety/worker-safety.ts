@@ -26,11 +26,15 @@ export enum WorkerSafetyStatus {
   Safe,
 }
 
+interface FleeRound {
+  origin: Point;
+  destination: Point;
+}
+
 interface WorkerSafetyRecord {
   worker: W3UnitApi.unit;
   lastAttackedAt: number;
-  // Set for the duration of one flee round.
-  fleeDestination?: Point;
+  fleeRound?: FleeRound;
 }
 
 /** Workers recently attacked; any worker without a record is safe. */
@@ -80,7 +84,7 @@ export function isWorkerSafe(
 }
 
 function statusOf(record: WorkerSafetyRecord, now: number): WorkerSafetyStatus {
-  if (record.fleeDestination) {
+  if (record.fleeRound) {
     return WorkerSafetyStatus.Fleeing;
   }
 
@@ -89,9 +93,10 @@ function statusOf(record: WorkerSafetyRecord, now: number): WorkerSafetyStatus {
     : WorkerSafetyStatus.Recovering;
 }
 
-// Each flee round runs a fixed distance to a destination kept until the
-// round ends, so the worker is not turned around on every update as the
-// enemies move.
+// Each flee round runs to a destination kept until the round ends, so the
+// worker is not turned around on every update as the enemies move. A worker
+// no longer attacked stops halfway, so it does not run further from its work
+// than needed.
 function protectWorker(
   worker: ObservedWorker,
   perception: WorkerSafetyPerception,
@@ -110,12 +115,14 @@ function protectWorker(
     return;
   }
 
-  if (record.fleeDestination) {
-    if (!fleeRoundFinished(worker, record.fleeDestination)) {
+  if (record.fleeRound) {
+    if (!worker.isAttacked && fledHalfway(worker, record.fleeRound)) {
+      stopFleeing(worker);
+    } else if (!fleeRoundFinished(worker, record.fleeRound)) {
       return;
     }
 
-    record.fleeDestination = undefined;
+    record.fleeRound = undefined;
 
     if (!worker.isAttacked) {
       debug("Worker safety: worker is no longer attacked.");
@@ -129,12 +136,26 @@ function protectWorker(
 
 // An unreachable destination ends the move short of it, leaving the worker
 // idle.
-function fleeRoundFinished(worker: ObservedWorker, destination: Point): boolean {
+function fleeRoundFinished(worker: ObservedWorker, round: FleeRound): boolean {
   return (
     worker.isIdle ||
-    distanceBetween(worker.position, destination) <=
+    distanceBetween(worker.position, round.destination) <=
       FLEE_DESTINATION_REACHED_DISTANCE
   );
+}
+
+function fledHalfway(worker: ObservedWorker, round: FleeRound): boolean {
+  return (
+    distanceBetween(round.origin, worker.position) >= FLEE_ROUND_DISTANCE / 2
+  );
+}
+
+// Left moving, the worker would run the rest of the way while other code
+// already treats it as no longer fleeing.
+function stopFleeing(worker: ObservedWorker) {
+  if (!worker.isIdle && !W3UnitApi.IssueImmediateOrder(worker.unit, "stop")) {
+    debug("Worker safety: stop order rejected.");
+  }
 }
 
 function startFleeRound(
@@ -156,7 +177,7 @@ function startFleeRound(
   if (
     W3UnitApi.IssuePointOrder(worker.unit, "move", destination.x, destination.y)
   ) {
-    record.fleeDestination = destination;
+    record.fleeRound = { origin: worker.position, destination };
     debug(
       `Worker safety: attacked worker flees from ${nearby.length} nearby enemies.`,
     );
