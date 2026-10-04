@@ -79,6 +79,16 @@ export function updateBuildingTowers(
     isAvailableForwardPeasant(worker, world),
   );
 
+  // PROBE (temporary): log the tower count whenever it changes, with how far
+  // each pending site is from its nearest tower.
+  const probeState = `${towerPositions.length} started, ${sitesAwaitingTower.length} awaiting (${sitesAwaitingTower
+    .map((site) => probeNearestTower(site.position, towerPositions))
+    .join(", ")} from nearest tower), ${freeWorkers.length} free`;
+  if (probeState !== lastProbeState) {
+    debug(`PROBE towers: ${probeState}`);
+    lastProbeState = probeState;
+  }
+
   // Free Peasants keep ordering missing towers, each attempt searching from
   // the beginning. An ordered tower can still fail when its builder arrives,
   // so free Peasants only help or hide once every tower has started; until
@@ -99,6 +109,7 @@ export function updateBuildingTowers(
           ],
           requireEnemyMainInReach: true,
         },
+        world,
         context,
       );
     }
@@ -264,7 +275,10 @@ function forgetAbandonedTowerSites(
       !isAvailableForwardPeasant(site.builder, world);
 
     if (!builderBusy && !hasStartedTower(site, towerPositions)) {
-      debug("Tower rush: Scout Tower build failed before it started; retrying.");
+      // PROBE (temporary): gold, lumber, and how far the nearest tower stands.
+      debug(
+        `Tower rush: Scout Tower build failed before it started; retrying. PROBE gold ${world.gold}, lumber ${world.lumber}, nearest tower ${probeNearestTower(site.position, towerPositions)} away.`,
+      );
     }
 
     return builderBusy;
@@ -283,8 +297,17 @@ function hasStartedTower(site: TowerSite, towerPositions: Point[]): boolean {
 function orderScoutTower(
   worker: W3UnitApi.unit,
   rules: PlacementRules,
+  world: WorldState,
   context: TowerRushContext,
 ) {
+  probeRejections = {
+    enemyMainTooClose: 0,
+    enemyMainOutOfReach: 0,
+    mineOutOfReach: 0,
+    overlaps: 0,
+    warcraft: 0,
+  };
+
   for (const requireEnemyMainInReach of [true, false]) {
     const searchRules = { ...rules, requireEnemyMainInReach };
     const coverage = requireEnemyMainInReach
@@ -310,8 +333,35 @@ function orderScoutTower(
     }
   }
 
-  debug("Tower rush: no Scout Tower placement accepted.");
+  debug(
+    `Tower rush: no Scout Tower placement accepted. PROBE rejections: enemy main too close ${probeRejections.enemyMainTooClose}, enemy main out of reach ${probeRejections.enemyMainOutOfReach}, mine out of reach ${probeRejections.mineOutOfReach}, overlaps ${probeRejections.overlaps}, Warcraft ${probeRejections.warcraft}; gold ${world.gold}.`,
+  );
 }
+
+let lastProbeState = "";
+
+function probeNearestTower(position: Point, towers: Point[]): string {
+  let nearest: number | undefined;
+
+  for (const tower of towers) {
+    const distance = distanceBetween(tower, position);
+
+    if (nearest === undefined || distance < nearest) {
+      nearest = distance;
+    }
+  }
+
+  return nearest === undefined ? "none" : `${Math.floor(nearest)}`;
+}
+
+// PROBE (temporary): why placement attempts are rejected.
+let probeRejections = {
+  enemyMainTooClose: 0,
+  enemyMainOutOfReach: 0,
+  mineOutOfReach: 0,
+  overlaps: 0,
+  warcraft: 0,
+};
 
 function orderScoutTowerNextToFirstTower(
   worker: W3UnitApi.unit,
@@ -374,17 +424,35 @@ function tryOrderScoutTower(
   context: TowerRushContext,
 ): boolean {
   const distanceToEnemyMain = distanceBetween(rules.enemyMain, position);
-  const accepted =
+
+  // PROBE (temporary): tally the first failing rule.
+  if (distanceToEnemyMain < MIN_DISTANCE_FROM_ENEMY_MAIN) {
+    probeRejections.enemyMainTooClose++;
+  } else if (rules.requireEnemyMainInReach && distanceToEnemyMain > TOWER_REACH) {
+    probeRejections.enemyMainOutOfReach++;
+  } else if (distanceBetween(rules.mine, position) > TOWER_REACH) {
+    probeRejections.mineOutOfReach++;
+  } else if (overlapsTower(position, rules.occupied)) {
+    probeRejections.overlaps++;
+  }
+
+  const passesRules =
     distanceToEnemyMain >= MIN_DISTANCE_FROM_ENEMY_MAIN &&
     (!rules.requireEnemyMainInReach || distanceToEnemyMain <= TOWER_REACH) &&
     distanceBetween(rules.mine, position) <= TOWER_REACH &&
-    !overlapsTower(position, rules.occupied) &&
+    !overlapsTower(position, rules.occupied);
+  const accepted =
+    passesRules &&
     W3UnitApi.IssueBuildOrderById(
       worker,
       W3HumanApi.Building.SCOUT_TOWER,
       position.x,
       position.y,
     );
+
+  if (passesRules && !accepted) {
+    probeRejections.warcraft++;
+  }
 
   if (accepted) {
     context.pendingTowerSites.push({ builder: worker, position });
