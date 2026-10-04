@@ -3,6 +3,7 @@ import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, WorldState } from "../../../perception/world-state";
 import { TowerRushContext, TowerRushPhase } from "../tower-rush-context";
+import { maintainTowers } from "../tower-repair";
 
 const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
 const GUARD_TOWER_UPGRADE_LUMBER_COST = 50;
@@ -25,11 +26,14 @@ interface PlannedTower {
 
 // Each completed Scout Tower is upgraded as soon as the player can afford it,
 // in the order the towers are stored, so a short budget upgrades them one by
-// one without waiting for the others to finish.
+// one without waiting for the others to finish. The enemy may already attack
+// the towers, so they are repaired meanwhile.
 export function updateUpgradingTowers(
   world: WorldState,
   context: TowerRushContext,
 ) {
+  maintainTowers(world, context);
+
   const towers = context.towerPositions.map((position) =>
     plannedTowerAt(position, world),
   );
