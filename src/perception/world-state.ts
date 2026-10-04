@@ -25,6 +25,8 @@ export interface WorldState {
   time: number;
   ownStartPosition: Point;
   enemyStartPosition?: Point;
+  // Enemy players still in the game; a defeated player is no longer counted.
+  enemyPlayersPlaying: number;
 
   townHall?: W3UnitApi.unit;
   peasants: W3UnitApi.unit[];

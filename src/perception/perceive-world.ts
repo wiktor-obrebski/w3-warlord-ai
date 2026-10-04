@@ -54,6 +54,7 @@ export function perceiveWorld(
     time: readGameClock(clock),
     ownStartPosition,
     enemyStartPosition,
+    enemyPlayersPlaying: enemies.length,
     peasants: [],
     militia: [],
     idleUnits: [],

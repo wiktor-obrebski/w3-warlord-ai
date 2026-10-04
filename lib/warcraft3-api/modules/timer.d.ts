@@ -64,6 +64,16 @@ declare module "@lib/warcraft3-api/timer" {
   /**
    * Returns: nothing
    *
+   * @ai-generated Stops the timer without destroying it.
+   *
+   * @bug The timer's periodic flag will be cleared.
+   * @patch 1.00
+   */
+  export function PauseTimer(whichTimer: timer): void;
+
+  /**
+   * Returns: nothing
+   *
    * @ai-generated Destroys the timer and releases its handle.
    *
    * @bug Destroying does not pause timer, so if call of its callback is scheduled,

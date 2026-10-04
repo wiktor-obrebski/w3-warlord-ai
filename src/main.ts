@@ -32,22 +32,33 @@ function play(bot: W3PlayerApi.player) {
   const attackObserver = observeAttacksOn(bot, clock);
   const debugMode = DEBUG_MODE ? enableDebugMode(debugObserver()) : undefined;
 
+  const loop = W3TimerApi.CreateTimer();
+
   const update = () => {
-    updateTowerRush(perceiveWorld(bot, clock, attackObserver), towerRush);
+    const world = perceiveWorld(bot, clock, attackObserver);
+
+    if (world.enemyPlayersPlaying === 0) {
+      stopLoop(loop);
+      return;
+    }
+
+    updateTowerRush(world, towerRush);
 
     if (debugMode) {
       updateDebugMode(debugMode, bot);
     }
   };
 
+  W3TimerApi.TimerStart(loop, UPDATE_INTERVAL_SECONDS, true, guard(update));
   update();
+}
 
-  W3TimerApi.TimerStart(
-    W3TimerApi.CreateTimer(),
-    UPDATE_INTERVAL_SECONDS,
-    true,
-    guard(update),
-  );
+// With every enemy defeated there is nothing left to play for, and the
+// strategy cannot run without an enemy.
+function stopLoop(loop: W3TimerApi.timer) {
+  W3TimerApi.PauseTimer(loop);
+  W3TimerApi.DestroyTimer(loop);
+  debug("Game won; Warlord AI stops.");
 }
 
 // The same player `debug` messages are shown to.
