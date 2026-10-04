@@ -1,0 +1,6 @@
+{
+  "name": "@lib/math",
+  "private": true,
+  "main": "./math.ts",
+  "types": "./math.ts"
+}

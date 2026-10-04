@@ -12,7 +12,10 @@
     "skipLibCheck": true,
     "strictPropertyInitialization": false,
     "noUncheckedIndexedAccess": true,
-    "allowUnreachableCode": false
+    "allowUnreachableCode": false,
+    "paths": {
+      "@lib/math": ["./lib/math/math.ts"]
+    }
   },
   "tstl": {
     "luaTarget": "5.3",
