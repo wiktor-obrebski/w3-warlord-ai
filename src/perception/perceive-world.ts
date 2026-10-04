@@ -9,7 +9,8 @@ import * as W3UndeadApi from "@lib/warcraft3-api/undead";
 import * as W3RectApi from "@lib/warcraft3-api/rect";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import * as W3OrcApi from "@lib/warcraft3-api/orc";
-import { Point, VisibleEnemy, WorldState } from "./world-state";
+import { Point, Vector } from "@lib/math";
+import { VisibleEnemy, WorldState } from "./world-state";
 import { AttackObserver, recentAttackTarget } from "./attack-observer";
 import { GameClock, readGameClock } from "./game-clock";
 
@@ -164,10 +165,10 @@ function isDestructableAlive(
 function startPositionOf(whichPlayer: W3PlayerApi.player): Point {
   const startLocation = W3PlayerApi.GetPlayerStartLocation(whichPlayer);
 
-  return {
-    x: W3LocationApi.GetStartLocationX(startLocation),
-    y: W3LocationApi.GetStartLocationY(startLocation),
-  };
+  return new Point(
+    W3LocationApi.GetStartLocationX(startLocation),
+    W3LocationApi.GetStartLocationY(startLocation),
+  );
 }
 
 export function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
@@ -209,7 +210,7 @@ export function visibleEnemies(
 
       visible.push({
         unit,
-        position: { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) },
+        position: new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit)),
         life: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE),
         isMelee: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_MELEE_ATTACKER),
         isRanged: W3UnitApi.IsUnitType(
@@ -240,10 +241,10 @@ function findClosestGoldMine(position: Point): W3UnitApi.unit | undefined {
       continue;
     }
 
-    const distance = distanceBetween(position, {
-      x: W3UnitApi.GetUnitX(unit),
-      y: W3UnitApi.GetUnitY(unit),
-    });
+    const distance = new Vector(
+      position,
+      new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit)),
+    ).length;
 
     if (distance < closestDistance) {
       closest = unit;
@@ -258,12 +259,9 @@ function destructablesByDistance(
   position: Point,
   radius: number,
 ): W3DestructableApi.destructable[] {
-  const area = W3RectApi.Rect(
-    position.x - radius,
-    position.y - radius,
-    position.x + radius,
-    position.y + radius,
-  );
+  const min = position.translate(new Vector(-radius, -radius));
+  const max = position.translate(new Vector(radius, radius));
+  const area = W3RectApi.Rect(min.x, min.y, max.x, max.y);
   const found: {
     destructable: W3DestructableApi.destructable;
     distance: number;
@@ -275,10 +273,13 @@ function destructablesByDistance(
     if (destructable && isDestructableAlive(destructable)) {
       found.push({
         destructable,
-        distance: distanceBetween(position, {
-          x: W3DestructableApi.GetDestructableX(destructable),
-          y: W3DestructableApi.GetDestructableY(destructable),
-        }),
+        distance: new Vector(
+          position,
+          new Point(
+            W3DestructableApi.GetDestructableX(destructable),
+            W3DestructableApi.GetDestructableY(destructable),
+          ),
+        ).length,
       });
     }
   });
@@ -287,12 +288,6 @@ function destructablesByDistance(
   found.sort((a, b) => a.distance - b.distance);
 
   return found.map((entry) => entry.destructable);
-}
-
-function distanceBetween(a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  return Math.sqrt(dx * dx + dy * dy);
 }
 
 export function unitsOfPlayer(

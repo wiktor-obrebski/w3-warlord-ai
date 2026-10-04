@@ -1,7 +1,8 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3MathApi from "@lib/warcraft3-api/math";
 import { debug } from "../../debug";
-import { Point, VisibleEnemy } from "../../perception/world-state";
+import { Point, Vector } from "@lib/math";
+import { VisibleEnemy } from "../../perception/world-state";
 import {
   isWalkable,
   ObservedWorker,
@@ -139,14 +140,14 @@ function protectWorker(
 function fleeRoundFinished(worker: ObservedWorker, round: FleeRound): boolean {
   return (
     worker.isIdle ||
-    distanceBetween(worker.position, round.destination) <=
+    new Vector(worker.position, round.destination).length <=
       FLEE_DESTINATION_REACHED_DISTANCE
   );
 }
 
 function fledHalfway(worker: ObservedWorker, round: FleeRound): boolean {
   return (
-    distanceBetween(round.origin, worker.position) >= FLEE_ROUND_DISTANCE / 2
+    new Vector(round.origin, worker.position).length >= FLEE_ROUND_DISTANCE / 2
   );
 }
 
@@ -229,40 +230,28 @@ function nearbyThreats(
         (!enemy.isStructure &&
           !enemy.isWorker &&
           (enemy.isMelee || enemy.isRanged))) &&
-      distanceBetween(position, enemy.position) <= THREAT_RADIUS,
+      new Vector(position, enemy.position).length <= THREAT_RADIUS,
   );
 }
 
 function averagePosition(enemies: VisibleEnemy[]): Point {
-  let x = 0;
-  let y = 0;
+  const origin = new Point(0, 0);
+  let sum = new Vector(0, 0);
 
   for (const enemy of enemies) {
-    x += enemy.position.x;
-    y += enemy.position.y;
+    sum = sum.add(new Vector(origin, enemy.position));
   }
 
-  return { x: x / enemies.length, y: y / enemies.length };
+  return origin.translate(sum.multiply(1 / enemies.length));
 }
 
 // Undefined when standing on the threat, which gives no direction.
 function angleAwayFrom(threat: Point, from: Point): number | undefined {
-  if (distanceBetween(threat, from) === 0) {
-    return undefined;
-  }
+  const away = new Vector(threat, from);
 
-  return Math.atan2(from.y - threat.y, from.x - threat.x);
+  return away.isZeroLength() ? undefined : away.slope;
 }
 
 function pointAt(from: Point, angle: number, distance: number): Point {
-  return {
-    x: from.x + Math.cos(angle) * distance,
-    y: from.y + Math.sin(angle) * distance,
-  };
-}
-
-function distanceBetween(a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  return Math.sqrt(dx * dx + dy * dy);
+  return from.translate(new Vector(distance, 0).rotate(angle));
 }

@@ -1,6 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
+import { Point, Vector } from "@lib/math";
 import { debug } from "../../debug";
 import { WorldState } from "../../perception/world-state";
 import { HomeResource, TowerRushContext } from "./tower-rush-context";
@@ -321,20 +322,14 @@ function sortByDistanceTo(
   destructables: W3DestructableApi.destructable[],
   unit: W3UnitApi.unit,
 ): W3DestructableApi.destructable[] {
-  const x = W3UnitApi.GetUnitX(unit);
-  const y = W3UnitApi.GetUnitY(unit);
-  const distanceSquared = (destructable: W3DestructableApi.destructable) => {
-    const dx = W3DestructableApi.GetDestructableX(destructable) - x;
-    const dy = W3DestructableApi.GetDestructableY(destructable) - y;
-    return dx * dx + dy * dy;
-  };
+  const origin = new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit));
 
   return destructables
     .map((destructable) => ({
       destructable,
-      distanceSquared: distanceSquared(destructable),
+      distance: new Vector(origin, destructablePosition(destructable)).length,
     }))
-    .sort((a, b) => a.distanceSquared - b.distanceSquared)
+    .sort((a, b) => a.distance - b.distance)
     .map((entry) => entry.destructable);
 }
 
@@ -350,18 +345,27 @@ function destructablesAwayFromUnfinishedMill(
   }
 
   const hall = world.ownStartPosition;
-  const toMillX = W3UnitApi.GetUnitX(mill) - hall.x;
-  const toMillY = W3UnitApi.GetUnitY(mill) - hall.y;
+  const toMill = new Vector(
+    hall,
+    new Point(W3UnitApi.GetUnitX(mill), W3UnitApi.GetUnitY(mill)),
+  );
   const isAwayFromMill = (destructable: W3DestructableApi.destructable) =>
-    (W3DestructableApi.GetDestructableX(destructable) - hall.x) * toMillX +
-    (W3DestructableApi.GetDestructableY(destructable) - hall.y) * toMillY <
-    0;
+    new Vector(hall, destructablePosition(destructable)).dot(toMill) < 0;
   const nearHome = world.destructablesNearHomeByDistance;
 
   return [
     ...nearHome.filter((destructable) => isAwayFromMill(destructable)),
     ...nearHome.filter((destructable) => !isAwayFromMill(destructable)),
   ];
+}
+
+function destructablePosition(
+  destructable: W3DestructableApi.destructable,
+): Point {
+  return new Point(
+    W3DestructableApi.GetDestructableX(destructable),
+    W3DestructableApi.GetDestructableY(destructable),
+  );
 }
 
 function isAssignedWorker(

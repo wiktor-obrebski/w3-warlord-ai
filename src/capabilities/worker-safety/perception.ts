@@ -1,7 +1,8 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
-import { Point, VisibleEnemy } from "../../perception/world-state";
+import { Point } from "@lib/math";
+import { VisibleEnemy } from "../../perception/world-state";
 import {
   AttackObserver,
   isRecentlyAttacked,
@@ -61,7 +62,7 @@ export function perceiveWorkerSafety(
     )
     .map((unit) => ({
       unit,
-      position: { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) },
+      position: new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit)),
       isIdle: W3UnitApi.GetUnitCurrentOrder(unit) === NO_ORDER,
       isAttacked: isRecentlyAttacked(attackObserver, unit),
     }));

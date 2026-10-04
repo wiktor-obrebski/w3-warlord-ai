@@ -5,6 +5,7 @@ import * as W3GroupApi from "@lib/warcraft3-api/group";
 import * as W3LocationApi from "@lib/warcraft3-api/location";
 import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3OrcApi from "@lib/warcraft3-api/orc";
+import { Point, Vector } from "@lib/math";
 
 declare const warlord_bot_player: W3PlayerApi.player;
 
@@ -47,10 +48,12 @@ function buildAltar(bot: W3PlayerApi.player) {
   const startLocation =
     W3LocationApi.GetStartLocationLoc(startLocationIndex);
 
-  const baseX = W3LocationApi.GetLocationX(startLocation);
-  const baseY = W3LocationApi.GetLocationY(startLocation);
+  const base = new Point(
+    W3LocationApi.GetLocationX(startLocation),
+    W3LocationApi.GetLocationY(startLocation),
+  );
 
-  debug(`Base: ${baseX}, ${baseY}`);
+  debug(`Base: ${base.x}, ${base.y}`);
 
   W3LocationApi.RemoveLocation(startLocation);
 
@@ -61,14 +64,13 @@ function buildAltar(bot: W3PlayerApi.player) {
     const distance =
       W3MathApi.GetRandomReal(500, 900);
 
-    const x = baseX + Math.cos(angle) * distance;
-    const y = baseY + Math.sin(angle) * distance;
+    const site = base.translate(new Vector(distance, 0).rotate(angle));
 
     const accepted = W3UnitApi.IssueBuildOrderById(
       peon,
       W3OrcApi.Building.ALTAR,
-      x,
-      y,
+      site.x,
+      site.y,
     );
 
     if (accepted) {

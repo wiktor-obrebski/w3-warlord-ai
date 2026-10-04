@@ -2,7 +2,8 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import { debug } from "../../../debug";
-import { Point, WorldState } from "../../../perception/world-state";
+import { Point, Vector } from "@lib/math";
+import { WorldState } from "../../../perception/world-state";
 import { TowerRushContext, TowerRushPhase } from "../tower-rush-context";
 import { trainPeasant } from "../home-economy";
 
@@ -70,7 +71,7 @@ function orderLumberMill(
   const sites = lumberMillCandidates(hall, positionOf(mine))
     .map((position) => ({
       position,
-      hallDistance: distanceBetween(position, hall),
+      hallDistance: new Vector(position, hall).length,
       treeDistance: nearestDistance(position, trees),
     }))
     .sort(
@@ -100,7 +101,7 @@ function orderLumberMill(
 // Rings around the Town Hall, spaced about CANDIDATE_SPACING apart, on the
 // half facing away from the gold mine.
 function lumberMillCandidates(hall: Point, mine: Point): Point[] {
-  const awayFromMine = Math.atan2(hall.y - mine.y, hall.x - mine.x);
+  const awayFromMine = new Vector(mine, hall).slope;
   const candidates: Point[] = [];
 
   for (
@@ -111,12 +112,9 @@ function lumberMillCandidates(hall: Point, mine: Point): Point[] {
     const angleStep = CANDIDATE_SPACING / distance;
 
     for (let offset = -Math.PI / 2; offset <= Math.PI / 2; offset += angleStep) {
-      const angle = awayFromMine + offset;
-
-      candidates.push({
-        x: hall.x + Math.cos(angle) * distance,
-        y: hall.y + Math.sin(angle) * distance,
-      });
+      candidates.push(
+        hall.translate(new Vector(distance, 0).rotate(awayFromMine + offset)),
+      );
     }
   }
 
@@ -131,10 +129,13 @@ function treePositions(builder: W3UnitApi.unit, world: WorldState): Point[] {
     .filter((destructable) =>
       W3UnitApi.IssueTargetOrder(builder, "harvest", destructable),
     )
-    .map((tree) => ({
-      x: W3DestructableApi.GetDestructableX(tree),
-      y: W3DestructableApi.GetDestructableY(tree),
-    }));
+    .map(
+      (tree) =>
+        new Point(
+          W3DestructableApi.GetDestructableX(tree),
+          W3DestructableApi.GetDestructableY(tree),
+        ),
+    );
 }
 
 // Without any trees every spot scores alike, leaving only the hall distance.
@@ -142,18 +143,12 @@ function nearestDistance(position: Point, others: Point[]): number {
   let nearest = others.length === 0 ? 0 : Infinity;
 
   for (const other of others) {
-    nearest = Math.min(nearest, distanceBetween(position, other));
+    nearest = Math.min(nearest, new Vector(position, other).length);
   }
 
   return nearest;
 }
 
 function positionOf(unit: W3UnitApi.unit): Point {
-  return { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) };
-}
-
-function distanceBetween(a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  return Math.sqrt(dx * dx + dy * dy);
+  return new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit));
 }

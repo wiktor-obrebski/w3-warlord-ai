@@ -1,4 +1,5 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
+import { Point, Vector } from "@lib/math";
 import { debug } from "../../../debug";
 import { WorldState } from "../../../perception/world-state";
 import { TowerRushContext, TowerRushPhase } from "../tower-rush-context";
@@ -69,9 +70,11 @@ function holdArrivedMilitia(world: WorldState, context: TowerRushContext) {
 }
 
 function distanceBetweenUnits(a: W3UnitApi.unit, b: W3UnitApi.unit): number {
-  const dx = W3UnitApi.GetUnitX(b) - W3UnitApi.GetUnitX(a);
-  const dy = W3UnitApi.GetUnitY(b) - W3UnitApi.GetUnitY(a);
-  return Math.sqrt(dx * dx + dy * dy);
+  return new Vector(positionOf(a), positionOf(b)).length;
+}
+
+function positionOf(unit: W3UnitApi.unit): Point {
+  return new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit));
 }
 
 function forwardWorkersHaveRevertedToPeasants(

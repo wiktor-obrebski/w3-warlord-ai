@@ -1,5 +1,5 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { Point } from "../../perception/world-state";
+import { Point } from "@lib/math";
 
 export enum TowerRushPhase {
   Start,

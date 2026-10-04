@@ -2,7 +2,8 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
-import { Point, WorldState } from "../../../perception/world-state";
+import { Point, Vector } from "@lib/math";
+import { WorldState } from "../../../perception/world-state";
 import {
   TowerRushContext,
   TowerRushPhase,
@@ -231,7 +232,7 @@ function hasLivingBuilder(
   return (
     context.pendingTowerSites.some(
       (site) =>
-        distanceBetween(site.position, towerPosition) <=
+        new Vector(site.position, towerPosition).length <=
         STARTED_TOWER_MATCH_DISTANCE,
     ) || context.towerHelpers.some((help) => help.tower === tower)
   );
@@ -329,7 +330,7 @@ function forgetAbandonedTowerSites(
 function hasStartedTower(site: TowerSite, towerPositions: Point[]): boolean {
   return towerPositions.some(
     (tower) =>
-      distanceBetween(tower, site.position) <= STARTED_TOWER_MATCH_DISTANCE,
+      new Vector(tower, site.position).length <= STARTED_TOWER_MATCH_DISTANCE,
   );
 }
 
@@ -385,7 +386,7 @@ function probeNearestTower(position: Point, towers: Point[]): string {
   let nearest: number | undefined;
 
   for (const tower of towers) {
-    const distance = distanceBetween(tower, position);
+    const distance = new Vector(tower, position).length;
 
     if (nearest === undefined || distance < nearest) {
       nearest = distance;
@@ -464,14 +465,15 @@ function tryOrderScoutTower(
   rules: PlacementRules,
   context: TowerRushContext,
 ): boolean {
-  const distanceToEnemyMain = distanceBetween(rules.enemyMain, position);
+  const distanceToEnemyMain = new Vector(rules.enemyMain, position).length;
+  const distanceToMine = new Vector(rules.mine, position).length;
 
   // PROBE (temporary): tally the first failing rule.
   if (distanceToEnemyMain < MIN_DISTANCE_FROM_ENEMY_MAIN) {
     probeRejections.enemyMainTooClose++;
   } else if (rules.requireEnemyMainInReach && distanceToEnemyMain > TOWER_REACH) {
     probeRejections.enemyMainOutOfReach++;
-  } else if (distanceBetween(rules.mine, position) > TOWER_REACH) {
+  } else if (distanceToMine > TOWER_REACH) {
     probeRejections.mineOutOfReach++;
   } else if (overlapsTower(position, rules.occupied)) {
     probeRejections.overlaps++;
@@ -480,7 +482,7 @@ function tryOrderScoutTower(
   const passesRules =
     distanceToEnemyMain >= MIN_DISTANCE_FROM_ENEMY_MAIN &&
     (!rules.requireEnemyMainInReach || distanceToEnemyMain <= TOWER_REACH) &&
-    distanceBetween(rules.mine, position) <= TOWER_REACH &&
+    distanceToMine <= TOWER_REACH &&
     !overlapsTower(position, rules.occupied);
   const accepted =
     passesRules &&
@@ -505,37 +507,31 @@ function tryOrderScoutTower(
 function randomPointAround(center: Point, distance: number): Point {
   const angle = W3MathApi.GetRandomReal(0, Math.PI * 2);
 
-  return {
-    x: center.x + Math.cos(angle) * distance,
-    y: center.y + Math.sin(angle) * distance,
-  };
+  return center.translate(new Vector(distance, 0).rotate(angle));
 }
 
 // A point on the square of the given half-size, so that a tower placed there
 // sits flush against the one at the center from any direction.
 function randomPointOnSquareAround(center: Point, halfSize: number): Point {
   const angle = W3MathApi.GetRandomReal(0, Math.PI * 2);
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  const scale = halfSize / Math.max(Math.abs(cos), Math.abs(sin));
+  const direction = new Vector(1, 0).rotate(angle);
+  const scale =
+    halfSize / Math.max(Math.abs(direction.x), Math.abs(direction.y));
 
-  return { x: center.x + cos * scale, y: center.y + sin * scale };
+  return center.translate(direction.multiply(scale));
 }
 
 function overlapsTower(position: Point, towers: Point[]): boolean {
-  return towers.some(
-    (tower) =>
-      Math.abs(tower.x - position.x) < MIN_TOWER_CENTER_OFFSET &&
-      Math.abs(tower.y - position.y) < MIN_TOWER_CENTER_OFFSET,
-  );
+  return towers.some((tower) => {
+    const offset = new Vector(tower, position);
+
+    return (
+      Math.abs(offset.x) < MIN_TOWER_CENTER_OFFSET &&
+      Math.abs(offset.y) < MIN_TOWER_CENTER_OFFSET
+    );
+  });
 }
 
 function positionOf(unit: W3UnitApi.unit): Point {
-  return { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) };
-}
-
-function distanceBetween(a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  return Math.sqrt(dx * dx + dy * dy);
+  return new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit));
 }

@@ -1,6 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { debug } from "../../debug";
-import { Point, WorldState } from "../../perception/world-state";
+import { Point, Vector } from "@lib/math";
+import { WorldState } from "../../perception/world-state";
 import { TowerRushContext } from "./tower-rush-context";
 import {
   isWorkerSafe,
@@ -70,12 +71,11 @@ export function isAvailableForwardPeasant(
 
 // On the far side of the tower as seen from the enemy main hall.
 function spotBehind(tower: Point, enemyMain: Point): Point {
-  const distance = distanceBetween(enemyMain, tower);
+  const awayFromEnemyMain = new Vector(enemyMain, tower).normalize();
 
-  return {
-    x: tower.x + ((tower.x - enemyMain.x) / distance) * HIDING_DISTANCE_BEHIND_TOWER,
-    y: tower.y + ((tower.y - enemyMain.y) / distance) * HIDING_DISTANCE_BEHIND_TOWER,
-  };
+  return tower.translate(
+    awayFromEnemyMain.multiply(HIDING_DISTANCE_BEHIND_TOWER),
+  );
 }
 
 export function closestUnit(
@@ -87,7 +87,7 @@ export function closestUnit(
   let closestDistance = Infinity;
 
   for (const unit of units) {
-    const distance = distanceBetween(origin, positionOf(unit));
+    const distance = new Vector(origin, positionOf(unit)).length;
 
     if (distance < closestDistance) {
       closest = unit;
@@ -99,11 +99,5 @@ export function closestUnit(
 }
 
 function positionOf(unit: W3UnitApi.unit): Point {
-  return { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) };
-}
-
-function distanceBetween(a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  return Math.sqrt(dx * dx + dy * dy);
+  return new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit));
 }

@@ -1,10 +1,6 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
-
-export interface Point {
-  x: number;
-  y: number;
-}
+import { Point } from "@lib/math";
 
 // The handle is only for targeting orders; reasoning reads the observed
 // properties, which perception collects only while the unit is visible.

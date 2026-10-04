@@ -1,7 +1,8 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
-import { Point, WorldState } from "../../../perception/world-state";
+import { Point, Vector } from "@lib/math";
+import { WorldState } from "../../../perception/world-state";
 import { TowerRushContext, TowerRushPhase } from "../tower-rush-context";
 import { maintainTowers } from "../tower-repair";
 import { WorkerSafety } from "../../../capabilities/worker-safety/worker-safety";
@@ -60,7 +61,7 @@ export function updateUpgradingTowers(
 function plannedTowerAt(position: Point, world: WorldState): PlannedTower {
   const unit = [...world.scoutTowers, ...world.guardTowers].find(
     (tower) =>
-      distanceBetween(position, positionOf(tower)) <= TOWER_MATCH_DISTANCE,
+      new Vector(position, positionOf(tower)).length <= TOWER_MATCH_DISTANCE,
   );
 
   return { unit, state: unit ? towerState(unit, world) : TowerState.Missing };
@@ -115,11 +116,5 @@ function orderGuardTower(
 }
 
 function positionOf(unit: W3UnitApi.unit): Point {
-  return { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) };
-}
-
-function distanceBetween(a: Point, b: Point): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  return Math.sqrt(dx * dx + dy * dy);
+  return new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit));
 }
