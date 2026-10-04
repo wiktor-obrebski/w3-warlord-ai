@@ -51,9 +51,9 @@ interface PlacementRules {
 // An accepted build order can still fail when the Peasant arrives (blocked
 // spot, missing resources), so towers are counted from what actually exists
 // or is on its way, and missing ones are re-ordered one Peasant at a time.
-// Only once every tower is accounted for do free forward Peasants help
-// unfinished towers, then hide behind a tower; the phase ends once all of
-// them are sent to hide.
+// Once every tower is accounted for, free forward Peasants help unfinished
+// towers; only when all towers are built do they hide behind them, and the
+// phase ends once all of them are sent to hide.
 export function updateBuildingTowers(
   world: WorldState,
   context: TowerRushContext,
@@ -98,9 +98,15 @@ export function updateBuildingTowers(
         context,
       );
     }
+  } else if (allTowersBuilt(world)) {
+    for (const worker of freeWorkers) {
+      if (!context.forwardWorkersSentToSafety.includes(worker)) {
+        hideBehindClosestTower(worker, world.scoutTowers, enemyMain, context);
+      }
+    }
   } else {
     for (const worker of freeWorkers) {
-      helpTowerOrHide(worker, world, enemyMain, context);
+      helpUnfinishedTower(worker, world, context);
     }
   }
 
@@ -115,49 +121,66 @@ export function updateBuildingTowers(
   }
 }
 
-function helpTowerOrHide(
-  worker: W3UnitApi.unit,
-  world: WorldState,
-  enemyMain: Point,
-  context: TowerRushContext,
-) {
-  const towerToHelp = closestUnit(
-    world.scoutTowers.filter((tower) => needsHelp(tower, context)),
-    worker,
+function allTowersBuilt(world: WorldState): boolean {
+  return (
+    world.scoutTowers.length >= TOWER_COUNT &&
+    world.scoutTowers.every(
+      (tower) => !world.buildingsUnderConstruction.includes(tower),
+    )
   );
-
-  if (towerToHelp) {
-    // Human Peasants help an unfinished building through the repair order.
-    if (W3UnitApi.IssueTargetOrder(worker, "repair", towerToHelp)) {
-      forgetSentToSafety(worker, context);
-      context.towerHelpers.push({ helper: worker, tower: towerToHelp });
-      debug(
-        `Tower rush: forward Peasant helps a tower at ${Math.floor(buildProgress(towerToHelp) * 100)}% progress.`,
-      );
-      return;
-    }
-
-    debug("Tower rush: repair order rejected.");
-  }
-
-  hideBehindClosestTower(worker, world.scoutTowers, enemyMain, context);
 }
 
-// A second worker only pays off early in construction; later it would just
-// keep the Peasant exposed for little gain.
-function needsHelp(tower: W3UnitApi.unit, context: TowerRushContext): boolean {
-  const towerPosition = positionOf(tower);
-  const builtByPendingSite = context.pendingTowerSites.some(
-    (site) =>
-      distanceBetween(site.position, towerPosition) <=
-      STARTED_TOWER_MATCH_DISTANCE,
+// A tower without a living builder would never finish, so it is taken over
+// first. Otherwise a second worker only pays off early in construction.
+function helpUnfinishedTower(
+  worker: W3UnitApi.unit,
+  world: WorldState,
+  context: TowerRushContext,
+) {
+  const unfinished = world.scoutTowers.filter((tower) =>
+    world.buildingsUnderConstruction.includes(tower),
   );
-  const helped = context.towerHelpers.some((help) => help.tower === tower);
+  const abandoned = closestUnit(
+    unfinished.filter((tower) => !hasLivingBuilder(tower, context)),
+    worker,
+  );
+  const tower =
+    abandoned ??
+    closestUnit(
+      unfinished.filter(
+        (tower) => buildProgress(tower) < MAX_BUILD_PROGRESS_WORTH_HELPING,
+      ),
+      worker,
+    );
+
+  if (!tower) {
+    return;
+  }
+
+  // Human Peasants help an unfinished building through the repair order.
+  if (W3UnitApi.IssueTargetOrder(worker, "repair", tower)) {
+    context.towerHelpers.push({ helper: worker, tower });
+    debug(
+      `Tower rush: forward Peasant ${abandoned ? "takes over" : "helps"} a tower at ${Math.floor(buildProgress(tower) * 100)}% progress.`,
+    );
+  } else {
+    debug("Tower rush: repair order rejected.");
+  }
+}
+
+// Builders and helpers are only remembered while they are alive and busy.
+function hasLivingBuilder(
+  tower: W3UnitApi.unit,
+  context: TowerRushContext,
+): boolean {
+  const towerPosition = positionOf(tower);
 
   return (
-    !builtByPendingSite &&
-    !helped &&
-    buildProgress(tower) < MAX_BUILD_PROGRESS_WORTH_HELPING
+    context.pendingTowerSites.some(
+      (site) =>
+        distanceBetween(site.position, towerPosition) <=
+        STARTED_TOWER_MATCH_DISTANCE,
+    ) || context.towerHelpers.some((help) => help.tower === tower)
   );
 }
 
