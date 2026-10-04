@@ -1,10 +1,8 @@
 import type { Vector } from "./vector";
 
-export { Point };
-
 const TOLERANCE = 0.000001;
 
-class Point {
+export class Point {
   public readonly x: number;
   public readonly y: number;
 

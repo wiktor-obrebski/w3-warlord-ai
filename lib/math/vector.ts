@@ -1,11 +1,9 @@
 import type { Point } from "./point";
 
-export { Vector };
-
 const TOLERANCE = 0.000001;
 const TWO_PI = Math.PI * 2;
 
-class Vector {
+export class Vector {
   public readonly x: number;
   public readonly y: number;
 
