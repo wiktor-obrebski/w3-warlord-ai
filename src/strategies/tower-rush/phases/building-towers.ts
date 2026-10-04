@@ -79,6 +79,10 @@ export function updateBuildingTowers(
     isAvailableForwardPeasant(worker, world),
   );
 
+  // Free Peasants keep ordering missing towers, each attempt searching from
+  // the beginning. An ordered tower can still fail when its builder arrives,
+  // so free Peasants only help or hide once every tower has started; until
+  // then they stay free to retry a failed build.
   if (towerPositions.length + sitesAwaitingTower.length < TOWER_COUNT) {
     const builder = freeWorkers[0];
 
@@ -98,15 +102,17 @@ export function updateBuildingTowers(
         context,
       );
     }
-  } else if (allTowersBuilt(world)) {
-    for (const worker of freeWorkers) {
-      if (!context.forwardWorkersSentToSafety.includes(worker)) {
-        hideBehindClosestTower(worker, world.scoutTowers, enemyMain, context);
+  } else if (towerPositions.length >= TOWER_COUNT) {
+    if (allTowersBuilt(world)) {
+      for (const worker of freeWorkers) {
+        if (!context.forwardWorkersSentToSafety.includes(worker)) {
+          hideBehindClosestTower(worker, world.scoutTowers, enemyMain, context);
+        }
       }
-    }
-  } else {
-    for (const worker of freeWorkers) {
-      helpUnfinishedTower(worker, world, context);
+    } else {
+      for (const worker of freeWorkers) {
+        helpUnfinishedTower(worker, world, context);
+      }
     }
   }
 
@@ -250,11 +256,19 @@ function forgetAbandonedTowerSites(
   world: WorldState,
   context: TowerRushContext,
 ) {
-  context.pendingTowerSites = context.pendingTowerSites.filter(
-    (site) =>
+  const towerPositions = world.scoutTowers.map((tower) => positionOf(tower));
+
+  context.pendingTowerSites = context.pendingTowerSites.filter((site) => {
+    const builderBusy =
       world.peasants.includes(site.builder) &&
-      !isAvailableForwardPeasant(site.builder, world),
-  );
+      !isAvailableForwardPeasant(site.builder, world);
+
+    if (!builderBusy && !hasStartedTower(site, towerPositions)) {
+      debug("Tower rush: Scout Tower build failed before it started; retrying.");
+    }
+
+    return builderBusy;
+  });
 }
 
 function hasStartedTower(site: TowerSite, towerPositions: Point[]): boolean {
