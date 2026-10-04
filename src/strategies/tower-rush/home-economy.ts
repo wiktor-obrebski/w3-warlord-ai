@@ -302,16 +302,17 @@ function rallyTarget(
 }
 
 // Nearest the finished Lumber Mill, where lumber is returned; until it is
-// finished, nearest home, where the Town Hall takes the lumber. Rallies and
-// harvest orders share this order so a new Peasant ordered to harvest is not
-// turned away from the tree it was rallied to.
+// finished, nearest home, where the Town Hall takes the lumber, preferring
+// the side of the Hall away from the mill being built. Rallies and harvest
+// orders share this order so a new Peasant ordered to harvest is not turned
+// away from the tree it was rallied to.
 function lumberDestructablesByPreference(
   world: WorldState,
 ): W3DestructableApi.destructable[] {
   const mill = completedLumberMill(world);
 
   if (!mill) {
-    return world.destructablesNearHomeByDistance;
+    return destructablesAwayFromUnfinishedMill(world);
   }
 
   const millX = W3UnitApi.GetUnitX(mill);
@@ -331,6 +332,32 @@ function lumberDestructablesByPreference(
     }))
     .sort((a, b) => a.distanceSquared - b.distanceSquared)
     .map((entry) => entry.destructable);
+}
+
+// Nearest home first, with those on the far side of the Hall from the mill
+// ahead of the rest. Before the mill is placed, simply nearest home.
+function destructablesAwayFromUnfinishedMill(
+  world: WorldState,
+): W3DestructableApi.destructable[] {
+  const mill = world.lumberMills[0];
+
+  if (!mill) {
+    return world.destructablesNearHomeByDistance;
+  }
+
+  const hall = world.ownStartPosition;
+  const toMillX = W3UnitApi.GetUnitX(mill) - hall.x;
+  const toMillY = W3UnitApi.GetUnitY(mill) - hall.y;
+  const isAwayFromMill = (destructable: W3DestructableApi.destructable) =>
+    (W3DestructableApi.GetDestructableX(destructable) - hall.x) * toMillX +
+      (W3DestructableApi.GetDestructableY(destructable) - hall.y) * toMillY <
+    0;
+  const nearHome = world.destructablesNearHomeByDistance;
+
+  return [
+    ...nearHome.filter((destructable) => isAwayFromMill(destructable)),
+    ...nearHome.filter((destructable) => !isAwayFromMill(destructable)),
+  ];
 }
 
 function isAssignedWorker(
