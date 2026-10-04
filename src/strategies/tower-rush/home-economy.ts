@@ -4,6 +4,7 @@ import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import { debug } from "../../debug";
 import { WorldState } from "../../perception/world-state";
 import { HomeResource, TowerRushContext } from "./tower-rush-context";
+import { GUARD_TOWER_UPGRADE_GOLD_COST } from "./phases/upgrading-towers";
 
 const PEASANT_GOLD_COST = 75;
 
@@ -128,10 +129,27 @@ function maintainPeasantProduction(
     homeWorkersMissing &&
     context.trainingPeasantResource === undefined &&
     townHall &&
-    world.gold >= PEASANT_GOLD_COST
+    world.gold - goldReservedForUpgrades(world, context) >= PEASANT_GOLD_COST
   ) {
     trainPeasant(townHall, world, context);
   }
+}
+
+// A Guard Tower upgrade is paid when it starts, so an upgrading tower no
+// longer needs reserved gold.
+function goldReservedForUpgrades(
+  world: WorldState,
+  context: TowerRushContext,
+): number {
+  if (!context.reservingGoldForUpgrades) {
+    return 0;
+  }
+
+  const towersAwaitingUpgrade = world.scoutTowers.filter(
+    (tower) => !world.buildingsUpgrading.includes(tower),
+  );
+
+  return towersAwaitingUpgrade.length * GUARD_TOWER_UPGRADE_GOLD_COST;
 }
 
 export function trainPeasant(

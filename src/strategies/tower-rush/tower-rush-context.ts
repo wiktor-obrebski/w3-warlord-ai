@@ -40,6 +40,9 @@ export interface TowerRushContext {
   lumberWorkers: W3UnitApi.unit[];
   // Where the Peasant in training is rallied to; undefined when none is.
   trainingPeasantResource: HomeResource | undefined;
+  // Once set, Peasant production leaves gold for every Scout Tower that has
+  // not started its Guard Tower upgrade.
+  reservingGoldForUpgrades: boolean;
 
   // Build orders whose builder is still busy with them.
   pendingTowerSites: TowerSite[];
@@ -69,5 +72,6 @@ export function createTowerRushContext(): TowerRushContext {
     goldWorkers: [],
     lumberWorkers: [],
     trainingPeasantResource: undefined,
+    reservingGoldForUpgrades: false,
   };
 }

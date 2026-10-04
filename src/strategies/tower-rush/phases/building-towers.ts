@@ -39,6 +39,7 @@ const ATTEMPTS_NEXT_TO_FIRST_TOWER = 10;
 const MAX_BUILD_PROGRESS_WORTH_HELPING = 0.5;
 // Assumed, not verified in-game.
 const CONSTRUCTION_START_LIFE_FRACTION = 0.1;
+const RESERVE_UPGRADE_GOLD_LIFE_FRACTION = 0.5;
 
 interface PlacementRules {
   mine: Point;
@@ -103,6 +104,11 @@ export function updateBuildingTowers(
     }
   }
 
+  if (!context.reservingGoldForUpgrades && towersHalfBuilt(world)) {
+    context.reservingGoldForUpgrades = true;
+    debug("Tower rush: reserving gold for the Guard Tower upgrades.");
+  }
+
   if (towerBuildingFinished(world, context)) {
     context.towerPositions = towerPositions;
     context.phase = TowerRushPhase.UpgradingTowers;
@@ -159,13 +165,27 @@ function needsHelp(tower: W3UnitApi.unit, context: TowerRushContext): boolean {
 // linearly from a fraction of its maximum while it is built. A damaged
 // finished tower reads as low progress too.
 function buildProgress(tower: W3UnitApi.unit): number {
-  const lifeFraction =
-    W3UnitApi.GetUnitState(tower, W3UnitApi.UNIT_STATE_LIFE) /
-    W3UnitApi.GetUnitState(tower, W3UnitApi.UNIT_STATE_MAX_LIFE);
-
   return (
-    (lifeFraction - CONSTRUCTION_START_LIFE_FRACTION) /
+    (lifeFraction(tower) - CONSTRUCTION_START_LIFE_FRACTION) /
     (1 - CONSTRUCTION_START_LIFE_FRACTION)
+  );
+}
+
+// From here the towers finish soon enough that the upgrade gold must already
+// be at hand, or the last upgrade waits for income.
+function towersHalfBuilt(world: WorldState): boolean {
+  return (
+    world.scoutTowers.length >= TOWER_COUNT &&
+    world.scoutTowers.every(
+      (tower) => lifeFraction(tower) >= RESERVE_UPGRADE_GOLD_LIFE_FRACTION,
+    )
+  );
+}
+
+function lifeFraction(unit: W3UnitApi.unit): number {
+  return (
+    W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE) /
+    W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_MAX_LIFE)
   );
 }
 
