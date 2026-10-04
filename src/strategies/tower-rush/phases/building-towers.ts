@@ -251,14 +251,30 @@ function orderScoutTower(
 ) {
   for (const requireEnemyMainInReach of [true, false]) {
     const searchRules = { ...rules, requireEnemyMainInReach };
+    const coverage = requireEnemyMainInReach
+      ? "covers the mine and main hall"
+      : "covers only the mine";
 
-    if (
-      orderScoutTowerNextToFirstTower(worker, searchRules, context) ||
-      orderScoutTowerNearMine(worker, searchRules, context)
-    ) {
+    if (orderScoutTowerNextToFirstTower(worker, searchRules, context)) {
+      debug(`Tower rush: Scout Tower ordered next to the first tower; ${coverage}.`);
+      return;
+    }
+
+    const distanceFromMine = orderScoutTowerNearMine(
+      worker,
+      searchRules,
+      context,
+    );
+
+    if (distanceFromMine !== undefined) {
+      debug(
+        `Tower rush: Scout Tower ordered ${distanceFromMine} from the mine; ${coverage}.`,
+      );
       return;
     }
   }
+
+  debug("Tower rush: no Scout Tower placement accepted.");
 }
 
 function orderScoutTowerNextToFirstTower(
@@ -279,25 +295,19 @@ function orderScoutTowerNextToFirstTower(
     );
 
     if (tryOrderScoutTower(worker, position, rules, context)) {
-      debug(
-        `Tower rush: Scout Tower ordered next to the first tower after ${attempt} rejections${describeReach(rules)}.`,
-      );
       return true;
     }
   }
 
-  debug(
-    `Tower rush: no spot next to the first tower accepted${describeReach(rules)}; searching around the mine.`,
-  );
-
   return false;
 }
 
+// Returns the distance from the mine at which the tower was ordered.
 function orderScoutTowerNearMine(
   worker: W3UnitApi.unit,
   rules: PlacementRules,
   context: TowerRushContext,
-): boolean {
+): number | undefined {
   let distance = MIN_DISTANCE_FROM_MINE;
   let rejections = 0;
 
@@ -305,10 +315,7 @@ function orderScoutTowerNearMine(
     const position = randomPointAround(rules.mine, distance);
 
     if (tryOrderScoutTower(worker, position, rules, context)) {
-      debug(
-        `Tower rush: Scout Tower ordered ${distance} from the mine after ${rejections} rejections${describeReach(rules)}.`,
-      );
-      return true;
+      return distance;
     }
 
     rejections++;
@@ -318,11 +325,7 @@ function orderScoutTowerNearMine(
     }
   }
 
-  debug(
-    `Tower rush: no Scout Tower placement accepted within reach of the mine${describeReach(rules)}.`,
-  );
-
-  return false;
+  return undefined;
 }
 
 // IssueBuildOrderById returns false for blocked or unbuildable spots (but
@@ -352,12 +355,6 @@ function tryOrderScoutTower(
   }
 
   return accepted;
-}
-
-function describeReach(rules: PlacementRules): string {
-  return rules.requireEnemyMainInReach
-    ? " (mine and main hall in reach)"
-    : " (only mine in reach)";
 }
 
 function randomPointAround(center: Point, distance: number): Point {
