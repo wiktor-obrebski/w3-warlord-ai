@@ -1,13 +1,23 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
+import * as W3MathApi from "@lib/warcraft3-api/math";
 import { debug } from "../../debug";
 import { Point, VisibleEnemy } from "../../perception/world-state";
-import { ObservedWorker, WorkerSafetyPerception } from "./perception";
+import {
+  isWalkable,
+  ObservedWorker,
+  WorkerSafetyPerception,
+} from "./perception";
 
 const FLEE_ROUND_DISTANCE = 300;
 const SAFE_AFTER_ATTACK_SECONDS = 2;
 // Not tuned in-game.
 const THREAT_RADIUS = 1000;
 const FLEE_DESTINATION_REACHED_DISTANCE = 32;
+const FLEE_ANGLE_STEP = Math.PI / 6;
+// Alternating to either side of straight away, ending straight back.
+const FLEE_ANGLE_OFFSETS = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6].map(
+  (step) => step * FLEE_ANGLE_STEP,
+);
 
 export enum WorkerSafetyStatus {
   Fleeing,
@@ -127,8 +137,6 @@ function fleeRoundFinished(worker: ObservedWorker, destination: Point): boolean 
   );
 }
 
-// Without a visible enemy to run from, e.g. when attacked by an invisible
-// unit, the worker stays put; it still counts as attacked.
 function startFleeRound(
   worker: ObservedWorker,
   perception: WorkerSafetyPerception,
@@ -139,22 +147,11 @@ function startFleeRound(
     (enemy) => enemy.attackTarget === worker.unit,
   );
   const reference = nearby.length > 0 ? nearby : attackers;
-
-  if (reference.length === 0) {
-    return;
-  }
-
-  const enemyCenter = averagePosition(reference);
-
-  if (distanceBetween(worker.position, enemyCenter) === 0) {
-    return;
-  }
-
-  const destination = pointAwayFrom(
-    worker.position,
-    enemyCenter,
-    FLEE_ROUND_DISTANCE,
-  );
+  const awayAngle =
+    reference.length > 0
+      ? angleAwayFrom(averagePosition(reference), worker.position)
+      : undefined;
+  const destination = fleeDestination(worker.position, awayAngle);
 
   if (
     W3UnitApi.IssuePointOrder(worker.unit, "move", destination.x, destination.y)
@@ -166,6 +163,37 @@ function startFleeRound(
   } else {
     debug("Worker safety: flee order rejected.");
   }
+}
+
+// A worker standing still is easily killed, so it always runs somewhere.
+// Directions closest to straight away come first; without a direction to
+// run from, e.g. when the attacker is not visible, the search starts from a
+// random one. When no direction is walkable, a random one is taken anyway
+// and Warcraft moves the worker as close to it as it can.
+function fleeDestination(from: Point, awayAngle: number | undefined): Point {
+  const preferredAngle = awayAngle ?? W3MathApi.GetRandomReal(0, Math.PI * 2);
+
+  for (const offset of FLEE_ANGLE_OFFSETS) {
+    const candidate = pointAt(from, preferredAngle + offset, FLEE_ROUND_DISTANCE);
+
+    if (isWalkable(candidate)) {
+      if (offset !== 0) {
+        debug(
+          `Worker safety: straight away is blocked; fleeing ${Math.floor((offset * 180) / Math.PI)} degrees off.`,
+        );
+      }
+
+      return candidate;
+    }
+  }
+
+  debug("Worker safety: no walkable flee direction; fleeing at random.");
+
+  return pointAt(
+    from,
+    W3MathApi.GetRandomReal(0, Math.PI * 2),
+    FLEE_ROUND_DISTANCE,
+  );
 }
 
 // The enemy force fighting near the worker: combat units and the Ancients
@@ -196,12 +224,19 @@ function averagePosition(enemies: VisibleEnemy[]): Point {
   return { x: x / enemies.length, y: y / enemies.length };
 }
 
-function pointAwayFrom(from: Point, threat: Point, distance: number): Point {
-  const length = distanceBetween(threat, from);
+// Undefined when standing on the threat, which gives no direction.
+function angleAwayFrom(threat: Point, from: Point): number | undefined {
+  if (distanceBetween(threat, from) === 0) {
+    return undefined;
+  }
 
+  return Math.atan2(from.y - threat.y, from.x - threat.x);
+}
+
+function pointAt(from: Point, angle: number, distance: number): Point {
   return {
-    x: from.x + ((from.x - threat.x) / length) * distance,
-    y: from.y + ((from.y - threat.y) / length) * distance,
+    x: from.x + Math.cos(angle) * distance,
+    y: from.y + Math.sin(angle) * distance,
   };
 }
 

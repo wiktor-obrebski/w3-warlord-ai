@@ -1,5 +1,6 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
+import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
 import { Point, VisibleEnemy } from "../../perception/world-state";
 import {
   AttackObserver,
@@ -14,6 +15,20 @@ import {
 } from "../../perception/perceive-world";
 
 const NO_ORDER = 0;
+
+/**
+ * Whether ground units can walk at the point. Terrain pathing is static map
+ * knowledge, so reading it is fair. Units standing there are not considered.
+ */
+export function isWalkable(point: Point): boolean {
+  // IsTerrainPathable is inverted: it returns false where the pathing type
+  // is set, i.e. where the point is walkable.
+  return !W3TerrainApi.IsTerrainPathable(
+    point.x,
+    point.y,
+    W3TerrainApi.PATHING_TYPE_WALKABILITY,
+  );
+}
 
 export interface ObservedWorker {
   unit: W3UnitApi.unit;
