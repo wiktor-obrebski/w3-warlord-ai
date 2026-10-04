@@ -2,7 +2,10 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { debug } from "../../debug";
 import { Point, WorldState } from "../../perception/world-state";
 import { TowerRushContext } from "./tower-rush-context";
-import { isWorkerSafe, WorkerSafety } from "../../capabilities/worker-safety";
+import {
+  isWorkerSafe,
+  WorkerSafety,
+} from "../../capabilities/worker-safety/worker-safety";
 
 // Clears the tower's 128x128 footprint with room for the Peasant.
 const HIDING_DISTANCE_BEHIND_TOWER = 160;

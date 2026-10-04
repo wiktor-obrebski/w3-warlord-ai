@@ -17,7 +17,7 @@ import {
 import {
   isWorkerSafe,
   WorkerSafety,
-} from "../../../capabilities/worker-safety";
+} from "../../../capabilities/worker-safety/worker-safety";
 
 const TOWER_COUNT = 3;
 // Center distance at which a target still counts as within reach of the

@@ -4,7 +4,7 @@ import { debug } from "../../../debug";
 import { Point, WorldState } from "../../../perception/world-state";
 import { TowerRushContext, TowerRushPhase } from "../tower-rush-context";
 import { maintainTowers } from "../tower-repair";
-import { WorkerSafety } from "../../../capabilities/worker-safety";
+import { WorkerSafety } from "../../../capabilities/worker-safety/worker-safety";
 
 export const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
 const GUARD_TOWER_UPGRADE_LUMBER_COST = 50;

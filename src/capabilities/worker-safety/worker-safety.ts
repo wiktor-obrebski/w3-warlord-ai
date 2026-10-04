@@ -1,10 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { debug } from "../debug";
-import { Point, VisibleEnemy } from "../perception/world-state";
-import {
-  ObservedWorker,
-  WorkerThreats,
-} from "../perception/perceive-worker-threats";
+import { debug } from "../../debug";
+import { Point, VisibleEnemy } from "../../perception/world-state";
+import { ObservedWorker, WorkerSafetyPerception } from "./perception";
 
 const FLEE_ROUND_DISTANCE = 300;
 const SAFE_AFTER_ATTACK_SECONDS = 2;
@@ -41,16 +38,16 @@ export function createWorkerSafety(): WorkerSafety {
  */
 export function updateWorkerSafety(
   safety: WorkerSafety,
-  threats: WorkerThreats,
+  perception: WorkerSafetyPerception,
 ) {
-  for (const worker of threats.workers) {
-    protectWorker(worker, threats, safety);
+  for (const worker of perception.workers) {
+    protectWorker(worker, perception, safety);
   }
 
   safety.records = safety.records.filter(
     (record) =>
-      threats.workers.some((worker) => worker.unit === record.worker) &&
-      statusOf(record, threats.time) !== WorkerSafetyStatus.Safe,
+      perception.workers.some((worker) => worker.unit === record.worker) &&
+      statusOf(record, perception.time) !== WorkerSafetyStatus.Safe,
   );
 }
 
@@ -87,15 +84,15 @@ function statusOf(record: WorkerSafetyRecord, now: number): WorkerSafetyStatus {
 // enemies move.
 function protectWorker(
   worker: ObservedWorker,
-  threats: WorkerThreats,
+  perception: WorkerSafetyPerception,
   safety: WorkerSafety,
 ) {
   let record = safety.records.find((entry) => entry.worker === worker.unit);
 
   if (worker.isAttacked && record) {
-    record.lastAttackedAt = threats.time;
+    record.lastAttackedAt = perception.time;
   } else if (worker.isAttacked) {
-    record = { worker: worker.unit, lastAttackedAt: threats.time };
+    record = { worker: worker.unit, lastAttackedAt: perception.time };
     safety.records.push(record);
   }
 
@@ -116,7 +113,7 @@ function protectWorker(
   }
 
   if (worker.isAttacked) {
-    startFleeRound(worker, threats, record);
+    startFleeRound(worker, perception, record);
   }
 }
 
@@ -134,11 +131,11 @@ function fleeRoundFinished(worker: ObservedWorker, destination: Point): boolean 
 // unit, the worker stays put; it still counts as attacked.
 function startFleeRound(
   worker: ObservedWorker,
-  threats: WorkerThreats,
+  perception: WorkerSafetyPerception,
   record: WorkerSafetyRecord,
 ) {
-  const nearby = nearbyThreats(worker.position, threats);
-  const attackers = threats.visibleEnemies.filter(
+  const nearby = nearbyThreats(worker.position, perception);
+  const attackers = perception.visibleEnemies.filter(
     (enemy) => enemy.attackTarget === worker.unit,
   );
   const reference = nearby.length > 0 ? nearby : attackers;
@@ -173,8 +170,11 @@ function startFleeRound(
 
 // The enemy force fighting near the worker: combat units and the Ancients
 // that walk into the fight.
-function nearbyThreats(position: Point, threats: WorkerThreats): VisibleEnemy[] {
-  return threats.visibleEnemies.filter(
+function nearbyThreats(
+  position: Point,
+  perception: WorkerSafetyPerception,
+): VisibleEnemy[] {
+  return perception.visibleEnemies.filter(
     (enemy) =>
       (enemy.isUprootedAncient ||
         (!enemy.isStructure &&

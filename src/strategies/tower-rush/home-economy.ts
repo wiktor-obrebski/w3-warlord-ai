@@ -5,7 +5,10 @@ import { debug } from "../../debug";
 import { WorldState } from "../../perception/world-state";
 import { HomeResource, TowerRushContext } from "./tower-rush-context";
 import { GUARD_TOWER_UPGRADE_GOLD_COST } from "./phases/upgrading-towers";
-import { isWorkerSafe, WorkerSafety } from "../../capabilities/worker-safety";
+import {
+  isWorkerSafe,
+  WorkerSafety,
+} from "../../capabilities/worker-safety/worker-safety";
 
 const PEASANT_GOLD_COST = 75;
 // Warcraft's listed Peasant training time; not verified in-game.

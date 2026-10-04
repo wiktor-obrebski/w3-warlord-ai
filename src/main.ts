@@ -4,11 +4,11 @@ import { debug } from "./debug";
 import { perceiveWorld } from "./perception/perceive-world";
 import { observeAttacksOn } from "./perception/attack-observer";
 import { startGameClock } from "./perception/game-clock";
-import { perceiveWorkerThreats } from "./perception/perceive-worker-threats";
+import { perceiveWorkerSafety } from "./capabilities/worker-safety/perception";
 import {
   createWorkerSafety,
   updateWorkerSafety,
-} from "./capabilities/worker-safety";
+} from "./capabilities/worker-safety/worker-safety";
 import { installBotPlayer } from "./privileged/install-bot-player";
 import { enableDebugMode, updateDebugMode } from "./privileged/debug-mode";
 import { createTowerRushContext } from "./strategies/tower-rush/tower-rush-context";
@@ -43,13 +43,15 @@ function play(bot: W3PlayerApi.player) {
   const loop = W3TimerApi.CreateTimer();
   let tick = 0;
 
-  // Worker safety runs first so the strategy perceives the flee orders it
-  // issues on the same tick.
+  // Every capability's perception is collected in one step before any
+  // capability acts. Capabilities run before the strategy so it perceives
+  // the orders they issue on the same tick.
   const update = () => {
-    updateWorkerSafety(
-      workerSafety,
-      perceiveWorkerThreats(bot, clock, attackObserver),
-    );
+    const perception = {
+      workerSafety: perceiveWorkerSafety(bot, clock, attackObserver),
+    };
+
+    updateWorkerSafety(workerSafety, perception.workerSafety);
 
     if (tick++ % TICKS_PER_STRATEGY_UPDATE === 0) {
       updateStrategy();

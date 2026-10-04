@@ -11,7 +11,7 @@ import {
   WorkerSafety,
   WorkerSafetyStatus,
   workerSafetyStatus,
-} from "../../capabilities/worker-safety";
+} from "../../capabilities/worker-safety/worker-safety";
 
 // A repair starts below the start fraction and is not interrupted before the
 // switch fraction; above it, a tower below the start fraction takes over,

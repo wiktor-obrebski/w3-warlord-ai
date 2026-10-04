@@ -8,7 +8,7 @@ import { updateUpgradingTowers } from "./phases/upgrading-towers";
 import { updateHoldingPosition } from "./phases/holding-position";
 import { maintainHomeEconomy } from "./home-economy";
 import { forgetHidingOfUnsafeWorkers } from "./forward-workers";
-import { WorkerSafety } from "../../capabilities/worker-safety";
+import { WorkerSafety } from "../../capabilities/worker-safety/worker-safety";
 
 export function updateTowerRush(
   world: WorldState,
