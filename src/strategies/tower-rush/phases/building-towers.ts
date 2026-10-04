@@ -53,7 +53,7 @@ interface PlacementRules {
 // or is on its way, and missing ones are re-ordered one Peasant at a time.
 // Only once every tower is accounted for do free forward Peasants help
 // unfinished towers, then hide behind a tower; the phase ends once all of
-// them are hidden.
+// them are sent to hide.
 export function updateBuildingTowers(
   world: WorldState,
   context: TowerRushContext,
@@ -202,7 +202,8 @@ function forgetFinishedTowerHelpers(
   );
 }
 
-// A Peasant sent to safety that has finished its move is hidden.
+// A Peasant is only sent to safety once it is done building and helping, so
+// the phase need not wait for it to arrive; upgrades can start meanwhile.
 function towerBuildingFinished(
   world: WorldState,
   context: TowerRushContext,
@@ -214,10 +215,8 @@ function towerBuildingFinished(
   return (
     (world.scoutTowers.length >= TOWER_COUNT ||
       livingForwardPeasants.length === 0) &&
-    livingForwardPeasants.every(
-      (worker) =>
-        context.forwardWorkersSentToSafety.includes(worker) &&
-        isAvailableForwardPeasant(worker, world),
+    livingForwardPeasants.every((worker) =>
+      context.forwardWorkersSentToSafety.includes(worker),
     )
   );
 }
