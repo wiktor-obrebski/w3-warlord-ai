@@ -10,6 +10,7 @@ const PEASANT_GOLD_COST = 75;
 // Warcraft's listed Peasant training time; not verified in-game.
 const PEASANT_TRAINING_SECONDS = 15;
 const QUEUE_NEXT_PEASANT_AT_PROGRESS = 0.9;
+const MILL_TREE_CANDIDATES = 4;
 
 interface WorkerTargets {
   gold: number;
@@ -238,14 +239,19 @@ function setRally(
   resource: HomeResource,
   world: WorldState,
 ) {
-  if (!W3UnitApi.IssueTargetOrder(townHall, "setrally", rallyTarget(resource, world))) {
+  const target = rallyTarget(townHall, resource, world);
+
+  if (!W3UnitApi.IssueTargetOrder(townHall, "setrally", target)) {
     debug(`Tower rush: rally to ${HomeResource[resource]} rejected.`);
   }
 }
 
 // The rallied destructable is not checked to be a tree; a Peasant rallied to
 // anything else does not start harvesting and is then ordered to a real tree.
+// A rallied Peasant leaves from the Town Hall, so the tree is chosen as seen
+// from there.
 function rallyTarget(
+  townHall: W3UnitApi.unit,
   resource: HomeResource,
   world: WorldState,
 ): W3UnitApi.unit | W3DestructableApi.destructable {
@@ -257,7 +263,7 @@ function rallyTarget(
     return world.homeGoldMine;
   }
 
-  const nearest = lumberDestructablesByPreference(world)[0];
+  const nearest = lumberDestructablesByPreference(world, townHall)[0];
 
   if (!nearest) {
     throw new Error("Tower rush: no destructable near home to rally to.");
@@ -266,13 +272,16 @@ function rallyTarget(
   return nearest;
 }
 
-// Nearest the finished Lumber Mill, where lumber is returned; until it is
-// finished, nearest home, where the Town Hall takes the lumber, preferring
+// Near the finished Lumber Mill, where lumber is returned: of the few
+// destructables nearest the mill, the one nearest the Peasant comes first,
+// so the Peasant does not walk past good trees by the mill. Until the mill
+// is finished, nearest home, where the Town Hall takes the lumber, preferring
 // the side of the Hall away from the mill being built. Rallies and harvest
 // orders share this order so a new Peasant ordered to harvest is not turned
 // away from the tree it was rallied to.
 function lumberDestructablesByPreference(
   world: WorldState,
+  peasantOrigin: W3UnitApi.unit,
 ): W3DestructableApi.destructable[] {
   const mill = completedLumberMill(world);
 
@@ -280,20 +289,34 @@ function lumberDestructablesByPreference(
     return destructablesAwayFromUnfinishedMill(world);
   }
 
-  const millX = W3UnitApi.GetUnitX(mill);
-  const millY = W3UnitApi.GetUnitY(mill);
-  const distanceSquaredToMill = (
-    destructable: W3DestructableApi.destructable,
-  ) => {
-    const dx = W3DestructableApi.GetDestructableX(destructable) - millX;
-    const dy = W3DestructableApi.GetDestructableY(destructable) - millY;
+  const nearestMill = sortByDistanceTo(
+    world.destructablesNearHomeByDistance,
+    mill,
+  );
+  const candidates = sortByDistanceTo(
+    nearestMill.slice(0, MILL_TREE_CANDIDATES),
+    peasantOrigin,
+  );
+
+  return [...candidates, ...nearestMill.slice(MILL_TREE_CANDIDATES)];
+}
+
+function sortByDistanceTo(
+  destructables: W3DestructableApi.destructable[],
+  unit: W3UnitApi.unit,
+): W3DestructableApi.destructable[] {
+  const x = W3UnitApi.GetUnitX(unit);
+  const y = W3UnitApi.GetUnitY(unit);
+  const distanceSquared = (destructable: W3DestructableApi.destructable) => {
+    const dx = W3DestructableApi.GetDestructableX(destructable) - x;
+    const dy = W3DestructableApi.GetDestructableY(destructable) - y;
     return dx * dx + dy * dy;
   };
 
-  return world.destructablesNearHomeByDistance
+  return destructables
     .map((destructable) => ({
       destructable,
-      distanceSquared: distanceSquaredToMill(destructable),
+      distanceSquared: distanceSquared(destructable),
     }))
     .sort((a, b) => a.distanceSquared - b.distanceSquared)
     .map((entry) => entry.destructable);
@@ -363,7 +386,7 @@ function orderHarvestPreferredTree(
   worker: W3UnitApi.unit,
   world: WorldState,
 ): boolean {
-  for (const destructable of lumberDestructablesByPreference(world)) {
+  for (const destructable of lumberDestructablesByPreference(world, worker)) {
     if (W3UnitApi.IssueTargetOrder(worker, "harvest", destructable)) {
       return true;
     }
