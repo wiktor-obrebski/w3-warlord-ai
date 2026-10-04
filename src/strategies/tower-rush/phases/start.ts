@@ -86,7 +86,7 @@ function orderLumberMill(
 
     if (accepted) {
       debug(
-        `Tower rush start: Lumber Mill ordered ${distance} from the Town Hall after ${rejections} rejections.`,
+        `Tower rush start: Lumber Mill ordered ${distance} from the Town Hall.`,
       );
       return;
     }
