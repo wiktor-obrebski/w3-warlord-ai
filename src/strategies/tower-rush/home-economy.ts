@@ -34,6 +34,7 @@ export function maintainHomeEconomy(
 ) {
   forgetDeadWorkers(world, context);
   assignNewHomeWorkers(world, context);
+  moveEmptyLumberWorkersToMill(world, context);
   returnIdleWorkersToTheirResource(world, context);
   maintainPeasantProduction(world, context);
 }
@@ -44,6 +45,46 @@ function forgetDeadWorkers(world: WorldState, context: TowerRushContext) {
   );
   context.lumberWorkers = context.lumberWorkers.filter((worker) =>
     world.peasants.includes(worker),
+  );
+  context.lumberWorkersAtMill = context.lumberWorkersAtMill.filter((worker) =>
+    world.peasants.includes(worker),
+  );
+}
+
+// Lumber workers start out by the trees nearest the Town Hall. Once the
+// Lumber Mill is finished, each one is sent to the trees by the mill right
+// after it has dropped off its lumber, so no carried lumber is lost.
+// Warcraft exposes no carried amount, so a worker that stops returning
+// resources is taken to have just dropped off its load.
+function moveEmptyLumberWorkersToMill(
+  world: WorldState,
+  context: TowerRushContext,
+) {
+  const wasReturning = context.lumberWorkersReturning;
+  context.lumberWorkersReturning = context.lumberWorkers.filter((worker) =>
+    world.returningResourcesUnits.includes(worker),
+  );
+
+  if (!completedLumberMill(world)) {
+    return;
+  }
+
+  for (const worker of context.lumberWorkers) {
+    const justDroppedOff =
+      wasReturning.includes(worker) &&
+      !world.returningResourcesUnits.includes(worker);
+
+    if (justDroppedOff && !context.lumberWorkersAtMill.includes(worker)) {
+      if (orderHarvestPreferredTree(worker, world, context)) {
+        debug("Tower rush: lumber worker moves to the trees by the Lumber Mill.");
+      }
+    }
+  }
+}
+
+function completedLumberMill(world: WorldState): W3UnitApi.unit | undefined {
+  return world.lumberMills.find(
+    (mill) => !world.buildingsUnderConstruction.includes(mill),
   );
 }
 
@@ -71,7 +112,7 @@ function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
 
     if (
       !world.harvestingUnits.includes(peasant) &&
-      !orderHarvest(peasant, resource, world)
+      !orderHarvest(peasant, resource, world, context)
     ) {
       debug(`Tower rush: ${HomeResource[resource]} harvest order rejected.`);
     }
@@ -145,7 +186,7 @@ function returnIdleWorkersToTheirResource(
 
   for (const worker of context.lumberWorkers) {
     if (world.idleUnits.includes(worker)) {
-      orderHarvestPreferredTree(worker, world);
+      orderHarvestPreferredTree(worker, world, context);
     }
   }
 }
@@ -260,14 +301,14 @@ function rallyTarget(
   return nearest;
 }
 
-// Nearest the Lumber Mill, where lumber is returned, even while the mill is
-// still being built; before the mill exists, nearest home. Rallies and
+// Nearest the finished Lumber Mill, where lumber is returned; until it is
+// finished, nearest home, where the Town Hall takes the lumber. Rallies and
 // harvest orders share this order so a new Peasant ordered to harvest is not
 // turned away from the tree it was rallied to.
 function lumberDestructablesByPreference(
   world: WorldState,
 ): W3DestructableApi.destructable[] {
-  const mill = world.lumberMills[0];
+  const mill = completedLumberMill(world);
 
   if (!mill) {
     return world.destructablesNearHomeByDistance;
@@ -307,10 +348,11 @@ function orderHarvest(
   worker: W3UnitApi.unit,
   resource: HomeResource,
   world: WorldState,
+  context: TowerRushContext,
 ): boolean {
   return resource === HomeResource.Gold
     ? orderHarvestGold(worker, world)
-    : orderHarvestPreferredTree(worker, world);
+    : orderHarvestPreferredTree(worker, world, context);
 }
 
 function orderHarvestGold(
@@ -329,9 +371,17 @@ function orderHarvestGold(
 function orderHarvestPreferredTree(
   worker: W3UnitApi.unit,
   world: WorldState,
+  context: TowerRushContext,
 ): boolean {
   for (const destructable of lumberDestructablesByPreference(world)) {
     if (W3UnitApi.IssueTargetOrder(worker, "harvest", destructable)) {
+      if (
+        completedLumberMill(world) &&
+        !context.lumberWorkersAtMill.includes(worker)
+      ) {
+        context.lumberWorkersAtMill.push(worker);
+      }
+
       return true;
     }
   }

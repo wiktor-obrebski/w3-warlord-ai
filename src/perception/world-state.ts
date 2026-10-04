@@ -30,7 +30,9 @@ export interface WorldState {
   peasants: W3UnitApi.unit[];
   militia: W3UnitApi.unit[];
   idleUnits: W3UnitApi.unit[];
+  // Includes the units returning resources.
   harvestingUnits: W3UnitApi.unit[];
+  returningResourcesUnits: W3UnitApi.unit[];
   holdingPositionUnits: W3UnitApi.unit[];
   repairingUnits: W3UnitApi.unit[];
   // Includes towers still under construction.

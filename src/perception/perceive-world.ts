@@ -58,6 +58,7 @@ export function perceiveWorld(
     militia: [],
     idleUnits: [],
     harvestingUnits: [],
+    returningResourcesUnits: [],
     holdingPositionUnits: [],
     repairingUnits: [],
     scoutTowers: [],
@@ -86,6 +87,9 @@ export function perceiveWorld(
   const harvestOrders = HARVEST_ORDER_STRINGS.map((order) =>
     W3UnitApi.OrderId(order),
   );
+  // Assumed, not verified in-game, to stay the current order while carrying
+  // resources back.
+  const returnResourcesOrder = W3UnitApi.OrderId("returnresources");
   const holdPositionOrder = W3UnitApi.OrderId("holdposition");
   // Assumed, not verified in-game, to stay the current order while repairing.
   const repairOrder = W3UnitApi.OrderId("repair");
@@ -101,6 +105,10 @@ export function perceiveWorld(
       world.idleUnits.push(unit);
     } else if (harvestOrders.includes(order)) {
       world.harvestingUnits.push(unit);
+
+      if (order === returnResourcesOrder) {
+        world.returningResourcesUnits.push(unit);
+      }
     } else if (order === holdPositionOrder) {
       world.holdingPositionUnits.push(unit);
     } else if (order === repairOrder) {
