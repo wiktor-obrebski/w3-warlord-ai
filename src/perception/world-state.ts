@@ -20,6 +20,8 @@ export interface VisibleEnemy {
 }
 
 export interface WorldState {
+  // Game seconds since the bot started playing.
+  time: number;
   ownStartPosition: Point;
   enemyStartPosition?: Point;
 

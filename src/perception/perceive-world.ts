@@ -11,6 +11,7 @@ import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import * as W3OrcApi from "@lib/warcraft3-api/orc";
 import { Point, VisibleEnemy, WorldState } from "./world-state";
 import { AttackObserver, recentAttackTarget } from "./attack-observer";
+import { GameClock, readGameClock } from "./game-clock";
 
 type UnitGroup = ReturnType<typeof W3GroupApi.CreateGroup>;
 
@@ -41,6 +42,7 @@ const DEAD_UNIT_LIFE = 0.405;
 
 export function perceiveWorld(
   bot: W3PlayerApi.player,
+  clock: GameClock,
   attackObserver: AttackObserver,
 ): WorldState {
   const ownStartPosition = startPositionOf(bot);
@@ -49,6 +51,7 @@ export function perceiveWorld(
   const enemyStartPosition = enemy && startPositionOf(enemy);
 
   const world: WorldState = {
+    time: readGameClock(clock),
     ownStartPosition,
     enemyStartPosition,
     peasants: [],
