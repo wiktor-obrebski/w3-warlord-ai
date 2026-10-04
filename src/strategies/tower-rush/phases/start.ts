@@ -1,6 +1,6 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
+import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import { debug } from "../../../debug";
 import { Point, WorldState } from "../../../perception/world-state";
 import { TowerRushContext, TowerRushPhase } from "../tower-rush-context";
@@ -14,8 +14,7 @@ const FORWARD_WORKER_COUNT = 3;
 // of the build grid.
 const MIN_LUMBER_MILL_DISTANCE = 384;
 const MAX_LUMBER_MILL_DISTANCE = 1200;
-const DISTANCE_INCREASE = 32;
-const REJECTIONS_PER_DISTANCE_INCREASE = 10;
+const CANDIDATE_SPACING = 64;
 
 export function updateStart(world: WorldState, context: TowerRushContext) {
   const { townHall, enemyMainGoldMine, homeGoldMine } = world;
@@ -49,14 +48,14 @@ export function updateStart(world: WorldState, context: TowerRushContext) {
     W3UnitApi.IssueImmediateOrder(worker, "militia");
   }
 
-  orderLumberMill(lumberMillBuilder, townHall, homeGoldMine);
+  orderLumberMill(lumberMillBuilder, townHall, homeGoldMine, world);
   W3UnitApi.IssueTargetOrder(homeWorker, "harvest", homeGoldMine);
   trainPeasant(townHall, world, context);
 
   context.phase = TowerRushPhase.MovingToEnemy;
 }
 
-// The search starts just outside the Town Hall and widens on rejection;
+// Spots are tried from the one closest to both the Town Hall and a tree;
 // IssueBuildOrderById rejects blocked spots, so the order itself is the
 // placement test. Only the half facing away from the gold mine is searched
 // so the mill never stands in the way of gold workers.
@@ -64,43 +63,97 @@ function orderLumberMill(
   builder: W3UnitApi.unit,
   townHall: W3UnitApi.unit,
   mine: W3UnitApi.unit,
+  world: WorldState,
 ) {
   const hall = positionOf(townHall);
-  const minePosition = positionOf(mine);
-  const angleToMine = Math.atan2(
-    minePosition.y - hall.y,
-    minePosition.x - hall.x,
-  );
-  let distance = MIN_LUMBER_MILL_DISTANCE;
-  let rejections = 0;
+  const trees = treePositions(builder, world);
+  const sites = lumberMillCandidates(hall, positionOf(mine))
+    .map((position) => ({
+      position,
+      hallDistance: distanceBetween(position, hall),
+      treeDistance: nearestDistance(position, trees),
+    }))
+    .sort(
+      (a, b) =>
+        a.hallDistance + a.treeDistance - (b.hallDistance + b.treeDistance),
+    );
 
-  while (distance <= MAX_LUMBER_MILL_DISTANCE) {
-    const angle =
-      angleToMine + Math.PI / 2 + W3MathApi.GetRandomReal(0, Math.PI);
+  for (const site of sites) {
     const accepted = W3UnitApi.IssueBuildOrderById(
       builder,
       W3HumanApi.Building.LUMBER_MILL,
-      hall.x + Math.cos(angle) * distance,
-      hall.y + Math.sin(angle) * distance,
+      site.position.x,
+      site.position.y,
     );
 
     if (accepted) {
       debug(
-        `Tower rush start: Lumber Mill ordered ${distance} from the Town Hall.`,
+        `Tower rush start: Lumber Mill ordered ${Math.floor(site.hallDistance)} from the Town Hall and ${Math.floor(site.treeDistance)} from a tree.`,
       );
       return;
-    }
-
-    rejections++;
-
-    if (rejections % REJECTIONS_PER_DISTANCE_INCREASE === 0) {
-      distance += DISTANCE_INCREASE;
     }
   }
 
   debug("Tower rush start: all Lumber Mill locations rejected.");
 }
 
+// Rings around the Town Hall, spaced about CANDIDATE_SPACING apart, on the
+// half facing away from the gold mine.
+function lumberMillCandidates(hall: Point, mine: Point): Point[] {
+  const awayFromMine = Math.atan2(hall.y - mine.y, hall.x - mine.x);
+  const candidates: Point[] = [];
+
+  for (
+    let distance = MIN_LUMBER_MILL_DISTANCE;
+    distance <= MAX_LUMBER_MILL_DISTANCE;
+    distance += CANDIDATE_SPACING
+  ) {
+    const angleStep = CANDIDATE_SPACING / distance;
+
+    for (let offset = -Math.PI / 2; offset <= Math.PI / 2; offset += angleStep) {
+      const angle = awayFromMine + offset;
+
+      candidates.push({
+        x: hall.x + Math.cos(angle) * distance,
+        y: hall.y + Math.sin(angle) * distance,
+      });
+    }
+  }
+
+  return candidates;
+}
+
+// Perception cannot tell trees apart from other destructables, so a harvest
+// order is used as the test: Warcraft rejects it for non-trees. The builder's
+// build order replaces these test orders.
+function treePositions(builder: W3UnitApi.unit, world: WorldState): Point[] {
+  return world.destructablesNearHomeByDistance
+    .filter((destructable) =>
+      W3UnitApi.IssueTargetOrder(builder, "harvest", destructable),
+    )
+    .map((tree) => ({
+      x: W3DestructableApi.GetDestructableX(tree),
+      y: W3DestructableApi.GetDestructableY(tree),
+    }));
+}
+
+// Without any trees every spot scores alike, leaving only the hall distance.
+function nearestDistance(position: Point, others: Point[]): number {
+  let nearest = others.length === 0 ? 0 : Infinity;
+
+  for (const other of others) {
+    nearest = Math.min(nearest, distanceBetween(position, other));
+  }
+
+  return nearest;
+}
+
 function positionOf(unit: W3UnitApi.unit): Point {
   return { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) };
+}
+
+function distanceBetween(a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return Math.sqrt(dx * dx + dy * dy);
 }
