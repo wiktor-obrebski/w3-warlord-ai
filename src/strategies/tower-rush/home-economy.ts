@@ -145,7 +145,7 @@ function returnIdleWorkersToTheirResource(
 
   for (const worker of context.lumberWorkers) {
     if (world.idleUnits.includes(worker)) {
-      orderHarvestNearestTree(worker, world);
+      orderHarvestPreferredTree(worker, world);
     }
   }
 }
@@ -237,9 +237,8 @@ function setRally(
   }
 }
 
-// The nearest destructable is used for lumber without checking that it is a
-// tree; a Peasant rallied to anything else does not start harvesting and is
-// then ordered to a real tree.
+// The rallied destructable is not checked to be a tree; a Peasant rallied to
+// anything else does not start harvesting and is then ordered to a real tree.
 function rallyTarget(
   resource: HomeResource,
   world: WorldState,
@@ -252,13 +251,45 @@ function rallyTarget(
     return world.homeGoldMine;
   }
 
-  const nearest = world.destructablesNearHomeByDistance[0];
+  const nearest = lumberDestructablesByPreference(world)[0];
 
   if (!nearest) {
     throw new Error("Tower rush: no destructable near home to rally to.");
   }
 
   return nearest;
+}
+
+// Nearest the Lumber Mill, where lumber is returned, even while the mill is
+// still being built; before the mill exists, nearest home. Rallies and
+// harvest orders share this order so a new Peasant ordered to harvest is not
+// turned away from the tree it was rallied to.
+function lumberDestructablesByPreference(
+  world: WorldState,
+): W3DestructableApi.destructable[] {
+  const mill = world.lumberMills[0];
+
+  if (!mill) {
+    return world.destructablesNearHomeByDistance;
+  }
+
+  const millX = W3UnitApi.GetUnitX(mill);
+  const millY = W3UnitApi.GetUnitY(mill);
+  const distanceSquaredToMill = (
+    destructable: W3DestructableApi.destructable,
+  ) => {
+    const dx = W3DestructableApi.GetDestructableX(destructable) - millX;
+    const dy = W3DestructableApi.GetDestructableY(destructable) - millY;
+    return dx * dx + dy * dy;
+  };
+
+  return world.destructablesNearHomeByDistance
+    .map((destructable) => ({
+      destructable,
+      distanceSquared: distanceSquaredToMill(destructable),
+    }))
+    .sort((a, b) => a.distanceSquared - b.distanceSquared)
+    .map((entry) => entry.destructable);
 }
 
 function isAssignedWorker(
@@ -279,7 +310,7 @@ function orderHarvest(
 ): boolean {
   return resource === HomeResource.Gold
     ? orderHarvestGold(worker, world)
-    : orderHarvestNearestTree(worker, world);
+    : orderHarvestPreferredTree(worker, world);
 }
 
 function orderHarvestGold(
@@ -295,11 +326,11 @@ function orderHarvestGold(
 
 // Perception cannot tell trees apart from other destructables, so the harvest
 // order itself is used as the test: Warcraft rejects it for non-trees.
-function orderHarvestNearestTree(
+function orderHarvestPreferredTree(
   worker: W3UnitApi.unit,
   world: WorldState,
 ): boolean {
-  for (const destructable of world.destructablesNearHomeByDistance) {
+  for (const destructable of lumberDestructablesByPreference(world)) {
     if (W3UnitApi.IssueTargetOrder(worker, "harvest", destructable)) {
       return true;
     }
