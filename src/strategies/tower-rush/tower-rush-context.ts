@@ -38,10 +38,6 @@ export interface TowerRushContext {
   forwardWorkersSentToSafety: W3UnitApi.unit[];
   goldWorkers: W3UnitApi.unit[];
   lumberWorkers: W3UnitApi.unit[];
-  // Lumber workers seen carrying lumber back on the last update.
-  lumberWorkersReturning: W3UnitApi.unit[];
-  // Lumber workers already sent to the trees by the finished Lumber Mill.
-  lumberWorkersAtMill: W3UnitApi.unit[];
   // The resource of each Peasant ordered at the Town Hall, in training order;
   // the first one is in training.
   peasantsInTraining: HomeResource[];
@@ -78,8 +74,6 @@ export function createTowerRushContext(): TowerRushContext {
     towerTargets: [],
     goldWorkers: [],
     lumberWorkers: [],
-    lumberWorkersReturning: [],
-    lumberWorkersAtMill: [],
     peasantsInTraining: [],
     peasantTrainingStartedAt: 0,
     reservingGoldForUpgrades: false,
