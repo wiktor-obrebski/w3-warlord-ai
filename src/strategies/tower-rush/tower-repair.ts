@@ -15,7 +15,8 @@ const REPAIR_START_LIFE_FRACTION = 0.6;
 const REPAIR_SWITCH_LIFE_FRACTION = 0.8;
 
 // The forward Peasants repair the most damaged tower and hide behind the
-// towers when none needs repair.
+// towers when none needs repair. Only used once every rush tower is built,
+// so a tower's life fraction reflects damage, not build progress.
 export function maintainTowers(world: WorldState, context: TowerRushContext) {
   const enemyMain = world.enemyStartPosition;
 
@@ -25,17 +26,14 @@ export function maintainTowers(world: WorldState, context: TowerRushContext) {
 
   const towers = [...world.scoutTowers, ...world.guardTowers];
   const previousTarget = context.repairTarget;
-  const repairTarget = chooseRepairTarget(
-    repairableTowers(towers, world),
-    previousTarget,
-  );
+  const repairTarget = chooseRepairTarget(towers, previousTarget);
   const targetChanged = repairTarget !== previousTarget;
   context.repairTarget = repairTarget;
 
   if (targetChanged) {
     debug(
       repairTarget
-        ? `Tower rush: repairing a tower at ${Math.floor(lifeFraction(repairTarget) * 100)}% life.`
+        ? `Tower rush: repairing ${describeTower(repairTarget)}.`
         : "Tower rush: no tower needs repair.",
     );
   }
@@ -58,34 +56,18 @@ export function maintainTowers(world: WorldState, context: TowerRushContext) {
   }
 }
 
-// The life fraction of a tower under construction reflects build progress,
-// not damage. An upgrading tower is left alone too: whether its life
-// fraction is meaningful during the upgrade, and whether Peasants can repair
-// it then, is not verified in-game.
-function repairableTowers(
-  towers: W3UnitApi.unit[],
-  world: WorldState,
-): W3UnitApi.unit[] {
-  return towers.filter(
-    (tower) =>
-      !world.buildingsUnderConstruction.includes(tower) &&
-      !world.buildingsUpgrading.includes(tower),
-  );
-}
-
 function chooseRepairTarget(
-  repairable: W3UnitApi.unit[],
+  towers: W3UnitApi.unit[],
   current: W3UnitApi.unit | undefined,
 ): W3UnitApi.unit | undefined {
-  const currentRepairable =
-    current !== undefined && repairable.includes(current);
+  const currentStanding = current !== undefined && towers.includes(current);
 
-  if (currentRepairable && lifeFraction(current) < REPAIR_SWITCH_LIFE_FRACTION) {
+  if (currentStanding && lifeFraction(current) < REPAIR_SWITCH_LIFE_FRACTION) {
     return current;
   }
 
   const mostDamaged = mostDamagedTower(
-    repairable.filter(
+    towers.filter(
       (tower) =>
         tower !== current && lifeFraction(tower) < REPAIR_START_LIFE_FRACTION,
     ),
@@ -95,7 +77,7 @@ function chooseRepairTarget(
     return mostDamaged;
   }
 
-  return currentRepairable && lifeFraction(current) < 1 ? current : undefined;
+  return currentStanding && lifeFraction(current) < 1 ? current : undefined;
 }
 
 function mostDamagedTower(
@@ -120,8 +102,15 @@ function orderRepair(
   if (W3UnitApi.IssueTargetOrder(worker, "repair", tower)) {
     forgetSentToSafety(worker, context);
   } else {
-    debug("Tower rush: repair order rejected.");
+    debug(`Tower rush: repair order rejected for ${describeTower(tower)}.`);
   }
+}
+
+function describeTower(tower: W3UnitApi.unit): string {
+  const life = W3UnitApi.GetUnitState(tower, W3UnitApi.UNIT_STATE_LIFE);
+  const maxLife = W3UnitApi.GetUnitState(tower, W3UnitApi.UNIT_STATE_MAX_LIFE);
+
+  return `a tower at ${Math.floor(life)}/${Math.floor(maxLife)} life`;
 }
 
 function lifeFraction(unit: W3UnitApi.unit): number {
