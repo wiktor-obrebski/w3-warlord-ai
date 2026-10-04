@@ -6,10 +6,11 @@ import { GameClock, readGameClock } from "./game-clock";
 declare function guard(this: void, callback: (this: void) => void): (this: void) => void;
 
 // Warcraft offers no way to read whom a unit is attacking, so attacks are
-// observed as they start. An attack is reported for a while afterwards
-// because slow attackers, such as siege units, start one only every few
-// seconds.
-const ATTACK_REPORT_SECONDS = 5;
+// observed as they start and reported for a short while afterwards. The
+// window is kept short so units stop counting as attacked soon after the
+// attacks end; slow attackers, such as siege units, start an attack only
+// every few seconds and so are reported only part of the time.
+const ATTACK_REPORT_SECONDS = 1;
 
 interface ObservedAttack {
   attacker: W3UnitApi.unit;
