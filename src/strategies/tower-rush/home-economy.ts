@@ -7,6 +7,9 @@ import { HomeResource, TowerRushContext } from "./tower-rush-context";
 import { GUARD_TOWER_UPGRADE_GOLD_COST } from "./phases/upgrading-towers";
 
 const PEASANT_GOLD_COST = 75;
+// Warcraft's listed Peasant training time; not verified in-game.
+const PEASANT_TRAINING_SECONDS = 15;
+const QUEUE_NEXT_PEASANT_AT_PROGRESS = 0.9;
 
 interface WorkerTargets {
   gold: number;
@@ -54,8 +57,7 @@ function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
     }
 
     const resource =
-      context.trainingPeasantResource ?? nextWorkerResource(context);
-    context.trainingPeasantResource = undefined;
+      finishPeasantTraining(world, context) ?? nextWorkerResource(context);
 
     if (resource === HomeResource.Gold) {
       context.goldWorkers.push(peasant);
@@ -76,10 +78,31 @@ function assignNewHomeWorkers(world: WorldState, context: TowerRushContext) {
   }
 }
 
+// The Town Hall has a single rally point, which a Peasant follows when it
+// leaves training. It is pointed at the next Peasant's resource only once
+// the previous one has left, so queueing does not redirect that one.
+function finishPeasantTraining(
+  world: WorldState,
+  context: TowerRushContext,
+): HomeResource | undefined {
+  const finished = context.peasantsInTraining.shift();
+  const next = context.peasantsInTraining[0];
+
+  if (finished !== undefined && next !== undefined) {
+    context.peasantTrainingStartedAt += PEASANT_TRAINING_SECONDS;
+
+    if (world.townHall) {
+      setRally(world.townHall, next, world);
+    }
+  }
+
+  return finished;
+}
+
 function nextWorkerResource(context: TowerRushContext): HomeResource {
   const targets = currentWorkerTargets(context);
 
-  return targets && context.goldWorkers.length < targets.gold
+  return targets && plannedWorkers(context).gold < targets.gold
     ? HomeResource.Gold
     : HomeResource.Lumber;
 }
@@ -88,11 +111,22 @@ function nextWorkerResource(context: TowerRushContext): HomeResource {
 function currentWorkerTargets(
   context: TowerRushContext,
 ): WorkerTargets | undefined {
+  const planned = plannedWorkers(context);
+
   return WORKER_TARGET_STAGES.find(
-    (targets) =>
-      context.goldWorkers.length < targets.gold ||
-      context.lumberWorkers.length < targets.lumber,
+    (targets) => planned.gold < targets.gold || planned.lumber < targets.lumber,
   );
+}
+
+// Assigned workers together with the Peasants still in training.
+function plannedWorkers(context: TowerRushContext): WorkerTargets {
+  const inTraining = (resource: HomeResource) =>
+    context.peasantsInTraining.filter((planned) => planned === resource).length;
+
+  return {
+    gold: context.goldWorkers.length + inTraining(HomeResource.Gold),
+    lumber: context.lumberWorkers.length + inTraining(HomeResource.Lumber),
+  };
 }
 
 function describeWorkers(context: TowerRushContext): string {
@@ -117,7 +151,7 @@ function returnIdleWorkersToTheirResource(
 }
 
 // A training Town Hall still reports no current order, so production tracks
-// its own in-flight Peasant to avoid queueing more than are needed.
+// its own Peasants in training to avoid queueing more than are needed.
 function maintainPeasantProduction(
   world: WorldState,
   context: TowerRushContext,
@@ -127,12 +161,27 @@ function maintainPeasantProduction(
 
   if (
     homeWorkersMissing &&
-    context.trainingPeasantResource === undefined &&
+    canQueuePeasant(world, context) &&
     townHall &&
     world.gold - goldReservedForUpgrades(world, context) >= PEASANT_GOLD_COST
   ) {
     trainPeasant(townHall, world, context);
   }
+}
+
+// The next Peasant is queued shortly before the current one finishes, so the
+// Town Hall does not stand idle until the next update notices, while the
+// gold is not tied up in the queue for long. Warcraft exposes no training
+// progress, so it is estimated from the fixed training time.
+function canQueuePeasant(world: WorldState, context: TowerRushContext): boolean {
+  const queued = context.peasantsInTraining.length;
+  const currentProgress =
+    (world.time - context.peasantTrainingStartedAt) / PEASANT_TRAINING_SECONDS;
+
+  return (
+    queued === 0 ||
+    (queued === 1 && currentProgress >= QUEUE_NEXT_PEASANT_AT_PROGRESS)
+  );
 }
 
 // A Guard Tower upgrade is paid when it starts, so an upgrading tower no
@@ -158,16 +207,33 @@ export function trainPeasant(
   context: TowerRushContext,
 ) {
   const resource = nextWorkerResource(context);
+  const startsNow = context.peasantsInTraining.length === 0;
 
-  if (!W3UnitApi.IssueTargetOrder(townHall, "setrally", rallyTarget(resource, world))) {
-    debug(`Tower rush: rally to ${HomeResource[resource]} rejected.`);
+  if (startsNow) {
+    setRally(townHall, resource, world);
   }
 
   if (W3UnitApi.IssueImmediateOrderById(townHall, W3HumanApi.Unit.PEASANT)) {
-    context.trainingPeasantResource = resource;
-    debug(`Tower rush: Peasant training ordered for ${HomeResource[resource]}.`);
+    if (startsNow) {
+      context.peasantTrainingStartedAt = world.time;
+    }
+
+    context.peasantsInTraining.push(resource);
+    debug(
+      `Tower rush: Peasant training ${startsNow ? "ordered" : "queued"} for ${HomeResource[resource]}.`,
+    );
   } else {
     debug("Tower rush: Peasant training order rejected.");
+  }
+}
+
+function setRally(
+  townHall: W3UnitApi.unit,
+  resource: HomeResource,
+  world: WorldState,
+) {
+  if (!W3UnitApi.IssueTargetOrder(townHall, "setrally", rallyTarget(resource, world))) {
+    debug(`Tower rush: rally to ${HomeResource[resource]} rejected.`);
   }
 }
 

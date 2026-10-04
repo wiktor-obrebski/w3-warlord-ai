@@ -38,8 +38,11 @@ export interface TowerRushContext {
   forwardWorkersSentToSafety: W3UnitApi.unit[];
   goldWorkers: W3UnitApi.unit[];
   lumberWorkers: W3UnitApi.unit[];
-  // Where the Peasant in training is rallied to; undefined when none is.
-  trainingPeasantResource: HomeResource | undefined;
+  // The resource of each Peasant ordered at the Town Hall, in training order;
+  // the first one is in training.
+  peasantsInTraining: HomeResource[];
+  // When the first Peasant in training started training.
+  peasantTrainingStartedAt: number;
   // Once set, Peasant production leaves gold for every Scout Tower that has
   // not started its Guard Tower upgrade.
   reservingGoldForUpgrades: boolean;
@@ -71,7 +74,8 @@ export function createTowerRushContext(): TowerRushContext {
     towerTargets: [],
     goldWorkers: [],
     lumberWorkers: [],
-    trainingPeasantResource: undefined,
+    peasantsInTraining: [],
+    peasantTrainingStartedAt: 0,
     reservingGoldForUpgrades: false,
   };
 }
