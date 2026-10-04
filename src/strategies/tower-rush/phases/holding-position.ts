@@ -16,6 +16,7 @@ enum TargetPriority {
   Siege,
   Ranged,
   Melee,
+  Worker,
   Building,
 }
 
@@ -72,12 +73,16 @@ function rankTargets(
 }
 
 // Melee, ranged and siege are independent properties, so the first matching
-// rule decides.
+// rule decides. Workers rank only as workers, whatever they attack.
 function targetPriority(
   enemy: VisibleEnemy,
   world: WorldState,
   context: TowerRushContext,
 ): TargetPriority | undefined {
+  if (enemy.isWorker) {
+    return TargetPriority.Worker;
+  }
+
   const { attackTarget } = enemy;
   const attacksForwardWorker =
     attackTarget !== undefined && context.forwardWorkers.includes(attackTarget);

@@ -205,6 +205,7 @@ function visibleEnemies(
         ),
         isSiege: SIEGE_UNIT_TYPES.includes(W3UnitApi.GetUnitTypeId(unit)),
         isStructure: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_STRUCTURE),
+        isWorker: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_PEON),
         attackTarget: recentAttackTarget(attackObserver, unit),
       });
     }

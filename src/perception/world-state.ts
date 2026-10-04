@@ -15,6 +15,7 @@ export interface VisibleEnemy {
   isRanged: boolean;
   isSiege: boolean;
   isStructure: boolean;
+  isWorker: boolean;
   // The bot's unit it was recently seen starting an attack on.
   attackTarget?: W3UnitApi.unit;
 }
