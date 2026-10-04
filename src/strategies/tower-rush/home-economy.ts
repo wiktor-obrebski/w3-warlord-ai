@@ -25,8 +25,9 @@ const WORKER_TARGET_STAGES: WorkerTargets[] = [
   { gold: 2, lumber: 2 },
   { gold: 2, lumber: 3 },
   { gold: 3, lumber: 3 },
-  { gold: 4, lumber: 3 },
-  { gold: 5, lumber: 3 },
+  { gold: 3, lumber: 4 },
+  { gold: 4, lumber: 4 },
+  { gold: 4, lumber: 5 },
 ];
 
 export function maintainHomeEconomy(
@@ -338,7 +339,7 @@ function destructablesAwayFromUnfinishedMill(
   const toMillY = W3UnitApi.GetUnitY(mill) - hall.y;
   const isAwayFromMill = (destructable: W3DestructableApi.destructable) =>
     (W3DestructableApi.GetDestructableX(destructable) - hall.x) * toMillX +
-      (W3DestructableApi.GetDestructableY(destructable) - hall.y) * toMillY <
+    (W3DestructableApi.GetDestructableY(destructable) - hall.y) * toMillY <
     0;
   const nearHome = world.destructablesNearHomeByDistance;
 
