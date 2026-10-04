@@ -1,120 +1,147 @@
-# Math
+# `@lib/math`
 
-## Vector2
+Small, dependency-free 2D math primitives for the Warlord Warcraft III bot.
 
-A small, dependency-free `Vector2` implementation intended for TypeScriptToLua (TSTL).
+The library deliberately distinguishes **points** from **vectors**:
 
-The public API is intentionally based on the useful, non-rendering subset of [`THREE.Vector2`](https://threejs.org/docs/#Vector2). Supported methods keep the same names, mutation behavior, argument order, and return semantics so the Three.js `Vector2` documentation can be used as the primary API reference for those methods.
+- `Point` represents a position in the game world.
+- `Vector` represents a displacement, direction, or magnitude.
 
-This package does **not** depend on Three.js and does not require a JavaScript runtime. The implementation is plain TypeScript designed to be compiled by TSTL.
+This distinction is intentional. A point is not treated as a vector merely because both contain `x` and `y` coordinates.
 
-### Usage
+## Inspiration
 
-```ts
-import { Vector2 } from '@lib/math';
+The API is based on the `Point` and `Vector` concepts from [FlattenJS (`@flatten-js/core`)](https://github.com/alexbol99/flatten-js), with only the subset useful to Warlord retained.
 
-const worker = new Vector2(100, 200);
-const enemy = new Vector2(300, 250);
+FlattenJS documentation:
 
-const escapeDirection = worker
-  .clone()
-  .sub(enemy)
-  .normalize();
+- [Full documentation](https://alexbol99.github.io/flatten-js/)
+- [Point](https://alexbol99.github.io/flatten-js/Point.html)
+- [Vector](https://alexbol99.github.io/flatten-js/Vector.html)
 
-const escapePoint = worker
-  .clone()
-  .addScaledVector(escapeDirection, 300);
+`@lib/math` does **not** depend on FlattenJS. It is a small TypeScript implementation intended to compile cleanly with TypeScriptToLua.
+
+## Semantics
+
+The important operations preserve the mathematical distinction between points and vectors:
+
+```text
+Point + Vector = Point
+Point - Point = Vector
+Vector + Vector = Vector
+Vector - Vector = Vector
+Vector * scalar = Vector
 ```
 
-Like Three.js, most operations mutate the vector and return `this`:
+`Point - Point` is represented by constructing a vector from two points:
 
 ```ts
-const position = new Vector2(10, 20);
-position.add(new Vector2(5, 2)).multiplyScalar(2);
+const direction = new Vector(start, target);
 ```
 
-Use `clone()` when the original value must remain unchanged.
+`Point + Vector` is represented by translation:
 
-### Supported Three.js-compatible API
+```ts
+const target = start.translate(displacement);
+```
 
-#### Construction and assignment
+Points deliberately do not expose vector operations such as `normalize`, `dot`, `add`, or `multiply`.
 
-- `new Vector2(x?, y?)`
-- `x`, `y`
-- `set(x, y)`
-- `setScalar(scalar)`
-- `setX(x)`
-- `setY(y)`
-- `clone()`
-- `copy(v)`
+## Example
 
-#### Arithmetic
+Move from point `A` in direction `(1, 2)` by distance `3`:
 
-- `add(v)`
-- `addScalar(s)`
-- `addVectors(a, b)`
-- `addScaledVector(v, s)`
-- `sub(v)`
-- `subScalar(s)`
-- `subVectors(a, b)`
-- `multiply(v)`
-- `multiplyScalar(scalar)`
-- `divide(v)`
-- `divideScalar(scalar)`
-- `negate()`
+```ts
+import { Point, Vector } from "@lib/math";
 
-#### Limits and rounding
+const a = new Point(10, 20);
+const direction = new Vector(1, 2);
 
-- `min(v)`
-- `max(v)`
-- `clamp(min, max)`
-- `clampScalar(minVal, maxVal)`
-- `clampLength(min, max)`
-- `floor()`
-- `ceil()`
-- `round()`
-- `roundToZero()`
+const displacement = direction.normalize().multiply(3);
+const target = a.translate(displacement);
+```
 
-#### Vector algebra and geometry
+To calculate the direction from one position to another:
 
-- `dot(v)`
-- `cross(v)`
-- `lengthSq()`
-- `length()`
-- `manhattanLength()`
-- `normalize()`
-- `angle()`
-- `angleTo(v)`
-- `distanceTo(v)`
-- `distanceToSquared(v)`
-- `manhattanDistanceTo(v)`
-- `setLength(length)`
-- `lerp(v, alpha)`
-- `lerpVectors(v1, v2, alpha)`
-- `equals(v)`
-- `rotateAround(center, angle)`
+```ts
+const unitPosition = new Point(10, 20);
+const enemyPosition = new Point(30, 50);
 
-### Intentionally omitted Three.js API
+const toEnemy = new Vector(unitPosition, enemyPosition);
+const direction = toEnemy.normalize();
+const distance = toEnemy.length;
+```
 
-The following `THREE.Vector2` features are intentionally not implemented because they are tied to rendering/data interoperability or provide little value to a Warcraft III AI:
+## `Point`
 
-- `width` / `height` aliases — rendering-oriented aliases for `x` / `y`.
-- `isVector2` — Three.js runtime type-testing convention.
-- `setComponent()` / `getComponent()` — index-based component access adds little value for 2D bot geometry.
-- `applyMatrix3()` — transformation-matrix integration is not needed for WC3 world-space calculations.
-- `fromArray()` / `toArray()` — array serialization convenience is unnecessary for current bot logic.
-- `fromBufferAttribute()` — Three.js rendering-buffer integration.
-- `random()` — bot randomness should be explicit and controlled outside the vector primitive.
-- `[Symbol.iterator]()` — unnecessary iteration support and undesirable extra runtime machinery for TSTL.
+Supported API:
 
-If one of these becomes useful later, it can be added while preserving the corresponding Three.js semantics.
+```ts
+new Point(x?, y?)
+point.clone()
+point.equalTo(other)
+point.translate(vector)
+```
 
-### Compatibility contract
+`Point` is immutable. Operations return new objects.
 
-This is a **subset-compatible API**, not a replacement for Three.js.
+## `Vector`
 
-For every supported method, the intent is to match `THREE.Vector2` behavior closely enough that the official documentation applies directly:
+Construction:
 
-https://threejs.org/docs/#Vector2
+```ts
+new Vector()
+new Vector(x, y)
+new Vector(startPoint, endPoint)
+```
 
-The implementation itself is independent and dependency-free; Three.js is used as the API and behavioral reference.
+Supported API:
+
+```ts
+vector.clone()
+
+vector.slope
+vector.length
+vector.isZeroLength()
+vector.equalTo(other)
+
+vector.multiply(scalar)
+vector.add(other)
+vector.subtract(other)
+vector.invert()
+
+vector.dot(other)
+vector.cross(other)
+vector.normalize()
+vector.angleTo(other)
+vector.projectionOn(other)
+
+vector.rotate(angle)
+vector.rotate90CCW()
+vector.rotate90CW()
+```
+
+`Vector` is immutable. Operations return new vectors rather than modifying the receiver. This follows FlattenJS's vector behavior and makes intermediate calculations easier to reason about in AI code.
+
+Angles are in radians. `slope` and `angleTo()` return values in the range `[0, 2π)`.
+
+## Floating-point comparisons
+
+`equalTo()` and zero-length checks use a tolerance of `0.000001`, matching FlattenJS's default floating-point tolerance.
+
+## Deliberately omitted FlattenJS API
+
+FlattenJS is a full computational-geometry library. Warlord currently needs only basic position and vector algebra, so this library intentionally does not implement:
+
+- matrices and generic affine transforms
+- arbitrary shapes, segments, lines, circles, polygons, etc.
+- SVG/rendering helpers
+- serialization helpers
+- bounding boxes
+- shape intersections and spatial relations
+- `Point.distanceTo(shape)` and shortest-segment calculations
+- point ordering (`lessThan`)
+- generic `scale`, `rotate`, or `transform` operations on points
+- translation of vectors
+
+The subset should remain small. Additional operations should be added when Warlord has a concrete use for them.
