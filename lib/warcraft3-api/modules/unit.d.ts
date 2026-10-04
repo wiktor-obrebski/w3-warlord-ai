@@ -44,6 +44,13 @@ declare module "@lib/warcraft3-api/unit" {
   export const UNIT_TYPE_RANGED_ATTACKER: unittype;
 
   /**
+   * @ai-generated Unit classification for Night Elf Ancients, used with `IsUnitType`.
+   *
+   * @patch 1.00
+   */
+  export const UNIT_TYPE_ANCIENT: unittype;
+
+  /**
    * @ai-generated Unit state selecting the unit's current hit points.
    *
    * @patch 1.00

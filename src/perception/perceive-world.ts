@@ -202,8 +202,14 @@ function visibleEnemies(
         continue;
       }
 
+      const isStructure = W3UnitApi.IsUnitType(
+        unit,
+        W3UnitApi.UNIT_TYPE_STRUCTURE,
+      );
+
       visible.push({
         unit,
+        position: { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) },
         life: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE),
         isMelee: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_MELEE_ATTACKER),
         isRanged: W3UnitApi.IsUnitType(
@@ -211,8 +217,12 @@ function visibleEnemies(
           W3UnitApi.UNIT_TYPE_RANGED_ATTACKER,
         ),
         isSiege: SIEGE_UNIT_TYPES.includes(W3UnitApi.GetUnitTypeId(unit)),
-        isStructure: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_STRUCTURE),
+        isStructure,
         isWorker: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_PEON),
+        // Assumed, not verified in-game: an Ancient loses the structure
+        // classification while uprooted.
+        isUprootedAncient:
+          !isStructure && W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_ANCIENT),
         attackTarget: recentAttackTarget(attackObserver, unit),
       });
     }

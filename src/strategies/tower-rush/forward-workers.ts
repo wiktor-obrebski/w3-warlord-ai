@@ -81,11 +81,11 @@ export function closestUnit(
   return closest;
 }
 
-function positionOf(unit: W3UnitApi.unit): Point {
+export function positionOf(unit: W3UnitApi.unit): Point {
   return { x: W3UnitApi.GetUnitX(unit), y: W3UnitApi.GetUnitY(unit) };
 }
 
-function distanceBetween(a: Point, b: Point): number {
+export function distanceBetween(a: Point, b: Point): number {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   return Math.sqrt(dx * dx + dy * dy);

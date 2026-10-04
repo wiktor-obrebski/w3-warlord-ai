@@ -10,12 +10,15 @@ export interface Point {
 // properties, which perception collects only while the unit is visible.
 export interface VisibleEnemy {
   unit: W3UnitApi.unit;
+  position: Point;
   life: number;
   isMelee: boolean;
   isRanged: boolean;
   isSiege: boolean;
   isStructure: boolean;
   isWorker: boolean;
+  // A Night Elf Ancient walking and fighting like a unit.
+  isUprootedAncient: boolean;
   // The bot's unit it was recently seen starting an attack on.
   attackTarget?: W3UnitApi.unit;
 }

@@ -7,6 +7,10 @@ import {
   hideBehindClosestTower,
   isAvailableForwardPeasant,
 } from "./forward-workers";
+import {
+  ForwardWorkerStatus,
+  protectForwardWorker,
+} from "./forward-worker-safety";
 
 // A repair starts below the start fraction and is not interrupted before the
 // switch fraction; above it, a tower below the start fraction takes over,
@@ -15,7 +19,8 @@ const REPAIR_START_LIFE_FRACTION = 0.6;
 const REPAIR_SWITCH_LIFE_FRACTION = 0.8;
 
 // The forward Peasants repair the most damaged tower and hide behind the
-// towers when none needs repair. Only used once every rush tower is built,
+// towers when none needs repair or they are recovering from an attack;
+// attacked Peasants flee instead. Only used once every rush tower is built,
 // so a tower's life fraction reflects damage, not build progress.
 export function maintainTowers(world: WorldState, context: TowerRushContext) {
   const enemyMain = world.enemyStartPosition;
@@ -43,7 +48,13 @@ export function maintainTowers(world: WorldState, context: TowerRushContext) {
       continue;
     }
 
-    if (repairTarget) {
+    const status = protectForwardWorker(worker, world, enemyMain, context);
+
+    if (status === ForwardWorkerStatus.Fleeing) {
+      continue;
+    }
+
+    if (repairTarget && status === ForwardWorkerStatus.Safe) {
       if (targetChanged || !world.repairingUnits.includes(worker)) {
         orderRepair(worker, repairTarget, context);
       }
