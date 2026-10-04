@@ -8,6 +8,12 @@ import {
   TowerRushPhase,
   TowerSite,
 } from "../tower-rush-context";
+import {
+  closestUnit,
+  forgetSentToSafety,
+  hideBehindClosestTower,
+  isAvailableForwardPeasant,
+} from "../forward-workers";
 
 const TOWER_COUNT = 3;
 // Center distance at which a target still counts as within reach of the
@@ -33,8 +39,6 @@ const ATTEMPTS_NEXT_TO_FIRST_TOWER = 10;
 const MAX_BUILD_PROGRESS_WORTH_HELPING = 0.5;
 // Assumed, not verified in-game.
 const CONSTRUCTION_START_LIFE_FRACTION = 0.1;
-// Clears the tower's 128x128 footprint with room for the Peasant.
-const HIDING_DISTANCE_BEHIND_TOWER = 160;
 
 interface PlacementRules {
   mine: Point;
@@ -130,20 +134,7 @@ function helpTowerOrHide(
     debug("Tower rush: repair order rejected.");
   }
 
-  const shelter = closestUnit(world.scoutTowers, worker);
-
-  if (!shelter) {
-    return;
-  }
-
-  const spot = spotBehind(positionOf(shelter), enemyMain);
-
-  if (W3UnitApi.IssuePointOrder(worker, "move", spot.x, spot.y)) {
-    context.forwardWorkersSentToSafety.push(worker);
-    debug("Tower rush: forward Peasant hides behind a tower.");
-  } else {
-    debug("Tower rush: move to safety rejected.");
-  }
+  hideBehindClosestTower(worker, world.scoutTowers, enemyMain, context);
 }
 
 // A second worker only pays off early in construction; later it would just
@@ -211,42 +202,6 @@ function towerBuildingFinished(
   );
 }
 
-function forgetSentToSafety(worker: W3UnitApi.unit, context: TowerRushContext) {
-  context.forwardWorkersSentToSafety = context.forwardWorkersSentToSafety.filter(
-    (sent) => sent !== worker,
-  );
-}
-
-// On the far side of the tower as seen from the enemy main hall.
-function spotBehind(tower: Point, enemyMain: Point): Point {
-  const distance = distanceBetween(enemyMain, tower);
-
-  return {
-    x: tower.x + ((tower.x - enemyMain.x) / distance) * HIDING_DISTANCE_BEHIND_TOWER,
-    y: tower.y + ((tower.y - enemyMain.y) / distance) * HIDING_DISTANCE_BEHIND_TOWER,
-  };
-}
-
-function closestUnit(
-  units: W3UnitApi.unit[],
-  to: W3UnitApi.unit,
-): W3UnitApi.unit | undefined {
-  const origin = positionOf(to);
-  let closest: W3UnitApi.unit | undefined;
-  let closestDistance = Infinity;
-
-  for (const unit of units) {
-    const distance = distanceBetween(origin, positionOf(unit));
-
-    if (distance < closestDistance) {
-      closest = unit;
-      closestDistance = distance;
-    }
-  }
-
-  return closest;
-}
-
 // A builder that is no longer busy has either started its tower, which is
 // then counted from perception, or given up on it.
 function forgetAbandonedTowerSites(
@@ -257,20 +212,6 @@ function forgetAbandonedTowerSites(
     (site) =>
       world.peasants.includes(site.builder) &&
       !isAvailableForwardPeasant(site.builder, world),
-  );
-}
-
-// Idle, holding, or sent back to harvesting; anything else means the Peasant
-// is on its way to a tower or constructing one.
-function isAvailableForwardPeasant(
-  worker: W3UnitApi.unit,
-  world: WorldState,
-): boolean {
-  return (
-    world.peasants.includes(worker) &&
-    (world.idleUnits.includes(worker) ||
-      world.holdingPositionUnits.includes(worker) ||
-      world.harvestingUnits.includes(worker))
   );
 }
 
