@@ -73,7 +73,9 @@ function rankTargets(
 }
 
 // Melee, ranged and siege are independent properties, so the first matching
-// rule decides. Workers rank only as workers, whatever they attack.
+// rule decides. Workers rank only as workers, whatever they attack. Buildings
+// that can attack, such as Ancients, only outrank other buildings while they
+// attack a tower.
 function targetPriority(
   enemy: VisibleEnemy,
   world: WorldState,
@@ -88,6 +90,13 @@ function targetPriority(
     attackTarget !== undefined && context.forwardWorkers.includes(attackTarget);
   const attacksTower =
     attackTarget !== undefined && world.guardTowers.includes(attackTarget);
+  const towerAttackPriority = attacksTower
+    ? attackingTowerPriority(enemy)
+    : undefined;
+
+  if (enemy.isStructure) {
+    return towerAttackPriority ?? TargetPriority.Building;
+  }
 
   if (enemy.isMelee && attacksForwardWorker) {
     return TargetPriority.MeleeAttackingForwardWorker;
@@ -95,14 +104,8 @@ function targetPriority(
   if (enemy.isRanged && attacksForwardWorker) {
     return TargetPriority.RangedAttackingForwardWorker;
   }
-  if (enemy.isSiege && attacksTower) {
-    return TargetPriority.SiegeAttackingTower;
-  }
-  if (enemy.isMelee && attacksTower) {
-    return TargetPriority.MeleeAttackingTower;
-  }
-  if (enemy.isRanged && attacksTower) {
-    return TargetPriority.RangedAttackingTower;
+  if (towerAttackPriority !== undefined) {
+    return towerAttackPriority;
   }
   if (enemy.isSiege) {
     return TargetPriority.Siege;
@@ -113,8 +116,21 @@ function targetPriority(
   if (enemy.isMelee) {
     return TargetPriority.Melee;
   }
-  if (enemy.isStructure) {
-    return TargetPriority.Building;
+
+  return undefined;
+}
+
+function attackingTowerPriority(
+  enemy: VisibleEnemy,
+): TargetPriority | undefined {
+  if (enemy.isSiege) {
+    return TargetPriority.SiegeAttackingTower;
+  }
+  if (enemy.isMelee) {
+    return TargetPriority.MeleeAttackingTower;
+  }
+  if (enemy.isRanged) {
+    return TargetPriority.RangedAttackingTower;
   }
 
   return undefined;
