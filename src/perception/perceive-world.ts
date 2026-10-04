@@ -120,8 +120,7 @@ export function perceiveWorld(
       world.lumberMills.push(unit);
     }
 
-    // Observed: an upgrading tower also carries the under-construction
-    // ability, so upgrading is checked first.
+    // An upgrading building also has the under-construction ability.
     if (
       W3UnitApi.GetUnitAbilityLevel(unit, W3UnitApi.Ability.BUILDING_UPGRADING) >
       0

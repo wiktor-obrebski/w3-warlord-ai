@@ -1,8 +1,17 @@
 declare module "@lib/warcraft3-api/unit" {
   export const enum Ability {
-    // Present while a building is under construction.
+    /**
+     * Present while a building is under construction.
+     *
+     * @note Observed in a Lua map script: also present while a building is upgrading, so it alone
+     *   does not tell construction from an upgrade. Check `BUILDING_UPGRADING` first.
+     */
     BUILDING_UNDER_CONSTRUCTION = 1094872656, // ABnP
-    // Present while a building is upgrading.
+    /**
+     * Present while a building is upgrading.
+     *
+     * @note Observed in a Lua map script: present on a Scout Tower upgrading to a Guard Tower.
+     */
     BUILDING_UPGRADING = 1096117840, // AUnP
   }
 
@@ -122,6 +131,8 @@ declare module "@lib/warcraft3-api/unit" {
    *
    * @ai-generated Issues an order targeting a widget by its order string. Returns true if the order was issued.
    *
+   * @note Observed in a Lua map script: a Peasant accepts a `"repair"` order on a damaged building that is upgrading
+   *   and repairs it during the upgrade.
    * @patch 1.00
    */
   export function IssueTargetOrder(whichUnit: unit, order: string, targetWidget: widget): boolean;
@@ -281,6 +292,8 @@ declare module "@lib/warcraft3-api/unit" {
    *   If the unit has one of them, it has all of them (and vice-versa). Therefore a wisp with 'ANbu'==1 also has 'AHbu'==1.
    *   See: <https://github.com/lep/jassdoc/issues/152>
    * @note 'ABnP' can be used to detect building in construction and 'AUnP' for upgrading building
+   * @note Observed in a Lua map script: an upgrading building has both 'ABnP' and 'AUnP', so check 'AUnP' first
+   *   to tell an upgrade from construction.
    * @patch 1.13
    */
   export function GetUnitAbilityLevel(whichUnit: unit, abilcode: number): number;
