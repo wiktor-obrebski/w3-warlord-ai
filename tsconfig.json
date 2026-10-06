@@ -14,7 +14,8 @@
     "noUncheckedIndexedAccess": true,
     "allowUnreachableCode": false,
     "paths": {
-      "@lib/math": ["./lib/math/math.ts"]
+      "@lib/math": ["./lib/math/math.ts"],
+      "@lib/bdi": ["./lib/bdi/bdi.ts"]
     }
   },
   "tstl": {

@@ -1,24 +1,27 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3TimerApi from "@lib/warcraft3-api/timer";
 import { debug } from "./debug";
-import { perceiveWorld } from "./perception/perceive-world";
-import { observeAttacksOn } from "./perception/attack-observer";
-import { startGameClock } from "./perception/game-clock";
-import { perceiveWorkerSafety } from "./capabilities/worker-safety/perception";
+import { GlobalBeliefModel, GlobalBeliefs } from "./beliefs/global.beliefs";
+import { ApplyPressure } from "./desires/apply-pressure";
+import { ProtectEconomicAssets } from "./desires/protect-economic-assets";
+import { UseMilitaryAssetsEffectively } from "./desires/use-military-assets-effectively";
 import {
-  createWorkerSafety,
-  updateWorkerSafety,
-} from "./capabilities/worker-safety/worker-safety";
+  WarlordDeliberation,
+  WarlordIntention,
+} from "./deliberation/deliberation";
 import { installBotPlayer } from "./privileged/install-bot-player";
 import { enableDebugMode, updateDebugMode } from "./privileged/debug-mode";
-import { createTowerRushContext } from "./strategies/tower-rush/tower-rush-context";
-import { updateTowerRush } from "./strategies/tower-rush/tower-rush";
 
 declare function guard(this: void, callback: (this: void) => void): (this: void) => void;
 
 const TICK_SECONDS = 0.1;
-const TICKS_PER_STRATEGY_UPDATE = 10;
 const DEBUG_MODE = true;
+// Every desire is held for the whole game for now.
+const DESIRES = [
+  ApplyPressure,
+  ProtectEconomicAssets,
+  UseMilitaryAssetsEffectively,
+];
 
 /**
  * Entry point called by the runtime wrapper during melee initialization,
@@ -33,52 +36,40 @@ export function main(computerPlayer: W3PlayerApi.player) {
 function play(bot: W3PlayerApi.player) {
   debug(`Bot player id: ${W3PlayerApi.GetPlayerId(bot)}`);
 
-  const towerRush = createTowerRushContext();
-  const clock = startGameClock();
-  const attackObserver = observeAttacksOn(bot, clock);
+  const beliefModel = new GlobalBeliefModel(bot);
+  const deliberation = new WarlordDeliberation();
   const debugMode = DEBUG_MODE ? enableDebugMode(debugObserver()) : undefined;
 
-  const workerSafety = createWorkerSafety();
-
+  let beliefs: GlobalBeliefs | undefined;
+  let intentions: readonly WarlordIntention[] = [];
   const loop = W3TimerApi.CreateTimer();
-  let tick = 0;
 
-  // Every capability's perception is collected in one step before any
-  // capability acts. Capabilities run before the strategy so it perceives
-  // the orders they issue on the same tick.
-  const update = () => {
-    const perception = {
-      workerSafety: perceiveWorkerSafety(bot, clock, attackObserver),
-    };
+  const tick = () => {
+    const current = beliefModel.revise(beliefs, beliefModel.observe());
+    beliefs = current;
 
-    updateWorkerSafety(workerSafety, perception.workerSafety);
-
-    if (tick++ % TICKS_PER_STRATEGY_UPDATE === 0) {
-      updateStrategy();
-    }
-  };
-
-  const updateStrategy = () => {
-    const world = perceiveWorld(bot, clock, attackObserver);
-
-    if (world.enemyPlayersPlaying === 0) {
+    if (current.enemyPlayersPlaying === 0) {
       stopLoop(loop);
       return;
     }
 
-    updateTowerRush(world, towerRush, workerSafety);
+    intentions = deliberation.deliberate(current, DESIRES, intentions);
+
+    for (const intention of intentions) {
+      intention.update(current);
+    }
 
     if (debugMode) {
       updateDebugMode(debugMode, bot);
     }
   };
 
-  W3TimerApi.TimerStart(loop, TICK_SECONDS, true, guard(update));
-  update();
+  W3TimerApi.TimerStart(loop, TICK_SECONDS, true, guard(tick));
+  tick();
 }
 
 // With every enemy defeated there is nothing left to play for, and the
-// strategy cannot run without an enemy.
+// tower rush cannot run without an enemy.
 function stopLoop(loop: W3TimerApi.timer) {
   W3TimerApi.PauseTimer(loop);
   W3TimerApi.DestroyTimer(loop);

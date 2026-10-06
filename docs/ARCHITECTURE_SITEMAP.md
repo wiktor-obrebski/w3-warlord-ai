@@ -26,6 +26,7 @@ WC3 Warlord AI
 │  └─ uncertainty
 │
 ├─ Deliberation
+│  ├─ Desire
 │  ├─ Candidate Goal
 │  ├─ Goal evaluation
 │  ├─ Goal
@@ -93,18 +94,20 @@ WC3 Warlord AI
 * **Inferred belief** — Conclusion derived from available evidence rather than direct observation.
 * **Provenance** — Information about where a belief came from and when it was last confirmed.
 * **Uncertainty** — Explicit representation that inferred or stale information may be wrong.
+* **Desire** — High-level state or principle the bot wants to achieve or maintain, such as applying pressure; carries no behavior.
+* **Deliberation** — Decides from Beliefs, Desires, and active Intentions which Intentions exist; owns the Intention lifecycle.
 * **Candidate Goal** — Desirable possible objective not yet accepted as a commitment.
 * **Goal evaluation** — Comparison of candidate goals using value, urgency, risk, opportunity cost, resources, and commitments.
 * **Achievement goal** — Objective that aims to make some desired state true.
 * **Maintenance goal** — Objective that aims to keep an important condition true.
-* **Intention** — Goal the bot has committed to pursuing.
-* **Intention lifecycle** — Explicit transition between proposed, active, suspended, blocked, completed, failed, and cancelled states.
+* **Intention** — Concrete commitment the bot is pursuing; active while Deliberation retains it, with no success or failure status of its own. May own Plans and Reactive Controllers.
+* **Intention lifecycle** — Owned by Deliberation, which creates, retains, and drops Intentions; richer states such as suspended or blocked may be added later.
 * **Intention Scheduling** — Coordinates concurrent intentions, deciding which progress, wait, suspend, or receive contested resources.
 * **Resource Arbitration** — Resolves competing requests for units, heroes, resources, production capacity, locations, and similar shared resources.
-* **Plan** — Current method used to pursue an intention and replaceable without necessarily abandoning the intention.
+* **Plan** — Finite procedure pursuing an intention, with an explicit running, succeeded, or failed status; replaceable without necessarily abandoning the intention.
 * **Continual planning** — Refines or replaces plans during execution as new observations and beliefs arrive.
 * **Execution monitoring** — Checks whether active plans remain valid, succeed, fail, or require adaptation.
-* **Reactive Controller** — Fast execution logic handling tactical behavior below deliberation, commonly using Behavior Tree-style logic where appropriate.
+* **Reactive Controller** — Continuous reactive behavior owned by an Intention, without procedural completion, handling fast execution below deliberation; commonly uses Behavior Tree-style logic where appropriate.
 * **Unit Assignment** — Authoritative mapping of a unit to its intention, execution role, and current controller.
 * **Strategic ownership** — Which intention currently owns a unit or other resource.
 * **Execution role** — Current function of an assigned unit, such as fighting, joining, scouting, or withdrawing.
@@ -129,3 +132,22 @@ WC3 Warlord AI
 * **Integration test** — Warcraft-free test feeding mocked Perception output through the normal reasoning architecture.
 * **End-to-end test** — Controlled scenario executed against the real Warcraft III engine.
 * **Logical reset** — Ability to return bot state to a clean condition so multiple tests can run in one Warcraft session.
+
+## Current implementation
+
+The implemented subset is a first BDI iteration. Generic, domain-independent contracts (`BeliefModel`, `Desire`, `Deliberation`, `Intention`, `Plan`, `Controller`) live in [`@lib/bdi`](../lib/bdi/README.md). Each 100 ms bot tick in `src/main.ts` runs:
+
+```text
+GlobalBeliefModel.observe() → revise() → global Beliefs (read-only for the rest of the tick)
+→ Desires → WarlordDeliberation → active Intentions → update() → Plans & Controllers
+```
+
+```text
+src/
+├─ beliefs/       global.beliefs.ts: the one global belief model, observing Warcraft state for decisions
+├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
+├─ deliberation/  creates, retains, and drops Intentions
+└─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts
+```
+
+Not yet implemented: retained and inferred beliefs, Command Arbitration, Unit Assignment, and Intention Scheduling. Plans and Controllers still issue Warcraft orders directly.

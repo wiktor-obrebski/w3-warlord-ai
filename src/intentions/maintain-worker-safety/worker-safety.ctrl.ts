@@ -1,13 +1,14 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3MathApi from "@lib/warcraft3-api/math";
-import { debug } from "../../debug";
+import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
+import { Controller } from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
-import { VisibleEnemy } from "../../perception/world-state";
+import { debug } from "../../debug";
 import {
-  isWalkable,
-  ObservedWorker,
-  WorkerSafetyPerception,
-} from "./perception";
+  GlobalBeliefs,
+  OwnUnit,
+  VisibleEnemy,
+} from "../../beliefs/global.beliefs";
 
 const FLEE_ROUND_DISTANCE = 300;
 const SAFE_AFTER_ATTACK_SECONDS = 2;
@@ -27,6 +28,22 @@ export enum WorkerSafetyStatus {
   Safe,
 }
 
+/**
+ * While a worker is not safe, it belongs to worker safety: other code must
+ * not order it.
+ */
+export interface WorkerSafety {
+  statusOf(worker: W3UnitApi.unit, now: number): WorkerSafetyStatus;
+}
+
+export function isWorkerSafe(
+  safety: WorkerSafety,
+  worker: W3UnitApi.unit,
+  now: number,
+): boolean {
+  return safety.statusOf(worker, now) === WorkerSafetyStatus.Safe;
+}
+
 interface FleeRound {
   origin: Point;
   destination: Point;
@@ -38,50 +55,67 @@ interface WorkerSafetyRecord {
   fleeRound?: FleeRound;
 }
 
-/** Workers recently attacked; any worker without a record is safe. */
-export interface WorkerSafety {
-  records: WorkerSafetyRecord[];
-}
+/** Attacked workers run away from the nearby enemy force. */
+export class WorkerSafetyController
+  implements Controller<GlobalBeliefs>, WorkerSafety
+{
+  // Workers recently attacked; any worker without a record is safe.
+  private records: WorkerSafetyRecord[] = [];
 
-export function createWorkerSafety(): WorkerSafety {
-  return { records: [] };
-}
+  public update(beliefs: Readonly<GlobalBeliefs>) {
+    for (const worker of beliefs.workers) {
+      this.protectWorker(worker, beliefs);
+    }
 
-/**
- * Attacked workers run away from the nearby enemy force. While a worker is
- * not safe, it belongs to this capability: other code must not order it.
- */
-export function updateWorkerSafety(
-  safety: WorkerSafety,
-  perception: WorkerSafetyPerception,
-) {
-  for (const worker of perception.workers) {
-    protectWorker(worker, perception, safety);
+    this.records = this.records.filter(
+      (record) =>
+        beliefs.workers.some((worker) => worker.unit === record.worker) &&
+        statusOf(record, beliefs.time) !== WorkerSafetyStatus.Safe,
+    );
   }
 
-  safety.records = safety.records.filter(
-    (record) =>
-      perception.workers.some((worker) => worker.unit === record.worker) &&
-      statusOf(record, perception.time) !== WorkerSafetyStatus.Safe,
-  );
-}
+  public statusOf(worker: W3UnitApi.unit, now: number): WorkerSafetyStatus {
+    const record = this.records.find((entry) => entry.worker === worker);
 
-export function workerSafetyStatus(
-  safety: WorkerSafety,
-  worker: W3UnitApi.unit,
-  now: number,
-): WorkerSafetyStatus {
-  const record = safety.records.find((entry) => entry.worker === worker);
+    return record ? statusOf(record, now) : WorkerSafetyStatus.Safe;
+  }
 
-  return record ? statusOf(record, now) : WorkerSafetyStatus.Safe;
-}
+  // Each flee round runs to a destination kept until the round ends, so the
+  // worker is not turned around on every update as the enemies move. A worker
+  // no longer attacked stops halfway, so it does not run further from its
+  // work than needed.
+  private protectWorker(worker: OwnUnit, beliefs: Readonly<GlobalBeliefs>) {
+    let record = this.records.find((entry) => entry.worker === worker.unit);
 
-export function isWorkerSafe(
-  safety: WorkerSafety,
-  worker: W3UnitApi.unit,
-  now: number,
-): boolean {
-  return workerSafetyStatus(safety, worker, now) === WorkerSafetyStatus.Safe;
+    if (worker.isAttacked && record) {
+      record.lastAttackedAt = beliefs.time;
+    } else if (worker.isAttacked) {
+      record = { worker: worker.unit, lastAttackedAt: beliefs.time };
+      this.records.push(record);
+    }
+
+    if (!record) {
+      return;
+    }
+
+    if (record.fleeRound) {
+      if (!worker.isAttacked && fledHalfway(worker, record.fleeRound)) {
+        stopFleeing(worker);
+      } else if (!fleeRoundFinished(worker, record.fleeRound)) {
+        return;
+      }
+
+      record.fleeRound = undefined;
+
+      if (!worker.isAttacked) {
+        debug("Worker safety: worker is no longer attacked.");
+      }
+    }
+
+    if (worker.isAttacked) {
+      startFleeRound(worker, beliefs, record);
+    }
+  }
 }
 
 function statusOf(record: WorkerSafetyRecord, now: number): WorkerSafetyStatus {
@@ -94,50 +128,9 @@ function statusOf(record: WorkerSafetyRecord, now: number): WorkerSafetyStatus {
     : WorkerSafetyStatus.Recovering;
 }
 
-// Each flee round runs to a destination kept until the round ends, so the
-// worker is not turned around on every update as the enemies move. A worker
-// no longer attacked stops halfway, so it does not run further from its work
-// than needed.
-function protectWorker(
-  worker: ObservedWorker,
-  perception: WorkerSafetyPerception,
-  safety: WorkerSafety,
-) {
-  let record = safety.records.find((entry) => entry.worker === worker.unit);
-
-  if (worker.isAttacked && record) {
-    record.lastAttackedAt = perception.time;
-  } else if (worker.isAttacked) {
-    record = { worker: worker.unit, lastAttackedAt: perception.time };
-    safety.records.push(record);
-  }
-
-  if (!record) {
-    return;
-  }
-
-  if (record.fleeRound) {
-    if (!worker.isAttacked && fledHalfway(worker, record.fleeRound)) {
-      stopFleeing(worker);
-    } else if (!fleeRoundFinished(worker, record.fleeRound)) {
-      return;
-    }
-
-    record.fleeRound = undefined;
-
-    if (!worker.isAttacked) {
-      debug("Worker safety: worker is no longer attacked.");
-    }
-  }
-
-  if (worker.isAttacked) {
-    startFleeRound(worker, perception, record);
-  }
-}
-
 // An unreachable destination ends the move short of it, leaving the worker
 // idle.
-function fleeRoundFinished(worker: ObservedWorker, round: FleeRound): boolean {
+function fleeRoundFinished(worker: OwnUnit, round: FleeRound): boolean {
   return (
     worker.isIdle ||
     new Vector(worker.position, round.destination).length <=
@@ -145,7 +138,7 @@ function fleeRoundFinished(worker: ObservedWorker, round: FleeRound): boolean {
   );
 }
 
-function fledHalfway(worker: ObservedWorker, round: FleeRound): boolean {
+function fledHalfway(worker: OwnUnit, round: FleeRound): boolean {
   return (
     new Vector(round.origin, worker.position).length >= FLEE_ROUND_DISTANCE / 2
   );
@@ -153,19 +146,19 @@ function fledHalfway(worker: ObservedWorker, round: FleeRound): boolean {
 
 // Left moving, the worker would run the rest of the way while other code
 // already treats it as no longer fleeing.
-function stopFleeing(worker: ObservedWorker) {
+function stopFleeing(worker: OwnUnit) {
   if (!worker.isIdle && !W3UnitApi.IssueImmediateOrder(worker.unit, "stop")) {
     debug("Worker safety: stop order rejected.");
   }
 }
 
 function startFleeRound(
-  worker: ObservedWorker,
-  perception: WorkerSafetyPerception,
+  worker: OwnUnit,
+  beliefs: Readonly<GlobalBeliefs>,
   record: WorkerSafetyRecord,
 ) {
-  const nearby = nearbyThreats(worker.position, perception);
-  const attackers = perception.visibleEnemies.filter(
+  const nearby = nearbyThreats(worker.position, beliefs);
+  const attackers = beliefs.visibleEnemies.filter(
     (enemy) => enemy.attackTarget === worker.unit,
   );
   const reference = nearby.length > 0 ? nearby : attackers;
@@ -218,13 +211,27 @@ function fleeDestination(from: Point, awayAngle: number | undefined): Point {
   );
 }
 
+/**
+ * Whether ground units can walk at the point. Terrain pathing is static map
+ * knowledge, so reading it is fair. Units standing there are not considered.
+ */
+function isWalkable(point: Point): boolean {
+  // IsTerrainPathable is inverted: it returns false where the pathing type
+  // is set, i.e. where the point is walkable.
+  return !W3TerrainApi.IsTerrainPathable(
+    point.x,
+    point.y,
+    W3TerrainApi.PATHING_TYPE_WALKABILITY,
+  );
+}
+
 // The enemy force fighting near the worker: combat units and the Ancients
 // that walk into the fight.
 function nearbyThreats(
   position: Point,
-  perception: WorkerSafetyPerception,
+  beliefs: Readonly<GlobalBeliefs>,
 ): VisibleEnemy[] {
-  return perception.visibleEnemies.filter(
+  return beliefs.visibleEnemies.filter(
     (enemy) =>
       (enemy.isUprootedAncient ||
         (!enemy.isStructure &&

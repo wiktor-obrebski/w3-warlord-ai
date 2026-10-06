@@ -1,57 +1,55 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { debug } from "../../debug";
 import { Point, Vector } from "@lib/math";
-import { WorldState } from "../../perception/world-state";
-import { TowerRushContext } from "./tower-rush-context";
+import { GlobalBeliefs, positionOf } from "../../beliefs/global.beliefs";
+import { TowerRushState } from "./tower-rush.state";
 import {
   isWorkerSafe,
   WorkerSafety,
-} from "../../capabilities/worker-safety/worker-safety";
+} from "../maintain-worker-safety/worker-safety.ctrl";
 
 // Clears the tower's 128x128 footprint with room for the Peasant.
 const HIDING_DISTANCE_BEHIND_TOWER = 160;
 
 export function hideBehindClosestTower(
   worker: W3UnitApi.unit,
-  towers: W3UnitApi.unit[],
+  towers: readonly W3UnitApi.unit[],
   enemyMain: Point,
-  context: TowerRushContext,
+  beliefs: Readonly<GlobalBeliefs>,
+  rush: TowerRushState,
 ) {
-  const shelter = closestUnit(towers, worker);
+  const shelter = closestUnit(towers, worker, beliefs);
 
   if (!shelter) {
     return;
   }
 
-  const spot = spotBehind(positionOf(shelter), enemyMain);
+  const spot = spotBehind(positionOf(beliefs, shelter), enemyMain);
 
   if (W3UnitApi.IssuePointOrder(worker, "move", spot.x, spot.y)) {
-    context.forwardWorkersSentToSafety.push(worker);
+    rush.forwardWorkersSentToSafety.push(worker);
     debug("Tower rush: forward Peasant hides behind a tower.");
   } else {
     debug("Tower rush: move to safety rejected.");
   }
 }
 
-export function forgetSentToSafety(
-  worker: W3UnitApi.unit,
-  context: TowerRushContext,
-) {
-  context.forwardWorkersSentToSafety = context.forwardWorkersSentToSafety.filter(
+export function forgetSentToSafety(worker: W3UnitApi.unit, rush: TowerRushState) {
+  rush.forwardWorkersSentToSafety = rush.forwardWorkersSentToSafety.filter(
     (sent) => sent !== worker,
   );
 }
 
 // An attacked Peasant may have fled its hiding spot, so it is sent to hide
-// again. A flee round can start and end between two strategy updates, so
+// again. A flee round can start and end between two tower rush updates, so
 // this does not wait to see the Peasant fleeing.
 export function forgetHidingOfUnsafeWorkers(
-  world: WorldState,
-  context: TowerRushContext,
+  beliefs: Readonly<GlobalBeliefs>,
+  rush: TowerRushState,
   workerSafety: WorkerSafety,
 ) {
-  context.forwardWorkersSentToSafety = context.forwardWorkersSentToSafety.filter(
-    (worker) => isWorkerSafe(workerSafety, worker, world.time),
+  rush.forwardWorkersSentToSafety = rush.forwardWorkersSentToSafety.filter(
+    (worker) => isWorkerSafe(workerSafety, worker, beliefs.time),
   );
 }
 
@@ -59,13 +57,13 @@ export function forgetHidingOfUnsafeWorkers(
 // is busy with an order of its own, such as building or repairing.
 export function isAvailableForwardPeasant(
   worker: W3UnitApi.unit,
-  world: WorldState,
+  beliefs: Readonly<GlobalBeliefs>,
 ): boolean {
   return (
-    world.peasants.includes(worker) &&
-    (world.idleUnits.includes(worker) ||
-      world.holdingPositionUnits.includes(worker) ||
-      world.harvestingUnits.includes(worker))
+    beliefs.peasants.includes(worker) &&
+    (beliefs.idleUnits.includes(worker) ||
+      beliefs.holdingPositionUnits.includes(worker) ||
+      beliefs.harvestingUnits.includes(worker))
   );
 }
 
@@ -79,15 +77,16 @@ function spotBehind(tower: Point, enemyMain: Point): Point {
 }
 
 export function closestUnit(
-  units: W3UnitApi.unit[],
+  units: readonly W3UnitApi.unit[],
   to: W3UnitApi.unit,
+  beliefs: Readonly<GlobalBeliefs>,
 ): W3UnitApi.unit | undefined {
-  const origin = positionOf(to);
+  const origin = positionOf(beliefs, to);
   let closest: W3UnitApi.unit | undefined;
   let closestDistance = Infinity;
 
   for (const unit of units) {
-    const distance = new Vector(origin, positionOf(unit)).length;
+    const distance = new Vector(origin, positionOf(beliefs, unit)).length;
 
     if (distance < closestDistance) {
       closest = unit;
@@ -96,8 +95,4 @@ export function closestUnit(
   }
 
   return closest;
-}
-
-function positionOf(unit: W3UnitApi.unit): Point {
-  return new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit));
 }

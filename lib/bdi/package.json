@@ -1,0 +1,6 @@
+{
+  "name": "@lib/bdi",
+  "private": true,
+  "main": "./bdi.ts",
+  "types": "./bdi.ts"
+}

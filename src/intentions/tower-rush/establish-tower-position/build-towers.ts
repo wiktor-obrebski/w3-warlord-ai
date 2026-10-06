@@ -3,12 +3,12 @@ import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, Vector } from "@lib/math";
-import { WorldState } from "../../../perception/world-state";
 import {
-  TowerRushContext,
-  TowerRushPhase,
-  TowerSite,
-} from "../tower-rush-context";
+  GlobalBeliefs,
+  lifeFractionOf,
+  positionOf,
+} from "../../../beliefs/global.beliefs";
+import { TowerRushState } from "../tower-rush.state";
 import {
   closestUnit,
   forgetSentToSafety,
@@ -18,7 +18,7 @@ import {
 import {
   isWorkerSafe,
   WorkerSafety,
-} from "../../../capabilities/worker-safety/worker-safety";
+} from "../../maintain-worker-safety/worker-safety.ctrl";
 
 const TOWER_COUNT = 3;
 // Center distance at which a target still counts as within reach of the
@@ -46,6 +46,27 @@ const MAX_BUILD_PROGRESS_WORTH_HELPING = 0.5;
 const CONSTRUCTION_START_LIFE_FRACTION = 0.1;
 const RESERVE_UPGRADE_GOLD_LIFE_FRACTION = 0.5;
 
+interface TowerSite {
+  builder: W3UnitApi.unit;
+  position: Point;
+}
+
+interface TowerHelper {
+  helper: W3UnitApi.unit;
+  tower: W3UnitApi.unit;
+}
+
+export interface BuildTowersState {
+  // Build orders whose builder is still busy with them.
+  pendingTowerSites: TowerSite[];
+  // Repair orders on unfinished towers whose helper is still busy with them.
+  towerHelpers: TowerHelper[];
+}
+
+export function createBuildTowersState(): BuildTowersState {
+  return { pendingTowerSites: [], towerHelpers: [] };
+}
+
 interface PlacementRules {
   mine: Point;
   enemyMain: Point;
@@ -53,39 +74,46 @@ interface PlacementRules {
   requireEnemyMainInReach: boolean;
 }
 
-// An accepted build order can still fail when the Peasant arrives (blocked
-// spot, missing resources), so towers are counted from what actually exists
-// or is on its way, and missing ones are re-ordered one Peasant at a time.
-// Once every tower is accounted for, free forward Peasants help unfinished
-// towers; only when all towers are built do they hide behind them, and the
-// phase ends once all of them are sent to hide.
-export function updateBuildingTowers(
-  world: WorldState,
-  context: TowerRushContext,
+/**
+ * Returns where the rush towers stand once building them is finished.
+ *
+ * An accepted build order can still fail when the Peasant arrives (blocked
+ * spot, missing resources), so towers are counted from what actually exists
+ * or is on its way, and missing ones are re-ordered one Peasant at a time.
+ * Once every tower is accounted for, free forward Peasants help unfinished
+ * towers; only when all towers are built do they hide behind them, and
+ * building ends once all of them are sent to hide.
+ */
+export function updateBuildTowers(
+  beliefs: Readonly<GlobalBeliefs>,
+  rush: TowerRushState,
+  state: BuildTowersState,
   workerSafety: WorkerSafety,
-) {
-  const enemyMain = world.enemyStartPosition;
+): Point[] | undefined {
+  const enemyMain = beliefs.enemyStartPosition;
 
   if (!enemyMain) {
     throw new Error("Tower rush: enemy start position not found.");
   }
 
-  if (!world.enemyMainGoldMine) {
+  if (!beliefs.enemyMainGoldMine) {
     throw new Error("Tower rush: enemy main gold mine not found.");
   }
 
-  forgetAbandonedTowerSites(world, context);
-  forgetFinishedTowerHelpers(world, context);
+  forgetAbandonedTowerSites(beliefs, state);
+  forgetFinishedTowerHelpers(beliefs, state);
 
-  const towerPositions = world.scoutTowers.map((tower) => positionOf(tower));
-  const sitesAwaitingTower = context.pendingTowerSites.filter(
+  const towerPositions = beliefs.scoutTowers.map((tower) =>
+    positionOf(beliefs, tower),
+  );
+  const sitesAwaitingTower = state.pendingTowerSites.filter(
     (site) => !hasStartedTower(site, towerPositions),
   );
-  const safeWorkers = context.forwardWorkers.filter((worker) =>
-    isWorkerSafe(workerSafety, worker, world.time),
+  const safeWorkers = rush.forwardWorkers.filter((worker) =>
+    isWorkerSafe(workerSafety, worker, beliefs.time),
   );
   const freeWorkers = safeWorkers.filter((worker) =>
-    isAvailableForwardPeasant(worker, world),
+    isAvailableForwardPeasant(worker, beliefs),
   );
 
   // PROBE (temporary): log the tower count whenever it changes, with how far
@@ -104,17 +132,17 @@ export function updateBuildingTowers(
   // then they stay free to retry a failed build.
   if (towerPositions.length + sitesAwaitingTower.length < TOWER_COUNT) {
     const builder =
-      freeWorkers[0] ?? busyNonBuilder(safeWorkers, world, context);
+      freeWorkers[0] ?? busyNonBuilder(safeWorkers, beliefs, state);
 
     if (builder) {
-      forgetSentToSafety(builder, context);
-      context.towerHelpers = context.towerHelpers.filter(
+      forgetSentToSafety(builder, rush);
+      state.towerHelpers = state.towerHelpers.filter(
         (help) => help.helper !== builder,
       );
       orderScoutTower(
         builder,
         {
-          mine: positionOf(world.enemyMainGoldMine),
+          mine: beliefs.enemyMainGoldMine.position,
           enemyMain,
           occupied: [
             ...towerPositions,
@@ -122,33 +150,36 @@ export function updateBuildingTowers(
           ],
           requireEnemyMainInReach: true,
         },
-        world,
-        context,
+        beliefs,
+        state,
       );
     }
   } else if (towerPositions.length >= TOWER_COUNT) {
-    if (allTowersBuilt(world)) {
+    if (allTowersBuilt(beliefs)) {
       for (const worker of freeWorkers) {
-        if (!context.forwardWorkersSentToSafety.includes(worker)) {
-          hideBehindClosestTower(worker, world.scoutTowers, enemyMain, context);
+        if (!rush.forwardWorkersSentToSafety.includes(worker)) {
+          hideBehindClosestTower(
+            worker,
+            beliefs.scoutTowers,
+            enemyMain,
+            beliefs,
+            rush,
+          );
         }
       }
     } else {
       for (const worker of freeWorkers) {
-        helpUnfinishedTower(worker, world, context);
+        helpUnfinishedTower(worker, beliefs, state);
       }
     }
   }
 
-  if (!context.reservingGoldForUpgrades && towersHalfBuilt(world)) {
-    context.reservingGoldForUpgrades = true;
+  if (!rush.reservingGoldForUpgrades && towersHalfBuilt(beliefs)) {
+    rush.reservingGoldForUpgrades = true;
     debug("Tower rush: reserving gold for the Guard Tower upgrades.");
   }
 
-  if (towerBuildingFinished(world, context)) {
-    context.towerPositions = towerPositions;
-    context.phase = TowerRushPhase.UpgradingTowers;
-  }
+  return towerBuildingFinished(beliefs, rush) ? towerPositions : undefined;
 }
 
 // A missing tower must not wait for a free Peasant: Warcraft can keep a
@@ -157,13 +188,13 @@ export function updateBuildingTowers(
 // tower is taken off its order instead.
 function busyNonBuilder(
   safeWorkers: W3UnitApi.unit[],
-  world: WorldState,
-  context: TowerRushContext,
+  beliefs: Readonly<GlobalBeliefs>,
+  state: BuildTowersState,
 ): W3UnitApi.unit | undefined {
-  const builders = context.pendingTowerSites.map((site) => site.builder);
+  const builders = state.pendingTowerSites.map((site) => site.builder);
   const worker = safeWorkers.find(
     (candidate) =>
-      world.peasants.includes(candidate) && !builders.includes(candidate),
+      beliefs.peasants.includes(candidate) && !builders.includes(candidate),
   );
 
   if (worker) {
@@ -175,11 +206,11 @@ function busyNonBuilder(
   return worker;
 }
 
-function allTowersBuilt(world: WorldState): boolean {
+function allTowersBuilt(beliefs: Readonly<GlobalBeliefs>): boolean {
   return (
-    world.scoutTowers.length >= TOWER_COUNT &&
-    world.scoutTowers.every(
-      (tower) => !world.buildingsUnderConstruction.includes(tower),
+    beliefs.scoutTowers.length >= TOWER_COUNT &&
+    beliefs.scoutTowers.every(
+      (tower) => !beliefs.buildingsUnderConstruction.includes(tower),
     )
   );
 }
@@ -188,23 +219,26 @@ function allTowersBuilt(world: WorldState): boolean {
 // first. Otherwise a second worker only pays off early in construction.
 function helpUnfinishedTower(
   worker: W3UnitApi.unit,
-  world: WorldState,
-  context: TowerRushContext,
+  beliefs: Readonly<GlobalBeliefs>,
+  state: BuildTowersState,
 ) {
-  const unfinished = world.scoutTowers.filter((tower) =>
-    world.buildingsUnderConstruction.includes(tower),
+  const unfinished = beliefs.scoutTowers.filter((tower) =>
+    beliefs.buildingsUnderConstruction.includes(tower),
   );
   const abandoned = closestUnit(
-    unfinished.filter((tower) => !hasLivingBuilder(tower, context)),
+    unfinished.filter((tower) => !hasLivingBuilder(tower, beliefs, state)),
     worker,
+    beliefs,
   );
   const tower =
     abandoned ??
     closestUnit(
       unfinished.filter(
-        (tower) => buildProgress(tower) < MAX_BUILD_PROGRESS_WORTH_HELPING,
+        (tower) =>
+          buildProgress(tower, beliefs) < MAX_BUILD_PROGRESS_WORTH_HELPING,
       ),
       worker,
+      beliefs,
     );
 
   if (!tower) {
@@ -213,9 +247,9 @@ function helpUnfinishedTower(
 
   // Human Peasants help an unfinished building through the repair order.
   if (W3UnitApi.IssueTargetOrder(worker, "repair", tower)) {
-    context.towerHelpers.push({ helper: worker, tower });
+    state.towerHelpers.push({ helper: worker, tower });
     debug(
-      `Tower rush: forward Peasant ${abandoned ? "takes over" : "helps"} a tower at ${Math.floor(buildProgress(tower) * 100)}% progress.`,
+      `Tower rush: forward Peasant ${abandoned ? "takes over" : "helps"} a tower at ${Math.floor(buildProgress(tower, beliefs) * 100)}% progress.`,
     );
   } else {
     debug("Tower rush: repair order rejected.");
@@ -225,75 +259,73 @@ function helpUnfinishedTower(
 // Builders and helpers are only remembered while they are alive and busy.
 function hasLivingBuilder(
   tower: W3UnitApi.unit,
-  context: TowerRushContext,
+  beliefs: Readonly<GlobalBeliefs>,
+  state: BuildTowersState,
 ): boolean {
-  const towerPosition = positionOf(tower);
+  const towerPosition = positionOf(beliefs, tower);
 
   return (
-    context.pendingTowerSites.some(
+    state.pendingTowerSites.some(
       (site) =>
         new Vector(site.position, towerPosition).length <=
         STARTED_TOWER_MATCH_DISTANCE,
-    ) || context.towerHelpers.some((help) => help.tower === tower)
+    ) || state.towerHelpers.some((help) => help.tower === tower)
   );
 }
 
 // Warcraft exposes no construction progress, but a building's life rises
 // linearly from a fraction of its maximum while it is built. A damaged
 // finished tower reads as low progress too.
-function buildProgress(tower: W3UnitApi.unit): number {
+function buildProgress(
+  tower: W3UnitApi.unit,
+  beliefs: Readonly<GlobalBeliefs>,
+): number {
   return (
-    (lifeFraction(tower) - CONSTRUCTION_START_LIFE_FRACTION) /
+    (lifeFractionOf(beliefs, tower) - CONSTRUCTION_START_LIFE_FRACTION) /
     (1 - CONSTRUCTION_START_LIFE_FRACTION)
   );
 }
 
 // From here the towers finish soon enough that the upgrade gold must already
 // be at hand, or the last upgrade waits for income.
-function towersHalfBuilt(world: WorldState): boolean {
+function towersHalfBuilt(beliefs: Readonly<GlobalBeliefs>): boolean {
   return (
-    world.scoutTowers.length >= TOWER_COUNT &&
-    world.scoutTowers.every(
-      (tower) => lifeFraction(tower) >= RESERVE_UPGRADE_GOLD_LIFE_FRACTION,
+    beliefs.scoutTowers.length >= TOWER_COUNT &&
+    beliefs.scoutTowers.every(
+      (tower) =>
+        lifeFractionOf(beliefs, tower) >= RESERVE_UPGRADE_GOLD_LIFE_FRACTION,
     )
-  );
-}
-
-function lifeFraction(unit: W3UnitApi.unit): number {
-  return (
-    W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE) /
-    W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_MAX_LIFE)
   );
 }
 
 // Helpers that are free again have finished or abandoned their help.
 function forgetFinishedTowerHelpers(
-  world: WorldState,
-  context: TowerRushContext,
+  beliefs: Readonly<GlobalBeliefs>,
+  state: BuildTowersState,
 ) {
-  context.towerHelpers = context.towerHelpers.filter(
+  state.towerHelpers = state.towerHelpers.filter(
     (help) =>
-      world.peasants.includes(help.helper) &&
-      !isAvailableForwardPeasant(help.helper, world) &&
-      world.scoutTowers.includes(help.tower),
+      beliefs.peasants.includes(help.helper) &&
+      !isAvailableForwardPeasant(help.helper, beliefs) &&
+      beliefs.scoutTowers.includes(help.tower),
   );
 }
 
 // A Peasant is only sent to safety once it is done building and helping, so
-// the phase need not wait for it to arrive; upgrades can start meanwhile.
+// building need not wait for it to arrive; upgrades can start meanwhile.
 function towerBuildingFinished(
-  world: WorldState,
-  context: TowerRushContext,
+  beliefs: Readonly<GlobalBeliefs>,
+  rush: TowerRushState,
 ): boolean {
-  const livingForwardPeasants = context.forwardWorkers.filter((worker) =>
-    world.peasants.includes(worker),
+  const livingForwardPeasants = rush.forwardWorkers.filter((worker) =>
+    beliefs.peasants.includes(worker),
   );
 
   return (
-    (world.scoutTowers.length >= TOWER_COUNT ||
+    (beliefs.scoutTowers.length >= TOWER_COUNT ||
       livingForwardPeasants.length === 0) &&
     livingForwardPeasants.every((worker) =>
-      context.forwardWorkersSentToSafety.includes(worker),
+      rush.forwardWorkersSentToSafety.includes(worker),
     )
   );
 }
@@ -303,23 +335,25 @@ function towerBuildingFinished(
 // Warcraft gave that order on its own. Once the tower has started, the site
 // marks the tower's builder until the builder is free again.
 function forgetAbandonedTowerSites(
-  world: WorldState,
-  context: TowerRushContext,
+  beliefs: Readonly<GlobalBeliefs>,
+  state: BuildTowersState,
 ) {
-  const towerPositions = world.scoutTowers.map((tower) => positionOf(tower));
+  const towerPositions = beliefs.scoutTowers.map((tower) =>
+    positionOf(beliefs, tower),
+  );
 
-  context.pendingTowerSites = context.pendingTowerSites.filter((site) => {
+  state.pendingTowerSites = state.pendingTowerSites.filter((site) => {
     const started = hasStartedTower(site, towerPositions);
-    const builderAlive = world.peasants.includes(site.builder);
+    const builderAlive = beliefs.peasants.includes(site.builder);
     const builderBusy =
       builderAlive &&
-      (world.scoutTowerBuildOrderUnits.includes(site.builder) ||
-        (started && !isAvailableForwardPeasant(site.builder, world)));
+      (beliefs.scoutTowerBuildOrderUnits.includes(site.builder) ||
+        (started && !isAvailableForwardPeasant(site.builder, beliefs)));
 
     if (!builderBusy && !started) {
       // PROBE (temporary): gold, lumber, and how far the nearest tower stands.
       debug(
-        `Tower rush: Scout Tower build failed before it started; retrying. PROBE gold ${world.gold}, lumber ${world.lumber}, nearest tower ${probeNearestTower(site.position, towerPositions)} away.`,
+        `Tower rush: Scout Tower build failed before it started; retrying. PROBE gold ${beliefs.gold}, lumber ${beliefs.lumber}, nearest tower ${probeNearestTower(site.position, towerPositions)} away.`,
       );
     }
 
@@ -339,8 +373,8 @@ function hasStartedTower(site: TowerSite, towerPositions: Point[]): boolean {
 function orderScoutTower(
   worker: W3UnitApi.unit,
   rules: PlacementRules,
-  world: WorldState,
-  context: TowerRushContext,
+  beliefs: Readonly<GlobalBeliefs>,
+  state: BuildTowersState,
 ) {
   probeRejections = {
     enemyMainTooClose: 0,
@@ -356,16 +390,12 @@ function orderScoutTower(
       ? "covers the mine and main hall"
       : "covers only the mine";
 
-    if (orderScoutTowerNextToFirstTower(worker, searchRules, context)) {
+    if (orderScoutTowerNextToFirstTower(worker, searchRules, state)) {
       debug(`Tower rush: Scout Tower ordered next to the first tower; ${coverage}.`);
       return;
     }
 
-    const distanceFromMine = orderScoutTowerNearMine(
-      worker,
-      searchRules,
-      context,
-    );
+    const distanceFromMine = orderScoutTowerNearMine(worker, searchRules, state);
 
     if (distanceFromMine !== undefined) {
       debug(
@@ -376,7 +406,7 @@ function orderScoutTower(
   }
 
   debug(
-    `Tower rush: no Scout Tower placement accepted. PROBE rejections: enemy main too close ${probeRejections.enemyMainTooClose}, enemy main out of reach ${probeRejections.enemyMainOutOfReach}, mine out of reach ${probeRejections.mineOutOfReach}, overlaps ${probeRejections.overlaps}, Warcraft ${probeRejections.warcraft}; gold ${world.gold}.`,
+    `Tower rush: no Scout Tower placement accepted. PROBE rejections: enemy main too close ${probeRejections.enemyMainTooClose}, enemy main out of reach ${probeRejections.enemyMainOutOfReach}, mine out of reach ${probeRejections.mineOutOfReach}, overlaps ${probeRejections.overlaps}, Warcraft ${probeRejections.warcraft}; gold ${beliefs.gold}.`,
   );
 }
 
@@ -408,7 +438,7 @@ let probeRejections = {
 function orderScoutTowerNextToFirstTower(
   worker: W3UnitApi.unit,
   rules: PlacementRules,
-  context: TowerRushContext,
+  state: BuildTowersState,
 ): boolean {
   const firstTower = rules.occupied[0];
 
@@ -422,7 +452,7 @@ function orderScoutTowerNextToFirstTower(
       MIN_TOWER_CENTER_OFFSET,
     );
 
-    if (tryOrderScoutTower(worker, position, rules, context)) {
+    if (tryOrderScoutTower(worker, position, rules, state)) {
       return true;
     }
   }
@@ -434,7 +464,7 @@ function orderScoutTowerNextToFirstTower(
 function orderScoutTowerNearMine(
   worker: W3UnitApi.unit,
   rules: PlacementRules,
-  context: TowerRushContext,
+  state: BuildTowersState,
 ): number | undefined {
   let distance = MIN_DISTANCE_FROM_MINE;
   let rejections = 0;
@@ -442,7 +472,7 @@ function orderScoutTowerNearMine(
   while (distance <= TOWER_REACH) {
     const position = randomPointAround(rules.mine, distance);
 
-    if (tryOrderScoutTower(worker, position, rules, context)) {
+    if (tryOrderScoutTower(worker, position, rules, state)) {
       return distance;
     }
 
@@ -463,7 +493,7 @@ function tryOrderScoutTower(
   worker: W3UnitApi.unit,
   position: Point,
   rules: PlacementRules,
-  context: TowerRushContext,
+  state: BuildTowersState,
 ): boolean {
   const distanceToEnemyMain = new Vector(rules.enemyMain, position).length;
   const distanceToMine = new Vector(rules.mine, position).length;
@@ -498,7 +528,7 @@ function tryOrderScoutTower(
   }
 
   if (accepted) {
-    context.pendingTowerSites.push({ builder: worker, position });
+    state.pendingTowerSites.push({ builder: worker, position });
   }
 
   return accepted;
@@ -530,8 +560,4 @@ function overlapsTower(position: Point, towers: Point[]): boolean {
       Math.abs(offset.y) < MIN_TOWER_CENTER_OFFSET
     );
   });
-}
-
-function positionOf(unit: W3UnitApi.unit): Point {
-  return new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit));
 }
