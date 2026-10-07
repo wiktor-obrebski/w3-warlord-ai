@@ -1,14 +1,17 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
-import { Controller } from "@lib/bdi";
+import { BeliefContainer, Controller } from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
 import { debug } from "../../debug";
 import {
-  GlobalBeliefs,
+  CommonBeliefModel,
+  CommonBeliefs,
+  isRecentlyAttacked,
   OwnUnit,
+  recentAttackTarget,
   VisibleEnemy,
-} from "../../beliefs/global.beliefs";
+} from "../../beliefs/common.beliefs";
 
 const FLEE_ROUND_DISTANCE = 300;
 const SAFE_AFTER_ATTACK_SECONDS = 2;
@@ -57,12 +60,19 @@ interface WorkerSafetyRecord {
 
 /** Attacked workers run away from the nearby enemy force. */
 export class WorkerSafetyController
-  implements Controller<GlobalBeliefs>, WorkerSafety
+  implements Controller<BeliefContainer>, WorkerSafety
 {
+  private readonly common: CommonBeliefModel;
   // Workers recently attacked; any worker without a record is safe.
   private records: WorkerSafetyRecord[] = [];
 
-  public update(beliefs: Readonly<GlobalBeliefs>) {
+  public constructor(common: CommonBeliefModel) {
+    this.common = common;
+  }
+
+  public update(container: Readonly<BeliefContainer>) {
+    const beliefs = container.get(this.common);
+
     for (const worker of beliefs.workers) {
       this.protectWorker(worker, beliefs);
     }
@@ -84,12 +94,13 @@ export class WorkerSafetyController
   // worker is not turned around on every update as the enemies move. A worker
   // no longer attacked stops halfway, so it does not run further from its
   // work than needed.
-  private protectWorker(worker: OwnUnit, beliefs: Readonly<GlobalBeliefs>) {
+  private protectWorker(worker: OwnUnit, beliefs: Readonly<CommonBeliefs>) {
     let record = this.records.find((entry) => entry.worker === worker.unit);
+    const isAttacked = isRecentlyAttacked(beliefs, worker.unit);
 
-    if (worker.isAttacked && record) {
+    if (isAttacked && record) {
       record.lastAttackedAt = beliefs.time;
-    } else if (worker.isAttacked) {
+    } else if (isAttacked) {
       record = { worker: worker.unit, lastAttackedAt: beliefs.time };
       this.records.push(record);
     }
@@ -99,7 +110,7 @@ export class WorkerSafetyController
     }
 
     if (record.fleeRound) {
-      if (!worker.isAttacked && fledHalfway(worker, record.fleeRound)) {
+      if (!isAttacked && fledHalfway(worker, record.fleeRound)) {
         stopFleeing(worker);
       } else if (!fleeRoundFinished(worker, record.fleeRound)) {
         return;
@@ -107,12 +118,12 @@ export class WorkerSafetyController
 
       record.fleeRound = undefined;
 
-      if (!worker.isAttacked) {
+      if (!isAttacked) {
         debug("Worker safety: worker is no longer attacked.");
       }
     }
 
-    if (worker.isAttacked) {
+    if (isAttacked) {
       startFleeRound(worker, beliefs, record);
     }
   }
@@ -154,12 +165,12 @@ function stopFleeing(worker: OwnUnit) {
 
 function startFleeRound(
   worker: OwnUnit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   record: WorkerSafetyRecord,
 ) {
   const nearby = nearbyThreats(worker.position, beliefs);
   const attackers = beliefs.visibleEnemies.filter(
-    (enemy) => enemy.attackTarget === worker.unit,
+    (enemy) => recentAttackTarget(beliefs, enemy.unit) === worker.unit,
   );
   const reference = nearby.length > 0 ? nearby : attackers;
   const awayAngle =
@@ -229,7 +240,7 @@ function isWalkable(point: Point): boolean {
 // that walk into the fight.
 function nearbyThreats(
   position: Point,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): VisibleEnemy[] {
   return beliefs.visibleEnemies.filter(
     (enemy) =>

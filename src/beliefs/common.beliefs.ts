@@ -12,10 +12,9 @@ import * as W3OrcApi from "@lib/warcraft3-api/orc";
 import { BeliefModel } from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
 import {
-  AttackObserver,
-  isRecentlyAttacked,
+  ObservedAttack,
   observeAttacksOn,
-  recentAttackTarget,
+  takeObservedAttacks,
 } from "./attack-observer";
 import { GameClock, readGameClock, startGameClock } from "./game-clock";
 
@@ -49,14 +48,19 @@ const HARVEST_ORDER_STRINGS = ["harvest", "resumeharvesting", "returnresources"]
 // Warcraft treats units at or below this life as dead.
 const DEAD_UNIT_LIFE = 0.405;
 
+// Warcraft offers no way to read whom a unit is attacking, so attacks are
+// observed as they start and remembered for a short while afterwards. The
+// window is kept short so units stop counting as attacked soon after the
+// attacks end; slow attackers, such as siege units, start an attack only
+// every few seconds and so are remembered only part of the time.
+const ATTACK_MEMORY_SECONDS = 1;
+
 export interface OwnUnit {
   readonly unit: W3UnitApi.unit;
   readonly position: Point;
   readonly life: number;
   readonly maxLife: number;
   readonly isIdle: boolean;
-  // Recently seen being attacked.
-  readonly isAttacked: boolean;
 }
 
 // The handle is only for targeting orders; reasoning reads the observed
@@ -72,8 +76,6 @@ export interface VisibleEnemy {
   readonly isWorker: boolean;
   // A Night Elf Ancient walking and fighting like a unit.
   readonly isUprootedAncient: boolean;
-  // The bot's unit it was recently seen starting an attack on.
-  readonly attackTarget?: W3UnitApi.unit;
 }
 
 export interface GoldMine {
@@ -86,7 +88,7 @@ export interface HomeDestructable {
   readonly position: Point;
 }
 
-export interface GlobalObservation {
+export interface ObservedWorld {
   // Game seconds since the bot started playing.
   readonly time: number;
   readonly ownStartPosition: Point;
@@ -124,45 +126,98 @@ export interface GlobalObservation {
   readonly destructablesNearHomeByDistance: readonly HomeDestructable[];
 }
 
-/**
- * Everything the bot believes is currently observed; retained and inferred
- * beliefs do not exist yet.
- */
-export type GlobalBeliefs = GlobalObservation;
+export interface CommonObservation {
+  readonly world: ObservedWorld;
+  readonly attacksStarted: readonly ObservedAttack[];
+}
 
 /**
- * Observes Warcraft state and revises it into the bot's one global Beliefs
- * snapshot, which all reasoning reads.
+ * Game knowledge broadly useful to the bot: the currently observed world,
+ * and the attacks on the bot's units it still remembers.
  */
-export class GlobalBeliefModel
-  implements BeliefModel<GlobalObservation, GlobalBeliefs>
-{
-  public readonly dependencies = undefined;
-  private readonly bot: W3PlayerApi.player;
-  private readonly clock: GameClock;
-  private readonly attackObserver: AttackObserver;
+export interface CommonBeliefs extends ObservedWorld {
+  // The latest attack of each attacker, while still recent; oldest first.
+  readonly recentAttacks: readonly ObservedAttack[];
+}
 
-  public constructor(bot: W3PlayerApi.player) {
-    this.bot = bot;
-    this.clock = startGameClock();
-    this.attackObserver = observeAttacksOn(bot, this.clock);
+export type CommonBeliefModel = BeliefModel<CommonObservation, CommonBeliefs>;
+
+/**
+ * The bot's core belief model, kept revised by the runtime every tick
+ * whether or not an execution component declares it.
+ */
+export function createCommonBeliefModel(
+  bot: W3PlayerApi.player,
+): CommonBeliefModel {
+  const clock = startGameClock();
+  const attackObserver = observeAttacksOn(bot, clock);
+
+  return {
+    dependencies: undefined,
+
+    observe() {
+      return {
+        world: observeWorld(bot, clock),
+        attacksStarted: takeObservedAttacks(attackObserver),
+      };
+    },
+
+    revise(previous, observation) {
+      return {
+        ...observation.world,
+        recentAttacks: reviseRecentAttacks(
+          previous?.recentAttacks ?? [],
+          observation.attacksStarted,
+          observation.world.time,
+        ),
+      };
+    },
+  };
+}
+
+// Unchanged memory is returned as it is, so it is not copied every tick.
+function reviseRecentAttacks(
+  previous: readonly ObservedAttack[],
+  started: readonly ObservedAttack[],
+  now: number,
+): readonly ObservedAttack[] {
+  const isRecent = (attack: ObservedAttack) =>
+    now - attack.time <= ATTACK_MEMORY_SECONDS;
+
+  if (started.length === 0 && previous.every((attack) => isRecent(attack))) {
+    return previous;
   }
 
-  public observe(): GlobalObservation {
-    return observeWorld(this.bot, this.clock, this.attackObserver);
+  let attacks = previous.filter((attack) => isRecent(attack));
+
+  for (const attack of started) {
+    attacks = attacks.filter((known) => known.attacker !== attack.attacker);
+    attacks.push(attack);
   }
 
-  public revise(
-    _previous: Readonly<GlobalBeliefs> | undefined,
-    observation: Readonly<GlobalObservation>,
-  ): GlobalBeliefs {
-    return observation;
-  }
+  return attacks;
+}
+
+/** Whether any attacker recently started an attack on the bot's unit. */
+export function isRecentlyAttacked(
+  beliefs: Readonly<CommonBeliefs>,
+  target: W3UnitApi.unit,
+): boolean {
+  return beliefs.recentAttacks.some((attack) => attack.target === target);
+}
+
+/** The bot's unit the attacker recently started an attack on, if any. */
+export function recentAttackTarget(
+  beliefs: Readonly<CommonBeliefs>,
+  attacker: W3UnitApi.unit,
+): W3UnitApi.unit | undefined {
+  return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
+    ?.target;
 }
 
 /** Throws for a unit not believed to be a living unit of the bot. */
 export function ownUnit(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   unit: W3UnitApi.unit,
 ): OwnUnit {
   const believed = beliefs.ownUnits.get(unit);
@@ -175,14 +230,14 @@ export function ownUnit(
 }
 
 export function positionOf(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   unit: W3UnitApi.unit,
 ): Point {
   return ownUnit(beliefs, unit).position;
 }
 
 export function lifeFractionOf(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   unit: W3UnitApi.unit,
 ): number {
   const { life, maxLife } = ownUnit(beliefs, unit);
@@ -193,8 +248,7 @@ export function lifeFractionOf(
 function observeWorld(
   bot: W3PlayerApi.player,
   clock: GameClock,
-  attackObserver: AttackObserver,
-): GlobalObservation {
+): ObservedWorld {
   const ownStartPosition = startPositionOf(bot);
   const enemies = enemyPlayers(bot);
   const enemy = enemies[0];
@@ -236,7 +290,6 @@ function observeWorld(
       life: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE),
       maxLife: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_MAX_LIFE),
       isIdle: order === NO_ORDER,
-      isAttacked: isRecentlyAttacked(attackObserver, unit),
     };
 
     ownUnits.set(unit, observed);
@@ -309,7 +362,7 @@ function observeWorld(
     lumberMills,
     buildingsUnderConstruction,
     buildingsUpgrading,
-    visibleEnemies: visibleEnemies(bot, enemies, attackObserver),
+    visibleEnemies: visibleEnemies(bot, enemies),
     gold: W3PlayerApi.GetPlayerState(bot, W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD),
     lumber: W3PlayerApi.GetPlayerState(
       bot,
@@ -374,7 +427,6 @@ function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
 function visibleEnemies(
   bot: W3PlayerApi.player,
   enemies: W3PlayerApi.player[],
-  attackObserver: AttackObserver,
 ): VisibleEnemy[] {
   const visible: VisibleEnemy[] = [];
 
@@ -405,7 +457,6 @@ function visibleEnemies(
         // classification while uprooted.
         isUprootedAncient:
           !isStructure && W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_ANCIENT),
-        attackTarget: recentAttackTarget(attackObserver, unit),
       });
     }
   }

@@ -1,11 +1,12 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { Controller } from "@lib/bdi";
+import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
 import {
-  GlobalBeliefs,
+  CommonBeliefModel,
+  CommonBeliefs,
   lifeFractionOf,
   ownUnit,
-} from "../../beliefs/global.beliefs";
+} from "../../beliefs/common.beliefs";
 import { TowerRushState } from "./tower-rush.state";
 import {
   forgetSentToSafety,
@@ -30,18 +31,27 @@ const REPAIR_SWITCH_LIFE_FRACTION = 0.8;
  * tower is built, so a tower's life fraction reflects damage, not build
  * progress.
  */
-export class TowerMaintenanceController implements Controller<GlobalBeliefs> {
+export class TowerMaintenanceController
+  implements Controller<BeliefContainer>
+{
+  private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;
   private readonly workerSafety: WorkerSafety;
   // The tower the forward Peasants are repairing.
   private repairTarget: W3UnitApi.unit | undefined;
 
-  public constructor(rush: TowerRushState, workerSafety: WorkerSafety) {
+  public constructor(
+    common: CommonBeliefModel,
+    rush: TowerRushState,
+    workerSafety: WorkerSafety,
+  ) {
+    this.common = common;
     this.rush = rush;
     this.workerSafety = workerSafety;
   }
 
-  public update(beliefs: Readonly<GlobalBeliefs>) {
+  public update(container: Readonly<BeliefContainer>) {
+    const beliefs = container.get(this.common);
     const enemyMain = beliefs.enemyStartPosition;
 
     if (!enemyMain) {
@@ -90,7 +100,7 @@ export class TowerMaintenanceController implements Controller<GlobalBeliefs> {
 function chooseRepairTarget(
   towers: readonly W3UnitApi.unit[],
   current: W3UnitApi.unit | undefined,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): W3UnitApi.unit | undefined {
   const lifeFraction = (tower: W3UnitApi.unit) => lifeFractionOf(beliefs, tower);
   const currentStanding = current !== undefined && towers.includes(current);
@@ -116,7 +126,7 @@ function chooseRepairTarget(
 
 function mostDamagedTower(
   towers: readonly W3UnitApi.unit[],
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): W3UnitApi.unit | undefined {
   let mostDamaged: W3UnitApi.unit | undefined;
 
@@ -135,7 +145,7 @@ function mostDamagedTower(
 function orderRepair(
   worker: W3UnitApi.unit,
   tower: W3UnitApi.unit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
 ) {
   if (W3UnitApi.IssueTargetOrder(worker, "repair", tower)) {
@@ -149,7 +159,7 @@ function orderRepair(
 
 function describeTower(
   tower: W3UnitApi.unit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): string {
   const { life, maxLife } = ownUnit(beliefs, tower);
 

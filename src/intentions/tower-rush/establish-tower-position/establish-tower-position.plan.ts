@@ -1,7 +1,7 @@
-import { Plan, PlanStatus } from "@lib/bdi";
+import { BeliefContainer, Plan, PlanStatus } from "@lib/bdi";
 import { Point } from "@lib/math";
 import { debug } from "../../../debug";
-import { GlobalBeliefs } from "../../../beliefs/global.beliefs";
+import { CommonBeliefModel } from "../../../beliefs/common.beliefs";
 import { WorkerSafety } from "../../maintain-worker-safety/worker-safety.ctrl";
 import { TowerRushState } from "../tower-rush.state";
 import { updateStart } from "./start";
@@ -21,7 +21,8 @@ enum Step {
  * there, and upgrades them to Guard Towers. Succeeds once every rush tower is
  * a Guard Tower.
  */
-export class EstablishTowerPositionPlan implements Plan<GlobalBeliefs> {
+export class EstablishTowerPositionPlan implements Plan<BeliefContainer> {
+  private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;
   private readonly workerSafety: WorkerSafety;
   private currentStatus: PlanStatus = "running";
@@ -31,7 +32,12 @@ export class EstablishTowerPositionPlan implements Plan<GlobalBeliefs> {
   // Where the rush towers stood when BuildTowers ended.
   private towerPositions: Point[] = [];
 
-  public constructor(rush: TowerRushState, workerSafety: WorkerSafety) {
+  public constructor(
+    common: CommonBeliefModel,
+    rush: TowerRushState,
+    workerSafety: WorkerSafety,
+  ) {
+    this.common = common;
     this.rush = rush;
     this.workerSafety = workerSafety;
   }
@@ -45,10 +51,12 @@ export class EstablishTowerPositionPlan implements Plan<GlobalBeliefs> {
     return this.step === Step.UpgradeTowers;
   }
 
-  public update(beliefs: Readonly<GlobalBeliefs>) {
+  public update(container: Readonly<BeliefContainer>) {
     if (this.currentStatus !== "running") {
       throw new Error("Establish tower position: updated after it ended.");
     }
+
+    const beliefs = container.get(this.common);
 
     switch (this.step) {
       case Step.Start:

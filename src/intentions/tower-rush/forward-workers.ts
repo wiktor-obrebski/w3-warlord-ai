@@ -1,7 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { debug } from "../../debug";
 import { Point, Vector } from "@lib/math";
-import { GlobalBeliefs, positionOf } from "../../beliefs/global.beliefs";
+import { CommonBeliefs, positionOf } from "../../beliefs/common.beliefs";
 import { TowerRushState } from "./tower-rush.state";
 import {
   isWorkerSafe,
@@ -15,7 +15,7 @@ export function hideBehindClosestTower(
   worker: W3UnitApi.unit,
   towers: readonly W3UnitApi.unit[],
   enemyMain: Point,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
 ) {
   const shelter = closestUnit(towers, worker, beliefs);
@@ -44,7 +44,7 @@ export function forgetSentToSafety(worker: W3UnitApi.unit, rush: TowerRushState)
 // again. A flee round can start and end between two tower rush updates, so
 // this does not wait to see the Peasant fleeing.
 export function forgetHidingOfUnsafeWorkers(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   workerSafety: WorkerSafety,
 ) {
@@ -57,7 +57,7 @@ export function forgetHidingOfUnsafeWorkers(
 // is busy with an order of its own, such as building or repairing.
 export function isAvailableForwardPeasant(
   worker: W3UnitApi.unit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): boolean {
   return (
     beliefs.peasants.includes(worker) &&
@@ -79,7 +79,7 @@ function spotBehind(tower: Point, enemyMain: Point): Point {
 export function closestUnit(
   units: readonly W3UnitApi.unit[],
   to: W3UnitApi.unit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): W3UnitApi.unit | undefined {
   const origin = positionOf(beliefs, to);
   let closest: W3UnitApi.unit | undefined;

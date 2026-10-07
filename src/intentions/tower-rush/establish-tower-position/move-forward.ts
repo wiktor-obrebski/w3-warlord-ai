@@ -2,10 +2,10 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { Vector } from "@lib/math";
 import { debug } from "../../../debug";
 import {
-  GlobalBeliefs,
+  CommonBeliefs,
   GoldMine,
   positionOf,
-} from "../../../beliefs/global.beliefs";
+} from "../../../beliefs/common.beliefs";
 import { TowerRushState } from "../tower-rush.state";
 
 // A move order to a gold mine ends at the mine's edge, not its center.
@@ -22,7 +22,7 @@ export function createMoveForwardState(): MoveForwardState {
 
 /** Returns whether the forward workers have arrived as Peasants again. */
 export function updateMoveForward(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: MoveForwardState,
 ): boolean {
@@ -43,7 +43,7 @@ export function updateMoveForward(
 // sent only once they have become Militia.
 function sendNewMilitiaToEnemy(
   destination: GoldMine,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: MoveForwardState,
 ) {
@@ -67,7 +67,7 @@ function sendNewMilitiaToEnemy(
 // pull them away from the tower sites before they revert to Peasants.
 function holdArrivedMilitia(
   destination: GoldMine,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   state: MoveForwardState,
 ) {
   for (const worker of state.forwardWorkersSentToEnemy) {
@@ -87,7 +87,7 @@ function holdArrivedMilitia(
 }
 
 function forwardWorkersHaveRevertedToPeasants(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: MoveForwardState,
 ): boolean {

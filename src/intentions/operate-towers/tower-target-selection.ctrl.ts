@@ -1,7 +1,12 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { Controller } from "@lib/bdi";
+import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
-import { GlobalBeliefs, VisibleEnemy } from "../../beliefs/global.beliefs";
+import {
+  CommonBeliefModel,
+  CommonBeliefs,
+  recentAttackTarget,
+  VisibleEnemy,
+} from "../../beliefs/common.beliefs";
 
 // Not verified in-game that IsUnitInRange matches the tower's own reach.
 const GUARD_TOWER_ATTACK_RANGE = 700;
@@ -34,13 +39,19 @@ interface TowerTarget {
  * best one within its own range, so overlapping towers focus the same target.
  */
 export class TowerTargetSelectionController
-  implements Controller<GlobalBeliefs>
+  implements Controller<BeliefContainer>
 {
+  private readonly common: CommonBeliefModel;
   // The last attack order of each Guard Tower, so it is not re-issued while
   // the tower is still carrying it out.
   private towerTargets: TowerTarget[] = [];
 
-  public update(beliefs: Readonly<GlobalBeliefs>) {
+  public constructor(common: CommonBeliefModel) {
+    this.common = common;
+  }
+
+  public update(container: Readonly<BeliefContainer>) {
+    const beliefs = container.get(this.common);
     const rankedTargets = rankTargets(beliefs);
 
     this.towerTargets = this.towerTargets.filter((entry) =>
@@ -58,7 +69,7 @@ export class TowerTargetSelectionController
   private attackBestTargetInRange(
     tower: W3UnitApi.unit,
     rankedTargets: RankedTarget[],
-    beliefs: Readonly<GlobalBeliefs>,
+    beliefs: Readonly<CommonBeliefs>,
   ) {
     const currentTarget = this.towerTargets.find(
       (entry) => entry.tower === tower,
@@ -100,7 +111,7 @@ export class TowerTargetSelectionController
   }
 }
 
-function rankTargets(beliefs: Readonly<GlobalBeliefs>): RankedTarget[] {
+function rankTargets(beliefs: Readonly<CommonBeliefs>): RankedTarget[] {
   const ranked: RankedTarget[] = [];
 
   for (const enemy of beliefs.visibleEnemies) {
@@ -126,13 +137,13 @@ function rankTargets(beliefs: Readonly<GlobalBeliefs>): RankedTarget[] {
 // attack a tower.
 function targetPriority(
   enemy: VisibleEnemy,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): TargetPriority | undefined {
   if (enemy.isWorker) {
     return TargetPriority.Worker;
   }
 
-  const { attackTarget } = enemy;
+  const attackTarget = recentAttackTarget(beliefs, enemy.unit);
   const attacksPeasant =
     attackTarget !== undefined && beliefs.peasants.includes(attackTarget);
   const attacksTower =

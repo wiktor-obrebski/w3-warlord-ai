@@ -2,7 +2,7 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, Vector } from "@lib/math";
-import { GlobalBeliefs, positionOf } from "../../../beliefs/global.beliefs";
+import { CommonBeliefs, positionOf } from "../../../beliefs/common.beliefs";
 
 export const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
 const GUARD_TOWER_UPGRADE_LUMBER_COST = 50;
@@ -31,7 +31,7 @@ interface PlannedTower {
  * one without waiting for the others to finish.
  */
 export function updateUpgradeTowers(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   towerPositions: readonly Point[],
 ): boolean {
   const towers = towerPositions.map((position) =>
@@ -55,7 +55,7 @@ export function updateUpgradeTowers(
 
 function plannedTowerAt(
   position: Point,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): PlannedTower {
   const unit = [...beliefs.scoutTowers, ...beliefs.guardTowers].find(
     (tower) =>
@@ -70,7 +70,7 @@ function plannedTowerAt(
 // Guard Tower before the upgrade finishes.
 function towerState(
   tower: W3UnitApi.unit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): TowerState {
   if (beliefs.buildingsUnderConstruction.includes(tower)) {
     return TowerState.UnderConstruction;
@@ -85,7 +85,7 @@ function towerState(
     : TowerState.ScoutTower;
 }
 
-function hasCompletedLumberMill(beliefs: Readonly<GlobalBeliefs>): boolean {
+function hasCompletedLumberMill(beliefs: Readonly<CommonBeliefs>): boolean {
   return beliefs.lumberMills.some(
     (mill) => !beliefs.buildingsUnderConstruction.includes(mill),
   );

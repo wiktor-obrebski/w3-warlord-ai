@@ -2,7 +2,7 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, Vector } from "@lib/math";
-import { GlobalBeliefs, positionOf } from "../../../beliefs/global.beliefs";
+import { CommonBeliefs, positionOf } from "../../../beliefs/common.beliefs";
 import { TowerRushState } from "../tower-rush.state";
 import { trainPeasant } from "../tower-rush-economy.ctrl";
 
@@ -17,7 +17,7 @@ const MAX_LUMBER_MILL_DISTANCE = 1200;
 const CANDIDATE_SPACING = 64;
 
 export function updateStart(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
 ) {
   const { townHall, enemyMainGoldMine, homeGoldMine } = beliefs;
@@ -69,7 +69,7 @@ function orderLumberMill(
   builder: W3UnitApi.unit,
   hall: Point,
   mine: Point,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ) {
   const trees = treePositions(builder, beliefs);
   const sites = lumberMillCandidates(hall, mine)
@@ -130,7 +130,7 @@ function lumberMillCandidates(hall: Point, mine: Point): Point[] {
 // build order replaces these test orders.
 function treePositions(
   builder: W3UnitApi.unit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): Point[] {
   return beliefs.destructablesNearHomeByDistance
     .filter(({ destructable }) =>

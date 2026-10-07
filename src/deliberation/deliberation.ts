@@ -1,5 +1,5 @@
-import { Deliberation, Desire, Intention } from "@lib/bdi";
-import { GlobalBeliefs } from "../beliefs/global.beliefs";
+import { BeliefContainer, Deliberation, Desire, Intention } from "@lib/bdi";
+import { CommonBeliefModel } from "../beliefs/common.beliefs";
 import { ApplyPressure } from "../desires/apply-pressure";
 import { ProtectEconomicAssets } from "../desires/protect-economic-assets";
 import { UseMilitaryAssetsEffectively } from "../desires/use-military-assets-effectively";
@@ -7,7 +7,7 @@ import { MaintainWorkerSafetyIntention } from "../intentions/maintain-worker-saf
 import { TowerRushIntention } from "../intentions/tower-rush/tower-rush.intention";
 import { OperateTowersIntention } from "../intentions/operate-towers/operate-towers.intention";
 
-export type WarlordIntention = Intention<GlobalBeliefs>;
+export type WarlordIntention = Intention<BeliefContainer>;
 
 /**
  * A fixed policy for now:
@@ -20,47 +20,46 @@ export type WarlordIntention = Intention<GlobalBeliefs>;
  * Intentions are returned in update order. Worker safety comes first so the
  * others see which workers it has taken over on the same tick.
  */
-export class WarlordDeliberation
-  implements Deliberation<GlobalBeliefs, Desire, WarlordIntention>
-{
-  public deliberate(
-    _beliefs: Readonly<GlobalBeliefs>,
-    desires: readonly Desire[],
-    intentions: readonly WarlordIntention[],
-  ): readonly WarlordIntention[] {
-    const active: WarlordIntention[] = [];
-    let workerSafety: MaintainWorkerSafetyIntention | undefined;
-    let towerRush: TowerRushIntention | undefined;
+export function createDeliberation(
+  common: CommonBeliefModel,
+): Deliberation<BeliefContainer, Desire, WarlordIntention> {
+  return {
+    deliberate(_beliefs, desires, intentions) {
+      const active: WarlordIntention[] = [];
+      let workerSafety: MaintainWorkerSafetyIntention | undefined;
+      let towerRush: TowerRushIntention | undefined;
 
-    if (desires.includes(ProtectEconomicAssets)) {
-      workerSafety =
-        find(intentions, MaintainWorkerSafetyIntention) ??
-        new MaintainWorkerSafetyIntention();
-      active.push(workerSafety);
-    }
-
-    if (desires.includes(ApplyPressure)) {
-      const safety = requireWorkerSafety(workerSafety);
-
-      towerRush =
-        find(intentions, TowerRushIntention) ?? new TowerRushIntention(safety);
-      active.push(towerRush);
-    }
-
-    if (desires.includes(UseMilitaryAssetsEffectively)) {
-      const operateTowers =
-        find(intentions, OperateTowersIntention) ??
-        (towerRush?.positionEstablished
-          ? new OperateTowersIntention()
-          : undefined);
-
-      if (operateTowers) {
-        active.push(operateTowers);
+      if (desires.includes(ProtectEconomicAssets)) {
+        workerSafety =
+          find(intentions, MaintainWorkerSafetyIntention) ??
+          new MaintainWorkerSafetyIntention(common);
+        active.push(workerSafety);
       }
-    }
 
-    return active;
-  }
+      if (desires.includes(ApplyPressure)) {
+        const safety = requireWorkerSafety(workerSafety);
+
+        towerRush =
+          find(intentions, TowerRushIntention) ??
+          new TowerRushIntention(common, safety);
+        active.push(towerRush);
+      }
+
+      if (desires.includes(UseMilitaryAssetsEffectively)) {
+        const operateTowers =
+          find(intentions, OperateTowersIntention) ??
+          (towerRush?.positionEstablished
+            ? new OperateTowersIntention(common)
+            : undefined);
+
+        if (operateTowers) {
+          active.push(operateTowers);
+        }
+      }
+
+      return active;
+    },
+  };
 }
 
 function find<T extends WarlordIntention>(

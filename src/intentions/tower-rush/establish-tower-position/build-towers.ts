@@ -4,10 +4,10 @@ import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, Vector } from "@lib/math";
 import {
-  GlobalBeliefs,
+  CommonBeliefs,
   lifeFractionOf,
   positionOf,
-} from "../../../beliefs/global.beliefs";
+} from "../../../beliefs/common.beliefs";
 import { TowerRushState } from "../tower-rush.state";
 import {
   closestUnit,
@@ -85,7 +85,7 @@ interface PlacementRules {
  * building ends once all of them are sent to hide.
  */
 export function updateBuildTowers(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: BuildTowersState,
   workerSafety: WorkerSafety,
@@ -188,7 +188,7 @@ export function updateBuildTowers(
 // tower is taken off its order instead.
 function busyNonBuilder(
   safeWorkers: W3UnitApi.unit[],
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   state: BuildTowersState,
 ): W3UnitApi.unit | undefined {
   const builders = state.pendingTowerSites.map((site) => site.builder);
@@ -206,7 +206,7 @@ function busyNonBuilder(
   return worker;
 }
 
-function allTowersBuilt(beliefs: Readonly<GlobalBeliefs>): boolean {
+function allTowersBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
   return (
     beliefs.scoutTowers.length >= TOWER_COUNT &&
     beliefs.scoutTowers.every(
@@ -219,7 +219,7 @@ function allTowersBuilt(beliefs: Readonly<GlobalBeliefs>): boolean {
 // first. Otherwise a second worker only pays off early in construction.
 function helpUnfinishedTower(
   worker: W3UnitApi.unit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   state: BuildTowersState,
 ) {
   const unfinished = beliefs.scoutTowers.filter((tower) =>
@@ -259,7 +259,7 @@ function helpUnfinishedTower(
 // Builders and helpers are only remembered while they are alive and busy.
 function hasLivingBuilder(
   tower: W3UnitApi.unit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   state: BuildTowersState,
 ): boolean {
   const towerPosition = positionOf(beliefs, tower);
@@ -278,7 +278,7 @@ function hasLivingBuilder(
 // finished tower reads as low progress too.
 function buildProgress(
   tower: W3UnitApi.unit,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
 ): number {
   return (
     (lifeFractionOf(beliefs, tower) - CONSTRUCTION_START_LIFE_FRACTION) /
@@ -288,7 +288,7 @@ function buildProgress(
 
 // From here the towers finish soon enough that the upgrade gold must already
 // be at hand, or the last upgrade waits for income.
-function towersHalfBuilt(beliefs: Readonly<GlobalBeliefs>): boolean {
+function towersHalfBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
   return (
     beliefs.scoutTowers.length >= TOWER_COUNT &&
     beliefs.scoutTowers.every(
@@ -300,7 +300,7 @@ function towersHalfBuilt(beliefs: Readonly<GlobalBeliefs>): boolean {
 
 // Helpers that are free again have finished or abandoned their help.
 function forgetFinishedTowerHelpers(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   state: BuildTowersState,
 ) {
   state.towerHelpers = state.towerHelpers.filter(
@@ -314,7 +314,7 @@ function forgetFinishedTowerHelpers(
 // A Peasant is only sent to safety once it is done building and helping, so
 // building need not wait for it to arrive; upgrades can start meanwhile.
 function towerBuildingFinished(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
 ): boolean {
   const livingForwardPeasants = rush.forwardWorkers.filter((worker) =>
@@ -335,7 +335,7 @@ function towerBuildingFinished(
 // Warcraft gave that order on its own. Once the tower has started, the site
 // marks the tower's builder until the builder is free again.
 function forgetAbandonedTowerSites(
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   state: BuildTowersState,
 ) {
   const towerPositions = beliefs.scoutTowers.map((tower) =>
@@ -373,7 +373,7 @@ function hasStartedTower(site: TowerSite, towerPositions: Point[]): boolean {
 function orderScoutTower(
   worker: W3UnitApi.unit,
   rules: PlacementRules,
-  beliefs: Readonly<GlobalBeliefs>,
+  beliefs: Readonly<CommonBeliefs>,
   state: BuildTowersState,
 ) {
   probeRejections = {

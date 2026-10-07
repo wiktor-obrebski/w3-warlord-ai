@@ -135,19 +135,22 @@ WC3 Warlord AI
 
 ## Current implementation
 
-The implemented subset is a first BDI iteration. Generic, domain-independent contracts (`BeliefModel`, `Desire`, `Deliberation`, `Intention`, `Plan`, `Controller`) live in [`@lib/bdi`](../lib/bdi/README.md). `src/main.ts` installs the bot player, starts debug mode, and starts the bot's runtime (`startRuntime` in `src/runtime.ts`), which owns the BDI loop and its state. Debug mode is not part of the runtime. Each 100 ms runtime tick runs:
+The implemented subset is a first BDI iteration. Generic, domain-independent contracts (`BeliefModel`, `BeliefContainer`, `Desire`, `Deliberation`, `Intention`, `Plan`, `Controller`) and the belief runtime live in [`@lib/bdi`](../lib/bdi/README.md). `src/main.ts` installs the bot player, starts debug mode, and starts the bot's runtime (`startRuntime` in `src/runtime.ts`), which owns the BDI loop and all belief state. Debug mode is not part of the runtime. Each 100 ms runtime tick runs:
 
 ```text
-GlobalBeliefModel.observe() → revise() → global Beliefs (read-only for the rest of the tick)
-→ Desires → WarlordDeliberation → active Intentions → update() → Plans & Controllers
+revise common Beliefs → Desires → Deliberation → active Intentions
+→ revise the scoped Beliefs the active Intentions, Plans, and Controllers declare
+→ immutable BeliefContainer → update() → Plans & Controllers
 ```
+
+Beliefs are split into belief models: the common model (`src/beliefs/common.beliefs.ts`) holds broadly useful game knowledge, and features define scoped models next to the components that declare them (`*.beliefs.ts`). Belief state belongs to model instances and is owned by the runtime; Intentions, Plans, and Controllers keep only execution state.
 
 ```text
 src/
-├─ beliefs/       global.beliefs.ts: the one global belief model, observing Warcraft state for decisions
+├─ beliefs/       common belief model, observing Warcraft state for decisions
 ├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
 ├─ deliberation/  creates, retains, and drops Intentions
-└─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts
+└─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts, and scoped *.beliefs.ts
 ```
 
-Not yet implemented: retained and inferred beliefs, Command Arbitration, Unit Assignment, and Intention Scheduling. Plans and Controllers still issue Warcraft orders directly.
+Not yet implemented: canonical unit ids, inferred beliefs, Command Arbitration, Unit Assignment, and Intention Scheduling. Plans and Controllers still issue Warcraft orders directly.

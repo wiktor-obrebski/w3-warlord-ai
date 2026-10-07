@@ -1,13 +1,14 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3TimerApi from "@lib/warcraft3-api/timer";
 import * as WarlordApi from "@lib/warcraft3-api/warlord";
+import { BeliefContainer, requiredBeliefModels, reviseBeliefs } from "@lib/bdi";
 import { debug } from "./debug";
-import { GlobalBeliefModel, GlobalBeliefs } from "./beliefs/global.beliefs";
+import { createCommonBeliefModel } from "./beliefs/common.beliefs";
 import { ApplyPressure } from "./desires/apply-pressure";
 import { ProtectEconomicAssets } from "./desires/protect-economic-assets";
 import { UseMilitaryAssetsEffectively } from "./desires/use-military-assets-effectively";
 import {
-  WarlordDeliberation,
+  createDeliberation,
   WarlordIntention,
 } from "./deliberation/deliberation";
 
@@ -22,24 +23,35 @@ const DESIRES = [
 /**
  * Runs the bot's BDI loop for one player, from the first tick until the game
  * is won.
+ *
+ * Each tick revises the common Beliefs, deliberates on them, then revises the
+ * scoped Beliefs the resulting Intentions require. The container from that
+ * second revision is the tick's snapshot every Intention updates from.
  */
 export function startRuntime(bot: W3PlayerApi.player) {
-  const beliefModel = new GlobalBeliefModel(bot);
-  const deliberation = new WarlordDeliberation();
+  const common = createCommonBeliefModel(bot);
+  const coreModels = [common];
+  const deliberation = createDeliberation(common);
   const loop = W3TimerApi.CreateTimer();
-  let beliefs: GlobalBeliefs | undefined;
+  let beliefs: BeliefContainer | undefined;
   let intentions: readonly WarlordIntention[] = [];
 
   const tick = () => {
-    const current = beliefModel.revise(beliefs, beliefModel.observe());
-    beliefs = current;
+    const core = reviseBeliefs(coreModels, beliefs);
 
-    if (current.enemyPlayersPlaying === 0) {
+    if (core.get(common).enemyPlayersPlaying === 0) {
       stopLoop(loop);
       return;
     }
 
-    intentions = deliberation.deliberate(current, DESIRES, intentions);
+    intentions = deliberation.deliberate(core, DESIRES, intentions);
+
+    const current = reviseBeliefs(
+      requiredBeliefModels(intentions),
+      beliefs,
+      core,
+    );
+    beliefs = current;
 
     for (const intention of intentions) {
       intention.update(current);
