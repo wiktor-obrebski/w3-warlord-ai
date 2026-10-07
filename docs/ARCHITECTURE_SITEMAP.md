@@ -135,7 +135,7 @@ WC3 Warlord AI
 
 ## Current implementation
 
-The implemented subset is a first BDI iteration. Generic, domain-independent contracts (`BeliefModel`, `Desire`, `Deliberation`, `Intention`, `Plan`, `Controller`) live in [`@lib/bdi`](../lib/bdi/README.md). Each 100 ms bot tick in `src/main.ts` runs:
+The implemented subset is a first BDI iteration. Generic, domain-independent contracts (`BeliefModel`, `Desire`, `Deliberation`, `Intention`, `Plan`, `Controller`) live in [`@lib/bdi`](../lib/bdi/README.md). `src/main.ts` installs the bot player, starts debug mode, and starts the bot's runtime (`startRuntime` in `src/runtime.ts`), which owns the BDI loop and its state. Debug mode is not part of the runtime. Each 100 ms runtime tick runs:
 
 ```text
 GlobalBeliefModel.observe() → revise() → global Beliefs (read-only for the rest of the tick)
