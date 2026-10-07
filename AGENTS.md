@@ -37,6 +37,7 @@ Prefer simple, explicit, maintainable solutions.
 * Reuse existing mechanisms when they fit cleanly.
 * Do not force reuse when doing so makes the design less clear.
 * Existing code is evidence, not authority. Do not preserve a bad design solely because it already exists.
+* Do not create classes for things that can only be created or run once, such as the bot runtime loop. Use a plain function, keeping its state in local variables and closures.
 
 Complexity must justify itself.
 
