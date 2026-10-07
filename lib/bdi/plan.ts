@@ -1,3 +1,5 @@
+import type { ExecutionComponent } from "./execution-component";
+
 /**
  * Lifecycle status of a Plan. A Plan starts `"running"` and ends either
  * `"succeeded"` or `"failed"`.
@@ -10,7 +12,7 @@ export type PlanStatus = "running" | "succeeded" | "failed";
  *
  * A Plan owns its procedural execution state.
  */
-export interface Plan<TBeliefs> {
+export interface Plan<TBeliefs> extends ExecutionComponent {
   /**
    * Current lifecycle status. It changes only during `update()`; reading it
    * inspects state and does not re-evaluate the Plan.

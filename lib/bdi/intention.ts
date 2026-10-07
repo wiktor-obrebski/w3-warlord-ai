@@ -1,3 +1,5 @@
+import type { ExecutionComponent } from "./execution-component";
+
 /**
  * A concrete commitment the agent is currently pursuing.
  *
@@ -5,7 +7,7 @@
  * success or failure status of its own. It may own Plans, Controllers, and
  * other execution state.
  */
-export interface Intention<TBeliefs> {
+export interface Intention<TBeliefs> extends ExecutionComponent {
   /**
    * Makes progress on the commitment, once per cycle while retained.
    */

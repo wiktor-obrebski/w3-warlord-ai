@@ -137,6 +137,7 @@ export type GlobalBeliefs = GlobalObservation;
 export class GlobalBeliefModel
   implements BeliefModel<GlobalObservation, GlobalBeliefs>
 {
+  public readonly dependencies = undefined;
   private readonly bot: W3PlayerApi.player;
   private readonly clock: GameClock;
   private readonly attackObserver: AttackObserver;
