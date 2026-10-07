@@ -1,11 +1,10 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3TimerApi from "@lib/warcraft3-api/timer";
+import * as WarlordApi from "@lib/warcraft3-api/warlord";
 import { debug } from "./debug";
 import { startRuntime } from "./runtime";
 import { installBotPlayer } from "./privileged/install-bot-player";
 import { enableDebugMode, updateDebugMode } from "./privileged/debug-mode";
-
-declare function guard(this: void, callback: (this: void) => void): (this: void) => void;
 
 const DEBUG_MODE = true;
 const DEBUG_MODE_UPDATE_SECONDS = 0.1;
@@ -38,7 +37,7 @@ function startDebugMode(bot: W3PlayerApi.player) {
     timer,
     DEBUG_MODE_UPDATE_SECONDS,
     true,
-    guard(() => updateDebugMode(debugMode, bot)),
+    WarlordApi.guard(() => updateDebugMode(debugMode, bot)),
   );
   updateDebugMode(debugMode, bot);
 }
@@ -57,7 +56,7 @@ function debugObserver(): W3PlayerApi.player {
 function runAfterMapInitialization(callback: (this: void) => void) {
   const timer = W3TimerApi.CreateTimer();
 
-  W3TimerApi.TimerStart(timer, 0, false, guard(() => {
+  W3TimerApi.TimerStart(timer, 0, false, WarlordApi.guard(() => {
     W3TimerApi.DestroyTimer(timer);
     callback();
   }));

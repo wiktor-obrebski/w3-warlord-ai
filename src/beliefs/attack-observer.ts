@@ -1,9 +1,8 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3TriggerApi from "@lib/warcraft3-api/trigger";
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
+import * as WarlordApi from "@lib/warcraft3-api/warlord";
 import { GameClock, readGameClock } from "./game-clock";
-
-declare function guard(this: void, callback: (this: void) => void): (this: void) => void;
 
 // Warcraft offers no way to read whom a unit is attacking, so attacks are
 // observed as they start and reported for a short while afterwards. The
@@ -42,7 +41,7 @@ export function observeAttacksOn(
   );
   W3TriggerApi.TriggerAddAction(
     trigger,
-    guard(() => recordAttack(observer)),
+    WarlordApi.guard(() => recordAttack(observer)),
   );
 
   return observer;

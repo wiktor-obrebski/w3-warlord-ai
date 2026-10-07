@@ -80,7 +80,8 @@ function WarlordRunBundle(warlord_computer_player)
     end
 
     -- Timer and trigger callbacks run outside the startup xpcall, so bot code
-    -- wraps them with guard to get the same error reporting.
+    -- wraps them with guard to get the same error reporting. Declared for
+    -- TypeScript in @lib/warcraft3-api/warlord.
     environment.guard = function(callback)
         return function(...)
             runProtected(callback, ...)

@@ -110,7 +110,8 @@ When uncertainty materially affects the implementation, state it rather than gue
 ### Runtime Wrapper and Debugging
 
 * Maintain runtime glue in `runtime/runtime-template.lua`; do not patch the generated bundle or packaged map script manually.
-* The startup `xpcall` only protects startup execution. Protect timer and trigger callbacks invoked later with the same error-reporting mechanism; do not assume startup protection covers them.
+* The startup `xpcall` only protects startup execution. Wrap timer and trigger callbacks invoked later with `WarlordApi.guard` (`@lib/warcraft3-api/warlord`) for the same error reporting; do not assume startup protection covers them.
+* Globals the wrapper provides to the bundle are declared once in `@lib/warcraft3-api/warlord` (privileged ones in `@lib/warcraft3-api/privileged`); do not redeclare them locally with `declare function`.
 
 ### Validation
 

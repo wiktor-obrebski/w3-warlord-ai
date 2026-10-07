@@ -49,6 +49,8 @@ Player(0)
 
 Declarations are maintained manually.
 
+`@lib/warcraft3-api/warlord` is the exception to the rules below: it declares globals that our runtime wrapper (`runtime/runtime-template.lua`) provides, not Warcraft natives, so it is documented from the wrapper rather than Jassdoc.
+
 `war3-types-strict` is the reference for Warcraft III types and native function signatures.
 
 When adding a new Warcraft API declaration:

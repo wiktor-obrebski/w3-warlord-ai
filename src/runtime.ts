@@ -1,5 +1,6 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3TimerApi from "@lib/warcraft3-api/timer";
+import * as WarlordApi from "@lib/warcraft3-api/warlord";
 import { debug } from "./debug";
 import { GlobalBeliefModel, GlobalBeliefs } from "./beliefs/global.beliefs";
 import { ApplyPressure } from "./desires/apply-pressure";
@@ -9,8 +10,6 @@ import {
   WarlordDeliberation,
   WarlordIntention,
 } from "./deliberation/deliberation";
-
-declare function guard(this: void, callback: (this: void) => void): (this: void) => void;
 
 const TICK_SECONDS = 0.1;
 // Every desire is held for the whole game for now.
@@ -47,7 +46,7 @@ export function startRuntime(bot: W3PlayerApi.player) {
     }
   };
 
-  W3TimerApi.TimerStart(loop, TICK_SECONDS, true, guard(tick));
+  W3TimerApi.TimerStart(loop, TICK_SECONDS, true, WarlordApi.guard(tick));
   tick();
 }
 

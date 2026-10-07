@@ -18,6 +18,11 @@ APIs not needed for normal bot gameplay (installation and tests only) belong in
 `@lib/warcraft3-api/privileged`, even when they would otherwise fit another module.
 Only code in `src/privileged/` may use it; see `src/privileged/README.md`.
 
+`@lib/warcraft3-api/warlord` declares globals provided by our own runtime wrapper
+(`runtime/runtime-template.lua`), not by Warcraft, such as `guard`. Keep its declarations in
+sync with the wrapper and document them from the wrapper; there is no Jassdoc or
+`war3-types-strict` source for them.
+
 Application code should use namespace imports:
 
 ```ts
