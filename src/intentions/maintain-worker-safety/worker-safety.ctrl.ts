@@ -7,19 +7,17 @@ import { debug } from "../../debug";
 import {
   CommonBeliefModel,
   CommonBeliefs,
-  isRecentlyAttacked,
   OwnUnit,
-  recentAttackTarget,
-  VisibleEnemy,
 } from "../../beliefs/common.beliefs";
+import { isRecentlyAttacked } from "../../beliefs/common.assessments";
+import { WorkerSafetyBeliefModel } from "./worker-safety.beliefs";
 import {
   isRecoveringFromAttack,
-  WorkerSafetyBeliefModel,
-} from "./worker-safety.beliefs";
+  nearbyThreats,
+  threatCenter,
+} from "./worker-safety.assessments";
 
 const FLEE_ROUND_DISTANCE = 300;
-// Not tuned in-game.
-const THREAT_RADIUS = 1000;
 const FLEE_DESTINATION_REACHED_DISTANCE = 32;
 const FLEE_ANGLE_STEP = Math.PI / 6;
 // Alternating to either side of straight away, ending straight back.
@@ -170,15 +168,9 @@ function startFleeRound(
   worker: OwnUnit,
   beliefs: Readonly<CommonBeliefs>,
 ): FleeRound | undefined {
-  const nearby = nearbyThreats(worker.position, beliefs);
-  const attackers = beliefs.visibleEnemies.filter(
-    (enemy) => recentAttackTarget(beliefs, enemy.unit) === worker.unit,
-  );
-  const reference = nearby.length > 0 ? nearby : attackers;
-  const awayAngle =
-    reference.length > 0
-      ? angleAwayFrom(averagePosition(reference), worker.position)
-      : undefined;
+  const nearby = nearbyThreats(beliefs, worker.position);
+  const threat = threatCenter(beliefs, worker);
+  const awayAngle = threat && angleAwayFrom(threat, worker.position);
   const destination = fleeDestination(worker.position, awayAngle);
 
   if (
@@ -238,33 +230,6 @@ function isWalkable(point: Point): boolean {
     point.y,
     W3TerrainApi.PATHING_TYPE_WALKABILITY,
   );
-}
-
-// The enemy force fighting near the worker: combat units and the Ancients
-// that walk into the fight.
-function nearbyThreats(
-  position: Point,
-  beliefs: Readonly<CommonBeliefs>,
-): VisibleEnemy[] {
-  return beliefs.visibleEnemies.filter(
-    (enemy) =>
-      (enemy.isUprootedAncient ||
-        (!enemy.isStructure &&
-          !enemy.isWorker &&
-          (enemy.isMelee || enemy.isRanged))) &&
-      new Vector(position, enemy.position).length <= THREAT_RADIUS,
-  );
-}
-
-function averagePosition(enemies: VisibleEnemy[]): Point {
-  const origin = new Point(0, 0);
-  let sum = new Vector(0, 0);
-
-  for (const enemy of enemies) {
-    sum = sum.add(new Vector(origin, enemy.position));
-  }
-
-  return origin.translate(sum.multiply(1 / enemies.length));
 }
 
 // Undefined when standing on the threat, which gives no direction.

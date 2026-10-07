@@ -1,11 +1,8 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { Vector } from "@lib/math";
 import { debug } from "../../../debug";
-import {
-  CommonBeliefs,
-  GoldMine,
-  positionOf,
-} from "../../../beliefs/common.beliefs";
+import { CommonBeliefs, GoldMine } from "../../../beliefs/common.beliefs";
+import { positionOf } from "../../../beliefs/common.assessments";
 import { TowerRushState } from "../tower-rush.state";
 
 // A move order to a gold mine ends at the mine's edge, not its center.

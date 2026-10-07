@@ -2,7 +2,8 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { BeliefContainer } from "@lib/bdi";
 import { debug } from "../../debug";
 import { Point, Vector } from "@lib/math";
-import { CommonBeliefs, positionOf } from "../../beliefs/common.beliefs";
+import { CommonBeliefs } from "../../beliefs/common.beliefs";
+import { closestUnit, positionOf } from "../../beliefs/common.assessments";
 import { TowerRushState } from "./tower-rush.state";
 import {
   isWorkerSafe,
@@ -19,7 +20,7 @@ export function hideBehindClosestTower(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
 ) {
-  const shelter = closestUnit(towers, worker, beliefs);
+  const shelter = closestUnit(beliefs, towers, worker);
 
   if (!shelter) {
     return;
@@ -54,20 +55,6 @@ export function forgetHidingOfUnsafeWorkers(
   );
 }
 
-// Idle, holding, or sent back to harvesting; anything else means the Peasant
-// is busy with an order of its own, such as building or repairing.
-export function isAvailableForwardPeasant(
-  worker: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>,
-): boolean {
-  return (
-    beliefs.peasants.includes(worker) &&
-    (beliefs.idleUnits.includes(worker) ||
-      beliefs.holdingPositionUnits.includes(worker) ||
-      beliefs.harvestingUnits.includes(worker))
-  );
-}
-
 // On the far side of the tower as seen from the enemy main hall.
 function spotBehind(tower: Point, enemyMain: Point): Point {
   const awayFromEnemyMain = new Vector(enemyMain, tower).normalize();
@@ -75,25 +62,4 @@ function spotBehind(tower: Point, enemyMain: Point): Point {
   return tower.translate(
     awayFromEnemyMain.multiply(HIDING_DISTANCE_BEHIND_TOWER),
   );
-}
-
-export function closestUnit(
-  units: readonly W3UnitApi.unit[],
-  to: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>,
-): W3UnitApi.unit | undefined {
-  const origin = positionOf(beliefs, to);
-  let closest: W3UnitApi.unit | undefined;
-  let closestDistance = Infinity;
-
-  for (const unit of units) {
-    const distance = new Vector(origin, positionOf(beliefs, unit)).length;
-
-    if (distance < closestDistance) {
-      closest = unit;
-      closestDistance = distance;
-    }
-  }
-
-  return closest;
 }

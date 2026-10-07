@@ -4,15 +4,15 @@ import { debug } from "../../debug";
 import {
   CommonBeliefModel,
   CommonBeliefs,
-  lifeFractionOf,
-  ownUnit,
 } from "../../beliefs/common.beliefs";
-import { TowerRushState } from "./tower-rush.state";
 import {
-  forgetSentToSafety,
-  hideBehindClosestTower,
-  isAvailableForwardPeasant,
-} from "./forward-workers";
+  lifeFractionOf,
+  mostDamagedUnit,
+  ownUnit,
+} from "../../beliefs/common.assessments";
+import { TowerRushState } from "./tower-rush.state";
+import { forgetSentToSafety, hideBehindClosestTower } from "./forward-workers";
+import { isAvailableForwardPeasant } from "./tower-rush.assessments";
 import {
   WorkerSafety,
   WorkerSafetyStatus,
@@ -88,7 +88,7 @@ export class TowerMaintenanceController
           orderRepair(worker, repairTarget, beliefs, this.rush);
         }
       } else if (
-        isAvailableForwardPeasant(worker, beliefs) &&
+        isAvailableForwardPeasant(beliefs, worker) &&
         !this.rush.forwardWorkersSentToSafety.includes(worker)
       ) {
         hideBehindClosestTower(worker, towers, enemyMain, beliefs, this.rush);
@@ -109,12 +109,12 @@ function chooseRepairTarget(
     return current;
   }
 
-  const mostDamaged = mostDamagedTower(
+  const mostDamaged = mostDamagedUnit(
+    beliefs,
     towers.filter(
       (tower) =>
         tower !== current && lifeFraction(tower) < REPAIR_START_LIFE_FRACTION,
     ),
-    beliefs,
   );
 
   if (mostDamaged) {
@@ -122,24 +122,6 @@ function chooseRepairTarget(
   }
 
   return currentStanding && lifeFraction(current) < 1 ? current : undefined;
-}
-
-function mostDamagedTower(
-  towers: readonly W3UnitApi.unit[],
-  beliefs: Readonly<CommonBeliefs>,
-): W3UnitApi.unit | undefined {
-  let mostDamaged: W3UnitApi.unit | undefined;
-
-  for (const tower of towers) {
-    if (
-      !mostDamaged ||
-      lifeFractionOf(beliefs, tower) < lifeFractionOf(beliefs, mostDamaged)
-    ) {
-      mostDamaged = tower;
-    }
-  }
-
-  return mostDamaged;
 }
 
 function orderRepair(

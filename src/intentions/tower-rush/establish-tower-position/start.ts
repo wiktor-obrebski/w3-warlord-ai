@@ -2,7 +2,8 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, Vector } from "@lib/math";
-import { CommonBeliefs, positionOf } from "../../../beliefs/common.beliefs";
+import { CommonBeliefs } from "../../../beliefs/common.beliefs";
+import { positionOf } from "../../../beliefs/common.assessments";
 import { TowerRushState } from "../tower-rush.state";
 import { trainPeasant } from "../tower-rush-economy.ctrl";
 

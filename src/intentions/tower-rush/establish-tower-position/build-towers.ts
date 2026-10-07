@@ -3,20 +3,21 @@ import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, Vector } from "@lib/math";
-import {
-  CommonBeliefs,
-  lifeFractionOf,
-  positionOf,
-} from "../../../beliefs/common.beliefs";
-import { TowerRushState } from "../tower-rush.state";
+import { CommonBeliefs } from "../../../beliefs/common.beliefs";
 import {
   closestUnit,
-  forgetSentToSafety,
-  hideBehindClosestTower,
+  constructionProgress,
+  positionOf,
+} from "../../../beliefs/common.assessments";
+import { TowerRushState } from "../tower-rush.state";
+import { forgetSentToSafety, hideBehindClosestTower } from "../forward-workers";
+import {
+  allRushTowersBuilt,
   isAvailableForwardPeasant,
-} from "../forward-workers";
+  RUSH_TOWER_COUNT,
+  rushTowersAtLeast,
+} from "../tower-rush.assessments";
 
-const TOWER_COUNT = 3;
 // Center distance at which a target still counts as within reach of the
 // upgraded tower (Guard Tower range is 700). Not verified in-game.
 const TOWER_REACH = 700;
@@ -38,8 +39,6 @@ const MIN_TOWER_CENTER_OFFSET = 160;
 const STARTED_TOWER_MATCH_DISTANCE = 64;
 const ATTEMPTS_NEXT_TO_FIRST_TOWER = 10;
 const MAX_BUILD_PROGRESS_WORTH_HELPING = 0.5;
-// Assumed, not verified in-game.
-const CONSTRUCTION_START_LIFE_FRACTION = 0.1;
 const RESERVE_UPGRADE_GOLD_LIFE_FRACTION = 0.5;
 
 interface TowerSite {
@@ -107,7 +106,7 @@ export function updateBuildTowers(
   );
   const safeWorkers = rush.forwardWorkers.filter((worker) => isSafe(worker));
   const freeWorkers = safeWorkers.filter((worker) =>
-    isAvailableForwardPeasant(worker, beliefs),
+    isAvailableForwardPeasant(beliefs, worker),
   );
 
   // PROBE (temporary): log the tower count whenever it changes, with how far
@@ -124,7 +123,7 @@ export function updateBuildTowers(
   // the beginning. An ordered tower can still fail when its builder arrives,
   // so free Peasants only help or hide once every tower has started; until
   // then they stay free to retry a failed build.
-  if (towerPositions.length + sitesAwaitingTower.length < TOWER_COUNT) {
+  if (towerPositions.length + sitesAwaitingTower.length < RUSH_TOWER_COUNT) {
     const builder =
       freeWorkers[0] ?? busyNonBuilder(safeWorkers, beliefs, state);
 
@@ -148,8 +147,8 @@ export function updateBuildTowers(
         state,
       );
     }
-  } else if (towerPositions.length >= TOWER_COUNT) {
-    if (allTowersBuilt(beliefs)) {
+  } else if (towerPositions.length >= RUSH_TOWER_COUNT) {
+    if (allRushTowersBuilt(beliefs)) {
       for (const worker of freeWorkers) {
         if (!rush.forwardWorkersSentToSafety.includes(worker)) {
           hideBehindClosestTower(
@@ -168,7 +167,12 @@ export function updateBuildTowers(
     }
   }
 
-  if (!rush.reservingGoldForUpgrades && towersHalfBuilt(beliefs)) {
+  // From here the towers finish soon enough that the upgrade gold must
+  // already be at hand, or the last upgrade waits for income.
+  if (
+    !rush.reservingGoldForUpgrades &&
+    rushTowersAtLeast(beliefs, RESERVE_UPGRADE_GOLD_LIFE_FRACTION)
+  ) {
     rush.reservingGoldForUpgrades = true;
     debug("Tower rush: reserving gold for the Guard Tower upgrades.");
   }
@@ -200,15 +204,6 @@ function busyNonBuilder(
   return worker;
 }
 
-function allTowersBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
-  return (
-    beliefs.scoutTowers.length >= TOWER_COUNT &&
-    beliefs.scoutTowers.every(
-      (tower) => !beliefs.buildingsUnderConstruction.includes(tower),
-    )
-  );
-}
-
 // A tower without a living builder would never finish, so it is taken over
 // first. Otherwise a second worker only pays off early in construction.
 function helpUnfinishedTower(
@@ -220,19 +215,20 @@ function helpUnfinishedTower(
     beliefs.buildingsUnderConstruction.includes(tower),
   );
   const abandoned = closestUnit(
+    beliefs,
     unfinished.filter((tower) => !hasLivingBuilder(tower, beliefs, state)),
     worker,
-    beliefs,
   );
   const tower =
     abandoned ??
     closestUnit(
+      beliefs,
       unfinished.filter(
         (tower) =>
-          buildProgress(tower, beliefs) < MAX_BUILD_PROGRESS_WORTH_HELPING,
+          constructionProgress(beliefs, tower) <
+          MAX_BUILD_PROGRESS_WORTH_HELPING,
       ),
       worker,
-      beliefs,
     );
 
   if (!tower) {
@@ -243,7 +239,7 @@ function helpUnfinishedTower(
   if (W3UnitApi.IssueTargetOrder(worker, "repair", tower)) {
     state.towerHelpers.push({ helper: worker, tower });
     debug(
-      `Tower rush: forward Peasant ${abandoned ? "takes over" : "helps"} a tower at ${Math.floor(buildProgress(tower, beliefs) * 100)}% progress.`,
+      `Tower rush: forward Peasant ${abandoned ? "takes over" : "helps"} a tower at ${Math.floor(constructionProgress(beliefs, tower) * 100)}% progress.`,
     );
   } else {
     debug("Tower rush: repair order rejected.");
@@ -267,31 +263,6 @@ function hasLivingBuilder(
   );
 }
 
-// Warcraft exposes no construction progress, but a building's life rises
-// linearly from a fraction of its maximum while it is built. A damaged
-// finished tower reads as low progress too.
-function buildProgress(
-  tower: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>,
-): number {
-  return (
-    (lifeFractionOf(beliefs, tower) - CONSTRUCTION_START_LIFE_FRACTION) /
-    (1 - CONSTRUCTION_START_LIFE_FRACTION)
-  );
-}
-
-// From here the towers finish soon enough that the upgrade gold must already
-// be at hand, or the last upgrade waits for income.
-function towersHalfBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
-  return (
-    beliefs.scoutTowers.length >= TOWER_COUNT &&
-    beliefs.scoutTowers.every(
-      (tower) =>
-        lifeFractionOf(beliefs, tower) >= RESERVE_UPGRADE_GOLD_LIFE_FRACTION,
-    )
-  );
-}
-
 // Helpers that are free again have finished or abandoned their help.
 function forgetFinishedTowerHelpers(
   beliefs: Readonly<CommonBeliefs>,
@@ -300,7 +271,7 @@ function forgetFinishedTowerHelpers(
   state.towerHelpers = state.towerHelpers.filter(
     (help) =>
       beliefs.peasants.includes(help.helper) &&
-      !isAvailableForwardPeasant(help.helper, beliefs) &&
+      !isAvailableForwardPeasant(beliefs, help.helper) &&
       beliefs.scoutTowers.includes(help.tower),
   );
 }
@@ -316,7 +287,7 @@ function towerBuildingFinished(
   );
 
   return (
-    (beliefs.scoutTowers.length >= TOWER_COUNT ||
+    (beliefs.scoutTowers.length >= RUSH_TOWER_COUNT ||
       livingForwardPeasants.length === 0) &&
     livingForwardPeasants.every((worker) =>
       rush.forwardWorkersSentToSafety.includes(worker),
@@ -342,7 +313,7 @@ function forgetAbandonedTowerSites(
     const builderBusy =
       builderAlive &&
       (beliefs.scoutTowerBuildOrderUnits.includes(site.builder) ||
-        (started && !isAvailableForwardPeasant(site.builder, beliefs)));
+        (started && !isAvailableForwardPeasant(beliefs, site.builder)));
 
     if (!builderBusy && !started) {
       // PROBE (temporary): gold, lumber, and how far the nearest tower stands.

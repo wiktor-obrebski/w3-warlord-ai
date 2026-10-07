@@ -2,15 +2,13 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import { BeliefContainer, Controller } from "@lib/bdi";
-import { Point, Vector } from "@lib/math";
 import { debug } from "../../debug";
 import {
   CommonBeliefModel,
   CommonBeliefs,
-  HomeDestructable,
-  positionOf,
 } from "../../beliefs/common.beliefs";
 import { HomeResource, TowerRushState } from "./tower-rush.state";
+import { lumberDestructablesByPreference } from "./tower-rush.assessments";
 import { GUARD_TOWER_UPGRADE_GOLD_COST } from "./establish-tower-position/upgrade-towers";
 import {
   isWorkerSafe,
@@ -21,7 +19,6 @@ const PEASANT_GOLD_COST = 75;
 // Warcraft's listed Peasant training time; not verified in-game.
 const PEASANT_TRAINING_SECONDS = 15;
 const QUEUE_NEXT_PEASANT_AT_PROGRESS = 0.9;
-const MILL_TREE_CANDIDATES = 4;
 
 interface WorkerTargets {
   gold: number;
@@ -77,14 +74,6 @@ function forgetDeadWorkers(beliefs: Readonly<CommonBeliefs>, rush: TowerRushStat
   );
   rush.lumberWorkers = rush.lumberWorkers.filter((worker) =>
     beliefs.peasants.includes(worker),
-  );
-}
-
-function completedLumberMill(
-  beliefs: Readonly<CommonBeliefs>,
-): W3UnitApi.unit | undefined {
-  return beliefs.lumberMills.find(
-    (mill) => !beliefs.buildingsUnderConstruction.includes(mill),
   );
 }
 
@@ -314,71 +303,6 @@ function rallyTarget(
   }
 
   return nearest.destructable;
-}
-
-// Near the finished Lumber Mill, where lumber is returned: of the few
-// destructables nearest the mill, the one nearest the Peasant comes first,
-// so the Peasant does not walk past good trees by the mill. Until the mill
-// is finished, nearest home, where the Town Hall takes the lumber, preferring
-// the side of the Hall away from the mill being built. Rallies and harvest
-// orders share this order so a new Peasant ordered to harvest is not turned
-// away from the tree it was rallied to.
-function lumberDestructablesByPreference(
-  beliefs: Readonly<CommonBeliefs>,
-  peasantOrigin: W3UnitApi.unit,
-): readonly HomeDestructable[] {
-  const mill = completedLumberMill(beliefs);
-
-  if (!mill) {
-    return destructablesAwayFromUnfinishedMill(beliefs);
-  }
-
-  const nearestMill = sortByDistanceTo(
-    beliefs.destructablesNearHomeByDistance,
-    positionOf(beliefs, mill),
-  );
-  const candidates = sortByDistanceTo(
-    nearestMill.slice(0, MILL_TREE_CANDIDATES),
-    positionOf(beliefs, peasantOrigin),
-  );
-
-  return [...candidates, ...nearestMill.slice(MILL_TREE_CANDIDATES)];
-}
-
-function sortByDistanceTo(
-  destructables: readonly HomeDestructable[],
-  origin: Point,
-): HomeDestructable[] {
-  return destructables
-    .map((destructable) => ({
-      destructable,
-      distance: new Vector(origin, destructable.position).length,
-    }))
-    .sort((a, b) => a.distance - b.distance)
-    .map((entry) => entry.destructable);
-}
-
-// Nearest home first, with those on the far side of the Hall from the mill
-// ahead of the rest. Before the mill is placed, simply nearest home.
-function destructablesAwayFromUnfinishedMill(
-  beliefs: Readonly<CommonBeliefs>,
-): readonly HomeDestructable[] {
-  const mill = beliefs.lumberMills[0];
-
-  if (!mill) {
-    return beliefs.destructablesNearHomeByDistance;
-  }
-
-  const hall = beliefs.ownStartPosition;
-  const toMill = new Vector(hall, positionOf(beliefs, mill));
-  const isAwayFromMill = (destructable: HomeDestructable) =>
-    new Vector(hall, destructable.position).dot(toMill) < 0;
-  const nearHome = beliefs.destructablesNearHomeByDistance;
-
-  return [
-    ...nearHome.filter((destructable) => isAwayFromMill(destructable)),
-    ...nearHome.filter((destructable) => !isAwayFromMill(destructable)),
-  ];
 }
 
 function isAssignedWorker(peasant: W3UnitApi.unit, rush: TowerRushState): boolean {

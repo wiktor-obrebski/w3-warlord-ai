@@ -198,53 +198,6 @@ function reviseRecentAttacks(
   return attacks;
 }
 
-/** Whether any attacker recently started an attack on the bot's unit. */
-export function isRecentlyAttacked(
-  beliefs: Readonly<CommonBeliefs>,
-  target: W3UnitApi.unit,
-): boolean {
-  return beliefs.recentAttacks.some((attack) => attack.target === target);
-}
-
-/** The bot's unit the attacker recently started an attack on, if any. */
-export function recentAttackTarget(
-  beliefs: Readonly<CommonBeliefs>,
-  attacker: W3UnitApi.unit,
-): W3UnitApi.unit | undefined {
-  return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
-    ?.target;
-}
-
-/** Throws for a unit not believed to be a living unit of the bot. */
-export function ownUnit(
-  beliefs: Readonly<CommonBeliefs>,
-  unit: W3UnitApi.unit,
-): OwnUnit {
-  const believed = beliefs.ownUnits.get(unit);
-
-  if (!believed) {
-    throw new Error("Beliefs: not a living unit of the bot.");
-  }
-
-  return believed;
-}
-
-export function positionOf(
-  beliefs: Readonly<CommonBeliefs>,
-  unit: W3UnitApi.unit,
-): Point {
-  return ownUnit(beliefs, unit).position;
-}
-
-export function lifeFractionOf(
-  beliefs: Readonly<CommonBeliefs>,
-  unit: W3UnitApi.unit,
-): number {
-  const { life, maxLife } = ownUnit(beliefs, unit);
-
-  return life / maxLife;
-}
-
 function observeWorld(
   bot: W3PlayerApi.player,
   clock: GameClock,

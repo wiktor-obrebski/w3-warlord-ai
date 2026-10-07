@@ -1,9 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { AnyBeliefModel, BeliefDependencies, BeliefModel } from "@lib/bdi";
-import {
-  CommonBeliefs,
-  isRecentlyAttacked,
-} from "../../beliefs/common.beliefs";
+import { CommonBeliefs } from "../../beliefs/common.beliefs";
+import { isRecentlyAttacked } from "../../beliefs/common.assessments";
 
 // A worker unattacked for this long is safe again.
 const SAFE_AFTER_ATTACK_SECONDS = 2;
@@ -69,12 +67,4 @@ export class WorkerSafetyBeliefModel
 
     return previous ?? { lastAttackedAt: NO_ATTACKS };
   }
-}
-
-/** Whether the worker was attacked too recently to be safe. */
-export function isRecoveringFromAttack(
-  beliefs: Readonly<WorkerSafetyBeliefs>,
-  worker: W3UnitApi.unit,
-): boolean {
-  return beliefs.lastAttackedAt.has(worker);
 }

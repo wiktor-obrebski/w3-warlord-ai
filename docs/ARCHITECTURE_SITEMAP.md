@@ -145,12 +145,14 @@ revise common Beliefs → Desires → Deliberation → active Intentions
 
 Beliefs are split into belief models: the common model (`src/beliefs/common.beliefs.ts`) holds broadly useful game knowledge, and features define scoped models next to the components that declare them (`*.beliefs.ts`). Belief state belongs to model instances and is owned by the runtime; Intentions, Plans, and Controllers keep only execution state.
 
+Assessments interpret Beliefs into decision-oriented information, such as which enemies a tower should fire at. They are pure functions in `*.assessments.ts`: no state, no Warcraft API access, read-only Beliefs. Broadly useful ones live in `src/beliefs/common.assessments.ts`, feature-specific ones next to their feature. `*.beliefs.ts` keeps only Belief types and revision; Plans and Controllers call assessments instead of interpreting Beliefs themselves.
+
 ```text
 src/
-├─ beliefs/       common belief model, observing Warcraft state for decisions
+├─ beliefs/       common belief model, observing Warcraft state for decisions, and common assessments
 ├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
 ├─ deliberation/  creates, retains, and drops Intentions
-└─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts, and scoped *.beliefs.ts
+└─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
 ```
 
 Not yet implemented: canonical unit ids, inferred beliefs, Command Arbitration, Unit Assignment, and Intention Scheduling. Plans and Controllers still issue Warcraft orders directly.

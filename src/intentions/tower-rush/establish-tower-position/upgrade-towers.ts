@@ -2,7 +2,11 @@ import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, Vector } from "@lib/math";
-import { CommonBeliefs, positionOf } from "../../../beliefs/common.beliefs";
+import { CommonBeliefs } from "../../../beliefs/common.beliefs";
+import {
+  completedLumberMill,
+  positionOf,
+} from "../../../beliefs/common.assessments";
 
 export const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
 const GUARD_TOWER_UPGRADE_LUMBER_COST = 50;
@@ -43,7 +47,7 @@ export function updateUpgradeTowers(
     if (
       tower.unit &&
       tower.state === TowerState.ScoutTower &&
-      hasCompletedLumberMill(beliefs) &&
+      completedLumberMill(beliefs) !== undefined &&
       canAffordGuardTower(budget)
     ) {
       orderGuardTower(tower.unit, budget);
@@ -83,12 +87,6 @@ function towerState(
   return beliefs.guardTowers.includes(tower)
     ? TowerState.GuardTower
     : TowerState.ScoutTower;
-}
-
-function hasCompletedLumberMill(beliefs: Readonly<CommonBeliefs>): boolean {
-  return beliefs.lumberMills.some(
-    (mill) => !beliefs.buildingsUnderConstruction.includes(mill),
-  );
 }
 
 function canAffordGuardTower(budget: { gold: number; lumber: number }) {
