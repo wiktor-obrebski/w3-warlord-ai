@@ -1,4 +1,5 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
+import { BeliefContainer } from "@lib/bdi";
 import { debug } from "../../debug";
 import { Point, Vector } from "@lib/math";
 import { CommonBeliefs, positionOf } from "../../beliefs/common.beliefs";
@@ -44,12 +45,12 @@ export function forgetSentToSafety(worker: W3UnitApi.unit, rush: TowerRushState)
 // again. A flee round can start and end between two tower rush updates, so
 // this does not wait to see the Peasant fleeing.
 export function forgetHidingOfUnsafeWorkers(
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<BeliefContainer>,
   rush: TowerRushState,
   workerSafety: WorkerSafety,
 ) {
   rush.forwardWorkersSentToSafety = rush.forwardWorkersSentToSafety.filter(
-    (worker) => isWorkerSafe(workerSafety, worker, beliefs.time),
+    (worker) => isWorkerSafe(workerSafety, worker, beliefs),
   );
 }
 

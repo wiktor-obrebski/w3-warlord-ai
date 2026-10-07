@@ -27,7 +27,10 @@ export class MaintainWorkerSafetyIntention
     this.workerSafety.update(beliefs);
   }
 
-  public statusOf(worker: W3UnitApi.unit, now: number): WorkerSafetyStatus {
-    return this.workerSafety.statusOf(worker, now);
+  public statusOf(
+    worker: W3UnitApi.unit,
+    beliefs: Readonly<BeliefContainer>,
+  ): WorkerSafetyStatus {
+    return this.workerSafety.statusOf(worker, beliefs);
   }
 }

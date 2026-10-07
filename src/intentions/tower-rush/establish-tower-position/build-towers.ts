@@ -15,10 +15,6 @@ import {
   hideBehindClosestTower,
   isAvailableForwardPeasant,
 } from "../forward-workers";
-import {
-  isWorkerSafe,
-  WorkerSafety,
-} from "../../maintain-worker-safety/worker-safety.ctrl";
 
 const TOWER_COUNT = 3;
 // Center distance at which a target still counts as within reach of the
@@ -88,7 +84,7 @@ export function updateBuildTowers(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: BuildTowersState,
-  workerSafety: WorkerSafety,
+  isSafe: (worker: W3UnitApi.unit) => boolean,
 ): Point[] | undefined {
   const enemyMain = beliefs.enemyStartPosition;
 
@@ -109,9 +105,7 @@ export function updateBuildTowers(
   const sitesAwaitingTower = state.pendingTowerSites.filter(
     (site) => !hasStartedTower(site, towerPositions),
   );
-  const safeWorkers = rush.forwardWorkers.filter((worker) =>
-    isWorkerSafe(workerSafety, worker, beliefs.time),
-  );
+  const safeWorkers = rush.forwardWorkers.filter((worker) => isSafe(worker));
   const freeWorkers = safeWorkers.filter((worker) =>
     isAvailableForwardPeasant(worker, beliefs),
   );

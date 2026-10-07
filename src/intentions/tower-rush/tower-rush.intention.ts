@@ -84,7 +84,7 @@ export class TowerRushIntention implements Intention<BeliefContainer> {
       return;
     }
 
-    forgetHidingOfUnsafeWorkers(common, this.rush, this.workerSafety);
+    forgetHidingOfUnsafeWorkers(beliefs, this.rush, this.workerSafety);
 
     for (const child of this.activeChildren()) {
       child.update(beliefs);

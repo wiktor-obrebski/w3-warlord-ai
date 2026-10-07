@@ -77,7 +77,7 @@ export class TowerMaintenanceController
         continue;
       }
 
-      const safety = this.workerSafety.statusOf(worker, beliefs.time);
+      const safety = this.workerSafety.statusOf(worker, container);
 
       if (safety === WorkerSafetyStatus.Fleeing) {
         continue;

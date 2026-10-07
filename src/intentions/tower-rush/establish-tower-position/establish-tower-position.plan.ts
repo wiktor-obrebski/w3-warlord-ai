@@ -2,7 +2,10 @@ import { BeliefContainer, Plan, PlanStatus } from "@lib/bdi";
 import { Point } from "@lib/math";
 import { debug } from "../../../debug";
 import { CommonBeliefModel } from "../../../beliefs/common.beliefs";
-import { WorkerSafety } from "../../maintain-worker-safety/worker-safety.ctrl";
+import {
+  isWorkerSafe,
+  WorkerSafety,
+} from "../../maintain-worker-safety/worker-safety.ctrl";
 import { TowerRushState } from "../tower-rush.state";
 import { updateStart } from "./start";
 import { createMoveForwardState, updateMoveForward } from "./move-forward";
@@ -75,7 +78,7 @@ export class EstablishTowerPositionPlan implements Plan<BeliefContainer> {
           beliefs,
           this.rush,
           this.buildTowers,
-          this.workerSafety,
+          (worker) => isWorkerSafe(this.workerSafety, worker, container),
         );
 
         if (towerPositions) {

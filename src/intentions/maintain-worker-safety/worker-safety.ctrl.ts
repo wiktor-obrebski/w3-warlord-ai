@@ -1,7 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
-import { BeliefContainer, Controller } from "@lib/bdi";
+import { AnyBeliefModel, BeliefContainer, Controller } from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
 import { debug } from "../../debug";
 import {
@@ -12,9 +12,12 @@ import {
   recentAttackTarget,
   VisibleEnemy,
 } from "../../beliefs/common.beliefs";
+import {
+  isRecoveringFromAttack,
+  WorkerSafetyBeliefModel,
+} from "./worker-safety.beliefs";
 
 const FLEE_ROUND_DISTANCE = 300;
-const SAFE_AFTER_ATTACK_SECONDS = 2;
 // Not tuned in-game.
 const THREAT_RADIUS = 1000;
 const FLEE_DESTINATION_REACHED_DISTANCE = 32;
@@ -36,15 +39,18 @@ export enum WorkerSafetyStatus {
  * not order it.
  */
 export interface WorkerSafety {
-  statusOf(worker: W3UnitApi.unit, now: number): WorkerSafetyStatus;
+  statusOf(
+    worker: W3UnitApi.unit,
+    beliefs: Readonly<BeliefContainer>,
+  ): WorkerSafetyStatus;
 }
 
 export function isWorkerSafe(
   safety: WorkerSafety,
   worker: W3UnitApi.unit,
-  now: number,
+  beliefs: Readonly<BeliefContainer>,
 ): boolean {
-  return safety.statusOf(worker, now) === WorkerSafetyStatus.Safe;
+  return safety.statusOf(worker, beliefs) === WorkerSafetyStatus.Safe;
 }
 
 interface FleeRound {
@@ -52,22 +58,19 @@ interface FleeRound {
   destination: Point;
 }
 
-interface WorkerSafetyRecord {
-  worker: W3UnitApi.unit;
-  lastAttackedAt: number;
-  fleeRound?: FleeRound;
-}
-
 /** Attacked workers run away from the nearby enemy force. */
 export class WorkerSafetyController
   implements Controller<BeliefContainer>, WorkerSafety
 {
+  public readonly beliefModels: readonly AnyBeliefModel[];
   private readonly common: CommonBeliefModel;
-  // Workers recently attacked; any worker without a record is safe.
-  private records: WorkerSafetyRecord[] = [];
+  private readonly safetyBeliefs: WorkerSafetyBeliefModel;
+  private readonly fleeRounds = new Map<W3UnitApi.unit, FleeRound>();
 
   public constructor(common: CommonBeliefModel) {
     this.common = common;
+    this.safetyBeliefs = new WorkerSafetyBeliefModel(common);
+    this.beliefModels = [this.safetyBeliefs];
   }
 
   public update(container: Readonly<BeliefContainer>) {
@@ -77,17 +80,20 @@ export class WorkerSafetyController
       this.protectWorker(worker, beliefs);
     }
 
-    this.records = this.records.filter(
-      (record) =>
-        beliefs.workers.some((worker) => worker.unit === record.worker) &&
-        statusOf(record, beliefs.time) !== WorkerSafetyStatus.Safe,
-    );
+    this.forgetFleeRoundsOfLostWorkers(beliefs);
   }
 
-  public statusOf(worker: W3UnitApi.unit, now: number): WorkerSafetyStatus {
-    const record = this.records.find((entry) => entry.worker === worker);
+  public statusOf(
+    worker: W3UnitApi.unit,
+    beliefs: Readonly<BeliefContainer>,
+  ): WorkerSafetyStatus {
+    if (this.fleeRounds.has(worker)) {
+      return WorkerSafetyStatus.Fleeing;
+    }
 
-    return record ? statusOf(record, now) : WorkerSafetyStatus.Safe;
+    return isRecoveringFromAttack(beliefs.get(this.safetyBeliefs), worker)
+      ? WorkerSafetyStatus.Recovering
+      : WorkerSafetyStatus.Safe;
   }
 
   // Each flee round runs to a destination kept until the round ends, so the
@@ -95,28 +101,17 @@ export class WorkerSafetyController
   // no longer attacked stops halfway, so it does not run further from its
   // work than needed.
   private protectWorker(worker: OwnUnit, beliefs: Readonly<CommonBeliefs>) {
-    let record = this.records.find((entry) => entry.worker === worker.unit);
     const isAttacked = isRecentlyAttacked(beliefs, worker.unit);
+    const round = this.fleeRounds.get(worker.unit);
 
-    if (isAttacked && record) {
-      record.lastAttackedAt = beliefs.time;
-    } else if (isAttacked) {
-      record = { worker: worker.unit, lastAttackedAt: beliefs.time };
-      this.records.push(record);
-    }
-
-    if (!record) {
-      return;
-    }
-
-    if (record.fleeRound) {
-      if (!isAttacked && fledHalfway(worker, record.fleeRound)) {
+    if (round) {
+      if (!isAttacked && fledHalfway(worker, round)) {
         stopFleeing(worker);
-      } else if (!fleeRoundFinished(worker, record.fleeRound)) {
+      } else if (!fleeRoundFinished(worker, round)) {
         return;
       }
 
-      record.fleeRound = undefined;
+      this.fleeRounds.delete(worker.unit);
 
       if (!isAttacked) {
         debug("Worker safety: worker is no longer attacked.");
@@ -124,19 +119,27 @@ export class WorkerSafetyController
     }
 
     if (isAttacked) {
-      startFleeRound(worker, beliefs, record);
+      const nextRound = startFleeRound(worker, beliefs);
+
+      if (nextRound) {
+        this.fleeRounds.set(worker.unit, nextRound);
+      }
     }
   }
-}
 
-function statusOf(record: WorkerSafetyRecord, now: number): WorkerSafetyStatus {
-  if (record.fleeRound) {
-    return WorkerSafetyStatus.Fleeing;
+  private forgetFleeRoundsOfLostWorkers(beliefs: Readonly<CommonBeliefs>) {
+    const lost: W3UnitApi.unit[] = [];
+
+    for (const worker of this.fleeRounds.keys()) {
+      if (!beliefs.workers.some((alive) => alive.unit === worker)) {
+        lost.push(worker);
+      }
+    }
+
+    for (const worker of lost) {
+      this.fleeRounds.delete(worker);
+    }
   }
-
-  return now - record.lastAttackedAt >= SAFE_AFTER_ATTACK_SECONDS
-    ? WorkerSafetyStatus.Safe
-    : WorkerSafetyStatus.Recovering;
 }
 
 // An unreachable destination ends the move short of it, leaving the worker
@@ -166,8 +169,7 @@ function stopFleeing(worker: OwnUnit) {
 function startFleeRound(
   worker: OwnUnit,
   beliefs: Readonly<CommonBeliefs>,
-  record: WorkerSafetyRecord,
-) {
+): FleeRound | undefined {
   const nearby = nearbyThreats(worker.position, beliefs);
   const attackers = beliefs.visibleEnemies.filter(
     (enemy) => recentAttackTarget(beliefs, enemy.unit) === worker.unit,
@@ -180,15 +182,17 @@ function startFleeRound(
   const destination = fleeDestination(worker.position, awayAngle);
 
   if (
-    W3UnitApi.IssuePointOrder(worker.unit, "move", destination.x, destination.y)
+    !W3UnitApi.IssuePointOrder(worker.unit, "move", destination.x, destination.y)
   ) {
-    record.fleeRound = { origin: worker.position, destination };
-    debug(
-      `Worker safety: attacked worker flees from ${nearby.length} nearby enemies.`,
-    );
-  } else {
     debug("Worker safety: flee order rejected.");
+    return undefined;
   }
+
+  debug(
+    `Worker safety: attacked worker flees from ${nearby.length} nearby enemies.`,
+  );
+
+  return { origin: worker.position, destination };
 }
 
 // A worker standing still is easily killed, so it always runs somewhere.

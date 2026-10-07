@@ -61,10 +61,12 @@ export class TowerRushEconomyController
 
   public update(container: Readonly<BeliefContainer>) {
     const beliefs = container.get(this.common);
+    const isSafe = (worker: W3UnitApi.unit) =>
+      isWorkerSafe(this.workerSafety, worker, container);
 
     forgetDeadWorkers(beliefs, this.rush);
-    assignNewHomeWorkers(beliefs, this.rush, this.workerSafety);
-    returnIdleWorkersToTheirResource(beliefs, this.rush, this.workerSafety);
+    assignNewHomeWorkers(beliefs, this.rush, isSafe);
+    returnIdleWorkersToTheirResource(beliefs, this.rush, isSafe);
     maintainPeasantProduction(beliefs, this.rush);
   }
 }
@@ -92,7 +94,7 @@ function completedLumberMill(
 function assignNewHomeWorkers(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
-  workerSafety: WorkerSafety,
+  isSafe: (worker: W3UnitApi.unit) => boolean,
 ) {
   for (const peasant of beliefs.peasants) {
     if (isAssignedWorker(peasant, rush)) {
@@ -114,7 +116,7 @@ function assignNewHomeWorkers(
 
     if (
       !beliefs.harvestingUnits.includes(peasant) &&
-      isWorkerSafe(workerSafety, peasant, beliefs.time) &&
+      isSafe(peasant) &&
       !orderHarvest(peasant, resource, beliefs)
     ) {
       debug(`Tower rush: ${HomeResource[resource]} harvest order rejected.`);
@@ -178,11 +180,10 @@ function describeWorkers(rush: TowerRushState): string {
 function returnIdleWorkersToTheirResource(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
-  workerSafety: WorkerSafety,
+  isSafe: (worker: W3UnitApi.unit) => boolean,
 ) {
   const isReturning = (worker: W3UnitApi.unit) =>
-    beliefs.idleUnits.includes(worker) &&
-    isWorkerSafe(workerSafety, worker, beliefs.time);
+    beliefs.idleUnits.includes(worker) && isSafe(worker);
 
   for (const worker of rush.goldWorkers) {
     if (isReturning(worker)) {
