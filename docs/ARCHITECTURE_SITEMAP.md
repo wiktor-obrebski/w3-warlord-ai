@@ -2,17 +2,97 @@
 
 **WC3 Warlord AI** is a Warcraft III melee AI designed to behave more like a competent player than a traditional scripted bot. This document is a short reference to the project's main concepts and architecture.
 
-## Concept map
+The architecture has two sides:
+
+* **[Technical architecture](#technical-architecture)** — how the bot runs inside Warcraft: language and packaging, the boundaries to the game, the runtime loop, timing, diagnostics, and testing.
+* **[Mind architecture](#mind-architecture)** — how the bot thinks: what it knows, what it wants, what it commits to, and how it acts on those commitments.
+
+---
+
+## Technical architecture
+
+### Concept map
 
 ```text
-WC3 Warlord AI
+Technical architecture
 ├─ Runtime / integration
 │  ├─ TypeScript
 │  ├─ AI-compatible Lua
+│  ├─ Runtime wrapper
 │  ├─ Compatibility layer
 │  ├─ Observe boundary
 │  └─ Execute boundary
 │
+├─ Runtime
+│  ├─ bot loop
+│  └─ belief runtime
+│
+├─ Timing
+│  ├─ Central Timing Scheduler
+│  ├─ tactical frequency
+│  ├─ intention-monitoring frequency
+│  ├─ belief-update frequency
+│  ├─ strategic frequency
+│  └─ urgent event triggers
+│
+├─ Diagnostics
+│  ├─ decision trace
+│  ├─ debug mode
+│  └─ diagnostic artifact
+│
+└─ Testing
+   ├─ Unit tests
+   ├─ Integration tests
+   ├─ End-to-end tests
+   └─ logical reset
+```
+
+### Concepts
+
+* **TypeScript** — Primary implementation language for domain and architecture code.
+* **AI-compatible Lua** — Generated deployment artifact executed by Warcraft III's AI runtime.
+* **Runtime wrapper** — Maintained Lua template that embeds the bundle in a map script, sandboxes one bundle instance per bot, and provides globals such as `guard`.
+* **Compatibility layer** — Small audited bridge exposing only to TypeScript only APIs known to work safely in AI scripts.
+* **Observe boundary** — Warcraft-facing boundary through which legitimate game information enters the reasoning system.
+* **Execute boundary** — Warcraft-facing boundary through which selected actions affect the game.
+* **Runtime** — Runs and manages the bot loop for one player, orchestrating the mind each tick; owns all belief state and the active Intentions. Debug mode is not part of it.
+* **Belief runtime** — Finds the belief models the active execution graph requires, revises them in dependency order, and produces the immutable belief snapshot for the tick.
+* **Central Timing Scheduler** — Invokes reasoning and control systems at their required frequencies; it does not decide which intentions should progress.
+* **Tactical frequency** — Fast update cadence for controllers and immediate combat behavior.
+* **Intention-monitoring frequency** — Cadence for checking active plans, progress, and lifecycle conditions.
+* **Belief-update frequency** — Cadence for derived reasoning that does not require tactical-rate execution.
+* **Strategic frequency** — Slower cadence for broad goal generation and deliberation.
+* **Urgent event trigger** — Event that requests relevant reasoning before its normal scheduled execution.
+* **Decision trace** — Debug reconstruction of important reasoning from observation through beliefs and intentions to actions.
+* **Debug mode** — Explicitly enabled diagnostic behavior that should impose negligible cost when disabled.
+* **Diagnostic artifact** — User-shareable output containing enough structured information to analyze a problematic game.
+* **Unit test** — Isolated test of one module, rule, transition, or small component.
+* **Integration test** — Warcraft-free test feeding mocked Perception output through the normal reasoning architecture.
+* **End-to-end test** — Controlled scenario executed against the real Warcraft III engine.
+* **Logical reset** — Ability to return bot state to a clean condition so multiple tests can run in one Warcraft session.
+
+### Current implementation
+
+`src/main.ts` installs the bot player, starts debug mode, and starts the bot's runtime (`startRuntime` in `src/runtime.ts`). The runtime is a plain function whose state lives in its closure. Each 100 ms tick runs:
+
+```text
+revise common Beliefs → Deliberation → active Intentions
+→ revise the scoped Beliefs the active Intentions, Plans, and Controllers declare
+→ immutable BeliefContainer → update() → Plans & Controllers
+```
+
+Generic BDI contracts and the belief runtime (`requiredBeliefModels`, `reviseBeliefs`, `BeliefContainer`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
+
+Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, diagnostic artifacts, and automated tests.
+
+---
+
+## Mind architecture
+
+### Concept map
+
+```text
+Mind architecture
 ├─ Information model
 │  ├─ Fair-information boundary
 │  ├─ Perception
@@ -24,6 +104,8 @@ WC3 Warlord AI
 │  │  └─ inferred
 │  ├─ provenance
 │  └─ uncertainty
+│
+├─ Assessment
 │
 ├─ Deliberation
 │  ├─ Desire
@@ -50,40 +132,16 @@ WC3 Warlord AI
 │  ├─ Command Arbitration
 │  └─ Action
 │
-├─ Navigation
-│  ├─ Static map graph
-│  ├─ Strategic route
-│  ├─ Dynamic route cost
-│  ├─ Route replanning
-│  └─ Warcraft local pathfinding
-│
-├─ Timing
-│  ├─ Central Timing Scheduler
-│  ├─ tactical frequency
-│  ├─ intention-monitoring frequency
-│  ├─ belief-update frequency
-│  ├─ strategic frequency
-│  └─ urgent event triggers
-│
-├─ Diagnostics
-│  ├─ decision trace
-│  ├─ debug mode
-│  └─ diagnostic artifact
-│
-└─ Testing
-   ├─ Unit tests
-   ├─ Integration tests
-   ├─ End-to-end tests
-   └─ logical reset
+└─ Navigation
+   ├─ Static map graph
+   ├─ Strategic route
+   ├─ Dynamic route cost
+   ├─ Route replanning
+   └─ Warcraft local pathfinding
 ```
 
-## Concepts
+### Concepts
 
-* **TypeScript** — Primary implementation language for domain and architecture code.
-* **AI-compatible Lua** — Generated deployment artifact executed by Warcraft III's AI runtime.
-* **Compatibility layer** — Small audited bridge exposing only to TypeScript only APIs known to work safely in AI scripts.
-* **Observe boundary** — Warcraft-facing boundary through which legitimate game information enters the reasoning system.
-* **Execute boundary** — Warcraft-facing boundary through which selected actions affect the game.
 * **Fair-information boundary** — Prevents reasoning code from using hidden enemy state available only through scripting APIs.
 * **Perception** — Reads raw Warcraft state and produces legitimate current observations without memory or inference.
 * **Observation** — Project-defined representation of information legitimately available at the current moment.
@@ -94,6 +152,7 @@ WC3 Warlord AI
 * **Inferred belief** — Conclusion derived from available evidence rather than direct observation.
 * **Provenance** — Information about where a belief came from and when it was last confirmed.
 * **Uncertainty** — Explicit representation that inferred or stale information may be wrong.
+* **Assessment** — Pure interpretation of Beliefs into decision-oriented information, such as which enemies a tower should fire at; keeps no state and does not access Warcraft.
 * **Desire** — High-level state or principle the bot wants to achieve or maintain, such as applying pressure; carries no behavior.
 * **Deliberation** — Decides from Beliefs, Desires, and active Intentions which Intentions exist; owns the Intention lifecycle.
 * **Candidate Goal** — Desirable possible objective not yet accepted as a commitment.
@@ -119,33 +178,18 @@ WC3 Warlord AI
 * **Dynamic route cost** — Runtime modification of route desirability using beliefs such as danger, enemy presence, or blockage.
 * **Route replanning** — Selection of another strategic route when current conditions make the existing one unsuitable.
 * **Warcraft local pathfinding** — Engine-provided detailed movement between strategic waypoints.
-* **Central Timing Scheduler** — Invokes reasoning and control systems at their required frequencies; it does not decide which intentions should progress.
-* **Tactical frequency** — Fast update cadence for controllers and immediate combat behavior.
-* **Intention-monitoring frequency** — Cadence for checking active plans, progress, and lifecycle conditions.
-* **Belief-update frequency** — Cadence for derived reasoning that does not require tactical-rate execution.
-* **Strategic frequency** — Slower cadence for broad goal generation and deliberation.
-* **Urgent event trigger** — Event that requests relevant reasoning before its normal scheduled execution.
-* **Decision trace** — Debug reconstruction of important reasoning from observation through beliefs and intentions to actions.
-* **Debug mode** — Explicitly enabled diagnostic behavior that should impose negligible cost when disabled.
-* **Diagnostic artifact** — User-shareable output containing enough structured information to analyze a problematic game.
-* **Unit test** — Isolated test of one module, rule, transition, or small component.
-* **Integration test** — Warcraft-free test feeding mocked Perception output through the normal reasoning architecture.
-* **End-to-end test** — Controlled scenario executed against the real Warcraft III engine.
-* **Logical reset** — Ability to return bot state to a clean condition so multiple tests can run in one Warcraft session.
 
-## Current implementation
+### Current implementation
 
-The implemented subset is a first BDI iteration. Generic, domain-independent contracts (`BeliefModel`, `BeliefContainer`, `Desire`, `Deliberation`, `Intention`, `Plan`, `Controller`) and the belief runtime live in [`@lib/bdi`](../lib/bdi/README.md). `src/main.ts` installs the bot player, starts debug mode, and starts the bot's runtime (`startRuntime` in `src/runtime.ts`), which owns the BDI loop and all belief state. Debug mode is not part of the runtime. Each 100 ms runtime tick runs:
+The implemented subset is a first BDI iteration:
 
 ```text
-revise common Beliefs → Desires → Deliberation → active Intentions
-→ revise the scoped Beliefs the active Intentions, Plans, and Controllers declare
-→ immutable BeliefContainer → update() → Plans & Controllers
+Beliefs → Assessments → Desires → Deliberation → Intentions → Plans & Controllers → direct Warcraft orders
 ```
 
 Beliefs are split into belief models: the common model (`src/beliefs/common.beliefs.ts`) holds broadly useful game knowledge, and features define scoped models next to the components that declare them (`*.beliefs.ts`). Belief state belongs to model instances and is owned by the runtime; Intentions, Plans, and Controllers keep only execution state.
 
-Assessments interpret Beliefs into decision-oriented information, such as which enemies a tower should fire at. They are pure functions in `*.assessments.ts`: no state, no Warcraft API access, read-only Beliefs. Broadly useful ones live in `src/beliefs/common.assessments.ts`, feature-specific ones next to their feature. `*.beliefs.ts` keeps only Belief types and revision; Plans and Controllers call assessments instead of interpreting Beliefs themselves.
+Assessments are pure functions in `*.assessments.ts`: no state, no Warcraft API access, read-only Beliefs. Broadly useful ones live in `src/beliefs/common.assessments.ts`, feature-specific ones next to their feature. `*.beliefs.ts` keeps only Belief types and revision; Plans and Controllers call assessments instead of interpreting Beliefs themselves.
 
 ```text
 src/
@@ -155,4 +199,4 @@ src/
 └─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
 ```
 
-Not yet implemented: canonical unit ids, inferred beliefs, Command Arbitration, Unit Assignment, and Intention Scheduling. Plans and Controllers still issue Warcraft orders directly.
+Not yet implemented: canonical unit ids, inferred beliefs, goal evaluation, Command Arbitration, Unit Assignment, Intention Scheduling, and strategic navigation. Plans and Controllers still issue Warcraft orders directly.
