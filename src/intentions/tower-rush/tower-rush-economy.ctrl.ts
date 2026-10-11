@@ -3,7 +3,7 @@ import * as W3HumanApi from "@lib/warcraft3-api/human";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
-import { ActorControl } from "../../actor";
+import { ActorControl, NORMAL_REQUEST } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -54,7 +54,7 @@ export class TowerRushEconomyController
   public update(container: Readonly<BeliefContainer>, control: ActorControl) {
     const beliefs = container.get(this.common);
     const townHall =
-      beliefs.townHall && control.request(beliefs.townHall)
+      beliefs.townHall && control.request(beliefs.townHall, NORMAL_REQUEST)
         ? beliefs.townHall
         : undefined;
 
@@ -104,7 +104,7 @@ function assignNewHomeWorkers(
 
     if (
       !beliefs.harvestingUnits.includes(peasant) &&
-      control.request(peasant) &&
+      control.request(peasant, NORMAL_REQUEST) &&
       !orderHarvest(peasant, resource, beliefs)
     ) {
       debug(`Tower rush: ${HomeResource[resource]} harvest order rejected.`);
@@ -173,7 +173,8 @@ function returnIdleWorkersToTheirResource(
 ) {
   // Requested before checking idleness, so busy workers stay controlled too.
   const isReturning = (worker: W3UnitApi.unit) =>
-    control.request(worker) && beliefs.idleUnits.includes(worker);
+    control.request(worker, NORMAL_REQUEST) &&
+    beliefs.idleUnits.includes(worker);
 
   for (const worker of rush.goldWorkers) {
     if (isReturning(worker)) {

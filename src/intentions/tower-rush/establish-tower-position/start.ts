@@ -1,7 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
-import { ActorControl } from "../../../actor";
+import { ActorControl, NORMAL_REQUEST } from "../../../actor";
 import { Point, Vector } from "@lib/math";
 import { CommonBeliefs } from "../../../beliefs/common.beliefs";
 import { positionOf } from "../../../beliefs/common.assessments";
@@ -52,7 +52,7 @@ export function updateStart(
 
   // Nothing else has had a chance to claim the starting units yet.
   for (const actor of [...beliefs.peasants, townHall]) {
-    if (!control.request(actor)) {
+    if (!control.request(actor, NORMAL_REQUEST)) {
       throw new Error("Tower rush start: a starting unit is already controlled.");
     }
   }

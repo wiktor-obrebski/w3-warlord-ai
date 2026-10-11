@@ -14,24 +14,24 @@ export interface ActorControlProvider<TActor, TRequest> {
    * Claims or renews control of the Actor. Returns whether the source now
    * controls it and so may order it.
    */
-  request(actor: TActor, request?: TRequest): boolean;
+  request(actor: TActor, request: TRequest): boolean;
 }
 
 /**
- * The claim currently held on an Actor by another source.
+ * The claim another source currently holds on an Actor.
  */
 export interface ActorControlClaim<TRequest> {
-  /** The request that granted or last renewed the claim. */
-  readonly request: TRequest | undefined;
+  /** The request that granted the claim or last renewed it. */
+  readonly request: TRequest;
 }
 
 /**
- * Decides whether a request may take control of an Actor that the requesting
- * source does not already control: either uncontrolled (`current` is
- * undefined) or controlled by another source. Renewing one's own claim is
- * always granted and never reaches the policy.
+ * Decides whether a request takes control of an Actor the requesting source
+ * does not hold: one held by another source (`currentClaim`), or one held by
+ * none (`currentClaim` is null). A source renewing its own claim is always
+ * granted and never asks the policy.
  */
 export type ActorControlPolicy<TRequest> = (
-  request: TRequest | undefined,
-  current: ActorControlClaim<TRequest> | undefined,
+  request: TRequest,
+  currentClaim: ActorControlClaim<TRequest> | null,
 ) => boolean;

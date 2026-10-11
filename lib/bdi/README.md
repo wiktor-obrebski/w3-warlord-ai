@@ -174,13 +174,13 @@ An **Actor** is anything in the environment the agent can give orders to; its ty
 ### `ActorControlProvider<TActor, TRequest>`
 
 ```ts
-request(actor, request?: TRequest): boolean
+request(actor, request: TRequest): boolean
 ```
 
 Passed to a Plan or Controller during its update, scoped to it, so requests need not name the source. A source orders an Actor only after a request for it returned `true`:
 
 ```ts
-if (control.request(worker)) {
+if (control.request(worker, NORMAL_REQUEST)) {
   repair(worker, tower);
 }
 ```
@@ -190,10 +190,10 @@ if (control.request(worker)) {
 ### `ActorControlPolicy<TRequest>`
 
 ```ts
-(request: TRequest | undefined, current: ActorControlClaim<TRequest> | undefined) => boolean
+(request: TRequest, currentClaim: ActorControlClaim<TRequest> | null) => boolean
 ```
 
-The agent's rule for whether a request takes an Actor the requester does not already control. `current` is the claim another source holds, with the request that granted or last renewed it, or `undefined` for an uncontrolled Actor. The library only enforces the mechanism around it: one controller per Actor, renewal of one's own claim (always granted, never sent to the policy; the claim keeps the latest request), and leases.
+The agent's rule for whether a request takes an Actor the requester does not already control. `currentClaim` is the claim another source holds, with the request that granted or last renewed it, or `null` for an uncontrolled Actor. The library only enforces the mechanism around it: one controller per Actor, renewal of one's own claim (always granted, never sent to the policy; the claim keeps the latest request), and leases.
 
 ### Leases
 

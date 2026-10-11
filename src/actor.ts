@@ -9,11 +9,14 @@ export type Actor = W3UnitApi.unit;
 
 export interface ActorControlRequest {
   /**
-   * Takes control from a source holding it normally. A preemptive claim is
-   * itself never taken over.
+   * Whether the request takes control from a source holding it normally. A
+   * preemptive claim is itself never taken over.
    */
-  readonly preempt?: boolean;
+  readonly preemptive: boolean;
 }
+
+export const NORMAL_REQUEST: ActorControlRequest = { preemptive: false };
+export const PREEMPTIVE_REQUEST: ActorControlRequest = { preemptive: true };
 
 export type ActorControl = ActorControlProvider<Actor, ActorControlRequest>;
 
@@ -23,7 +26,7 @@ export type ActorControl = ActorControlProvider<Actor, ActorControlRequest>;
  */
 export const actorControlPolicy: ActorControlPolicy<ActorControlRequest> = (
   request,
-  current,
+  currentClaim,
 ) =>
-  current === undefined ||
-  (request?.preempt === true && current.request?.preempt !== true);
+  currentClaim === null ||
+  (request.preemptive && !currentClaim.request.preemptive);

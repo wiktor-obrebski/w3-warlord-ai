@@ -5,16 +5,17 @@ import type {
 import type { ExecutionComponent } from "./execution-component";
 
 interface Claim<TRequest> {
-  source: ExecutionComponent;
-  request: TRequest | undefined;
-  // The source update that last renewed the claim.
-  renewedIn: number;
+  holder: ExecutionComponent;
+  // The request that granted the claim or last renewed it.
+  request: TRequest;
+  // The number of the holder's update that last granted or renewed the claim.
+  renewedInUpdate: number;
 }
 
 /**
  * Keeps at most one controlling source per Actor and runs the control
- * leases. Whether a request may take an Actor is left to the policy it was
- * created with.
+ * leases. Whether a request takes an Actor held by another source, or by
+ * none, is left to the policy the arbiter was created with.
  */
 export interface ActorControlArbiter<TActor, TRequest> {
   /**
@@ -37,36 +38,42 @@ export function createActorControlArbiter<TActor, TRequest>(
   policy: ActorControlPolicy<TRequest>,
 ): ActorControlArbiter<TActor, TRequest> {
   const claims = new Map<TActor, Claim<TRequest>>();
-  let lastUpdate = 0;
+  let updateCount = 0;
 
-  const request = (
-    source: ExecutionComponent,
-    updateId: number,
+  const requestControl = (
+    requester: ExecutionComponent,
+    updateNumber: number,
     actor: TActor,
-    requested: TRequest | undefined,
+    request: TRequest,
   ): boolean => {
-    const claim = claims.get(actor);
+    const currentClaim = claims.get(actor) ?? null;
 
-    if (claim?.source === source) {
-      claim.request = requested;
-      claim.renewedIn = updateId;
+    if (currentClaim !== null && currentClaim.holder === requester) {
+      currentClaim.request = request;
+      currentClaim.renewedInUpdate = updateNumber;
       return true;
     }
 
-    if (!policy(requested, claim)) {
+    if (!policy(request, currentClaim)) {
       return false;
     }
 
-    claims.set(actor, { source, request: requested, renewedIn: updateId });
+    claims.set(actor, {
+      holder: requester,
+      request,
+      renewedInUpdate: updateNumber,
+    });
 
     return true;
   };
 
-  const release = (isReleased: (claim: Claim<TRequest>) => boolean) => {
+  const releaseClaims = (
+    shouldRelease: (claim: Claim<TRequest>) => boolean,
+  ) => {
     const released: TActor[] = [];
 
     for (const [actor, claim] of claims) {
-      if (isReleased(claim)) {
+      if (shouldRelease(claim)) {
         released.push(actor);
       }
     }
@@ -78,22 +85,23 @@ export function createActorControlArbiter<TActor, TRequest>(
 
   return {
     update(source, run) {
-      lastUpdate += 1;
-      const updateId = lastUpdate;
+      updateCount += 1;
+      const updateNumber = updateCount;
 
       run({
-        request(actor, requested) {
-          return request(source, updateId, actor, requested);
+        request(actor, request) {
+          return requestControl(source, updateNumber, actor, request);
         },
       });
 
-      release(
-        (claim) => claim.source === source && claim.renewedIn !== updateId,
+      releaseClaims(
+        (claim) =>
+          claim.holder === source && claim.renewedInUpdate !== updateNumber,
       );
     },
 
     releaseInactive(activeSources) {
-      release((claim) => !activeSources.includes(claim.source));
+      releaseClaims((claim) => !activeSources.includes(claim.holder));
     },
   };
 }

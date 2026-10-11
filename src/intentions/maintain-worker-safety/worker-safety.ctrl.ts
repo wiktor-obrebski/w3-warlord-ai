@@ -4,7 +4,7 @@ import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
 import { AnyBeliefModel, BeliefContainer, Controller } from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
 import { debug } from "../../debug";
-import { ActorControl, ActorControlRequest } from "../../actor";
+import { ActorControl, PREEMPTIVE_REQUEST } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -18,7 +18,6 @@ import {
   threatCenter,
 } from "./worker-safety.assessments";
 
-const PREEMPT: ActorControlRequest = { preempt: true };
 const FLEE_ROUND_DISTANCE = 300;
 const FLEE_DESTINATION_REACHED_DISTANCE = 32;
 const FLEE_ANGLE_STEP = Math.PI / 6;
@@ -63,7 +62,7 @@ export class WorkerSafetyController
         this.fleeRounds.has(worker.unit) ||
         needsAttackProtection(safety, worker.unit);
 
-      if (isUnsafe && control.request(worker.unit, PREEMPT)) {
+      if (isUnsafe && control.request(worker.unit, PREEMPTIVE_REQUEST)) {
         this.protectWorker(worker, beliefs);
       }
     }

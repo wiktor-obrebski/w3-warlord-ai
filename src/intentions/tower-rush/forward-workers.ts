@@ -1,7 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { debug } from "../../debug";
 import { Point, Vector } from "@lib/math";
-import { ActorControl } from "../../actor";
+import { ActorControl, NORMAL_REQUEST } from "../../actor";
 import { CommonBeliefs } from "../../beliefs/common.beliefs";
 import { closestUnit, positionOf } from "../../beliefs/common.assessments";
 import { TowerRushState } from "./tower-rush.state";
@@ -58,7 +58,7 @@ export function controlForwardPeasants(
       continue;
     }
 
-    if (control.request(worker)) {
+    if (control.request(worker, NORMAL_REQUEST)) {
       controlled.push(worker);
     } else {
       forgetSentToSafety(worker, rush);

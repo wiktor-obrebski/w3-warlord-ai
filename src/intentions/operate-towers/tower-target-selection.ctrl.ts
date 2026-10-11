@@ -1,7 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
-import { ActorControl } from "../../actor";
+import { ActorControl, NORMAL_REQUEST } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -45,7 +45,7 @@ export class TowerTargetSelectionController
     );
 
     for (const tower of beliefs.guardTowers) {
-      if (control.request(tower)) {
+      if (control.request(tower, NORMAL_REQUEST)) {
         this.attackBestTargetInRange(tower, rankedTargets, beliefs);
       }
     }
