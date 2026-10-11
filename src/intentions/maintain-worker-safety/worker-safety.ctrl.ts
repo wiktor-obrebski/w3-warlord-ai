@@ -1,15 +1,10 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
-import {
-  ActorControlRequestOptions,
-  AnyBeliefModel,
-  BeliefContainer,
-  Controller,
-} from "@lib/bdi";
+import { AnyBeliefModel, BeliefContainer, Controller } from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
 import { debug } from "../../debug";
-import { Actor, ActorControl } from "../../actor";
+import { ActorControl, ActorControlRequest } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -23,7 +18,7 @@ import {
   threatCenter,
 } from "./worker-safety.assessments";
 
-const PREEMPT: ActorControlRequestOptions = { preempt: true };
+const PREEMPT: ActorControlRequest = { preempt: true };
 const FLEE_ROUND_DISTANCE = 300;
 const FLEE_DESTINATION_REACHED_DISTANCE = 32;
 const FLEE_ANGLE_STEP = Math.PI / 6;
@@ -46,7 +41,7 @@ interface FleeRound {
  * ordered at all.
  */
 export class WorkerSafetyController
-  implements Controller<BeliefContainer, Actor>
+  implements Controller<BeliefContainer, ActorControl>
 {
   public readonly beliefModels: readonly AnyBeliefModel[];
   private readonly common: CommonBeliefModel;

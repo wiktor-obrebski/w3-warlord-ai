@@ -5,7 +5,7 @@ import {
   Plan,
   UpdateChild,
 } from "@lib/bdi";
-import { Actor } from "../../actor";
+import { ActorControl } from "../../actor";
 import { CommonBeliefModel } from "../../beliefs/common.beliefs";
 import { UpdateInterval } from "../update-interval";
 import { createTowerRushState } from "./tower-rush.state";
@@ -16,15 +16,15 @@ import { TowerMaintenanceController } from "./tower-maintenance.ctrl";
 const UPDATE_SECONDS = 1;
 
 type TowerRushChild =
-  | Plan<BeliefContainer, Actor>
-  | Controller<BeliefContainer, Actor>;
+  | Plan<BeliefContainer, ActorControl>
+  | Controller<BeliefContainer, ActorControl>;
 
 /**
  * Commitment to a Human tower rush: Guard Towers established next to the
  * enemy main, funded by a home economy and kept repaired by the forward
  * workers.
  */
-export class TowerRushIntention implements Intention<BeliefContainer, Actor> {
+export class TowerRushIntention implements Intention<BeliefContainer, ActorControl> {
   private readonly common: CommonBeliefModel;
   private readonly interval = new UpdateInterval(UPDATE_SECONDS);
   private readonly rush = createTowerRushState();
@@ -80,7 +80,7 @@ export class TowerRushIntention implements Intention<BeliefContainer, Actor> {
 
   public update(
     beliefs: Readonly<BeliefContainer>,
-    updateChild: UpdateChild<BeliefContainer, Actor>,
+    updateChild: UpdateChild<BeliefContainer, ActorControl>,
   ) {
     const common = beliefs.get(this.common);
 

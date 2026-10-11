@@ -26,7 +26,8 @@ Technical architecture
 ├─ Runtime
 │  ├─ bot loop
 │  ├─ belief runtime
-│  └─ actor control arbiter
+│  ├─ actor control arbiter
+│  └─ actor control policy
 │
 ├─ Timing
 │  ├─ Central Timing Scheduler
@@ -58,7 +59,8 @@ Technical architecture
 * **Execute boundary** — Warcraft-facing boundary through which selected actions affect the game.
 * **Runtime** — Runs and manages the bot loop for one player, orchestrating the mind each tick; owns all belief state and the active Intentions. Debug mode is not part of it.
 * **Belief runtime** — Finds the belief models the active execution graph requires, revises them in dependency order, and produces the immutable belief snapshot for the tick.
-* **Actor control arbiter** — Tracks which Plan or Controller controls each Actor and with what kind of claim; runs each Plan and Controller update with an actor control provider scoped to it, expires unrenewed claims after the update, and releases claims of sources that left the active execution graph.
+* **Actor control arbiter** — Tracks which Plan or Controller controls each Actor and with what request; runs each Plan and Controller update with an actor control provider scoped to it, expires unrenewed claims after the update, and releases claims of sources that left the active execution graph. Whether a request takes an Actor is decided by the bot's actor control policy, not by the arbiter.
+* **Actor control policy** — The bot's rule for granting or refusing a request for an Actor held by another source or by none (`actorControlPolicy` in `src/actor.ts`).
 * **Central Timing Scheduler** — Invokes reasoning and control systems at their required frequencies; it does not decide which intentions should progress.
 * **Tactical frequency** — Fast update cadence for controllers and immediate combat behavior.
 * **Intention-monitoring frequency** — Cadence for checking active plans, progress, and lifecycle conditions.
@@ -84,7 +86,7 @@ revise common Beliefs → Deliberation → active Intentions
 → release control held by Plans and Controllers no longer active
 ```
 
-Generic BDI contracts, the belief runtime (`requiredBeliefModels`, `reviseBeliefs`, `BeliefContainer`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
+Generic BDI contracts, the belief runtime (`requiredBeliefModels`, `reviseBeliefs`, `BeliefContainer`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The policy deciding which requests are granted is domain code in `src/actor.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
 
 Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, diagnostic artifacts, and automated tests.
 

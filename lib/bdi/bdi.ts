@@ -3,8 +3,9 @@ export { requiredBeliefModels, reviseBeliefs } from "./belief-runtime";
 export { createActorControlArbiter } from "./actor-control-arbiter";
 export { activeComponents } from "./execution-component";
 export type {
+  ActorControlClaim,
+  ActorControlPolicy,
   ActorControlProvider,
-  ActorControlRequestOptions,
 } from "./actor-control";
 export type { ActorControlArbiter } from "./actor-control-arbiter";
 export type {

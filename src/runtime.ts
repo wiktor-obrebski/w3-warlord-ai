@@ -10,7 +10,12 @@ import {
   UpdateChild,
 } from "@lib/bdi";
 import { debug } from "./debug";
-import { Actor } from "./actor";
+import {
+  Actor,
+  ActorControl,
+  ActorControlRequest,
+  actorControlPolicy,
+} from "./actor";
 import { createCommonBeliefModel } from "./beliefs/common.beliefs";
 import { ApplyPressure } from "./desires/apply-pressure";
 import { ProtectEconomicAssets } from "./desires/protect-economic-assets";
@@ -44,7 +49,9 @@ export function startRuntime(bot: W3PlayerApi.player) {
   const common = createCommonBeliefModel(bot);
   const coreModels = [common];
   const deliberation = createDeliberation(common);
-  const arbiter = createActorControlArbiter<Actor>();
+  const arbiter = createActorControlArbiter<Actor, ActorControlRequest>(
+    actorControlPolicy,
+  );
   const loop = W3TimerApi.CreateTimer();
   let beliefs: BeliefContainer | undefined;
   let intentions: readonly WarlordIntention[] = [];
@@ -66,7 +73,7 @@ export function startRuntime(bot: W3PlayerApi.player) {
     );
     beliefs = current;
 
-    const updateChild: UpdateChild<BeliefContainer, Actor> = (child) =>
+    const updateChild: UpdateChild<BeliefContainer, ActorControl> = (child) =>
       arbiter.update(child, (control) => child.update(current, control));
 
     for (const intention of intentions) {

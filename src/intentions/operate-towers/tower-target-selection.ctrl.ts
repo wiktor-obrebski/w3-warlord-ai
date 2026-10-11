@@ -1,7 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
-import { Actor, ActorControl } from "../../actor";
+import { ActorControl } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -25,7 +25,7 @@ interface TowerTarget {
  * best one within its own range, so overlapping towers focus the same target.
  */
 export class TowerTargetSelectionController
-  implements Controller<BeliefContainer, Actor>
+  implements Controller<BeliefContainer, ActorControl>
 {
   private readonly common: CommonBeliefModel;
   // The last attack order of each Guard Tower, so it is not re-issued while

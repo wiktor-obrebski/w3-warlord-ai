@@ -20,7 +20,7 @@ domain code
 | Intentions | `Intention` | Concrete commitments currently being pursued. Active while Deliberation retains them. |
 | Plans | `Plan`, `PlanStatus` | Finite procedural execution with an explicit `running` / `succeeded` / `failed` status. |
 | Controllers | `Controller` | Continuous reactive behavior without procedural completion. |
-| Actor Control | `ActorControlProvider`, `ActorControlArbiter` | Temporary exclusive right of a Plan or Controller to order an Actor. |
+| Actor Control | `ActorControlProvider`, `ActorControlArbiter`, `ActorControlPolicy` | Temporary exclusive right of a Plan or Controller to order an Actor. |
 
 Beliefs are knowledge about the world ("worker 17 was attacked 0.8 s ago"). Execution state ("the current flee destination", "the current Plan step") stays private to the Intention, Plan, or Controller that owns it.
 
@@ -140,27 +140,29 @@ The returned set defines which commitments remain active:
 
 Retained Intentions must not be recreated. One Desire may lead to any number of Intentions, including none.
 
-### `Intention<TBeliefs, TActor>`
+### `Intention<TBeliefs, TControl>`
 
 ```ts
-update(beliefs, updateChild: UpdateChild<TBeliefs, TActor>): void
+update(beliefs, updateChild: UpdateChild<TBeliefs, TControl>): void
 ```
 
 An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to update them. It updates a child only through `updateChild(child)`, which runs the child's `update()` with the cycle's Beliefs and actor control scoped to that child.
 
-### `Plan<TBeliefs, TActor>`
+### `Plan<TBeliefs, TControl>`
 
 ```ts
 readonly status: PlanStatus  // "running" | "succeeded" | "failed"
-update(beliefs, control: ActorControlProvider<TActor>): void
+update(beliefs, control: TControl): void
 ```
+
+`TControl` is the agent's actor control capability, normally an `ActorControlProvider<TActor, TRequest>`.
 
 `status` is persistent state changed only during `update()`. Reading it is an inspection, not a re-evaluation. A Plan's success or failure does not by itself end the Intention that owns it.
 
-### `Controller<TBeliefs, TActor>`
+### `Controller<TBeliefs, TControl>`
 
 ```ts
-update(beliefs, control: ActorControlProvider<TActor>): void
+update(beliefs, control: TControl): void
 ```
 
 A Controller reacts continuously and never completes. It may keep private execution state.
@@ -169,10 +171,10 @@ A Controller reacts continuously and never completes. It may keep private execut
 
 An **Actor** is anything in the environment the agent can give orders to; its type is the `TActor` parameter. **Actor Control** is the temporary exclusive right of one Plan or Controller — the *source* — to order an Actor. Every Actor has at most one controlling source.
 
-### `ActorControlProvider<TActor>`
+### `ActorControlProvider<TActor, TRequest>`
 
 ```ts
-request(actor, options?: { preempt?: boolean }): boolean
+request(actor, request?: TRequest): boolean
 ```
 
 Passed to a Plan or Controller during its update, scoped to it, so requests need not name the source. A source orders an Actor only after a request for it returned `true`:
@@ -183,28 +185,29 @@ if (control.request(worker)) {
 }
 ```
 
-| Actor is | Normal request | Preemptive request |
-| --- | --- | --- |
-| uncontrolled | granted | granted |
-| controlled by the requester | renewed | renewed |
-| controlled normally by another source | refused | transferred to the requester |
-| controlled preemptively by another source | refused | refused |
+`TRequest` describes how the source asks, such as whether it may preempt; the library gives it no meaning.
 
-A renewed claim takes the kind of the latest request.
+### `ActorControlPolicy<TRequest>`
+
+```ts
+(request: TRequest | undefined, current: ActorControlClaim<TRequest> | undefined) => boolean
+```
+
+The agent's rule for whether a request takes an Actor the requester does not already control. `current` is the claim another source holds, with the request that granted or last renewed it, or `undefined` for an uncontrolled Actor. The library only enforces the mechanism around it: one controller per Actor, renewal of one's own claim (always granted, never sent to the policy; the claim keeps the latest request), and leases.
 
 ### Leases
 
 Control is a lease. During each of its updates, a source requests every Actor it still needs; claims it did not request again expire when the update ends. Control therefore follows what the source is currently doing, and a source releases an Actor simply by no longer requesting it. Between updates claims persist, so a source updated less often than every cycle keeps its Actors meanwhile.
 
-### `ActorControlArbiter<TActor>`
+### `ActorControlArbiter<TActor, TRequest>`
 
 ```ts
-createActorControlArbiter<TActor>(): ActorControlArbiter<TActor>
+createActorControlArbiter<TActor, TRequest>(policy): ActorControlArbiter<TActor, TRequest>
 update(source, run: (control) => void): void
 releaseInactive(activeSources): void
 ```
 
-Owned by the agent's runtime. `update` runs one source update with control scoped to it, then expires the source's unrenewed claims. `releaseInactive` drops the claims of sources no longer in the active execution graph, such as a finished Plan, which will not update again to let them expire. `activeComponents(intentions)` lists that graph.
+Owned by the agent's runtime and created with the agent's policy. `update` runs one source update with control scoped to it, then expires the source's unrenewed claims. `releaseInactive` drops the claims of sources no longer in the active execution graph, such as a finished Plan, which will not update again to let them expire. `activeComponents(intentions)` lists that graph.
 
 ## Deliberately omitted
 

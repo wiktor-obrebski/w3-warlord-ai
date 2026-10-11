@@ -1,24 +1,29 @@
-import type { ActorControlProvider } from "./actor-control";
+import type {
+  ActorControlPolicy,
+  ActorControlProvider,
+} from "./actor-control";
 import type { ExecutionComponent } from "./execution-component";
 
-interface Claim {
+interface Claim<TRequest> {
   source: ExecutionComponent;
-  preemptive: boolean;
+  request: TRequest | undefined;
   // The source update that last renewed the claim.
   renewedIn: number;
 }
 
 /**
- * Decides which source controls each Actor: at most one at a time.
+ * Keeps at most one controlling source per Actor and runs the control
+ * leases. Whether a request may take an Actor is left to the policy it was
+ * created with.
  */
-export interface ActorControlArbiter<TActor> {
+export interface ActorControlArbiter<TActor, TRequest> {
   /**
    * Runs one update of the source with control scoped to it. The source's
    * claims not renewed during the update expire when it ends.
    */
   update(
     source: ExecutionComponent,
-    run: (control: ActorControlProvider<TActor>) => void,
+    run: (control: ActorControlProvider<TActor, TRequest>) => void,
   ): void;
 
   /**
@@ -28,34 +33,36 @@ export interface ActorControlArbiter<TActor> {
   releaseInactive(activeSources: readonly ExecutionComponent[]): void;
 }
 
-export function createActorControlArbiter<TActor>(): ActorControlArbiter<TActor> {
-  const claims = new Map<TActor, Claim>();
+export function createActorControlArbiter<TActor, TRequest>(
+  policy: ActorControlPolicy<TRequest>,
+): ActorControlArbiter<TActor, TRequest> {
+  const claims = new Map<TActor, Claim<TRequest>>();
   let lastUpdate = 0;
 
   const request = (
     source: ExecutionComponent,
     updateId: number,
     actor: TActor,
-    preemptive: boolean,
+    requested: TRequest | undefined,
   ): boolean => {
     const claim = claims.get(actor);
 
     if (claim?.source === source) {
-      claim.preemptive = preemptive;
+      claim.request = requested;
       claim.renewedIn = updateId;
       return true;
     }
 
-    if (claim && (claim.preemptive || !preemptive)) {
+    if (!policy(requested, claim)) {
       return false;
     }
 
-    claims.set(actor, { source, preemptive, renewedIn: updateId });
+    claims.set(actor, { source, request: requested, renewedIn: updateId });
 
     return true;
   };
 
-  const release = (isReleased: (claim: Claim) => boolean) => {
+  const release = (isReleased: (claim: Claim<TRequest>) => boolean) => {
     const released: TActor[] = [];
 
     for (const [actor, claim] of claims) {
@@ -75,8 +82,8 @@ export function createActorControlArbiter<TActor>(): ActorControlArbiter<TActor>
       const updateId = lastUpdate;
 
       run({
-        request(actor, options) {
-          return request(source, updateId, actor, options?.preempt === true);
+        request(actor, requested) {
+          return request(source, updateId, actor, requested);
         },
       });
 

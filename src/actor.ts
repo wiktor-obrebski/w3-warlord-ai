@@ -1,5 +1,5 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { ActorControlProvider } from "@lib/bdi";
+import { ActorControlPolicy, ActorControlProvider } from "@lib/bdi";
 
 /**
  * A Warcraft entity the bot can order, such as a unit or a building; Warcraft
@@ -7,4 +7,23 @@ import { ActorControlProvider } from "@lib/bdi";
  */
 export type Actor = W3UnitApi.unit;
 
-export type ActorControl = ActorControlProvider<Actor>;
+export interface ActorControlRequest {
+  /**
+   * Takes control from a source holding it normally. A preemptive claim is
+   * itself never taken over.
+   */
+  readonly preempt?: boolean;
+}
+
+export type ActorControl = ActorControlProvider<Actor, ActorControlRequest>;
+
+/**
+ * An uncontrolled Actor is granted to any request; one controlled normally
+ * only to a preemptive request; one controlled preemptively to none.
+ */
+export const actorControlPolicy: ActorControlPolicy<ActorControlRequest> = (
+  request,
+  current,
+) =>
+  current === undefined ||
+  (request?.preempt === true && current.request?.preempt !== true);

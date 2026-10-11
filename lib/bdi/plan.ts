@@ -1,4 +1,3 @@
-import type { ActorControlProvider } from "./actor-control";
 import type { ExecutionComponent } from "./execution-component";
 
 /**
@@ -11,9 +10,10 @@ export type PlanStatus = "running" | "succeeded" | "failed";
  * Finite procedural execution that progresses towards eventual success or
  * failure.
  *
- * A Plan owns its procedural execution state.
+ * A Plan owns its procedural execution state. `TControl` is the agent's actor
+ * control capability, normally an `ActorControlProvider`.
  */
-export interface Plan<TBeliefs, TActor> extends ExecutionComponent {
+export interface Plan<TBeliefs, TControl> extends ExecutionComponent {
   /**
    * Current lifecycle status. It changes only during `update()`; reading it
    * inspects state and does not re-evaluate the Plan.
@@ -24,5 +24,5 @@ export interface Plan<TBeliefs, TActor> extends ExecutionComponent {
    * Advances the Plan while it is running. It may order only the Actors
    * `control` grants it.
    */
-  update(beliefs: Readonly<TBeliefs>, control: ActorControlProvider<TActor>): void;
+  update(beliefs: Readonly<TBeliefs>, control: TControl): void;
 }

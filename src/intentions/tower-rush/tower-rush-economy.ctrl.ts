@@ -3,7 +3,7 @@ import * as W3HumanApi from "@lib/warcraft3-api/human";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
-import { Actor, ActorControl } from "../../actor";
+import { ActorControl } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -41,7 +41,7 @@ const WORKER_TARGET_STAGES: WorkerTargets[] = [
  * the economy runs; one taken over meanwhile is left alone.
  */
 export class TowerRushEconomyController
-  implements Controller<BeliefContainer, Actor>
+  implements Controller<BeliefContainer, ActorControl>
 {
   private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;

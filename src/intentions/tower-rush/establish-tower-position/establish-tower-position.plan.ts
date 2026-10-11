@@ -1,7 +1,7 @@
 import { BeliefContainer, Plan, PlanStatus } from "@lib/bdi";
 import { Point } from "@lib/math";
 import { debug } from "../../../debug";
-import { Actor, ActorControl } from "../../../actor";
+import { ActorControl } from "../../../actor";
 import { CommonBeliefModel } from "../../../beliefs/common.beliefs";
 import { TowerRushState } from "../tower-rush.state";
 import { updateStart } from "./start";
@@ -25,7 +25,7 @@ enum Step {
  * the step: e.g. the forward Peasants are released once the towers are built.
  */
 export class EstablishTowerPositionPlan
-  implements Plan<BeliefContainer, Actor>
+  implements Plan<BeliefContainer, ActorControl>
 {
   private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;
