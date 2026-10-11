@@ -1,6 +1,6 @@
 # `@lib/bdi`
 
-Minimal, domain-independent contracts for a Belief–Desire–Intention (BDI) agent, the belief runtime that keeps its Beliefs revised, and the arbiter that decides which Plan or Controller may order each Actor.
+Minimal, domain-independent contracts for a Belief–Desire–Intention (BDI) agent, the beliefs runtime that keeps its Beliefs revised, and the arbiter that decides which Plan or Controller may order each Actor.
 
 The library knows nothing about Warcraft III or any particular strategy; domain code implements these contracts and depends on this library, never the other way round:
 
@@ -14,114 +14,161 @@ domain code
 
 | Concept | Contract | Meaning |
 | --- | --- | --- |
-| Beliefs | `BeliefModel`, `BeliefContainer` | What the agent knows about the world, including what it remembers across cycles. |
+| Beliefs | `CommonBeliefsModel`, `BeliefsModel`, `BeliefContainer`, `BeliefsRuntime` | What the agent knows about the world, including what it remembers across cycles. |
 | Desires | `Desire` | High-level states or principles the agent wants to achieve or maintain. No behavior. |
 | Deliberation | `Deliberation` | Decides which Intentions exist; owns their lifecycle. |
 | Intentions | `Intention` | Concrete commitments currently being pursued. Active while Deliberation retains them. |
 | Plans | `Plan`, `PlanStatus` | Finite procedural execution with an explicit `running` / `succeeded` / `failed` status. |
 | Controllers | `Controller` | Continuous reactive behavior without procedural completion. |
+| Providers | `Provided`, `childFactory` | How Intentions, Plans, and Controllers are constructed, together with what the runtime needs to manage them. |
 | Actor Control | `ActorControlProvider`, `ActorControlArbiter`, `ActorControlPolicy` | Temporary exclusive right of a Plan or Controller to order an Actor. |
 
 Beliefs are knowledge about the world ("worker 17 was attacked 0.8 s ago"). Execution state ("the current flee destination", "the current Plan step") stays private to the Intention, Plan, or Controller that owns it.
 
 ## Beliefs
 
-Beliefs are not one global object. Each kind of knowledge has its own `BeliefModel` and its own Beliefs type, defined by the feature that needs it. The agent keeps a few core models, such as one for common game knowledge; Intentions, Plans, and Controllers declare the specialized models they need.
+There are two categories of Beliefs:
+
+```text
+Common Beliefs    shared by the whole agent, read by every component
+Scoped Beliefs    private belief state of one Intention, Plan, or Controller instance
+```
 
 ### Ownership
 
 ```text
-BeliefModel          defines how one kind of Beliefs is observed and revised
-belief runtime       finds the required models, orders them, and revises them
-BeliefContainer      holds the current Beliefs of every active model instance
-execution components declare the models they need and read their Beliefs
+CommonBeliefsModel   defines how the Common Beliefs are observed and revised
+BeliefsModel         defines how one kind of Scoped Beliefs is observed and revised
+BeliefContainer      stores the Common Beliefs and the Scoped Beliefs of each component instance
+BeliefsRuntime       registers components, revises their Beliefs, removes them when components go
+components           read the Common Beliefs and their own Scoped Beliefs
 ```
 
-Belief state is owned by the runtime, never by execution components. Components do not call `observe()` or `revise()`.
+Belief state is owned by the runtime, never by components. A component never sees its `BeliefsModel` and never calls `observe()` or `revise()`.
 
 ### Instance scope
 
-Belief state belongs to a **model instance**, not a model type. A component that needs Beliefs of its own creates its own model instances, configured with what it is responsible for:
+Scoped Beliefs are indexed by the component instance. A `BeliefsModel` is behavior without state, so one model may serve any number of components; each instance still has its own belief history:
 
 ```text
-BuildTowersAroundMine #A  → new MineSurroundingsModel(mineA) → Beliefs A
-BuildTowersAroundMine #B  → new MineSurroundingsModel(mineB) → Beliefs B
+WorkerSafetyController #A ─┐                       ┌─ Beliefs A
+                           ├─ workerSafetyModel ─→ │
+WorkerSafetyController #B ─┘                       └─ Beliefs B
 ```
 
-Configuration, such as which mine a Plan targets, identifies the instance and is not Belief state; the Beliefs describe what is currently known about that target.
-
-### Dependencies
-
-A model may depend on the Beliefs of other model instances, declared in its `dependencies`. The runtime revises dependencies first and passes their current Beliefs to `revise()`; a model never invokes another model. Dependencies must be acyclic; a cycle throws.
+Configuration, such as which mine a Plan targets, is given to the component by its provider and is not Belief state; the Beliefs describe what is currently known about that target.
 
 ### Stored versus derived
 
-Store what must persist across cycles or is expensive to derive, such as when something was last seen or attacked. Derive transient views from existing Beliefs with pure functions (the agent may call them Assessments) instead of storing synchronized copies. Prefer referring to entities kept by a common model over copying their state into scoped Beliefs.
+Store what must persist across cycles or is expensive to derive, such as when something was last seen or attacked. Derive transient views from existing Beliefs with pure functions (the agent may call them Assessments) instead of storing synchronized copies. Prefer referring to entities kept in the Common Beliefs over copying their state into Scoped Beliefs.
 
 ### Revision and allocation
 
-`revise()` treats its inputs as immutable and returns the Beliefs that become current. It should return `previous` itself when nothing changed and reuse unchanged nested values, so that unchanged Beliefs cost no allocation. It must never mutate `previous` to save one.
+`revise()` treats its inputs as immutable and returns the Beliefs that become current. `previous` is `null` on the first revision, which creates the initial Beliefs. It should return `previous` itself when nothing changed and reuse unchanged nested values, so that unchanged Beliefs cost no allocation. It must never mutate `previous` to save one.
+
+## Providers and the component tree
+
+Every Intention, Plan, and Controller is constructed by a provider function, which returns a `Provided` record:
+
+```ts
+{
+  value,          // the component itself
+  beliefsModel?,  // maintains its Scoped Beliefs; omitted when it has none
+  children,       // the records of its children
+}
+```
+
+The component class stays private to its module, so the runtime always receives a component together with its metadata, and the component never sees it.
+
+A component that creates children at run time receives child factories from its provider. `childFactory(children, provide)` returns a function that calls the child's provider, records the result in the parent's `children`, and returns only a handle:
+
+```ts
+const plan = this.createPlan();   // { value, discard }
+updateChild(plan.value);
+plan.discard();                   // the child leaves the tree
+```
+
+The records form the component tree the beliefs runtime manages; the same mechanism applies at every level.
 
 ## Cycle
 
 ```text
-1. core = reviseBeliefs(coreModels, previousContainer)
-2. desires     = the Desires currently held
-3. intentions  = deliberation.deliberate(core, desires, intentions)
-4. container   = reviseBeliefs(requiredBeliefModels(intentions), previousContainer, core)
-5. intention.update(container, updateChild) for every active Intention
-     → updateChild(child): arbiter.update(child, control => child.update(container, control))
-6. arbiter.releaseInactive(activeComponents(intentions))
+1. common     = beliefs.reviseCommon()
+2. intentions = deliberation.deliberate(common, desires, intentions)   // Provided records
+3. beliefs.sync(intentions)
+     register new components, remove gone ones, revise every Scoped Beliefs
+4. intention.value.update(beliefs.beliefsOf(intention.value), updateChild) for every Intention
+     → updateChild(child): arbiter.update(child, control => child.update(beliefs.beliefsOf(child), control))
+5. arbiter.releaseInactive(beliefs.prune())
 ```
 
-Core Beliefs are revised before Deliberation; the scoped Beliefs required by the resulting execution graph after it. A model newly required is revised from `previous = undefined`, so its Beliefs are available in the cycle it becomes active. Beliefs of models no longer required are dropped.
-
-The container produced in step 4 is the snapshot for the rest of the cycle: nothing changes it until the next cycle.
+A component created during step 4 is registered, and its Scoped Beliefs first revised, by `beliefsOf()` before its first update. A component discarded during step 4 is removed by `prune()`, which also releases its actor control. Revising a new component adds Beliefs but changes no other component's.
 
 ## Contracts
 
-### `BeliefModel<TObservation, TBeliefs, TDependencies = undefined>`
+### `CommonBeliefsModel<TObservation, TCommonBeliefs>`
 
 ```ts
-readonly dependencies: BeliefDependencies<TDependencies>  // undefined without dependencies
 observe(): TObservation
-revise(previous: Readonly<TBeliefs> | undefined,
+revise(previous: Readonly<TCommonBeliefs> | null, observation: Readonly<TObservation>): TCommonBeliefs
+```
+
+### `BeliefsModel<TObservation, TBeliefs, TCommonBeliefs>`
+
+```ts
+observe(): TObservation
+revise(previous: Readonly<TBeliefs> | null,
        observation: Readonly<TObservation>,
-       dependencies: Readonly<TDependencies>): TBeliefs
+       common: Readonly<TCommonBeliefs>): TBeliefs   // never null
 ```
 
-`observe()` reads the external environment only. `AnyBeliefModel<TBeliefs>` is any model producing `TBeliefs`, used where its observation and dependencies do not matter.
+`observe()` takes no parameters and reads the external environment only. `AnyBeliefsModel` is any model, as the runtime handles it.
 
-### `BeliefContainer`
+### `BeliefContainer<TCommonBeliefs>`
 
 ```ts
-get(model): Readonly<TBeliefs>   // throws when the model is not active
-has(model): boolean
+getCommonBeliefs() / setCommonBeliefs(beliefs)
+getScopedBeliefs(component): { beliefs, beliefsModel }   // beliefs null before the first revision
+registerScopedBeliefs(component, beliefsModel)
+setScopedBeliefs(component, beliefs)
+removeScopedBeliefs(component)
 ```
 
-Immutable; created by the belief runtime.
+Stores belief state only; owned by the beliefs runtime.
 
-### Belief runtime
+### `BeliefsRuntime<TCommonBeliefs>`
 
 ```ts
-requiredBeliefModels(components): AnyBeliefModel[]
-reviseBeliefs(models, previous, revised?): BeliefContainer
+createBeliefsRuntime(commonModel): BeliefsRuntime<TCommonBeliefs>
+reviseCommon(): Readonly<TCommonBeliefs>
+sync(roots: readonly Provided[]): void
+beliefsOf(component): ComponentBeliefs<TCommonBeliefs, unknown>   // throws for an unmanaged component
+prune(): ReadonlySet<object>                                       // the managed components
 ```
 
-`requiredBeliefModels` walks the components and their active children and collects the declared models. `reviseBeliefs` revises the models and their dependencies, dependencies first, into a new container; models already in `revised` are carried over unrevised.
+Removing a component removes its Scoped Beliefs and model association; a shared model is unaffected.
 
-### `ExecutionComponent`
+### `ComponentBeliefs<TCommonBeliefs, TScopedBeliefs>`
 
 ```ts
-readonly beliefModels?: readonly AnyBeliefModel[]
-activeChildren?(): readonly ExecutionComponent[]
-
-activeComponents(components): ExecutionComponent[]
+readonly common: Readonly<TCommonBeliefs>
+readonly scoped: TScopedBeliefs   // null for a component without a BeliefsModel
 ```
 
-Base of `Intention`, `Plan`, and `Controller`. A component declares the models it reads beyond the core ones, and which children are currently active, decided from its own execution state and current Beliefs. A child whose Beliefs would only tell whether it has work should stay active and do nothing.
+The Beliefs a component receives in `update()`. It cannot read any other component's Scoped Beliefs.
 
-`activeComponents` lists the components and all their active descendants, parents first: the active execution graph used both to collect belief models and to release actor control of inactive sources.
+### `Provided<TValue, TCommonBeliefs>`, `childFactory`
+
+```ts
+readonly value: TValue
+readonly beliefsModel?: AnyBeliefsModel<TCommonBeliefs>
+readonly children: readonly Provided<object, TCommonBeliefs>[]
+
+childFactory(children, provide): ChildFactory<TValue>   // () => ChildHandle<TValue>
+ChildHandle<TValue>: { value, discard() }
+```
+
+`discard()` removes the child's record; discarding twice throws.
 
 ### `Desire`
 
@@ -142,15 +189,15 @@ The returned set defines which commitments remain active:
 - leaving an instance out drops it;
 - returning a new instance creates an Intention.
 
-Retained Intentions must not be recreated. One Desire may lead to any number of Intentions, including none.
+Retained Intentions must not be recreated. One Desire may lead to any number of Intentions, including none. An agent may use provided records as `TIntention`, so the runtime receives each Intention's metadata.
 
-### `Intention<TBeliefs, TControl>`
+### `Intention<TBeliefs, TControl, TChildBeliefs = TBeliefs>`
 
 ```ts
-update(beliefs, updateChild: UpdateChild<TBeliefs, TControl>): void
+update(beliefs, updateChild: UpdateChild<TChildBeliefs, TControl>): void
 ```
 
-An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to update them. It updates a child only through `updateChild(child)`, which runs the child's `update()` with the cycle's Beliefs and actor control scoped to that child.
+An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to create, update, and discard them. It updates a child only through `updateChild(child)`, which runs the child's `update()` with the child's own Beliefs and actor control scoped to it.
 
 ### `Plan<TBeliefs, TControl>`
 
@@ -159,7 +206,7 @@ readonly status: PlanStatus  // "running" | "succeeded" | "failed"
 update(beliefs, control: TControl): void
 ```
 
-`TControl` is the agent's actor control capability, normally an `ActorControlProvider<TActor, TRequest>`.
+`TBeliefs` is normally `ComponentBeliefs`; `TControl` is the agent's actor control capability, normally an `ActorControlProvider<TActor, TRequest>`.
 
 `status` is persistent state changed only during `update()`. Reading it is an inspection, not a re-evaluation. A Plan's success or failure does not by itself end the Intention that owns it.
 
@@ -208,10 +255,10 @@ Control is a lease. During each of its updates, a source requests every Actor it
 ```ts
 createActorControlArbiter<TActor, TRequest>(policy): ActorControlArbiter<TActor, TRequest>
 update(source, run: (control) => void): void
-releaseInactive(activeSources): void
+releaseInactive(activeSources: ReadonlySet<object>): void
 ```
 
-Owned by the agent's runtime and created with the agent's policy. `update` runs one source update with control scoped to it, then expires the source's unrenewed claims. `releaseInactive` drops the claims of sources no longer in the active execution graph, such as a finished Plan, which will not update again to let them expire. `activeComponents(intentions)` lists that graph.
+Owned by the agent's runtime and created with the agent's policy. `update` runs one source update with control scoped to it, then expires the source's unrenewed claims. `releaseInactive` drops the claims of sources no longer in the managed component tree, such as a discarded Plan, which will not update again to let them expire.
 
 ## Deliberately omitted
 

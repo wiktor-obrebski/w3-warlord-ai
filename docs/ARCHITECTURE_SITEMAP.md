@@ -25,7 +25,8 @@ Technical architecture
 │
 ├─ Runtime
 │  ├─ bot loop
-│  ├─ belief runtime
+│  ├─ beliefs runtime
+│  ├─ providers / component tree
 │  ├─ actor control arbiter
 │  └─ actor control policy
 │
@@ -58,8 +59,10 @@ Technical architecture
 * **Observe boundary** — Warcraft-facing boundary through which legitimate game information enters the reasoning system.
 * **Execute boundary** — Warcraft-facing boundary through which selected actions affect the game.
 * **Runtime** — Runs and manages the bot loop for one player, orchestrating the mind each tick; owns all belief state, the active Intentions, and actor control. Debug mode is not part of it.
-* **Belief runtime** — Finds the belief models the active execution graph requires, revises them in dependency order, and produces the immutable belief snapshot for the tick.
-* **Actor control arbiter** — Tracks which Plan or Controller controls each Actor and with what request; runs each Plan and Controller update with an actor control provider scoped to it, expires unrenewed claims after the update, and releases claims of sources that left the active execution graph. Whether a request takes an Actor is decided by the bot's actor control policy, not by the arbiter.
+* **Beliefs runtime** — Owns belief state and its lifecycle: revises the Common Beliefs, registers the components of the managed component tree, revises the Scoped Beliefs of those with a BeliefsModel before they update, and removes them when components leave the tree. Stores the state in the BeliefContainer.
+* **Provider** — The `provide<Name>Intention/Plan/Controller()` function through which every component is constructed; returns the component together with its optional BeliefsModel and its children, while the component class stays private. Components create and discard children through child factories injected by their provider.
+* **Component tree** — The provided Intentions and the children their providers recorded; the tree the beliefs runtime and the actor control arbiter manage.
+* **Actor control arbiter** — Tracks which Plan or Controller controls each Actor and with what request; runs each Plan and Controller update with an actor control provider scoped to it, expires unrenewed claims after the update, and releases claims of sources that left the component tree. Whether a request takes an Actor is decided by the bot's actor control policy, not by the arbiter.
 * **Actor control policy** — The bot's rule for granting or refusing a request for an Actor held by another source or by none (`actorControlPolicy` in `src/actor.ts`).
 * **Central Timing Scheduler** — Invokes reasoning and control systems at their required frequencies; it does not decide which intentions should progress.
 * **Tactical frequency** — Fast update cadence for controllers and immediate combat behavior.
@@ -80,13 +83,15 @@ Technical architecture
 `src/main.ts` installs the bot player, starts debug mode, and starts the bot's runtime (`startRuntime` in `src/runtime.ts`). The runtime is a plain function whose state lives in its closure. Each 100 ms tick runs:
 
 ```text
-revise common Beliefs → Deliberation → active Intentions
-→ revise the scoped Beliefs the active Intentions, Plans, and Controllers declare
-→ immutable BeliefContainer → update() → Plans & Controllers, each through the actor control arbiter
-→ release control held by Plans and Controllers no longer active
+revise Common Beliefs → Deliberation → provided Intentions
+→ sync the component tree: register new components, remove gone ones, revise Scoped Beliefs
+→ update() Intentions → Plans & Controllers, each with its own Beliefs and through the actor control arbiter
+→ prune components discarded this tick, releasing their Scoped Beliefs and control
 ```
 
-Generic BDI contracts, the belief runtime (`requiredBeliefModels`, `reviseBeliefs`, `BeliefContainer`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The policy deciding which requests are granted is domain code in `src/actor.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
+A component created during the tick is registered and has its Scoped Beliefs first revised before its first update.
+
+Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), providers (`Provided`, `childFactory`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The policy deciding which requests are granted is domain code in `src/actor.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
 
 Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, diagnostic artifacts, and automated tests.
 
@@ -107,6 +112,7 @@ Mind architecture
 │  │  ├─ current
 │  │  ├─ retained
 │  │  └─ inferred
+│  ├─ Common / Scoped Beliefs
 │  ├─ provenance
 │  └─ uncertainty
 │
@@ -156,6 +162,8 @@ Mind architecture
 * **Observation** — Project-defined representation of information legitimately available at the current moment.
 * **World Model** — Central representation of what the bot currently believes about the match.
 * **Belief** — Current, remembered, or inferred claim about the game state.
+* **Common Beliefs** — Beliefs shared by the whole bot and read by every component.
+* **Scoped Beliefs** — Private belief state of one Intention, Plan, or Controller instance, maintained by a BeliefsModel shared by any number of instances.
 * **Current belief** — Belief directly supported by present observation.
 * **Retained belief** — Previously observed information preserved after visibility is lost.
 * **Inferred belief** — Conclusion derived from available evidence rather than direct observation.
@@ -202,7 +210,9 @@ Beliefs + Desires → Deliberation → Intentions → Plans & Controllers
                                                   └─ order Actors under Actor Control → Warcraft orders
 ```
 
-Beliefs are split into belief models: the common model (`src/beliefs/common.beliefs.ts`) holds broadly useful game knowledge, and features define scoped models next to the components that declare them (`*.beliefs.ts`). Belief state belongs to model instances and is owned by the runtime; Intentions, Plans, and Controllers keep only execution state. Perception is not a separate layer: each belief model's `observe()` reads Warcraft state. Retained beliefs are limited to short attack memory (common Beliefs) and when workers were last attacked (worker safety Beliefs).
+Beliefs come in two categories. Common Beliefs (`src/beliefs/common.beliefs.ts`) hold broadly useful game knowledge and are read by every component. Scoped Beliefs are private to one component instance: a component's provider may return a shared, stateless BeliefsModel (`*.beliefs.ts`), and the runtime keeps that component's own Beliefs in the BeliefContainer, indexed by the component instance. Each component receives `{ common, scoped }` in `update()`, with `scoped` null when it has no model; it never sees its model. Intentions, Plans, and Controllers keep only execution state. Perception is not a separate layer: each model's `observe()` reads Warcraft state. Retained beliefs are limited to short attack memory (Common Beliefs) and when workers were last attacked (the worker safety controller's Scoped Beliefs, the current example of the mechanism).
+
+Every component is constructed through its `provide...()` function (`src/execution.ts` holds the Warlord component types). Intentions create their Plans and Controllers through child factories injected by their providers, and discard them when done, e.g. the tower rush discards its plan once the tower position is established.
 
 Assessments are pure functions in `*.assessments.ts`: no state, no Warcraft API access, read-only Beliefs. Broadly useful ones live in `src/beliefs/common.assessments.ts`, feature-specific ones next to their feature. `*.beliefs.ts` keeps only Belief types and revision; Plans and Controllers call assessments instead of interpreting Beliefs themselves.
 
@@ -221,6 +231,7 @@ src/
 ├─ main.ts        startup: installs the bot player, debug mode, starts the runtime
 ├─ runtime.ts     the bot loop
 ├─ actor.ts       Actor type, actor control requests and policy
+├─ execution.ts   Warlord component, Beliefs, and provider types
 ├─ beliefs/       common belief model, observing Warcraft state for decisions, and common assessments
 ├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
 ├─ deliberation/  creates, retains, and drops Intentions
