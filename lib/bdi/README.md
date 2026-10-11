@@ -56,7 +56,7 @@ A model may depend on the Beliefs of other model instances, declared in its `dep
 
 ### Stored versus derived
 
-Store what must persist across cycles or is expensive to derive, such as when something was last seen or attacked. Derive transient views from existing Beliefs with selector functions instead of storing synchronized copies. Prefer referring to entities kept by a common model over copying their state into scoped Beliefs.
+Store what must persist across cycles or is expensive to derive, such as when something was last seen or attacked. Derive transient views from existing Beliefs with pure functions (the agent may call them Assessments) instead of storing synchronized copies. Prefer referring to entities kept by a common model over copying their state into scoped Beliefs.
 
 ### Revision and allocation
 
@@ -115,9 +115,13 @@ reviseBeliefs(models, previous, revised?): BeliefContainer
 ```ts
 readonly beliefModels?: readonly AnyBeliefModel[]
 activeChildren?(): readonly ExecutionComponent[]
+
+activeComponents(components): ExecutionComponent[]
 ```
 
 Base of `Intention`, `Plan`, and `Controller`. A component declares the models it reads beyond the core ones, and which children are currently active, decided from its own execution state and current Beliefs. A child whose Beliefs would only tell whether it has work should stay active and do nothing.
+
+`activeComponents` lists the components and all their active descendants, parents first: the active execution graph used both to collect belief models and to release actor control of inactive sources.
 
 ### `Desire`
 

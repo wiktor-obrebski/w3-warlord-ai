@@ -2,6 +2,8 @@
 
 This document describes the proposed architecture for a new Warcraft III melee bot built from first principles.
 
+It describes the target design, most of which is not implemented yet. What exists today is summarized in the "Current implementation" sections of [`ARCHITECTURE_SITEMAP.md`](ARCHITECTURE_SITEMAP.md).
+
 The goal is not only to create a capable player, but to create an AI that is **maintainable, observable, testable, and able to reason under the same incomplete information available to a human player**.
 
 The bot should be able to:
@@ -777,6 +779,10 @@ Without explicit assignment, resource ownership alone is too coarse.
 Several controllers could each reasonably believe they are responsible for the same unit, causing conflicting movement, duplicated grouping logic, or accidental theft of units from another activity.
 
 Separating strategic ownership from command authority lets the bot preserve long-lived commitments while changing how assigned units are currently being executed.
+
+### Current implementation
+
+Command authority is currently implemented as **Actor Control**: an **Actor** is any entity the bot can order through the Warcraft III API, such as a unit or building. A Plan or Controller requests control of an Actor before ordering it and holds it as a lease that it renews on each update; an emergency controller such as worker safety requests preemptively to override normal control. Strategic ownership, execution roles, and Resource Arbitration do not exist yet: Plans and Controllers still pick the Actors they request themselves. See [Actor Control in `@lib/bdi`](../lib/bdi/README.md#actor-control).
 
 ---
 

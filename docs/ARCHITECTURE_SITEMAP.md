@@ -52,12 +52,12 @@ Technical architecture
 ### Concepts
 
 * **TypeScript** — Primary implementation language for domain and architecture code.
-* **AI-compatible Lua** — Generated deployment artifact executed by Warcraft III's AI runtime.
+* **AI-compatible Lua** — Generated Lua 5.3 bundle, a deployment artifact executed as part of a Warcraft III Lua map script.
 * **Runtime wrapper** — Maintained Lua template that embeds the bundle in a map script, sandboxes one bundle instance per bot, and provides globals such as `guard`.
-* **Compatibility layer** — Small audited bridge exposing only to TypeScript only APIs known to work safely in AI scripts.
+* **Compatibility layer** — Scoped, manually maintained declarations of the Warcraft natives the project uses (`@lib/warcraft3-api`), compiled to plain global calls by the project's TSTL plugin. A declaration alone does not prove runtime support.
 * **Observe boundary** — Warcraft-facing boundary through which legitimate game information enters the reasoning system.
 * **Execute boundary** — Warcraft-facing boundary through which selected actions affect the game.
-* **Runtime** — Runs and manages the bot loop for one player, orchestrating the mind each tick; owns all belief state and the active Intentions. Debug mode is not part of it.
+* **Runtime** — Runs and manages the bot loop for one player, orchestrating the mind each tick; owns all belief state, the active Intentions, and actor control. Debug mode is not part of it.
 * **Belief runtime** — Finds the belief models the active execution graph requires, revises them in dependency order, and produces the immutable belief snapshot for the tick.
 * **Actor control arbiter** — Tracks which Plan or Controller controls each Actor and with what request; runs each Plan and Controller update with an actor control provider scoped to it, expires unrenewed claims after the update, and releases claims of sources that left the active execution graph. Whether a request takes an Actor is decided by the bot's actor control policy, not by the arbiter.
 * **Actor control policy** — The bot's rule for granting or refusing a request for an Actor held by another source or by none (`actorControlPolicy` in `src/actor.ts`).
@@ -197,21 +197,35 @@ Mind architecture
 The implemented subset is a first BDI iteration:
 
 ```text
-Beliefs → Assessments → Desires → Deliberation → Intentions → Plans & Controllers → direct Warcraft orders
+Beliefs + Desires → Deliberation → Intentions → Plans & Controllers
+                                                  ├─ read Beliefs through Assessments
+                                                  └─ order Actors under Actor Control → Warcraft orders
 ```
 
-Beliefs are split into belief models: the common model (`src/beliefs/common.beliefs.ts`) holds broadly useful game knowledge, and features define scoped models next to the components that declare them (`*.beliefs.ts`). Belief state belongs to model instances and is owned by the runtime; Intentions, Plans, and Controllers keep only execution state.
+Beliefs are split into belief models: the common model (`src/beliefs/common.beliefs.ts`) holds broadly useful game knowledge, and features define scoped models next to the components that declare them (`*.beliefs.ts`). Belief state belongs to model instances and is owned by the runtime; Intentions, Plans, and Controllers keep only execution state. Perception is not a separate layer: each belief model's `observe()` reads Warcraft state. Retained beliefs are limited to short attack memory (common Beliefs) and when workers were last attacked (worker safety Beliefs).
 
 Assessments are pure functions in `*.assessments.ts`: no state, no Warcraft API access, read-only Beliefs. Broadly useful ones live in `src/beliefs/common.assessments.ts`, feature-specific ones next to their feature. `*.beliefs.ts` keeps only Belief types and revision; Plans and Controllers call assessments instead of interpreting Beliefs themselves.
 
+The Desires are held for the whole game, and Deliberation maps them to Intentions with a fixed policy:
+
 ```text
-src/
-├─ beliefs/       common belief model, observing Warcraft state for decisions, and common assessments
-├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
-├─ deliberation/  creates, retains, and drops Intentions
-└─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
+ProtectEconomicAssets        → MaintainWorkerSafety → WorkerSafetyController
+ApplyPressure                → TowerRush            → EstablishTowerPositionPlan, TowerRushEconomyController, TowerMaintenanceController
+UseMilitaryAssetsEffectively → OperateTowers        → TowerTargetSelectionController (once the tower position is established)
 ```
 
 Before ordering an Actor, every Plan and Controller requests Actor Control for it and orders it only when granted. Normal sources request each update the Actors they need; worker safety requests attacked workers preemptively until they are safe again, then lets control expire so their previous controller can request them back. Control decides only who may order an Actor now, not which Intention the Actor belongs to.
 
-Not yet implemented: canonical unit ids, inferred beliefs, goal evaluation, Command Arbitration, Unit Assignment, Intention Scheduling, and strategic navigation. Plans and Controllers still issue Warcraft orders directly.
+```text
+src/
+├─ main.ts        startup: installs the bot player, debug mode, starts the runtime
+├─ runtime.ts     the bot loop
+├─ actor.ts       Actor type, actor control requests and policy
+├─ beliefs/       common belief model, observing Warcraft state for decisions, and common assessments
+├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
+├─ deliberation/  creates, retains, and drops Intentions
+├─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
+└─ privileged/    installation and debug-mode code beyond normal gameplay
+```
+
+Not yet implemented: canonical unit ids, inferred beliefs, provenance and uncertainty, goal evaluation, Resource Arbitration, Unit Assignment, Command Arbitration, Intention Scheduling, execution monitoring, and strategic navigation. Plans and Controllers still issue Warcraft orders directly rather than through Actions.

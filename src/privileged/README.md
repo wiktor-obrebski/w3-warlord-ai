@@ -7,8 +7,8 @@ only for **installation**, **debug mode** and **automated tests**.
 ## Rules
 
 * Only the startup entry point (`src/main.ts`) and automated tests may import
-  from this directory. Gameplay code (perception, reasoning, strategies,
-  actions) must not.
+  from this directory. Gameplay code (the runtime, beliefs, deliberation,
+  intentions, plans, and controllers) must not.
 * Warcraft APIs needed only here are declared in
   `@lib/warcraft3-api/privileged`, so their use outside this directory is easy
   to spot. Gameplay code must not import that module either.

@@ -119,8 +119,8 @@ The project does not yet use automated tests.
 
 For now:
 
-* Run `npm run lint && npm run typecheck` after meaningful source, configuration, or runtime-wrapper changes. It linting sources and validating TypeScript and packages the Lua output; a successful build does not prove Warcraft runtime compatibility.
-* For changes to runtime glue or uncertain Warcraft APIs, build new bundle `npm rm bundle` and ask user for a focused in-game probe and distinguish actual observations from assumptions.
+* Run `npm run lint && npm run typecheck` after meaningful source, configuration, or runtime-wrapper changes. They lint the sources and type-check them through TSTL without emitting Lua; passing them does not prove Warcraft runtime compatibility.
+* For changes to runtime glue or uncertain Warcraft APIs, build a new bundle with `npm run bundle`, ask the user for a focused in-game probe, and distinguish actual observations from assumptions.
 
 Do not introduce a testing framework or new test infrastructure unless explicitly requested.
 
