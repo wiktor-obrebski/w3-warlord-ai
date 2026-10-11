@@ -2,10 +2,10 @@ import type {
   ActorControlPolicy,
   ActorControlProvider,
 } from "./actor-control";
-import type { ExecutionComponent } from "./execution-component";
 
+// A source is the Plan or Controller instance being updated.
 interface Claim<TRequest> {
-  holder: ExecutionComponent;
+  holder: object;
   // The request that granted the claim or last renewed it.
   request: TRequest;
   // The number of the holder's update that last granted or renewed the claim.
@@ -23,7 +23,7 @@ export interface ActorControlArbiter<TActor, TRequest> {
    * claims not renewed during the update expire when it ends.
    */
   update(
-    source: ExecutionComponent,
+    source: object,
     run: (control: ActorControlProvider<TActor, TRequest>) => void,
   ): void;
 
@@ -31,7 +31,7 @@ export interface ActorControlArbiter<TActor, TRequest> {
    * Releases the claims of sources no longer active, which will not update
    * again to let them expire.
    */
-  releaseInactive(activeSources: readonly ExecutionComponent[]): void;
+  releaseInactive(activeSources: ReadonlySet<object>): void;
 }
 
 export function createActorControlArbiter<TActor, TRequest>(
@@ -41,7 +41,7 @@ export function createActorControlArbiter<TActor, TRequest>(
   let updateCount = 0;
 
   const requestControl = (
-    requester: ExecutionComponent,
+    requester: object,
     updateNumber: number,
     actor: TActor,
     request: TRequest,
@@ -101,7 +101,7 @@ export function createActorControlArbiter<TActor, TRequest>(
     },
 
     releaseInactive(activeSources) {
-      releaseClaims((claim) => !activeSources.includes(claim.holder));
+      releaseClaims((claim) => !activeSources.has(claim.holder));
     },
   };
 }

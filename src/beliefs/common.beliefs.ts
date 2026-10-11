@@ -9,7 +9,7 @@ import * as W3UndeadApi from "@lib/warcraft3-api/undead";
 import * as W3RectApi from "@lib/warcraft3-api/rect";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import * as W3OrcApi from "@lib/warcraft3-api/orc";
-import { BeliefModel } from "@lib/bdi";
+import { CommonBeliefsModel } from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
 import {
   ObservedAttack,
@@ -140,21 +140,17 @@ export interface CommonBeliefs extends ObservedWorld {
   readonly recentAttacks: readonly ObservedAttack[];
 }
 
-export type CommonBeliefModel = BeliefModel<CommonObservation, CommonBeliefs>;
-
 /**
- * The bot's core belief model, kept revised by the runtime every tick
- * whether or not an execution component declares it.
+ * Maintains the Common Beliefs every component reads, revised by the runtime
+ * at the start of every tick.
  */
-export function createCommonBeliefModel(
+export function createCommonBeliefsModel(
   bot: W3PlayerApi.player,
-): CommonBeliefModel {
+): CommonBeliefsModel<CommonObservation, CommonBeliefs> {
   const clock = startGameClock();
   const attackObserver = observeAttacksOn(bot, clock);
 
   return {
-    dependencies: undefined,
-
     observe() {
       return {
         world: observeWorld(bot, clock),

@@ -1,11 +1,12 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
 import { ActorControl, NORMAL_REQUEST } from "../../actor";
 import {
-  CommonBeliefModel,
-  CommonBeliefs,
-} from "../../beliefs/common.beliefs";
+  ProvidedComponent,
+  WarlordBeliefs,
+  WarlordController,
+} from "../../execution";
+import { CommonBeliefs } from "../../beliefs/common.beliefs";
 import {
   RankedTarget,
   rankTowerTargets,
@@ -24,20 +25,12 @@ interface TowerTarget {
  * Targets are ranked once for all Guard Towers; each tower then attacks the
  * best one within its own range, so overlapping towers focus the same target.
  */
-export class TowerTargetSelectionController
-  implements Controller<BeliefContainer, ActorControl>
-{
-  private readonly common: CommonBeliefModel;
+class TowerTargetSelectionController implements WarlordController {
   // The last attack order of each Guard Tower, so it is not re-issued while
   // the tower is still carrying it out.
   private towerTargets: TowerTarget[] = [];
 
-  public constructor(common: CommonBeliefModel) {
-    this.common = common;
-  }
-
-  public update(container: Readonly<BeliefContainer>, control: ActorControl) {
-    const beliefs = container.get(this.common);
+  public update({ common: beliefs }: WarlordBeliefs, control: ActorControl) {
     const rankedTargets = rankTowerTargets(beliefs);
 
     this.towerTargets = this.towerTargets.filter((entry) =>
@@ -97,4 +90,8 @@ export class TowerTargetSelectionController
       (entry) => entry.tower !== tower,
     );
   }
+}
+
+export function provideTowerTargetSelectionController(): ProvidedComponent<WarlordController> {
+  return { value: new TowerTargetSelectionController(), children: [] };
 }

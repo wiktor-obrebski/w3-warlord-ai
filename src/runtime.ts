@@ -1,28 +1,17 @@
 import * as W3PlayerApi from "@lib/warcraft3-api/player";
 import * as W3TimerApi from "@lib/warcraft3-api/timer";
 import * as WarlordApi from "@lib/warcraft3-api/warlord";
-import {
-  activeComponents,
-  BeliefContainer,
-  createActorControlArbiter,
-  requiredBeliefModels,
-  reviseBeliefs,
-  UpdateChild,
-} from "@lib/bdi";
+import { createActorControlArbiter, createBeliefsRuntime } from "@lib/bdi";
 import { debug } from "./debug";
-import {
-  Actor,
-  ActorControl,
-  ActorControlRequest,
-  actorControlPolicy,
-} from "./actor";
-import { createCommonBeliefModel } from "./beliefs/common.beliefs";
+import { Actor, ActorControlRequest, actorControlPolicy } from "./actor";
+import { WarlordUpdateChild } from "./execution";
+import { createCommonBeliefsModel } from "./beliefs/common.beliefs";
 import { ApplyPressure } from "./desires/apply-pressure";
 import { ProtectEconomicAssets } from "./desires/protect-economic-assets";
 import { UseMilitaryAssetsEffectively } from "./desires/use-military-assets-effectively";
 import {
   createDeliberation,
-  WarlordIntention,
+  ProvidedIntention,
 } from "./deliberation/deliberation";
 
 const TICK_SECONDS = 0.1;
@@ -37,50 +26,44 @@ const DESIRES = [
  * Runs the bot's BDI loop for one player, from the first tick until the game
  * is won.
  *
- * Each tick revises the common Beliefs, deliberates on them, then revises the
- * scoped Beliefs the resulting Intentions require. The container from that
- * second revision is the tick's snapshot every Intention updates from.
+ * Each tick revises the Common Beliefs, deliberates on them, then makes the
+ * provided Intentions and their children the managed component tree, whose
+ * Scoped Beliefs the beliefs runtime revises before any component updates.
  *
  * Every Plan and Controller update runs through the actor control arbiter,
- * which scopes its control to it; claims of Plans and Controllers that left
- * the active execution graph are released at the end of the tick.
+ * which scopes its control to it; at the end of the tick, components gone
+ * from the tree lose their Scoped Beliefs and control.
  */
 export function startRuntime(bot: W3PlayerApi.player) {
-  const common = createCommonBeliefModel(bot);
-  const coreModels = [common];
-  const deliberation = createDeliberation(common);
+  const beliefs = createBeliefsRuntime(createCommonBeliefsModel(bot));
+  const deliberation = createDeliberation();
   const arbiter = createActorControlArbiter<Actor, ActorControlRequest>(
     actorControlPolicy,
   );
   const loop = W3TimerApi.CreateTimer();
-  let beliefs: BeliefContainer | undefined;
-  let intentions: readonly WarlordIntention[] = [];
+  let intentions: readonly ProvidedIntention[] = [];
+
+  const updateChild: WarlordUpdateChild = (child) =>
+    arbiter.update(child, (control) =>
+      child.update(beliefs.beliefsOf(child), control),
+    );
 
   const tick = () => {
-    const core = reviseBeliefs(coreModels, beliefs);
+    const common = beliefs.reviseCommon();
 
-    if (core.get(common).enemyPlayersPlaying === 0) {
+    if (common.enemyPlayersPlaying === 0) {
       stopLoop(loop);
       return;
     }
 
-    intentions = deliberation.deliberate(core, DESIRES, intentions);
-
-    const current = reviseBeliefs(
-      requiredBeliefModels(intentions),
-      beliefs,
-      core,
-    );
-    beliefs = current;
-
-    const updateChild: UpdateChild<BeliefContainer, ActorControl> = (child) =>
-      arbiter.update(child, (control) => child.update(current, control));
+    intentions = deliberation.deliberate(common, DESIRES, intentions);
+    beliefs.sync(intentions);
 
     for (const intention of intentions) {
-      intention.update(current, updateChild);
+      intention.value.update(beliefs.beliefsOf(intention.value), updateChild);
     }
 
-    arbiter.releaseInactive(activeComponents(intentions));
+    arbiter.releaseInactive(beliefs.prune());
   };
 
   W3TimerApi.TimerStart(loop, TICK_SECONDS, true, WarlordApi.guard(tick));

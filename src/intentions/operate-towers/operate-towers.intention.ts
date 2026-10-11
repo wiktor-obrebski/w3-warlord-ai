@@ -1,41 +1,42 @@
+import { ChildFactory, childFactory } from "@lib/bdi";
 import {
-  BeliefContainer,
-  Controller,
-  Intention,
-  UpdateChild,
-} from "@lib/bdi";
-import { ActorControl } from "../../actor";
-import { CommonBeliefModel } from "../../beliefs/common.beliefs";
+  ProvidedChildren,
+  ProvidedComponent,
+  WarlordBeliefs,
+  WarlordController,
+  WarlordIntention,
+  WarlordUpdateChild,
+} from "../../execution";
 import { UpdateInterval } from "../update-interval";
-import { TowerTargetSelectionController } from "./tower-target-selection.ctrl";
+import { provideTowerTargetSelectionController } from "./tower-target-selection.ctrl";
 
 const UPDATE_SECONDS = 1;
 
 /** Directs the fire of the bot's Guard Towers. */
-export class OperateTowersIntention
-  implements Intention<BeliefContainer, ActorControl>
-{
-  private readonly common: CommonBeliefModel;
+class OperateTowersIntention implements WarlordIntention {
   private readonly interval = new UpdateInterval(UPDATE_SECONDS);
-  private readonly targetSelection: TowerTargetSelectionController;
-  private readonly children: readonly Controller<BeliefContainer, ActorControl>[];
+  private readonly createTargetSelection: ChildFactory<WarlordController>;
+  private targetSelection: WarlordController | null = null;
 
-  public constructor(common: CommonBeliefModel) {
-    this.common = common;
-    this.targetSelection = new TowerTargetSelectionController(common);
-    this.children = [this.targetSelection];
+  public constructor(createTargetSelection: ChildFactory<WarlordController>) {
+    this.createTargetSelection = createTargetSelection;
   }
 
-  public activeChildren(): readonly Controller<BeliefContainer, ActorControl>[] {
-    return this.children;
-  }
-
-  public update(
-    beliefs: Readonly<BeliefContainer>,
-    updateChild: UpdateChild<BeliefContainer, ActorControl>,
-  ) {
-    if (this.interval.claim(beliefs.get(this.common).time)) {
+  public update(beliefs: WarlordBeliefs, updateChild: WarlordUpdateChild) {
+    if (this.interval.claim(beliefs.common.time)) {
+      this.targetSelection ??= this.createTargetSelection().value;
       updateChild(this.targetSelection);
     }
   }
+}
+
+export function provideOperateTowersIntention(): ProvidedComponent<WarlordIntention> {
+  const children: ProvidedChildren = [];
+
+  return {
+    value: new OperateTowersIntention(
+      childFactory(children, provideTowerTargetSelectionController),
+    ),
+    children,
+  };
 }

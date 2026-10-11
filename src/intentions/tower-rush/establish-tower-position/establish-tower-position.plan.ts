@@ -1,8 +1,12 @@
-import { BeliefContainer, Plan, PlanStatus } from "@lib/bdi";
+import { PlanStatus } from "@lib/bdi";
 import { Point } from "@lib/math";
 import { debug } from "../../../debug";
 import { ActorControl } from "../../../actor";
-import { CommonBeliefModel } from "../../../beliefs/common.beliefs";
+import {
+  ProvidedComponent,
+  WarlordBeliefs,
+  WarlordPlan,
+} from "../../../execution";
 import { TowerRushState } from "../tower-rush.state";
 import { updateStart } from "./start";
 import { createMoveForwardState, updateMoveForward } from "./move-forward";
@@ -24,10 +28,12 @@ enum Step {
  * Each step requests the Actors it orders, so the plan's control moves with
  * the step: e.g. the forward Peasants are released once the towers are built.
  */
-export class EstablishTowerPositionPlan
-  implements Plan<BeliefContainer, ActorControl>
-{
-  private readonly common: CommonBeliefModel;
+export interface EstablishTowerPositionPlan extends WarlordPlan {
+  /** Whether building the rush towers has finished. */
+  readonly towersBuilt: boolean;
+}
+
+class EstablishTowerPosition implements EstablishTowerPositionPlan {
   private readonly rush: TowerRushState;
   private currentStatus: PlanStatus = "running";
   private step = Step.Start;
@@ -36,8 +42,7 @@ export class EstablishTowerPositionPlan
   // Where the rush towers stood when BuildTowers ended.
   private towerPositions: Point[] = [];
 
-  public constructor(common: CommonBeliefModel, rush: TowerRushState) {
-    this.common = common;
+  public constructor(rush: TowerRushState) {
     this.rush = rush;
   }
 
@@ -45,17 +50,14 @@ export class EstablishTowerPositionPlan
     return this.currentStatus;
   }
 
-  /** Whether building the rush towers has finished. */
   public get towersBuilt(): boolean {
     return this.step === Step.UpgradeTowers;
   }
 
-  public update(container: Readonly<BeliefContainer>, control: ActorControl) {
+  public update({ common: beliefs }: WarlordBeliefs, control: ActorControl) {
     if (this.currentStatus !== "running") {
       throw new Error("Establish tower position: updated after it ended.");
     }
-
-    const beliefs = container.get(this.common);
 
     switch (this.step) {
       case Step.Start:
@@ -99,4 +101,10 @@ export class EstablishTowerPositionPlan
     debug(`Establish tower position: ${Step[this.step]} -> ${Step[next]}`);
     this.step = next;
   }
+}
+
+export function provideEstablishTowerPositionPlan(
+  rush: TowerRushState,
+): ProvidedComponent<EstablishTowerPositionPlan> {
+  return { value: new EstablishTowerPosition(rush), children: [] };
 }

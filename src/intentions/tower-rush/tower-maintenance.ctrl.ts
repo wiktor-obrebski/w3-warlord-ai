@@ -1,11 +1,12 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
 import { ActorControl } from "../../actor";
 import {
-  CommonBeliefModel,
-  CommonBeliefs,
-} from "../../beliefs/common.beliefs";
+  ProvidedComponent,
+  WarlordBeliefs,
+  WarlordController,
+} from "../../execution";
+import { CommonBeliefs } from "../../beliefs/common.beliefs";
 import {
   lifeFractionOf,
   mostDamagedUnit,
@@ -31,21 +32,16 @@ const REPAIR_SWITCH_LIFE_FRACTION = 0.8;
  * tower is built, so a tower's life fraction reflects damage, not build
  * progress.
  */
-export class TowerMaintenanceController
-  implements Controller<BeliefContainer, ActorControl>
-{
-  private readonly common: CommonBeliefModel;
+class TowerMaintenanceController implements WarlordController {
   private readonly rush: TowerRushState;
   // The tower the forward Peasants are repairing.
   private repairTarget: W3UnitApi.unit | undefined;
 
-  public constructor(common: CommonBeliefModel, rush: TowerRushState) {
-    this.common = common;
+  public constructor(rush: TowerRushState) {
     this.rush = rush;
   }
 
-  public update(container: Readonly<BeliefContainer>, control: ActorControl) {
-    const beliefs = container.get(this.common);
+  public update({ common: beliefs }: WarlordBeliefs, control: ActorControl) {
     const enemyMain = beliefs.enemyStartPosition;
 
     if (!enemyMain) {
@@ -79,6 +75,12 @@ export class TowerMaintenanceController
       }
     }
   }
+}
+
+export function provideTowerMaintenanceController(
+  rush: TowerRushState,
+): ProvidedComponent<WarlordController> {
+  return { value: new TowerMaintenanceController(rush), children: [] };
 }
 
 function chooseRepairTarget(

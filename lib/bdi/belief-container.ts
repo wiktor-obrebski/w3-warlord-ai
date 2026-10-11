@@ -1,47 +1,104 @@
-import type { AnyBeliefModel } from "./belief-model";
+import type { AnyBeliefsModel } from "./beliefs-model";
 
 /**
- * The current Beliefs of every active belief model instance.
- *
- * A container is immutable: the belief runtime creates a new one each time it
- * revises Beliefs, so a container handed to execution components stays the
- * same for the rest of the tick.
+ * A component's Scoped Beliefs and the model that maintains them.
  */
-export class BeliefContainer {
-  private readonly beliefs: ReadonlyMap<AnyBeliefModel, unknown>;
+export interface ScopedBeliefs<TCommonBeliefs> {
+  /** Null until the component's first revision. */
+  readonly beliefs: unknown;
+  readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
+}
 
-  /**
-   * Takes ownership of `beliefs`, which must not be changed afterwards.
-   */
-  public constructor(beliefs: ReadonlyMap<AnyBeliefModel, unknown>) {
-    this.beliefs = beliefs;
-  }
+/**
+ * The agent's belief state: the Common Beliefs, and the Scoped Beliefs of
+ * every component that has them, indexed by the component instance.
+ *
+ * The container only stores state; the beliefs runtime decides when it is
+ * revised, registered, and removed.
+ */
+export interface BeliefContainer<TCommonBeliefs> {
+  hasCommonBeliefs(): boolean;
 
-  /**
-   * Whether the container holds Beliefs of the model instance.
-   */
-  public has(model: AnyBeliefModel): boolean {
-    return this.beliefs.has(model);
-  }
+  /** Throws before the Common Beliefs were first revised. */
+  getCommonBeliefs(): Readonly<TCommonBeliefs>;
 
-  /**
-   * Calls `callback` with every model instance the container holds Beliefs of.
-   */
-  public forEachModel(callback: (model: AnyBeliefModel) => void) {
-    for (const model of this.beliefs.keys()) {
-      callback(model);
+  setCommonBeliefs(beliefs: TCommonBeliefs): void;
+
+  hasScopedBeliefs(component: object): boolean;
+
+  /** Throws for a component without registered Scoped Beliefs. */
+  getScopedBeliefs(component: object): ScopedBeliefs<TCommonBeliefs>;
+
+  /** Registers the component with no Beliefs yet. */
+  registerScopedBeliefs(
+    component: object,
+    beliefsModel: AnyBeliefsModel<TCommonBeliefs>,
+  ): void;
+
+  setScopedBeliefs(component: object, beliefs: unknown): void;
+
+  removeScopedBeliefs(component: object): void;
+
+  /** The components with registered Scoped Beliefs, as a new list. */
+  scopedComponents(): object[];
+}
+
+interface ScopedEntry<TCommonBeliefs> {
+  beliefs: unknown;
+  readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
+}
+
+export function createBeliefContainer<
+  TCommonBeliefs,
+>(): BeliefContainer<TCommonBeliefs> {
+  let common: TCommonBeliefs | null = null;
+  const scoped = new Map<object, ScopedEntry<TCommonBeliefs>>();
+
+  const scopedEntry = (component: object) => {
+    const entry = scoped.get(component);
+
+    if (!entry) {
+      throw new Error("Beliefs: component has no Scoped Beliefs.");
     }
-  }
 
-  /**
-   * The current Beliefs of the model instance. Throws when the model was not
-   * active, i.e. not declared by any active execution component.
-   */
-  public get<TBeliefs>(model: AnyBeliefModel<TBeliefs>): Readonly<TBeliefs> {
-    if (!this.beliefs.has(model)) {
-      throw new Error("Beliefs: belief model is not active.");
-    }
+    return entry;
+  };
 
-    return this.beliefs.get(model) as TBeliefs;
-  }
+  return {
+    hasCommonBeliefs: () => common !== null,
+
+    getCommonBeliefs() {
+      if (common === null) {
+        throw new Error("Beliefs: Common Beliefs not revised yet.");
+      }
+
+      return common;
+    },
+
+    setCommonBeliefs(beliefs) {
+      common = beliefs;
+    },
+
+    hasScopedBeliefs: (component) => scoped.has(component),
+
+    getScopedBeliefs: (component) => scopedEntry(component),
+
+    registerScopedBeliefs(component, beliefsModel) {
+      if (scoped.has(component)) {
+        throw new Error("Beliefs: component already registered.");
+      }
+
+      scoped.set(component, { beliefs: null, beliefsModel });
+    },
+
+    setScopedBeliefs(component, beliefs) {
+      scopedEntry(component).beliefs = beliefs;
+    },
+
+    removeScopedBeliefs(component) {
+      scoped.delete(component);
+    },
+
+    scopedComponents: () => [...scoped.keys()],
+  };
 }

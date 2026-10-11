@@ -1,17 +1,20 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
-import { AnyBeliefModel, BeliefContainer, Controller } from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
 import { debug } from "../../debug";
 import { ActorControl, PREEMPTIVE_REQUEST } from "../../actor";
 import {
-  CommonBeliefModel,
-  CommonBeliefs,
-  OwnUnit,
-} from "../../beliefs/common.beliefs";
+  ProvidedComponent,
+  WarlordBeliefs,
+  WarlordController,
+} from "../../execution";
+import { CommonBeliefs, OwnUnit } from "../../beliefs/common.beliefs";
 import { isRecentlyAttacked } from "../../beliefs/common.assessments";
-import { WorkerSafetyBeliefModel } from "./worker-safety.beliefs";
+import {
+  WorkerSafetyBeliefs,
+  workerSafetyBeliefsModel,
+} from "./worker-safety.beliefs";
 import {
   needsAttackProtection,
   nearbyThreats,
@@ -32,31 +35,23 @@ interface FleeRound {
 }
 
 /**
- * Attacked workers run away from the nearby enemy force.
+ * Attacked workers run away from the nearby enemy force. When each worker was
+ * last attacked is kept in the controller's Scoped Beliefs.
  *
  * From the first attack until the worker is safe again, worker safety holds
  * preemptive control of it, taking it from whatever controlled it before, and
  * releases it by no longer requesting it. While recovering, the worker is not
  * ordered at all.
  */
-export class WorkerSafetyController
-  implements Controller<BeliefContainer, ActorControl>
+class WorkerSafetyController
+  implements WarlordController<WorkerSafetyBeliefs>
 {
-  public readonly beliefModels: readonly AnyBeliefModel[];
-  private readonly common: CommonBeliefModel;
-  private readonly safetyBeliefs: WorkerSafetyBeliefModel;
   private readonly fleeRounds = new Map<W3UnitApi.unit, FleeRound>();
 
-  public constructor(common: CommonBeliefModel) {
-    this.common = common;
-    this.safetyBeliefs = new WorkerSafetyBeliefModel(common);
-    this.beliefModels = [this.safetyBeliefs];
-  }
-
-  public update(container: Readonly<BeliefContainer>, control: ActorControl) {
-    const beliefs = container.get(this.common);
-    const safety = container.get(this.safetyBeliefs);
-
+  public update(
+    { common: beliefs, scoped: safety }: WarlordBeliefs<WorkerSafetyBeliefs>,
+    control: ActorControl,
+  ) {
     for (const worker of beliefs.workers) {
       const isUnsafe =
         this.fleeRounds.has(worker.unit) ||
@@ -114,6 +109,16 @@ export class WorkerSafetyController
       this.fleeRounds.delete(worker);
     }
   }
+}
+
+export function provideWorkerSafetyController(): ProvidedComponent<
+  WarlordController<WorkerSafetyBeliefs>
+> {
+  return {
+    value: new WorkerSafetyController(),
+    beliefsModel: workerSafetyBeliefsModel,
+    children: [],
+  };
 }
 
 // An unreachable destination ends the move short of it, leaving the worker

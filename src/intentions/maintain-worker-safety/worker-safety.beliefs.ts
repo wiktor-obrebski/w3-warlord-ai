@@ -1,5 +1,5 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { AnyBeliefModel, BeliefDependencies, BeliefModel } from "@lib/bdi";
+import { BeliefsModel } from "@lib/bdi";
 import { CommonBeliefs } from "../../beliefs/common.beliefs";
 import { isRecentlyAttacked } from "../../beliefs/common.assessments";
 
@@ -14,31 +14,22 @@ export interface WorkerSafetyBeliefs {
   readonly lastAttackedAt: ReadonlyMap<W3UnitApi.unit, number>;
 }
 
-interface Dependencies {
-  common: CommonBeliefs;
-}
-
-/** Which workers were attacked recently enough not to be safe yet. */
-export class WorkerSafetyBeliefModel
-  implements BeliefModel<undefined, WorkerSafetyBeliefs, Dependencies>
-{
-  public readonly dependencies: BeliefDependencies<Dependencies>;
-
-  public constructor(common: AnyBeliefModel<CommonBeliefs>) {
-    this.dependencies = { common };
-  }
-
-  public observe() {
-    return undefined;
-  }
+/**
+ * Which workers were attacked recently enough not to be safe yet. It
+ * observes nothing itself: attacks come from the Common Beliefs.
+ */
+export const workerSafetyBeliefsModel: BeliefsModel<
+  null,
+  WorkerSafetyBeliefs,
+  CommonBeliefs
+> = {
+  observe() {
+    return null;
+  },
 
   // Copied only when an attack is recorded or forgotten, so the beliefs stay
   // the same object while no worker is under attack.
-  public revise(
-    previous: Readonly<WorkerSafetyBeliefs> | undefined,
-    _observation: undefined,
-    { common }: Readonly<Dependencies>,
-  ): WorkerSafetyBeliefs {
+  revise(previous, _observation, common) {
     const known = previous?.lastAttackedAt ?? NO_ATTACKS;
     let revised: Map<W3UnitApi.unit, number> | undefined;
 
@@ -66,5 +57,5 @@ export class WorkerSafetyBeliefModel
     }
 
     return previous ?? { lastAttackedAt: NO_ATTACKS };
-  }
-}
+  },
+};

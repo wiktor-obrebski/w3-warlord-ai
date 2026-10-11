@@ -1,14 +1,18 @@
-import { BeliefContainer, Deliberation, Desire, Intention } from "@lib/bdi";
-import { ActorControl } from "../actor";
-import { CommonBeliefModel } from "../beliefs/common.beliefs";
+import { Deliberation, Desire } from "@lib/bdi";
+import { CommonBeliefs } from "../beliefs/common.beliefs";
+import { ProvidedComponent, WarlordIntention } from "../execution";
 import { ApplyPressure } from "../desires/apply-pressure";
 import { ProtectEconomicAssets } from "../desires/protect-economic-assets";
 import { UseMilitaryAssetsEffectively } from "../desires/use-military-assets-effectively";
-import { MaintainWorkerSafetyIntention } from "../intentions/maintain-worker-safety/maintain-worker-safety.intention";
-import { TowerRushIntention } from "../intentions/tower-rush/tower-rush.intention";
-import { OperateTowersIntention } from "../intentions/operate-towers/operate-towers.intention";
+import { provideMaintainWorkerSafetyIntention } from "../intentions/maintain-worker-safety/maintain-worker-safety.intention";
+import {
+  provideTowerRushIntention,
+  TowerRushIntention,
+} from "../intentions/tower-rush/tower-rush.intention";
+import { provideOperateTowersIntention } from "../intentions/operate-towers/operate-towers.intention";
 
-export type WarlordIntention = Intention<BeliefContainer, ActorControl>;
+/** An Intention as its provider created it. */
+export type ProvidedIntention = ProvidedComponent<WarlordIntention<unknown>>;
 
 /**
  * A fixed policy for now:
@@ -20,55 +24,53 @@ export type WarlordIntention = Intention<BeliefContainer, ActorControl>;
  *
  * Intentions are returned in update order. Worker safety comes first so it
  * takes attacked workers over before the others order them on the same tick.
+ *
+ * Deliberation remembers the Intentions it provided, so it can tell them
+ * apart and read their state; one is retained while it is still active.
  */
-export function createDeliberation(
-  common: CommonBeliefModel,
-): Deliberation<BeliefContainer, Desire, WarlordIntention> {
+export function createDeliberation(): Deliberation<
+  CommonBeliefs,
+  Desire,
+  ProvidedIntention
+> {
+  let workerSafety: ProvidedIntention | null = null;
+  let towerRush: ProvidedComponent<TowerRushIntention> | null = null;
+  let operateTowers: ProvidedIntention | null = null;
+
   return {
     deliberate(_beliefs, desires, intentions) {
-      const active: WarlordIntention[] = [];
-      let towerRush: TowerRushIntention | undefined;
+      const retained = <T extends ProvidedIntention>(intention: T | null) =>
+        intention !== null && intentions.includes(intention) ? intention : null;
+      const active: ProvidedIntention[] = [];
 
-      if (desires.includes(ProtectEconomicAssets)) {
-        active.push(
-          find(intentions, MaintainWorkerSafetyIntention) ??
-            new MaintainWorkerSafetyIntention(common),
-        );
+      workerSafety = desires.includes(ProtectEconomicAssets)
+        ? (retained(workerSafety) ?? provideMaintainWorkerSafetyIntention())
+        : null;
+      towerRush = desires.includes(ApplyPressure)
+        ? (retained(towerRush) ?? provideTowerRushIntention())
+        : null;
+      operateTowers = desires.includes(UseMilitaryAssetsEffectively)
+        ? (retained(operateTowers) ??
+          (towerRush?.value.positionEstablished
+            ? provideOperateTowersIntention()
+            : null))
+        : null;
+
+      // Pushed one by one: in Lua, null elements of an array literal leave
+      // holes that end iteration early.
+      if (workerSafety) {
+        active.push(workerSafety);
       }
 
-      if (desires.includes(ApplyPressure)) {
-        towerRush =
-          find(intentions, TowerRushIntention) ??
-          new TowerRushIntention(common);
+      if (towerRush) {
         active.push(towerRush);
       }
 
-      if (desires.includes(UseMilitaryAssetsEffectively)) {
-        const operateTowers =
-          find(intentions, OperateTowersIntention) ??
-          (towerRush?.positionEstablished
-            ? new OperateTowersIntention(common)
-            : undefined);
-
-        if (operateTowers) {
-          active.push(operateTowers);
-        }
+      if (operateTowers) {
+        active.push(operateTowers);
       }
 
       return active;
     },
   };
-}
-
-function find<T extends WarlordIntention>(
-  intentions: readonly WarlordIntention[],
-  type: new (...args: never[]) => T,
-): T | undefined {
-  for (const intention of intentions) {
-    if (intention instanceof type) {
-      return intention;
-    }
-  }
-
-  return undefined;
 }
