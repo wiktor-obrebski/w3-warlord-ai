@@ -4,6 +4,7 @@ import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
 import { AnyBeliefModel, BeliefContainer, Controller } from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
 import { debug } from "../../debug";
+import { Actor, ActorControl } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -58,7 +59,7 @@ interface FleeRound {
 
 /** Attacked workers run away from the nearby enemy force. */
 export class WorkerSafetyController
-  implements Controller<BeliefContainer>, WorkerSafety
+  implements Controller<BeliefContainer, Actor>, WorkerSafety
 {
   public readonly beliefModels: readonly AnyBeliefModel[];
   private readonly common: CommonBeliefModel;
@@ -71,7 +72,7 @@ export class WorkerSafetyController
     this.beliefModels = [this.safetyBeliefs];
   }
 
-  public update(container: Readonly<BeliefContainer>) {
+  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
     const beliefs = container.get(this.common);
 
     for (const worker of beliefs.workers) {

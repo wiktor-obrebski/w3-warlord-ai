@@ -1,5 +1,11 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { BeliefContainer, Controller, Intention } from "@lib/bdi";
+import {
+  BeliefContainer,
+  Controller,
+  Intention,
+  UpdateChild,
+} from "@lib/bdi";
+import { Actor } from "../../actor";
 import { CommonBeliefModel } from "../../beliefs/common.beliefs";
 import {
   WorkerSafety,
@@ -9,22 +15,25 @@ import {
 
 /** Keeps attacked workers out of harm's way, every bot tick. */
 export class MaintainWorkerSafetyIntention
-  implements Intention<BeliefContainer>, WorkerSafety
+  implements Intention<BeliefContainer, Actor>, WorkerSafety
 {
   private readonly workerSafety: WorkerSafetyController;
-  private readonly children: readonly Controller<BeliefContainer>[];
+  private readonly children: readonly Controller<BeliefContainer, Actor>[];
 
   public constructor(common: CommonBeliefModel) {
     this.workerSafety = new WorkerSafetyController(common);
     this.children = [this.workerSafety];
   }
 
-  public activeChildren(): readonly Controller<BeliefContainer>[] {
+  public activeChildren(): readonly Controller<BeliefContainer, Actor>[] {
     return this.children;
   }
 
-  public update(beliefs: Readonly<BeliefContainer>) {
-    this.workerSafety.update(beliefs);
+  public update(
+    _beliefs: Readonly<BeliefContainer>,
+    updateChild: UpdateChild<BeliefContainer, Actor>,
+  ) {
+    updateChild(this.workerSafety);
   }
 
   public statusOf(

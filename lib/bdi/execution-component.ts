@@ -2,10 +2,8 @@ import type { AnyBeliefModel } from "./belief-model";
 
 /**
  * Common shape of Intentions, Plans, and Controllers, through which the
- * belief runtime finds which belief models are needed.
- *
- * The runtime walks the active Intentions and their active children and keeps
- * every belief model they declare, and those models' dependencies, revised.
+ * runtime finds the active execution graph: which belief models it needs and
+ * which sources may hold actor control.
  */
 export interface ExecutionComponent {
   /**
@@ -22,4 +20,27 @@ export interface ExecutionComponent {
    * nothing instead.
    */
   activeChildren?(): readonly ExecutionComponent[];
+}
+
+/**
+ * The components and all their active descendants, parents first.
+ */
+export function activeComponents(
+  components: readonly ExecutionComponent[],
+): ExecutionComponent[] {
+  const active: ExecutionComponent[] = [];
+
+  const visit = (component: ExecutionComponent) => {
+    active.push(component);
+
+    for (const child of component.activeChildren?.() ?? []) {
+      visit(child);
+    }
+  };
+
+  for (const component of components) {
+    visit(component);
+  }
+
+  return active;
 }

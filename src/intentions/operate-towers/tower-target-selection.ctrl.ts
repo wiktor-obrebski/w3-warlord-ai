@@ -1,6 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
+import { Actor, ActorControl } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -24,7 +25,7 @@ interface TowerTarget {
  * best one within its own range, so overlapping towers focus the same target.
  */
 export class TowerTargetSelectionController
-  implements Controller<BeliefContainer>
+  implements Controller<BeliefContainer, Actor>
 {
   private readonly common: CommonBeliefModel;
   // The last attack order of each Guard Tower, so it is not re-issued while
@@ -35,7 +36,7 @@ export class TowerTargetSelectionController
     this.common = common;
   }
 
-  public update(container: Readonly<BeliefContainer>) {
+  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
     const beliefs = container.get(this.common);
     const rankedTargets = rankTowerTargets(beliefs);
 

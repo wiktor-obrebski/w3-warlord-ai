@@ -1,6 +1,9 @@
 import type { AnyBeliefModel } from "./belief-model";
 import { BeliefContainer } from "./belief-container";
-import type { ExecutionComponent } from "./execution-component";
+import {
+  activeComponents,
+  type ExecutionComponent,
+} from "./execution-component";
 
 /**
  * The belief models declared by the components and all their active
@@ -12,21 +15,13 @@ export function requiredBeliefModels(
   const models: AnyBeliefModel[] = [];
   const found = new Set<AnyBeliefModel>();
 
-  const visit = (component: ExecutionComponent) => {
+  for (const component of activeComponents(components)) {
     for (const model of component.beliefModels ?? []) {
       if (!found.has(model)) {
         found.add(model);
         models.push(model);
       }
     }
-
-    for (const child of component.activeChildren?.() ?? []) {
-      visit(child);
-    }
-  };
-
-  for (const component of components) {
-    visit(component);
   }
 
   return models;

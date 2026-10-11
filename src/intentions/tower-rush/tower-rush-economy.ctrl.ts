@@ -3,6 +3,7 @@ import * as W3HumanApi from "@lib/warcraft3-api/human";
 import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
 import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
+import { Actor, ActorControl } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -40,7 +41,7 @@ const WORKER_TARGET_STAGES: WorkerTargets[] = [
 
 /** The home economy that funds the tower rush. */
 export class TowerRushEconomyController
-  implements Controller<BeliefContainer>
+  implements Controller<BeliefContainer, Actor>
 {
   private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;
@@ -56,7 +57,7 @@ export class TowerRushEconomyController
     this.workerSafety = workerSafety;
   }
 
-  public update(container: Readonly<BeliefContainer>) {
+  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
     const beliefs = container.get(this.common);
     const isSafe = (worker: W3UnitApi.unit) =>
       isWorkerSafe(this.workerSafety, worker, container);

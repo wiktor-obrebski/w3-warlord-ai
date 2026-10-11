@@ -1,4 +1,14 @@
+import type { Controller } from "./controller";
 import type { ExecutionComponent } from "./execution-component";
+import type { Plan } from "./plan";
+
+/**
+ * Updates one of an Intention's Plans or Controllers with the cycle's
+ * Beliefs and actor control scoped to that child.
+ */
+export type UpdateChild<TBeliefs, TActor> = (
+  child: Plan<TBeliefs, TActor> | Controller<TBeliefs, TActor>,
+) => void;
 
 /**
  * A concrete commitment the agent is currently pursuing.
@@ -7,9 +17,11 @@ import type { ExecutionComponent } from "./execution-component";
  * success or failure status of its own. It may own Plans, Controllers, and
  * other execution state.
  */
-export interface Intention<TBeliefs> extends ExecutionComponent {
+export interface Intention<TBeliefs, TActor> extends ExecutionComponent {
   /**
-   * Makes progress on the commitment, once per cycle while retained.
+   * Makes progress on the commitment, once per cycle while retained. It
+   * decides which of its children to update, and updates them only through
+   * `updateChild`.
    */
-  update(beliefs: Readonly<TBeliefs>): void;
+  update(beliefs: Readonly<TBeliefs>, updateChild: UpdateChild<TBeliefs, TActor>): void;
 }

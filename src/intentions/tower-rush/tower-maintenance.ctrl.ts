@@ -1,6 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { BeliefContainer, Controller } from "@lib/bdi";
 import { debug } from "../../debug";
+import { Actor, ActorControl } from "../../actor";
 import {
   CommonBeliefModel,
   CommonBeliefs,
@@ -32,7 +33,7 @@ const REPAIR_SWITCH_LIFE_FRACTION = 0.8;
  * progress.
  */
 export class TowerMaintenanceController
-  implements Controller<BeliefContainer>
+  implements Controller<BeliefContainer, Actor>
 {
   private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;
@@ -50,7 +51,7 @@ export class TowerMaintenanceController
     this.workerSafety = workerSafety;
   }
 
-  public update(container: Readonly<BeliefContainer>) {
+  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
     const beliefs = container.get(this.common);
     const enemyMain = beliefs.enemyStartPosition;
 

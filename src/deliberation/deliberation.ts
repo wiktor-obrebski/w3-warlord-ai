@@ -1,4 +1,5 @@
 import { BeliefContainer, Deliberation, Desire, Intention } from "@lib/bdi";
+import { Actor } from "../actor";
 import { CommonBeliefModel } from "../beliefs/common.beliefs";
 import { ApplyPressure } from "../desires/apply-pressure";
 import { ProtectEconomicAssets } from "../desires/protect-economic-assets";
@@ -7,7 +8,7 @@ import { MaintainWorkerSafetyIntention } from "../intentions/maintain-worker-saf
 import { TowerRushIntention } from "../intentions/tower-rush/tower-rush.intention";
 import { OperateTowersIntention } from "../intentions/operate-towers/operate-towers.intention";
 
-export type WarlordIntention = Intention<BeliefContainer>;
+export type WarlordIntention = Intention<BeliefContainer, Actor>;
 
 /**
  * A fixed policy for now:

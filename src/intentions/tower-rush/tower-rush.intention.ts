@@ -1,4 +1,11 @@
-import { BeliefContainer, Controller, Intention, Plan } from "@lib/bdi";
+import {
+  BeliefContainer,
+  Controller,
+  Intention,
+  Plan,
+  UpdateChild,
+} from "@lib/bdi";
+import { Actor } from "../../actor";
 import { CommonBeliefModel } from "../../beliefs/common.beliefs";
 import { WorkerSafety } from "../maintain-worker-safety/worker-safety.ctrl";
 import { UpdateInterval } from "../update-interval";
@@ -10,14 +17,16 @@ import { TowerMaintenanceController } from "./tower-maintenance.ctrl";
 
 const UPDATE_SECONDS = 1;
 
-type TowerRushChild = Plan<BeliefContainer> | Controller<BeliefContainer>;
+type TowerRushChild =
+  | Plan<BeliefContainer, Actor>
+  | Controller<BeliefContainer, Actor>;
 
 /**
  * Commitment to a Human tower rush: Guard Towers established next to the
  * enemy main, funded by a home economy and kept repaired by the forward
  * workers.
  */
-export class TowerRushIntention implements Intention<BeliefContainer> {
+export class TowerRushIntention implements Intention<BeliefContainer, Actor> {
   private readonly common: CommonBeliefModel;
   private readonly interval = new UpdateInterval(UPDATE_SECONDS);
   private readonly rush = createTowerRushState();
@@ -77,7 +86,10 @@ export class TowerRushIntention implements Intention<BeliefContainer> {
     return children;
   }
 
-  public update(beliefs: Readonly<BeliefContainer>) {
+  public update(
+    beliefs: Readonly<BeliefContainer>,
+    updateChild: UpdateChild<BeliefContainer, Actor>,
+  ) {
     const common = beliefs.get(this.common);
 
     if (!this.interval.claim(common.time)) {
@@ -87,7 +99,7 @@ export class TowerRushIntention implements Intention<BeliefContainer> {
     forgetHidingOfUnsafeWorkers(beliefs, this.rush, this.workerSafety);
 
     for (const child of this.activeChildren()) {
-      child.update(beliefs);
+      updateChild(child);
     }
 
     this.updatedBefore = true;

@@ -1,6 +1,7 @@
 import { BeliefContainer, Plan, PlanStatus } from "@lib/bdi";
 import { Point } from "@lib/math";
 import { debug } from "../../../debug";
+import { Actor, ActorControl } from "../../../actor";
 import { CommonBeliefModel } from "../../../beliefs/common.beliefs";
 import {
   isWorkerSafe,
@@ -24,7 +25,9 @@ enum Step {
  * there, and upgrades them to Guard Towers. Succeeds once every rush tower is
  * a Guard Tower.
  */
-export class EstablishTowerPositionPlan implements Plan<BeliefContainer> {
+export class EstablishTowerPositionPlan
+  implements Plan<BeliefContainer, Actor>
+{
   private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;
   private readonly workerSafety: WorkerSafety;
@@ -54,7 +57,7 @@ export class EstablishTowerPositionPlan implements Plan<BeliefContainer> {
     return this.step === Step.UpgradeTowers;
   }
 
-  public update(container: Readonly<BeliefContainer>) {
+  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
     if (this.currentStatus !== "running") {
       throw new Error("Establish tower position: updated after it ended.");
     }

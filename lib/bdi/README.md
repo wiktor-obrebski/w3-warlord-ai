@@ -1,6 +1,6 @@
 # `@lib/bdi`
 
-Minimal, domain-independent contracts for a Belief–Desire–Intention (BDI) agent, and the belief runtime that keeps its Beliefs revised.
+Minimal, domain-independent contracts for a Belief–Desire–Intention (BDI) agent, the belief runtime that keeps its Beliefs revised, and the arbiter that decides which Plan or Controller may order each Actor.
 
 The library knows nothing about Warcraft III or any particular strategy; domain code implements these contracts and depends on this library, never the other way round:
 
@@ -20,6 +20,7 @@ domain code
 | Intentions | `Intention` | Concrete commitments currently being pursued. Active while Deliberation retains them. |
 | Plans | `Plan`, `PlanStatus` | Finite procedural execution with an explicit `running` / `succeeded` / `failed` status. |
 | Controllers | `Controller` | Continuous reactive behavior without procedural completion. |
+| Actor Control | `ActorControlProvider`, `ActorControlArbiter` | Temporary exclusive right of a Plan or Controller to order an Actor. |
 
 Beliefs are knowledge about the world ("worker 17 was attacked 0.8 s ago"). Execution state ("the current flee destination", "the current Plan step") stays private to the Intention, Plan, or Controller that owns it.
 
@@ -68,8 +69,9 @@ Store what must persist across cycles or is expensive to derive, such as when so
 2. desires     = the Desires currently held
 3. intentions  = deliberation.deliberate(core, desires, intentions)
 4. container   = reviseBeliefs(requiredBeliefModels(intentions), previousContainer, core)
-5. intention.update(container) for every active Intention
-     → its Plans and Controllers
+5. intention.update(container, updateChild) for every active Intention
+     → updateChild(child): arbiter.update(child, control => child.update(container, control))
+6. arbiter.releaseInactive(activeComponents(intentions))
 ```
 
 Core Beliefs are revised before Deliberation; the scoped Beliefs required by the resulting execution graph after it. A model newly required is revised from `previous = undefined`, so its Beliefs are available in the cycle it becomes active. Beliefs of models no longer required are dropped.
@@ -138,30 +140,71 @@ The returned set defines which commitments remain active:
 
 Retained Intentions must not be recreated. One Desire may lead to any number of Intentions, including none.
 
-### `Intention<TBeliefs>`
+### `Intention<TBeliefs, TActor>`
 
 ```ts
-update(beliefs): void
+update(beliefs, updateChild: UpdateChild<TBeliefs, TActor>): void
 ```
 
-An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to update them.
+An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to update them. It updates a child only through `updateChild(child)`, which runs the child's `update()` with the cycle's Beliefs and actor control scoped to that child.
 
-### `Plan<TBeliefs>`
+### `Plan<TBeliefs, TActor>`
 
 ```ts
 readonly status: PlanStatus  // "running" | "succeeded" | "failed"
-update(beliefs): void
+update(beliefs, control: ActorControlProvider<TActor>): void
 ```
 
 `status` is persistent state changed only during `update()`. Reading it is an inspection, not a re-evaluation. A Plan's success or failure does not by itself end the Intention that owns it.
 
-### `Controller<TBeliefs>`
+### `Controller<TBeliefs, TActor>`
 
 ```ts
-update(beliefs): void
+update(beliefs, control: ActorControlProvider<TActor>): void
 ```
 
 A Controller reacts continuously and never completes. It may keep private execution state.
+
+## Actor Control
+
+An **Actor** is anything in the environment the agent can give orders to; its type is the `TActor` parameter. **Actor Control** is the temporary exclusive right of one Plan or Controller — the *source* — to order an Actor. Every Actor has at most one controlling source.
+
+### `ActorControlProvider<TActor>`
+
+```ts
+request(actor, options?: { preempt?: boolean }): boolean
+```
+
+Passed to a Plan or Controller during its update, scoped to it, so requests need not name the source. A source orders an Actor only after a request for it returned `true`:
+
+```ts
+if (control.request(worker)) {
+  repair(worker, tower);
+}
+```
+
+| Actor is | Normal request | Preemptive request |
+| --- | --- | --- |
+| uncontrolled | granted | granted |
+| controlled by the requester | renewed | renewed |
+| controlled normally by another source | refused | transferred to the requester |
+| controlled preemptively by another source | refused | refused |
+
+A renewed claim takes the kind of the latest request.
+
+### Leases
+
+Control is a lease. During each of its updates, a source requests every Actor it still needs; claims it did not request again expire when the update ends. Control therefore follows what the source is currently doing, and a source releases an Actor simply by no longer requesting it. Between updates claims persist, so a source updated less often than every cycle keeps its Actors meanwhile.
+
+### `ActorControlArbiter<TActor>`
+
+```ts
+createActorControlArbiter<TActor>(): ActorControlArbiter<TActor>
+update(source, run: (control) => void): void
+releaseInactive(activeSources): void
+```
+
+Owned by the agent's runtime. `update` runs one source update with control scoped to it, then expires the source's unrenewed claims. `releaseInactive` drops the claims of sources no longer in the active execution graph, such as a finished Plan, which will not update again to let them expire. `activeComponents(intentions)` lists that graph.
 
 ## Deliberately omitted
 
