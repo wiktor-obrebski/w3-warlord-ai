@@ -6,11 +6,14 @@
   ],
   "scripts": {
     "bundle": "./bin/bundle.sh",
-    "lint": "oxlint .",
+    "lint": "oxlint . && npm run format:check",
+    "format:check": "oxfmt --check",
+    "format:fix": "oxfmt",
     "typecheck": "tstl --noEmit",
     "build-map": "./bin/build-map/build-map.sh"
   },
   "devDependencies": {
+    "oxfmt": "^0.72.0",
     "oxlint": "^1.86.0",
     "oxlint-tsgolint": "^7.0.2003",
     "ts-node": "^10.9.2",

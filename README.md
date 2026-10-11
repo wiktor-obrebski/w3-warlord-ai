@@ -22,6 +22,15 @@ npm run build-map $SOURCE_MAP $DESTINATION_PATH [_build/warlord-ai.lua]
 Last parameter is optional.
 On the new map all slots set to `Computer (Normal)` will be controlled by Warlord AI. 
 
+## Code quality
+
+```sh
+npm run lint          # oxlint and format:check
+npm run typecheck     # TSTL type check without emitting Lua
+npm run format:check  # report files not formatted with oxfmt
+npm run format:fix    # format files in place with oxfmt
+```
+
 ## Docker Sandbox Kit
 
 This project includes a custom [Docker Sandbox](https://docs.docker.com/ai/sandboxes/) kit used to provide a reproducible environment for running coding agents such as OpenCode.
