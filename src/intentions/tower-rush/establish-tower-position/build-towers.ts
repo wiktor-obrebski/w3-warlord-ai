@@ -3,6 +3,7 @@ import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
 import { Point, Vector } from "@lib/math";
+import { ActorControl } from "../../../actor";
 import { CommonBeliefs } from "../../../beliefs/common.beliefs";
 import {
   closestUnit,
@@ -10,7 +11,11 @@ import {
   positionOf,
 } from "../../../beliefs/common.assessments";
 import { TowerRushState } from "../tower-rush.state";
-import { forgetSentToSafety, hideBehindClosestTower } from "../forward-workers";
+import {
+  controlForwardPeasants,
+  forgetSentToSafety,
+  hideBehindClosestTower,
+} from "../forward-workers";
 import {
   allRushTowersBuilt,
   isAvailableForwardPeasant,
@@ -83,7 +88,7 @@ export function updateBuildTowers(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: BuildTowersState,
-  isSafe: (worker: W3UnitApi.unit) => boolean,
+  control: ActorControl,
 ): Point[] | undefined {
   const enemyMain = beliefs.enemyStartPosition;
 
@@ -104,8 +109,8 @@ export function updateBuildTowers(
   const sitesAwaitingTower = state.pendingTowerSites.filter(
     (site) => !hasStartedTower(site, towerPositions),
   );
-  const safeWorkers = rush.forwardWorkers.filter((worker) => isSafe(worker));
-  const freeWorkers = safeWorkers.filter((worker) =>
+  const controlledWorkers = controlForwardPeasants(beliefs, rush, control);
+  const freeWorkers = controlledWorkers.filter((worker) =>
     isAvailableForwardPeasant(beliefs, worker),
   );
 
@@ -125,7 +130,7 @@ export function updateBuildTowers(
   // then they stay free to retry a failed build.
   if (towerPositions.length + sitesAwaitingTower.length < RUSH_TOWER_COUNT) {
     const builder =
-      freeWorkers[0] ?? busyNonBuilder(safeWorkers, beliefs, state);
+      freeWorkers[0] ?? busyNonBuilder(controlledWorkers, state);
 
     if (builder) {
       forgetSentToSafety(builder, rush);
@@ -182,17 +187,15 @@ export function updateBuildTowers(
 
 // A missing tower must not wait for a free Peasant: Warcraft can keep a
 // Peasant busy on its own, e.g. attacking or repairing, until the other
-// towers finish. Any living, safe forward Peasant that is not building a
-// tower is taken off its order instead.
+// towers finish. Any controlled forward Peasant that is not building a tower
+// is taken off its order instead.
 function busyNonBuilder(
-  safeWorkers: W3UnitApi.unit[],
-  beliefs: Readonly<CommonBeliefs>,
+  controlledWorkers: readonly W3UnitApi.unit[],
   state: BuildTowersState,
 ): W3UnitApi.unit | undefined {
   const builders = state.pendingTowerSites.map((site) => site.builder);
-  const worker = safeWorkers.find(
-    (candidate) =>
-      beliefs.peasants.includes(candidate) && !builders.includes(candidate),
+  const worker = controlledWorkers.find(
+    (candidate) => !builders.includes(candidate),
   );
 
   if (worker) {

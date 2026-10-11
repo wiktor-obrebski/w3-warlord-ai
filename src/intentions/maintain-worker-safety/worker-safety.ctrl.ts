@@ -1,7 +1,12 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3MathApi from "@lib/warcraft3-api/math";
 import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
-import { AnyBeliefModel, BeliefContainer, Controller } from "@lib/bdi";
+import {
+  ActorControlRequestOptions,
+  AnyBeliefModel,
+  BeliefContainer,
+  Controller,
+} from "@lib/bdi";
 import { Point, Vector } from "@lib/math";
 import { debug } from "../../debug";
 import { Actor, ActorControl } from "../../actor";
@@ -13,11 +18,12 @@ import {
 import { isRecentlyAttacked } from "../../beliefs/common.assessments";
 import { WorkerSafetyBeliefModel } from "./worker-safety.beliefs";
 import {
-  isRecoveringFromAttack,
+  needsAttackProtection,
   nearbyThreats,
   threatCenter,
 } from "./worker-safety.assessments";
 
+const PREEMPT: ActorControlRequestOptions = { preempt: true };
 const FLEE_ROUND_DISTANCE = 300;
 const FLEE_DESTINATION_REACHED_DISTANCE = 32;
 const FLEE_ANGLE_STEP = Math.PI / 6;
@@ -26,40 +32,21 @@ const FLEE_ANGLE_OFFSETS = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6].map(
   (step) => step * FLEE_ANGLE_STEP,
 );
 
-export enum WorkerSafetyStatus {
-  Fleeing,
-  // No longer fleeing, but not yet unattacked for long enough to be safe.
-  Recovering,
-  Safe,
-}
-
-/**
- * While a worker is not safe, it belongs to worker safety: other code must
- * not order it.
- */
-export interface WorkerSafety {
-  statusOf(
-    worker: W3UnitApi.unit,
-    beliefs: Readonly<BeliefContainer>,
-  ): WorkerSafetyStatus;
-}
-
-export function isWorkerSafe(
-  safety: WorkerSafety,
-  worker: W3UnitApi.unit,
-  beliefs: Readonly<BeliefContainer>,
-): boolean {
-  return safety.statusOf(worker, beliefs) === WorkerSafetyStatus.Safe;
-}
-
 interface FleeRound {
   origin: Point;
   destination: Point;
 }
 
-/** Attacked workers run away from the nearby enemy force. */
+/**
+ * Attacked workers run away from the nearby enemy force.
+ *
+ * From the first attack until the worker is safe again, worker safety holds
+ * preemptive control of it, taking it from whatever controlled it before, and
+ * releases it by no longer requesting it. While recovering, the worker is not
+ * ordered at all.
+ */
 export class WorkerSafetyController
-  implements Controller<BeliefContainer, Actor>, WorkerSafety
+  implements Controller<BeliefContainer, Actor>
 {
   public readonly beliefModels: readonly AnyBeliefModel[];
   private readonly common: CommonBeliefModel;
@@ -72,27 +59,21 @@ export class WorkerSafetyController
     this.beliefModels = [this.safetyBeliefs];
   }
 
-  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
+  public update(container: Readonly<BeliefContainer>, control: ActorControl) {
     const beliefs = container.get(this.common);
+    const safety = container.get(this.safetyBeliefs);
 
     for (const worker of beliefs.workers) {
-      this.protectWorker(worker, beliefs);
+      const isUnsafe =
+        this.fleeRounds.has(worker.unit) ||
+        needsAttackProtection(safety, worker.unit);
+
+      if (isUnsafe && control.request(worker.unit, PREEMPT)) {
+        this.protectWorker(worker, beliefs);
+      }
     }
 
     this.forgetFleeRoundsOfLostWorkers(beliefs);
-  }
-
-  public statusOf(
-    worker: W3UnitApi.unit,
-    beliefs: Readonly<BeliefContainer>,
-  ): WorkerSafetyStatus {
-    if (this.fleeRounds.has(worker)) {
-      return WorkerSafetyStatus.Fleeing;
-    }
-
-    return isRecoveringFromAttack(beliefs.get(this.safetyBeliefs), worker)
-      ? WorkerSafetyStatus.Recovering
-      : WorkerSafetyStatus.Safe;
   }
 
   // Each flee round runs to a destination kept until the round ends, so the

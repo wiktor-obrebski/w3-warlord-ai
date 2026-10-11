@@ -25,7 +25,8 @@ Technical architecture
 │
 ├─ Runtime
 │  ├─ bot loop
-│  └─ belief runtime
+│  ├─ belief runtime
+│  └─ actor control arbiter
 │
 ├─ Timing
 │  ├─ Central Timing Scheduler
@@ -57,6 +58,7 @@ Technical architecture
 * **Execute boundary** — Warcraft-facing boundary through which selected actions affect the game.
 * **Runtime** — Runs and manages the bot loop for one player, orchestrating the mind each tick; owns all belief state and the active Intentions. Debug mode is not part of it.
 * **Belief runtime** — Finds the belief models the active execution graph requires, revises them in dependency order, and produces the immutable belief snapshot for the tick.
+* **Actor control arbiter** — Tracks which Plan or Controller controls each Actor and with what kind of claim; runs each Plan and Controller update with an actor control provider scoped to it, expires unrenewed claims after the update, and releases claims of sources that left the active execution graph.
 * **Central Timing Scheduler** — Invokes reasoning and control systems at their required frequencies; it does not decide which intentions should progress.
 * **Tactical frequency** — Fast update cadence for controllers and immediate combat behavior.
 * **Intention-monitoring frequency** — Cadence for checking active plans, progress, and lifecycle conditions.
@@ -78,10 +80,11 @@ Technical architecture
 ```text
 revise common Beliefs → Deliberation → active Intentions
 → revise the scoped Beliefs the active Intentions, Plans, and Controllers declare
-→ immutable BeliefContainer → update() → Plans & Controllers
+→ immutable BeliefContainer → update() → Plans & Controllers, each through the actor control arbiter
+→ release control held by Plans and Controllers no longer active
 ```
 
-Generic BDI contracts and the belief runtime (`requiredBeliefModels`, `reviseBeliefs`, `BeliefContainer`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
+Generic BDI contracts, the belief runtime (`requiredBeliefModels`, `reviseBeliefs`, `BeliefContainer`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
 
 Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, diagnostic artifacts, and automated tests.
 
@@ -125,6 +128,10 @@ Mind architecture
 │  ├─ Execution monitoring
 │  ├─ Reactive Controller
 │  │  └─ Behavior Tree where useful
+│  ├─ Actor
+│  ├─ Actor Control
+│  │  ├─ normal / preemptive claim
+│  │  └─ lease
 │  ├─ Unit Assignment
 │  │  ├─ strategic ownership
 │  │  ├─ execution role
@@ -170,6 +177,10 @@ Mind architecture
 * **Unit Assignment** — Authoritative mapping of a unit to its intention, execution role, and current controller.
 * **Strategic ownership** — Which intention currently owns a unit or other resource.
 * **Execution role** — Current function of an assigned unit, such as fighting, joining, scouting, or withdrawing.
+* **Actor** — Any entity the bot can control through the Warcraft III API, such as units and buildings; at the API level both are Warcraft units.
+* **Actor Control** — Temporary exclusive right of one Plan or Controller to order an Actor; every Actor has at most one controlling source. The current form of command authority.
+* **Normal / preemptive claim** — A normal request takes only an uncontrolled Actor; a preemptive one also takes it from a normal holder, as worker safety does with an attacked worker. A preemptive claim is never taken over.
+* **Lease** — A source keeps control only while it requests the Actor again in each of its updates; unrenewed claims expire when the update ends.
 * **Command authority** — Which controller is currently allowed to normally command a unit.
 * **Command Arbitration** — Selects the concrete action when several tactical systems propose incompatible commands for the same unit.
 * **Action** — Concrete request to change Warcraft state, such as move, attack, cast, build, train, research, or buy.
@@ -198,5 +209,7 @@ src/
 ├─ deliberation/  creates, retains, and drops Intentions
 └─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
 ```
+
+Before ordering an Actor, every Plan and Controller requests Actor Control for it and orders it only when granted. Normal sources request each update the Actors they need; worker safety requests attacked workers preemptively until they are safe again, then lets control expire so their previous controller can request them back. Control decides only who may order an Actor now, not which Intention the Actor belongs to.
 
 Not yet implemented: canonical unit ids, inferred beliefs, goal evaluation, Command Arbitration, Unit Assignment, Intention Scheduling, and strategic navigation. Plans and Controllers still issue Warcraft orders directly.

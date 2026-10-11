@@ -3,10 +3,6 @@ import { Point } from "@lib/math";
 import { debug } from "../../../debug";
 import { Actor, ActorControl } from "../../../actor";
 import { CommonBeliefModel } from "../../../beliefs/common.beliefs";
-import {
-  isWorkerSafe,
-  WorkerSafety,
-} from "../../maintain-worker-safety/worker-safety.ctrl";
 import { TowerRushState } from "../tower-rush.state";
 import { updateStart } from "./start";
 import { createMoveForwardState, updateMoveForward } from "./move-forward";
@@ -24,13 +20,15 @@ enum Step {
  * Sends the forward workers next to the enemy main, builds the rush towers
  * there, and upgrades them to Guard Towers. Succeeds once every rush tower is
  * a Guard Tower.
+ *
+ * Each step requests the Actors it orders, so the plan's control moves with
+ * the step: e.g. the forward Peasants are released once the towers are built.
  */
 export class EstablishTowerPositionPlan
   implements Plan<BeliefContainer, Actor>
 {
   private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;
-  private readonly workerSafety: WorkerSafety;
   private currentStatus: PlanStatus = "running";
   private step = Step.Start;
   private readonly moveForward = createMoveForwardState();
@@ -38,14 +36,9 @@ export class EstablishTowerPositionPlan
   // Where the rush towers stood when BuildTowers ended.
   private towerPositions: Point[] = [];
 
-  public constructor(
-    common: CommonBeliefModel,
-    rush: TowerRushState,
-    workerSafety: WorkerSafety,
-  ) {
+  public constructor(common: CommonBeliefModel, rush: TowerRushState) {
     this.common = common;
     this.rush = rush;
-    this.workerSafety = workerSafety;
   }
 
   public get status(): PlanStatus {
@@ -57,7 +50,7 @@ export class EstablishTowerPositionPlan
     return this.step === Step.UpgradeTowers;
   }
 
-  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
+  public update(container: Readonly<BeliefContainer>, control: ActorControl) {
     if (this.currentStatus !== "running") {
       throw new Error("Establish tower position: updated after it ended.");
     }
@@ -66,12 +59,12 @@ export class EstablishTowerPositionPlan
 
     switch (this.step) {
       case Step.Start:
-        updateStart(beliefs, this.rush);
+        updateStart(beliefs, this.rush, control);
         this.advanceTo(Step.MoveForward);
         break;
 
       case Step.MoveForward:
-        if (updateMoveForward(beliefs, this.rush, this.moveForward)) {
+        if (updateMoveForward(beliefs, this.rush, this.moveForward, control)) {
           this.advanceTo(Step.BuildTowers);
         }
         break;
@@ -81,7 +74,7 @@ export class EstablishTowerPositionPlan
           beliefs,
           this.rush,
           this.buildTowers,
-          (worker) => isWorkerSafe(this.workerSafety, worker, container),
+          control,
         );
 
         if (towerPositions) {
@@ -92,7 +85,7 @@ export class EstablishTowerPositionPlan
       }
 
       case Step.UpgradeTowers:
-        if (updateUpgradeTowers(beliefs, this.towerPositions)) {
+        if (updateUpgradeTowers(beliefs, this.towerPositions, control)) {
           this.currentStatus = "succeeded";
           debug(
             `Establish tower position: ${Step[this.step]} -> ${this.currentStatus}`,

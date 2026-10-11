@@ -36,7 +36,7 @@ export class TowerTargetSelectionController
     this.common = common;
   }
 
-  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
+  public update(container: Readonly<BeliefContainer>, control: ActorControl) {
     const beliefs = container.get(this.common);
     const rankedTargets = rankTowerTargets(beliefs);
 
@@ -45,7 +45,9 @@ export class TowerTargetSelectionController
     );
 
     for (const tower of beliefs.guardTowers) {
-      this.attackBestTargetInRange(tower, rankedTargets, beliefs);
+      if (control.request(tower)) {
+        this.attackBestTargetInRange(tower, rankedTargets, beliefs);
+      }
     }
   }
 

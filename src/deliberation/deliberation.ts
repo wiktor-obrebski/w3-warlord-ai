@@ -18,8 +18,8 @@ export type WarlordIntention = Intention<BeliefContainer, Actor>;
  * - UseMilitaryAssetsEffectively → OperateTowers, once the tower rush has
  *   established its Guard Tower position
  *
- * Intentions are returned in update order. Worker safety comes first so the
- * others see which workers it has taken over on the same tick.
+ * Intentions are returned in update order. Worker safety comes first so it
+ * takes attacked workers over before the others order them on the same tick.
  */
 export function createDeliberation(
   common: CommonBeliefModel,
@@ -27,22 +27,19 @@ export function createDeliberation(
   return {
     deliberate(_beliefs, desires, intentions) {
       const active: WarlordIntention[] = [];
-      let workerSafety: MaintainWorkerSafetyIntention | undefined;
       let towerRush: TowerRushIntention | undefined;
 
       if (desires.includes(ProtectEconomicAssets)) {
-        workerSafety =
+        active.push(
           find(intentions, MaintainWorkerSafetyIntention) ??
-          new MaintainWorkerSafetyIntention(common);
-        active.push(workerSafety);
+            new MaintainWorkerSafetyIntention(common),
+        );
       }
 
       if (desires.includes(ApplyPressure)) {
-        const safety = requireWorkerSafety(workerSafety);
-
         towerRush =
           find(intentions, TowerRushIntention) ??
-          new TowerRushIntention(common, safety);
+          new TowerRushIntention(common);
         active.push(towerRush);
       }
 
@@ -74,19 +71,4 @@ function find<T extends WarlordIntention>(
   }
 
   return undefined;
-}
-
-// The tower rush leaves workers to worker safety while they are in danger and
-// keeps consulting the instance it was created with, so worker safety must
-// stay retained for as long as the tower rush is.
-function requireWorkerSafety(
-  workerSafety: MaintainWorkerSafetyIntention | undefined,
-): MaintainWorkerSafetyIntention {
-  if (!workerSafety) {
-    throw new Error(
-      "Deliberation: TowerRush requires the MaintainWorkerSafety intention.",
-    );
-  }
-
-  return workerSafety;
 }

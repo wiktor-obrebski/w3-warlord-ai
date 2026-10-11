@@ -12,12 +12,12 @@ import {
   ownUnit,
 } from "../../beliefs/common.assessments";
 import { TowerRushState } from "./tower-rush.state";
-import { forgetSentToSafety, hideBehindClosestTower } from "./forward-workers";
-import { isAvailableForwardPeasant } from "./tower-rush.assessments";
 import {
-  WorkerSafety,
-  WorkerSafetyStatus,
-} from "../maintain-worker-safety/worker-safety.ctrl";
+  controlForwardPeasants,
+  forgetSentToSafety,
+  hideBehindClosestTower,
+} from "./forward-workers";
+import { isAvailableForwardPeasant } from "./tower-rush.assessments";
 
 // A repair starts below the start fraction and is not interrupted before the
 // switch fraction; above it, a tower below the start fraction takes over,
@@ -26,9 +26,8 @@ const REPAIR_START_LIFE_FRACTION = 0.6;
 const REPAIR_SWITCH_LIFE_FRACTION = 0.8;
 
 /**
- * The forward Peasants repair the most damaged tower and hide behind the
- * towers when none needs repair or they are recovering from an attack.
- * Fleeing Peasants are left to worker safety. Only to be used once every rush
+ * The forward Peasants it controls repair the most damaged tower, and hide
+ * behind the towers when none needs repair. Only to be used once every rush
  * tower is built, so a tower's life fraction reflects damage, not build
  * progress.
  */
@@ -37,21 +36,15 @@ export class TowerMaintenanceController
 {
   private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;
-  private readonly workerSafety: WorkerSafety;
   // The tower the forward Peasants are repairing.
   private repairTarget: W3UnitApi.unit | undefined;
 
-  public constructor(
-    common: CommonBeliefModel,
-    rush: TowerRushState,
-    workerSafety: WorkerSafety,
-  ) {
+  public constructor(common: CommonBeliefModel, rush: TowerRushState) {
     this.common = common;
     this.rush = rush;
-    this.workerSafety = workerSafety;
   }
 
-  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
+  public update(container: Readonly<BeliefContainer>, control: ActorControl) {
     const beliefs = container.get(this.common);
     const enemyMain = beliefs.enemyStartPosition;
 
@@ -73,18 +66,8 @@ export class TowerMaintenanceController
       );
     }
 
-    for (const worker of this.rush.forwardWorkers) {
-      if (!beliefs.peasants.includes(worker)) {
-        continue;
-      }
-
-      const safety = this.workerSafety.statusOf(worker, container);
-
-      if (safety === WorkerSafetyStatus.Fleeing) {
-        continue;
-      }
-
-      if (repairTarget && safety === WorkerSafetyStatus.Safe) {
+    for (const worker of controlForwardPeasants(beliefs, this.rush, control)) {
+      if (repairTarget) {
         if (targetChanged || !beliefs.repairingUnits.includes(worker)) {
           orderRepair(worker, repairTarget, beliefs, this.rush);
         }

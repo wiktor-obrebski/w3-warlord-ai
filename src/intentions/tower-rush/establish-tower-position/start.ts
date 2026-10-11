@@ -1,6 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
+import { ActorControl } from "../../../actor";
 import { Point, Vector } from "@lib/math";
 import { CommonBeliefs } from "../../../beliefs/common.beliefs";
 import { positionOf } from "../../../beliefs/common.assessments";
@@ -20,6 +21,7 @@ const CANDIDATE_SPACING = 64;
 export function updateStart(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
+  control: ActorControl,
 ) {
   const { townHall, enemyMainGoldMine, homeGoldMine } = beliefs;
 
@@ -47,6 +49,13 @@ export function updateStart(
   rush.forwardWorkers = beliefs.peasants.slice(0, FORWARD_WORKER_COUNT);
   rush.goldWorkers = [homeWorker];
   rush.lumberWorkers = [lumberMillBuilder];
+
+  // Nothing else has had a chance to claim the starting units yet.
+  for (const actor of [...beliefs.peasants, townHall]) {
+    if (!control.request(actor)) {
+      throw new Error("Tower rush start: a starting unit is already controlled.");
+    }
+  }
 
   for (const worker of rush.forwardWorkers) {
     W3UnitApi.IssueImmediateOrder(worker, "militia");

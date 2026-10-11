@@ -11,10 +11,6 @@ import {
 import { HomeResource, TowerRushState } from "./tower-rush.state";
 import { lumberDestructablesByPreference } from "./tower-rush.assessments";
 import { GUARD_TOWER_UPGRADE_GOLD_COST } from "./establish-tower-position/upgrade-towers";
-import {
-  isWorkerSafe,
-  WorkerSafety,
-} from "../maintain-worker-safety/worker-safety.ctrl";
 
 const PEASANT_GOLD_COST = 75;
 // Warcraft's listed Peasant training time; not verified in-game.
@@ -39,33 +35,33 @@ const WORKER_TARGET_STAGES: WorkerTargets[] = [
   { gold: 4, lumber: 5 },
 ];
 
-/** The home economy that funds the tower rush. */
+/**
+ * The home economy that funds the tower rush. The Town Hall and every home
+ * worker are requested on each update, so they stay controlled for as long as
+ * the economy runs; one taken over meanwhile is left alone.
+ */
 export class TowerRushEconomyController
   implements Controller<BeliefContainer, Actor>
 {
   private readonly common: CommonBeliefModel;
   private readonly rush: TowerRushState;
-  private readonly workerSafety: WorkerSafety;
 
-  public constructor(
-    common: CommonBeliefModel,
-    rush: TowerRushState,
-    workerSafety: WorkerSafety,
-  ) {
+  public constructor(common: CommonBeliefModel, rush: TowerRushState) {
     this.common = common;
     this.rush = rush;
-    this.workerSafety = workerSafety;
   }
 
-  public update(container: Readonly<BeliefContainer>, _control: ActorControl) {
+  public update(container: Readonly<BeliefContainer>, control: ActorControl) {
     const beliefs = container.get(this.common);
-    const isSafe = (worker: W3UnitApi.unit) =>
-      isWorkerSafe(this.workerSafety, worker, container);
+    const townHall =
+      beliefs.townHall && control.request(beliefs.townHall)
+        ? beliefs.townHall
+        : undefined;
 
     forgetDeadWorkers(beliefs, this.rush);
-    assignNewHomeWorkers(beliefs, this.rush, isSafe);
-    returnIdleWorkersToTheirResource(beliefs, this.rush, isSafe);
-    maintainPeasantProduction(beliefs, this.rush);
+    assignNewHomeWorkers(beliefs, this.rush, townHall, control);
+    returnIdleWorkersToTheirResource(beliefs, this.rush, control);
+    maintainPeasantProduction(beliefs, this.rush, townHall);
   }
 }
 
@@ -84,7 +80,8 @@ function forgetDeadWorkers(beliefs: Readonly<CommonBeliefs>, rush: TowerRushStat
 function assignNewHomeWorkers(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
-  isSafe: (worker: W3UnitApi.unit) => boolean,
+  townHall: W3UnitApi.unit | undefined,
+  control: ActorControl,
 ) {
   for (const peasant of beliefs.peasants) {
     if (isAssignedWorker(peasant, rush)) {
@@ -92,7 +89,8 @@ function assignNewHomeWorkers(
     }
 
     const resource =
-      finishPeasantTraining(beliefs, rush) ?? nextWorkerResource(rush);
+      finishPeasantTraining(beliefs, rush, townHall) ??
+      nextWorkerResource(rush);
 
     if (resource === HomeResource.Gold) {
       rush.goldWorkers.push(peasant);
@@ -106,7 +104,7 @@ function assignNewHomeWorkers(
 
     if (
       !beliefs.harvestingUnits.includes(peasant) &&
-      isSafe(peasant) &&
+      control.request(peasant) &&
       !orderHarvest(peasant, resource, beliefs)
     ) {
       debug(`Tower rush: ${HomeResource[resource]} harvest order rejected.`);
@@ -120,6 +118,7 @@ function assignNewHomeWorkers(
 function finishPeasantTraining(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
+  townHall: W3UnitApi.unit | undefined,
 ): HomeResource | undefined {
   const finished = rush.peasantsInTraining.shift();
   const next = rush.peasantsInTraining[0];
@@ -127,8 +126,8 @@ function finishPeasantTraining(
   if (finished !== undefined && next !== undefined) {
     rush.peasantTrainingStartedAt += PEASANT_TRAINING_SECONDS;
 
-    if (beliefs.townHall) {
-      setRally(beliefs.townHall, next, beliefs);
+    if (townHall) {
+      setRally(townHall, next, beliefs);
     }
   }
 
@@ -170,10 +169,11 @@ function describeWorkers(rush: TowerRushState): string {
 function returnIdleWorkersToTheirResource(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
-  isSafe: (worker: W3UnitApi.unit) => boolean,
+  control: ActorControl,
 ) {
+  // Requested before checking idleness, so busy workers stay controlled too.
   const isReturning = (worker: W3UnitApi.unit) =>
-    beliefs.idleUnits.includes(worker) && isSafe(worker);
+    control.request(worker) && beliefs.idleUnits.includes(worker);
 
   for (const worker of rush.goldWorkers) {
     if (isReturning(worker)) {
@@ -193,8 +193,8 @@ function returnIdleWorkersToTheirResource(
 function maintainPeasantProduction(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
+  townHall: W3UnitApi.unit | undefined,
 ) {
-  const { townHall } = beliefs;
   const homeWorkersMissing = currentWorkerTargets(rush) !== undefined;
 
   if (

@@ -7,10 +7,8 @@ import {
 } from "@lib/bdi";
 import { Actor } from "../../actor";
 import { CommonBeliefModel } from "../../beliefs/common.beliefs";
-import { WorkerSafety } from "../maintain-worker-safety/worker-safety.ctrl";
 import { UpdateInterval } from "../update-interval";
 import { createTowerRushState } from "./tower-rush.state";
-import { forgetHidingOfUnsafeWorkers } from "./forward-workers";
 import { EstablishTowerPositionPlan } from "./establish-tower-position/establish-tower-position.plan";
 import { TowerRushEconomyController } from "./tower-rush-economy.ctrl";
 import { TowerMaintenanceController } from "./tower-maintenance.ctrl";
@@ -30,30 +28,19 @@ export class TowerRushIntention implements Intention<BeliefContainer, Actor> {
   private readonly common: CommonBeliefModel;
   private readonly interval = new UpdateInterval(UPDATE_SECONDS);
   private readonly rush = createTowerRushState();
-  private readonly workerSafety: WorkerSafety;
   private readonly establishTowerPosition: EstablishTowerPositionPlan;
   private readonly economy: TowerRushEconomyController;
   private readonly towerMaintenance: TowerMaintenanceController;
   private updatedBefore = false;
 
-  public constructor(common: CommonBeliefModel, workerSafety: WorkerSafety) {
+  public constructor(common: CommonBeliefModel) {
     this.common = common;
-    this.workerSafety = workerSafety;
     this.establishTowerPosition = new EstablishTowerPositionPlan(
       common,
       this.rush,
-      workerSafety,
     );
-    this.economy = new TowerRushEconomyController(
-      common,
-      this.rush,
-      workerSafety,
-    );
-    this.towerMaintenance = new TowerMaintenanceController(
-      common,
-      this.rush,
-      workerSafety,
-    );
+    this.economy = new TowerRushEconomyController(common, this.rush);
+    this.towerMaintenance = new TowerMaintenanceController(common, this.rush);
   }
 
   /** Whether every rush tower stands as a Guard Tower. */
@@ -67,9 +54,18 @@ export class TowerRushIntention implements Intention<BeliefContainer, Actor> {
    * joins from the next update on. Maintenance relies on a tower's life
    * fraction reflecting damage, not build progress, so it joins once the
    * towers are built.
+   *
+   * The plan goes first: Actors it stops requesting, such as the starting
+   * workers or the forward Peasants once the towers stand, are released when
+   * its update ends, so the economy and maintenance take them over in the
+   * same update.
    */
   public activeChildren(): readonly TowerRushChild[] {
     const children: TowerRushChild[] = [];
+
+    if (this.establishTowerPosition.status === "running") {
+      children.push(this.establishTowerPosition);
+    }
 
     if (this.updatedBefore) {
       children.push(this.economy);
@@ -77,10 +73,6 @@ export class TowerRushIntention implements Intention<BeliefContainer, Actor> {
 
     if (this.establishTowerPosition.towersBuilt) {
       children.push(this.towerMaintenance);
-    }
-
-    if (this.establishTowerPosition.status === "running") {
-      children.push(this.establishTowerPosition);
     }
 
     return children;
@@ -95,8 +87,6 @@ export class TowerRushIntention implements Intention<BeliefContainer, Actor> {
     if (!this.interval.claim(common.time)) {
       return;
     }
-
-    forgetHidingOfUnsafeWorkers(beliefs, this.rush, this.workerSafety);
 
     for (const child of this.activeChildren()) {
       updateChild(child);

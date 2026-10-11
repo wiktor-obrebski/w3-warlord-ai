@@ -1,6 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import * as W3HumanApi from "@lib/warcraft3-api/human";
 import { debug } from "../../../debug";
+import { ActorControl } from "../../../actor";
 import { Point, Vector } from "@lib/math";
 import { CommonBeliefs } from "../../../beliefs/common.beliefs";
 import {
@@ -37,6 +38,7 @@ interface PlannedTower {
 export function updateUpgradeTowers(
   beliefs: Readonly<CommonBeliefs>,
   towerPositions: readonly Point[],
+  control: ActorControl,
 ): boolean {
   const towers = towerPositions.map((position) =>
     plannedTowerAt(position, beliefs),
@@ -48,7 +50,8 @@ export function updateUpgradeTowers(
       tower.unit &&
       tower.state === TowerState.ScoutTower &&
       completedLumberMill(beliefs) !== undefined &&
-      canAffordGuardTower(budget)
+      canAffordGuardTower(budget) &&
+      control.request(tower.unit)
     ) {
       orderGuardTower(tower.unit, budget);
     }

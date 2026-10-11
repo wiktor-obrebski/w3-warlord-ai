@@ -1,14 +1,10 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { BeliefContainer } from "@lib/bdi";
 import { debug } from "../../debug";
 import { Point, Vector } from "@lib/math";
+import { ActorControl } from "../../actor";
 import { CommonBeliefs } from "../../beliefs/common.beliefs";
 import { closestUnit, positionOf } from "../../beliefs/common.assessments";
 import { TowerRushState } from "./tower-rush.state";
-import {
-  isWorkerSafe,
-  WorkerSafety,
-} from "../maintain-worker-safety/worker-safety.ctrl";
 
 // Clears the tower's 128x128 footprint with room for the Peasant.
 const HIDING_DISTANCE_BEHIND_TOWER = 160;
@@ -42,17 +38,34 @@ export function forgetSentToSafety(worker: W3UnitApi.unit, rush: TowerRushState)
   );
 }
 
-// An attacked Peasant may have fled its hiding spot, so it is sent to hide
-// again. A flee round can start and end between two tower rush updates, so
-// this does not wait to see the Peasant fleeing.
-export function forgetHidingOfUnsafeWorkers(
-  beliefs: Readonly<BeliefContainer>,
+/**
+ * Requests control of the living forward Peasants and returns those granted.
+ *
+ * A Peasant taken over, e.g. by worker safety, may have left its hiding spot,
+ * so it is sent to hide again once regained. Worker safety holds an attacked
+ * Peasant for longer than the time between two tower rush updates, so a
+ * takeover is always seen here.
+ */
+export function controlForwardPeasants(
+  beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
-  workerSafety: WorkerSafety,
-) {
-  rush.forwardWorkersSentToSafety = rush.forwardWorkersSentToSafety.filter(
-    (worker) => isWorkerSafe(workerSafety, worker, beliefs),
-  );
+  control: ActorControl,
+): W3UnitApi.unit[] {
+  const controlled: W3UnitApi.unit[] = [];
+
+  for (const worker of rush.forwardWorkers) {
+    if (!beliefs.peasants.includes(worker)) {
+      continue;
+    }
+
+    if (control.request(worker)) {
+      controlled.push(worker);
+    } else {
+      forgetSentToSafety(worker, rush);
+    }
+  }
+
+  return controlled;
 }
 
 // On the far side of the tower as seen from the enemy main hall.

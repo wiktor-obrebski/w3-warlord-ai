@@ -1,6 +1,7 @@
 import * as W3UnitApi from "@lib/warcraft3-api/unit";
 import { Vector } from "@lib/math";
 import { debug } from "../../../debug";
+import { ActorControl } from "../../../actor";
 import { CommonBeliefs, GoldMine } from "../../../beliefs/common.beliefs";
 import { positionOf } from "../../../beliefs/common.assessments";
 import { TowerRushState } from "../tower-rush.state";
@@ -22,6 +23,7 @@ export function updateMoveForward(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: MoveForwardState,
+  control: ActorControl,
 ): boolean {
   const destination = beliefs.enemyMainGoldMine;
 
@@ -29,8 +31,12 @@ export function updateMoveForward(
     throw new Error("Tower rush: enemy main gold mine not found.");
   }
 
-  holdArrivedMilitia(destination, beliefs, state);
-  sendNewMilitiaToEnemy(destination, beliefs, rush, state);
+  const controlled = rush.forwardWorkers.filter(
+    (worker) => beliefs.ownUnits.has(worker) && control.request(worker),
+  );
+
+  holdArrivedMilitia(destination, beliefs, state, controlled);
+  sendNewMilitiaToEnemy(destination, beliefs, state, controlled);
 
   return forwardWorkersHaveRevertedToPeasants(beliefs, rush, state);
 }
@@ -41,10 +47,10 @@ export function updateMoveForward(
 function sendNewMilitiaToEnemy(
   destination: GoldMine,
   beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
   state: MoveForwardState,
+  controlled: readonly W3UnitApi.unit[],
 ) {
-  for (const worker of rush.forwardWorkers) {
+  for (const worker of controlled) {
     if (
       beliefs.militia.includes(worker) &&
       !state.forwardWorkersSentToEnemy.includes(worker)
@@ -66,9 +72,11 @@ function holdArrivedMilitia(
   destination: GoldMine,
   beliefs: Readonly<CommonBeliefs>,
   state: MoveForwardState,
+  controlled: readonly W3UnitApi.unit[],
 ) {
   for (const worker of state.forwardWorkersSentToEnemy) {
     if (
+      controlled.includes(worker) &&
       beliefs.militia.includes(worker) &&
       !state.forwardWorkersHoldingPosition.includes(worker) &&
       new Vector(positionOf(beliefs, worker), destination.position).length <=

@@ -4,7 +4,7 @@ import { CommonBeliefs } from "../../beliefs/common.beliefs";
 import { isRecentlyAttacked } from "../../beliefs/common.assessments";
 
 // A worker unattacked for this long is safe again.
-const SAFE_AFTER_ATTACK_SECONDS = 2;
+const SAFE_AFTER_ATTACK_SECONDS = 1;
 
 const NO_ATTACKS: ReadonlyMap<W3UnitApi.unit, number> = new Map();
 

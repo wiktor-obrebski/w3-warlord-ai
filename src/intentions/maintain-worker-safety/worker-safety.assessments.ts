@@ -11,8 +11,11 @@ import { WorkerSafetyBeliefs } from "./worker-safety.beliefs";
 // Not tuned in-game.
 const THREAT_RADIUS = 1000;
 
-/** Whether the worker was attacked too recently to be safe. */
-export function isRecoveringFromAttack(
+/**
+ * Whether the worker is attacked, or was attacked too recently to be safe
+ * again.
+ */
+export function needsAttackProtection(
   beliefs: Readonly<WorkerSafetyBeliefs>,
   worker: W3UnitApi.unit,
 ): boolean {
