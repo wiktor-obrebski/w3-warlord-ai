@@ -1,4 +1,5 @@
 import { ChildFactory, ChildHandle, childFactory } from '@lib/bdi';
+import type { ActorControl } from '../../../contracts/actor-control';
 import {
   AssembledChildren,
   AssembledWarlordComponent,
@@ -16,9 +17,17 @@ import {
 import { assembleTowerRushEconomyController } from './tower-rush-economy.ctrl';
 import { assembleTowerMaintenanceController } from './tower-maintenance.ctrl';
 
-export { type TowerRushIntention, assembleTowerRushIntention };
+export {
+  type TowerRushIntention,
+  type TowerRushCapabilities,
+  assembleTowerRushIntention,
+};
 
 const UpdateSeconds = 1;
+
+interface TowerRushCapabilities {
+  readonly actorControl: ActorControl;
+}
 
 interface TowerRushIntention extends WarlordIntention {
   /** Whether every rush tower stands as a Guard Tower. */
@@ -124,7 +133,13 @@ class TowerRush implements TowerRushIntention {
   }
 }
 
-function assembleTowerRushIntention(): AssembledWarlordComponent<TowerRushIntention> {
+interface AssembleTowerRushIntentionArgs {
+  capabilities: TowerRushCapabilities;
+}
+
+function assembleTowerRushIntention({
+  capabilities,
+}: AssembleTowerRushIntentionArgs): AssembledWarlordComponent<TowerRushIntention> {
   const rush = createTowerRushState();
   const children: AssembledChildren = [];
 
@@ -133,15 +148,27 @@ function assembleTowerRushIntention(): AssembledWarlordComponent<TowerRushIntent
       factories: {
         createEstablishTowerPositionPlan: childFactory({
           children,
-          assemble: () => assembleEstablishTowerPositionPlan({ rush }),
+          assemble: () =>
+            assembleEstablishTowerPositionPlan({
+              rush,
+              capabilities: { actorControl: capabilities.actorControl },
+            }),
         }),
         createEconomyController: childFactory({
           children,
-          assemble: () => assembleTowerRushEconomyController({ rush }),
+          assemble: () =>
+            assembleTowerRushEconomyController({
+              rush,
+              capabilities: { actorControl: capabilities.actorControl },
+            }),
         }),
         createTowerMaintenanceController: childFactory({
           children,
-          assemble: () => assembleTowerMaintenanceController({ rush }),
+          assemble: () =>
+            assembleTowerMaintenanceController({
+              rush,
+              capabilities: { actorControl: capabilities.actorControl },
+            }),
         }),
       },
     }),

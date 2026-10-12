@@ -23,9 +23,16 @@ interface TowerTarget {
   attackTarget: W3UnitApi.unit;
 }
 
+interface TowerTargetSelectionControllerCapabilities {
+  readonly actorControl: ActorControl;
+}
+
+interface TowerTargetSelectionControllerConstructorArgs {
+  capabilities: TowerTargetSelectionControllerCapabilities;
+}
+
 interface TowerTargetSelectionControllerUpdateArgs {
   beliefs: WarlordBeliefs;
-  actorControl: ActorControl;
 }
 
 interface TowerTargetSelectionControllerAttackBestTargetInRangeArgs {
@@ -44,13 +51,19 @@ interface TowerTargetSelectionControllerRememberTowerTargetArgs {
  * best one within its own range, so overlapping towers focus the same target.
  */
 class TowerTargetSelectionController implements WarlordController {
+  private readonly capabilities: TowerTargetSelectionControllerCapabilities;
   // The last attack order of each Guard Tower, so it is not re-issued while
   // the tower is still carrying it out.
   private towerTargets: TowerTarget[] = [];
 
+  public constructor({
+    capabilities,
+  }: TowerTargetSelectionControllerConstructorArgs) {
+    this.capabilities = capabilities;
+  }
+
   public update({
     beliefs: { commonBeliefs: beliefs },
-    actorControl,
   }: TowerTargetSelectionControllerUpdateArgs) {
     const rankedTargets = rankTowerTargets({ beliefs });
 
@@ -59,7 +72,12 @@ class TowerTargetSelectionController implements WarlordController {
     );
 
     for (const tower of beliefs.guardTowers) {
-      if (actorControl.request({ actor: tower, request: 'normal' })) {
+      if (
+        this.capabilities.actorControl.request({
+          actor: tower,
+          request: 'normal',
+        })
+      ) {
         this.attackBestTargetInRange({ tower, rankedTargets, beliefs });
       }
     }
@@ -114,6 +132,15 @@ class TowerTargetSelectionController implements WarlordController {
   }
 }
 
-function assembleTowerTargetSelectionController(): AssembledWarlordComponent<WarlordController> {
-  return { component: new TowerTargetSelectionController(), children: [] };
+interface AssembleTowerTargetSelectionControllerArgs {
+  capabilities: TowerTargetSelectionControllerCapabilities;
+}
+
+function assembleTowerTargetSelectionController({
+  capabilities,
+}: AssembleTowerTargetSelectionControllerArgs): AssembledWarlordComponent<WarlordController> {
+  return {
+    component: new TowerTargetSelectionController({ capabilities }),
+    children: [],
+  };
 }

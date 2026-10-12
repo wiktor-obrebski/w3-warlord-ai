@@ -35,13 +35,22 @@ interface EstablishTowerPositionPlan extends WarlordPlan {
   readonly towersBuilt: boolean;
 }
 
+interface EstablishTowerPositionPlanCapabilities {
+  readonly actorControl: ActorControl;
+}
+
+interface EstablishTowerPositionConstructorArgs {
+  rush: TowerRushState;
+  capabilities: EstablishTowerPositionPlanCapabilities;
+}
+
 interface EstablishTowerPositionUpdateArgs {
   beliefs: WarlordBeliefs;
-  actorControl: ActorControl;
 }
 
 class EstablishTowerPosition implements EstablishTowerPositionPlan {
   private readonly rush: TowerRushState;
+  private readonly capabilities: EstablishTowerPositionPlanCapabilities;
   private currentStatus: PlanStatus = 'running';
   private step = STEP.START;
   private readonly moveForward = createMoveForwardState();
@@ -49,8 +58,12 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   // Where the rush towers stood when BuildTowers ended.
   private towerPositions: Point[] = [];
 
-  public constructor({ rush }: { rush: TowerRushState }) {
+  public constructor({
+    rush,
+    capabilities,
+  }: EstablishTowerPositionConstructorArgs) {
     this.rush = rush;
+    this.capabilities = capabilities;
   }
 
   public get status(): PlanStatus {
@@ -63,11 +76,12 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
 
   public update({
     beliefs: { commonBeliefs: beliefs },
-    actorControl,
   }: EstablishTowerPositionUpdateArgs) {
     if (this.currentStatus !== 'running') {
       throw new Error('Establish tower position: updated after it ended.');
     }
+
+    const { actorControl } = this.capabilities;
 
     switch (this.step) {
       case STEP.START:
@@ -130,10 +144,15 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
 
 interface AssembleEstablishTowerPositionPlanArgs {
   rush: TowerRushState;
+  capabilities: EstablishTowerPositionPlanCapabilities;
 }
 
 function assembleEstablishTowerPositionPlan({
   rush,
+  capabilities,
 }: AssembleEstablishTowerPositionPlanArgs): AssembledWarlordComponent<EstablishTowerPositionPlan> {
-  return { component: new EstablishTowerPosition({ rush }), children: [] };
+  return {
+    component: new EstablishTowerPosition({ rush, capabilities }),
+    children: [],
+  };
 }

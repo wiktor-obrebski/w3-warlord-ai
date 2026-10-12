@@ -84,6 +84,20 @@ import {
 export { assembleTowerRushIntention, type TowerRushIntention };
 ```
 
+### Capabilities
+
+A component declares what it needs from outside its module as a `<Name>Capabilities` interface, next to its class or, once it grows, in a file of its own, and only when it needs something. Its assemble function receives them as `capabilities`. The owner that assembles the component supplies a `<name>CapabilitiesProvider` object implementing the interface; it needs no type of its own.
+
+```ts
+interface TowerRushCapabilities {
+  readonly actorControl: ActorControl;
+}
+
+const towerRushCapabilitiesProvider: TowerRushCapabilities = { actorControl };
+
+assembleTowerRushIntention({ capabilities: towerRushCapabilitiesProvider });
+```
+
 ## Named Parameters
 
 Functions, methods, constructors, and function types take their parameters as one destructured object, so every argument is named at the call site:

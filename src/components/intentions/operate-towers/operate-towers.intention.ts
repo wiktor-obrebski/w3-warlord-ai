@@ -1,4 +1,5 @@
 import { ChildFactory, childFactory } from '@lib/bdi';
+import type { ActorControl } from '../../../contracts/actor-control';
 import {
   AssembledChildren,
   AssembledWarlordComponent,
@@ -10,9 +11,13 @@ import {
 import { UpdateInterval } from '../update-interval';
 import { assembleTowerTargetSelectionController } from './tower-target-selection.ctrl';
 
-export { assembleOperateTowersIntention };
+export { assembleOperateTowersIntention, type OperateTowersCapabilities };
 
 const UpdateSeconds = 1;
+
+interface OperateTowersCapabilities {
+  readonly actorControl: ActorControl;
+}
 
 interface OperateTowersIntentionConstructorArgs {
   createTargetSelection: ChildFactory<WarlordController>;
@@ -43,14 +48,23 @@ class OperateTowersIntention implements WarlordIntention {
   }
 }
 
-function assembleOperateTowersIntention(): AssembledWarlordComponent<WarlordIntention> {
+interface AssembleOperateTowersIntentionArgs {
+  capabilities: OperateTowersCapabilities;
+}
+
+function assembleOperateTowersIntention({
+  capabilities,
+}: AssembleOperateTowersIntentionArgs): AssembledWarlordComponent<WarlordIntention> {
   const children: AssembledChildren = [];
 
   return {
     component: new OperateTowersIntention({
       createTargetSelection: childFactory({
         children,
-        assemble: () => assembleTowerTargetSelectionController(),
+        assemble: () =>
+          assembleTowerTargetSelectionController({
+            capabilities: { actorControl: capabilities.actorControl },
+          }),
       }),
     }),
     children,

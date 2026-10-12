@@ -38,9 +38,17 @@ const WorkerTargetStages: WorkerTargets[] = [
   { gold: 4, lumber: 5 },
 ];
 
+interface TowerRushEconomyControllerCapabilities {
+  readonly actorControl: ActorControl;
+}
+
+interface TowerRushEconomyControllerConstructorArgs {
+  rush: TowerRushState;
+  capabilities: TowerRushEconomyControllerCapabilities;
+}
+
 interface TowerRushEconomyControllerUpdateArgs {
   beliefs: WarlordBeliefs;
-  actorControl: ActorControl;
 }
 
 /**
@@ -50,15 +58,20 @@ interface TowerRushEconomyControllerUpdateArgs {
  */
 class TowerRushEconomyController implements WarlordController {
   private readonly rush: TowerRushState;
+  private readonly capabilities: TowerRushEconomyControllerCapabilities;
 
-  public constructor({ rush }: { rush: TowerRushState }) {
+  public constructor({
+    rush,
+    capabilities,
+  }: TowerRushEconomyControllerConstructorArgs) {
     this.rush = rush;
+    this.capabilities = capabilities;
   }
 
   public update({
     beliefs: { commonBeliefs: beliefs },
-    actorControl,
   }: TowerRushEconomyControllerUpdateArgs) {
+    const { actorControl } = this.capabilities;
     const townHall =
       beliefs.townHall &&
       actorControl.request({
@@ -90,13 +103,15 @@ class TowerRushEconomyController implements WarlordController {
 
 interface AssembleTowerRushEconomyControllerArgs {
   rush: TowerRushState;
+  capabilities: TowerRushEconomyControllerCapabilities;
 }
 
 function assembleTowerRushEconomyController({
   rush,
+  capabilities,
 }: AssembleTowerRushEconomyControllerArgs): AssembledWarlordComponent<WarlordController> {
   return {
-    component: new TowerRushEconomyController({ rush }),
+    component: new TowerRushEconomyController({ rush, capabilities }),
     children: [],
   };
 }

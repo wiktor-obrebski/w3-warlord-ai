@@ -6,7 +6,8 @@ export {
 
 /**
  * Grants the Plan or Controller being updated the temporary exclusive right
- * to order Actors. Scoped to that source, so requests need not identify it.
+ * to order Actors. It always acts for the source whose update is running, so
+ * one provider serves every source and requests need not identify it.
  *
  * Control is a lease: a source's claims last only while it keeps requesting
  * the Actors in each of its updates. A claim not requested again during an

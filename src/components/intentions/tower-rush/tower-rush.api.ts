@@ -1,6 +1,11 @@
 import {
   assembleTowerRushIntention,
+  TowerRushCapabilities,
   TowerRushIntention,
 } from './tower-rush.intention';
 
-export { assembleTowerRushIntention, type TowerRushIntention };
+export {
+  assembleTowerRushIntention,
+  type TowerRushCapabilities,
+  type TowerRushIntention,
+};

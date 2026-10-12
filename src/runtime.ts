@@ -48,16 +48,19 @@ const actorControlPolicy: ActorControlPolicy<ActorControlRequest> = ({
  * Scoped Beliefs the beliefs runtime revises before any component updates.
  *
  * Every Plan and Controller update runs through the actor control arbiter,
- * which scopes its control to it; at the end of the tick, components gone
- * from the tree lose their Scoped Beliefs and control.
+ * whose actor control, given to every component as a capability, then acts
+ * for it; at the end of the tick, components gone from the tree lose their
+ * Scoped Beliefs and control.
  */
 function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
   const beliefs = createBeliefsRuntime({
     commonModel: createCommonBeliefsModel({ bot }),
   });
-  const deliberation = createDeliberation();
   const arbiter = createActorControlArbiter<Actor, ActorControlRequest>({
     policy: actorControlPolicy,
+  });
+  const deliberation = createDeliberation({
+    actorControl: arbiter.actorControl,
   });
   const loop = W3TimerApi.CreateTimer();
   let intentions: readonly AssembledIntention[] = [];
@@ -65,11 +68,8 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
   const updateChild: WarlordUpdateChild = ({ child }) =>
     arbiter.update({
       source: child,
-      run: ({ actorControl }) =>
-        child.update({
-          beliefs: beliefs.beliefsOf({ component: child }),
-          actorControl,
-        }),
+      run: () =>
+        child.update({ beliefs: beliefs.beliefsOf({ component: child }) }),
     });
 
   const tick = () => {

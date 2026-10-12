@@ -28,9 +28,17 @@ export { assembleTowerMaintenanceController };
 const RepairStartLifeFraction = 0.6;
 const RepairSwitchLifeFraction = 0.8;
 
+interface TowerMaintenanceControllerCapabilities {
+  readonly actorControl: ActorControl;
+}
+
+interface TowerMaintenanceControllerConstructorArgs {
+  rush: TowerRushState;
+  capabilities: TowerMaintenanceControllerCapabilities;
+}
+
 interface TowerMaintenanceControllerUpdateArgs {
   beliefs: WarlordBeliefs;
-  actorControl: ActorControl;
 }
 
 /**
@@ -41,16 +49,20 @@ interface TowerMaintenanceControllerUpdateArgs {
  */
 class TowerMaintenanceController implements WarlordController {
   private readonly rush: TowerRushState;
+  private readonly capabilities: TowerMaintenanceControllerCapabilities;
   // The tower the forward Peasants are repairing.
   private repairTarget: W3UnitApi.unit | undefined;
 
-  public constructor({ rush }: { rush: TowerRushState }) {
+  public constructor({
+    rush,
+    capabilities,
+  }: TowerMaintenanceControllerConstructorArgs) {
     this.rush = rush;
+    this.capabilities = capabilities;
   }
 
   public update({
     beliefs: { commonBeliefs: beliefs },
-    actorControl,
   }: TowerMaintenanceControllerUpdateArgs) {
     const enemyMain = beliefs.enemyStartPosition;
 
@@ -79,7 +91,7 @@ class TowerMaintenanceController implements WarlordController {
     for (const worker of controlForwardPeasants({
       beliefs,
       rush: this.rush,
-      actorControl,
+      actorControl: this.capabilities.actorControl,
     })) {
       if (repairTarget) {
         if (targetChanged || !beliefs.repairingUnits.includes(worker)) {
@@ -108,13 +120,15 @@ class TowerMaintenanceController implements WarlordController {
 
 interface AssembleTowerMaintenanceControllerArgs {
   rush: TowerRushState;
+  capabilities: TowerMaintenanceControllerCapabilities;
 }
 
 function assembleTowerMaintenanceController({
   rush,
+  capabilities,
 }: AssembleTowerMaintenanceControllerArgs): AssembledWarlordComponent<WarlordController> {
   return {
-    component: new TowerMaintenanceController({ rush }),
+    component: new TowerMaintenanceController({ rush, capabilities }),
     children: [],
   };
 }

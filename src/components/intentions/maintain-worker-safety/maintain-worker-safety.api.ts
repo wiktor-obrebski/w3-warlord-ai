@@ -1,3 +1,9 @@
-import { assembleMaintainWorkerSafetyIntention } from './maintain-worker-safety.intention';
+import {
+  assembleMaintainWorkerSafetyIntention,
+  MaintainWorkerSafetyCapabilities,
+} from './maintain-worker-safety.intention';
 
-export { assembleMaintainWorkerSafetyIntention };
+export {
+  assembleMaintainWorkerSafetyIntention,
+  type MaintainWorkerSafetyCapabilities,
+};

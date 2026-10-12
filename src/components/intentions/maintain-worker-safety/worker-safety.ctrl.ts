@@ -37,9 +37,16 @@ interface FleeRound {
   destination: Point;
 }
 
+interface WorkerSafetyControllerCapabilities {
+  readonly actorControl: ActorControl;
+}
+
+interface WorkerSafetyControllerConstructorArgs {
+  capabilities: WorkerSafetyControllerCapabilities;
+}
+
 interface WorkerSafetyControllerUpdateArgs {
   beliefs: WarlordBeliefs<WorkerSafetyBeliefs>;
-  actorControl: ActorControl;
 }
 
 interface WorkerSafetyControllerProtectWorkerArgs {
@@ -61,11 +68,15 @@ interface WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs {
  * ordered at all.
  */
 class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
+  private readonly capabilities: WorkerSafetyControllerCapabilities;
   private readonly fleeRounds = new Map<W3UnitApi.unit, FleeRound>();
+
+  public constructor({ capabilities }: WorkerSafetyControllerConstructorArgs) {
+    this.capabilities = capabilities;
+  }
 
   public update({
     beliefs: { commonBeliefs: beliefs, scopedBeliefs },
-    actorControl,
   }: WorkerSafetyControllerUpdateArgs) {
     for (const worker of beliefs.workers) {
       const isUnsafe =
@@ -74,7 +85,7 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
 
       if (
         isUnsafe &&
-        actorControl.request({
+        this.capabilities.actorControl.request({
           actor: worker.unit,
           request: 'preemptive',
         })
@@ -142,11 +153,17 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
   }
 }
 
-function assembleWorkerSafetyController(): AssembledWarlordComponent<
+interface AssembleWorkerSafetyControllerArgs {
+  capabilities: WorkerSafetyControllerCapabilities;
+}
+
+function assembleWorkerSafetyController({
+  capabilities,
+}: AssembleWorkerSafetyControllerArgs): AssembledWarlordComponent<
   WarlordController<WorkerSafetyBeliefs>
 > {
   return {
-    component: new WorkerSafetyController(),
+    component: new WorkerSafetyController({ capabilities }),
     beliefsModel: workerSafetyBeliefsModel,
     children: [],
   };

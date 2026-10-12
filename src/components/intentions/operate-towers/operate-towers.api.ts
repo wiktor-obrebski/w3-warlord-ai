@@ -1,3 +1,6 @@
-import { assembleOperateTowersIntention } from './operate-towers.intention';
+import {
+  assembleOperateTowersIntention,
+  OperateTowersCapabilities,
+} from './operate-towers.intention';
 
-export { assembleOperateTowersIntention };
+export { assembleOperateTowersIntention, type OperateTowersCapabilities };

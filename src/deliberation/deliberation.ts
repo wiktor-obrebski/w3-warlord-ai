@@ -4,12 +4,20 @@ import { AssembledWarlordComponent, WarlordIntention } from '../execution';
 import { APPLY_PRESSURE } from '../desires/apply-pressure';
 import { PROTECT_ECONOMIC_ASSETS } from '../desires/protect-economic-assets';
 import { USE_MILITARY_ASSETS_EFFECTIVELY } from '../desires/use-military-assets-effectively';
-import { assembleMaintainWorkerSafetyIntention } from '../components/intentions/maintain-worker-safety/maintain-worker-safety.api';
+import type { ActorControl } from '../contracts/actor-control';
+import {
+  assembleMaintainWorkerSafetyIntention,
+  MaintainWorkerSafetyCapabilities,
+} from '../components/intentions/maintain-worker-safety/maintain-worker-safety.api';
 import {
   assembleTowerRushIntention,
+  TowerRushCapabilities,
   TowerRushIntention,
 } from '../components/intentions/tower-rush/tower-rush.api';
-import { assembleOperateTowersIntention } from '../components/intentions/operate-towers/operate-towers.api';
+import {
+  assembleOperateTowersIntention,
+  OperateTowersCapabilities,
+} from '../components/intentions/operate-towers/operate-towers.api';
 
 export { type AssembledIntention, createDeliberation };
 
@@ -18,6 +26,10 @@ type AssembledIntention = AssembledWarlordComponent<WarlordIntention<unknown>>;
 
 interface RetainedArgs<T extends AssembledIntention> {
   intention: T | null;
+}
+
+interface CreateDeliberationArgs {
+  actorControl: ActorControl;
 }
 
 /**
@@ -34,11 +46,22 @@ interface RetainedArgs<T extends AssembledIntention> {
  * Deliberation remembers the Intentions it assembled, so it can tell them
  * apart and read their state; one is retained while it is still active.
  */
-function createDeliberation(): Deliberation<
+function createDeliberation({
+  actorControl,
+}: CreateDeliberationArgs): Deliberation<
   CommonBeliefs,
   Desire,
   AssembledIntention
 > {
+  const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
+    actorControl,
+  };
+  const towerRushCapabilitiesProvider: TowerRushCapabilities = {
+    actorControl,
+  };
+  const operateTowersCapabilitiesProvider: OperateTowersCapabilities = {
+    actorControl,
+  };
   let workerSafety: AssembledIntention | null = null;
   let towerRush: AssembledWarlordComponent<TowerRushIntention> | null = null;
   let operateTowers: AssembledIntention | null = null;
@@ -53,15 +76,22 @@ function createDeliberation(): Deliberation<
 
       workerSafety = desires.includes(PROTECT_ECONOMIC_ASSETS)
         ? (retained({ intention: workerSafety }) ??
-          assembleMaintainWorkerSafetyIntention())
+          assembleMaintainWorkerSafetyIntention({
+            capabilities: workerSafetyCapabilitiesProvider,
+          }))
         : null;
       towerRush = desires.includes(APPLY_PRESSURE)
-        ? (retained({ intention: towerRush }) ?? assembleTowerRushIntention())
+        ? (retained({ intention: towerRush }) ??
+          assembleTowerRushIntention({
+            capabilities: towerRushCapabilitiesProvider,
+          }))
         : null;
       operateTowers = desires.includes(USE_MILITARY_ASSETS_EFFECTIVELY)
         ? (retained({ intention: operateTowers }) ??
           (towerRush?.component.positionEstablished
-            ? assembleOperateTowersIntention()
+            ? assembleOperateTowersIntention({
+                capabilities: operateTowersCapabilitiesProvider,
+              })
             : null))
         : null;
 

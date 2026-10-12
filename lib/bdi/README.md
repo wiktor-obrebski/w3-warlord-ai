@@ -98,7 +98,7 @@ The assembled components form the component tree the beliefs runtime manages; th
 3. beliefs.sync({ roots: intentions })
      register new components, remove gone ones, revise every Scoped Beliefs
 4. intention.component.update({ beliefs: beliefs.beliefsOf({ component: intention.component }), updateChild }) for every Intention
-     → updateChild({ child }): arbiter.update({ source: child, run: ({ actorControl }) => child.update({ beliefs: beliefs.beliefsOf({ component: child }), actorControl }) })
+     → updateChild({ child }): arbiter.update({ source: child, run: () => child.update({ beliefs: beliefs.beliefsOf({ component: child }) }) })
 5. arbiter.releaseInactive({ activeSources: beliefs.prune() })
 ```
 
@@ -200,35 +200,39 @@ The returned set defines which commitments remain active:
 
 Retained Intentions must not be recreated. One Desire may lead to any number of Intentions, including none. An agent may use assembled components as `TIntention`, so the runtime receives each Intention's metadata.
 
-### `Intention<TBeliefs, TActorControl, TChildBeliefs = TBeliefs>`
+### `Intention<TBeliefs, TChildBeliefs = TBeliefs>`
 
 ```ts
 update({ beliefs, updateChild }: {
   beliefs: Readonly<TBeliefs>;
-  updateChild: UpdateChild<TChildBeliefs, TActorControl>;
+  updateChild: UpdateChild<TChildBeliefs>;
 }): void
 ```
 
-An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to create, update, and discard them. It updates a child only through `updateChild({ child })`, which runs the child's `update()` with the child's own Beliefs and actor control scoped to it.
+An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to create, update, and discard them. It updates a child only through `updateChild({ child })`, which runs the child's `update()` with the child's own Beliefs and its actor control acting for it.
 
-### `Plan<TBeliefs, TActorControl>`
+### `Plan<TBeliefs>`
 
 ```ts
 readonly status: PlanStatus  // "running" | "succeeded" | "failed"
-update({ beliefs, actorControl }: { beliefs: Readonly<TBeliefs>; actorControl: TActorControl }): void
+update({ beliefs }: { beliefs: Readonly<TBeliefs> }): void
 ```
 
-`TBeliefs` is normally `ComponentBeliefs`; `TActorControl` is the agent's actor control capability, normally an `ActorControlProvider<TActor, TRequest>`.
+`TBeliefs` is normally `ComponentBeliefs`.
 
 `status` is persistent state changed only during `update()`. Reading it is an inspection, not a re-evaluation. A Plan's success or failure does not by itself end the Intention that owns it.
 
-### `Controller<TBeliefs, TActorControl>`
+### `Controller<TBeliefs>`
 
 ```ts
-update({ beliefs, actorControl }: { beliefs: Readonly<TBeliefs>; actorControl: TActorControl }): void
+update({ beliefs }: { beliefs: Readonly<TBeliefs> }): void
 ```
 
 A Controller reacts continuously and never completes. It may keep private execution state.
+
+### Capabilities
+
+`update()` receives only the Beliefs, which the runtime prepares for every update. Anything else a component needs from outside, such as actor control, it receives once, when it is assembled: its assemble function takes the capabilities the component declares, and the component keeps them.
 
 ## Actor Control
 
@@ -240,7 +244,7 @@ An **Actor** is anything in the environment the agent can give orders to; its ty
 request({ actor, request }: { actor: TActor; request: TRequest }): boolean
 ```
 
-Passed to a Plan or Controller during its update, scoped to it, so requests need not name the source. A source orders an Actor only after a request for it returned `true`:
+Given to Plans and Controllers as a capability. One provider serves every source: it always acts for the source whose update is running, so requests need not name the source, and a request outside a source update throws. A source orders an Actor only after a request for it returned `true`:
 
 ```ts
 if (actorControl.request({ actor: worker, request: 'normal' })) {
@@ -272,11 +276,12 @@ Control is a lease. During each of its updates, a source requests every Actor it
 
 ```ts
 createActorControlArbiter<TActor, TRequest>({ policy }): ActorControlArbiter<TActor, TRequest>
-update({ source, run }: { source: object; run: ({ actorControl }) => void }): void
+readonly actorControl: ActorControlProvider<TActor, TRequest>
+update({ source, run }: { source: object; run: () => void }): void
 releaseInactive({ activeSources }: { activeSources: ReadonlySet<object> }): void
 ```
 
-Owned by the agent's runtime and created with the agent's policy. `update` runs one source update with control scoped to it, then expires the source's unrenewed claims. `releaseInactive` drops the claims of sources no longer in the managed component tree, such as a discarded Plan, which will not update again to let them expire.
+Owned by the agent's runtime and created with the agent's policy. `actorControl` is the provider the agent hands to its components. `update` runs one source update, during which `actorControl` acts for that source, then expires the source's unrenewed claims. `releaseInactive` drops the claims of sources no longer in the managed component tree, such as a discarded Plan, which will not update again to let them expire.
 
 ## Deliberately omitted
 

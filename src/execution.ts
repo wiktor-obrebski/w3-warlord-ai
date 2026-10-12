@@ -6,7 +6,6 @@ import {
   Plan,
   UpdateChild,
 } from '@lib/bdi';
-import type { ActorControl } from './contracts/actor-control';
 import { CommonBeliefs } from './beliefs/common.beliefs';
 
 export {
@@ -28,23 +27,18 @@ type WarlordBeliefs<TScopedBeliefs = null> = ComponentBeliefs<
   TScopedBeliefs
 >;
 
-type WarlordPlan<TScopedBeliefs = null> = Plan<
-  WarlordBeliefs<TScopedBeliefs>,
-  ActorControl
->;
+type WarlordPlan<TScopedBeliefs = null> = Plan<WarlordBeliefs<TScopedBeliefs>>;
 
 type WarlordController<TScopedBeliefs = null> = Controller<
-  WarlordBeliefs<TScopedBeliefs>,
-  ActorControl
+  WarlordBeliefs<TScopedBeliefs>
 >;
 
 type WarlordIntention<TScopedBeliefs = null> = Intention<
   WarlordBeliefs<TScopedBeliefs>,
-  ActorControl,
   WarlordBeliefs<unknown>
 >;
 
-type WarlordUpdateChild = UpdateChild<WarlordBeliefs<unknown>, ActorControl>;
+type WarlordUpdateChild = UpdateChild<WarlordBeliefs<unknown>>;
 
 /**
  * The Scoped Beliefs type a component's `update` reads, so its assemble

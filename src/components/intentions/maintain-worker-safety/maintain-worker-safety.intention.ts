@@ -1,4 +1,5 @@
 import { ChildFactory, childFactory } from '@lib/bdi';
+import type { ActorControl } from '../../../contracts/actor-control';
 import {
   AssembledChildren,
   AssembledWarlordComponent,
@@ -10,7 +11,14 @@ import {
 import { assembleWorkerSafetyController } from './worker-safety.ctrl';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
-export { assembleMaintainWorkerSafetyIntention };
+export {
+  assembleMaintainWorkerSafetyIntention,
+  type MaintainWorkerSafetyCapabilities,
+};
+
+interface MaintainWorkerSafetyCapabilities {
+  readonly actorControl: ActorControl;
+}
 
 interface MaintainWorkerSafetyIntentionConstructorArgs {
   createWorkerSafetyController: ChildFactory<
@@ -42,14 +50,23 @@ class MaintainWorkerSafetyIntention implements WarlordIntention {
   }
 }
 
-function assembleMaintainWorkerSafetyIntention(): AssembledWarlordComponent<WarlordIntention> {
+interface AssembleMaintainWorkerSafetyIntentionArgs {
+  capabilities: MaintainWorkerSafetyCapabilities;
+}
+
+function assembleMaintainWorkerSafetyIntention({
+  capabilities,
+}: AssembleMaintainWorkerSafetyIntentionArgs): AssembledWarlordComponent<WarlordIntention> {
   const children: AssembledChildren = [];
 
   return {
     component: new MaintainWorkerSafetyIntention({
       createWorkerSafetyController: childFactory({
         children,
-        assemble: () => assembleWorkerSafetyController(),
+        assemble: () =>
+          assembleWorkerSafetyController({
+            capabilities: { actorControl: capabilities.actorControl },
+          }),
       }),
     }),
     children,

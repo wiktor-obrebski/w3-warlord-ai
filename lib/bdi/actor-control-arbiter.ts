@@ -11,13 +11,14 @@ interface Claim<TRequest> {
   renewedInUpdate: number;
 }
 
-interface ActorControlArbiterRunArgs<TActor, TRequest> {
-  actorControl: ActorControlProvider<TActor, TRequest>;
+interface SourceUpdate {
+  source: object;
+  updateNumber: number;
 }
 
-interface ActorControlArbiterUpdateArgs<TActor, TRequest> {
+interface ActorControlArbiterUpdateArgs {
   source: object;
-  run: ({ actorControl }: ActorControlArbiterRunArgs<TActor, TRequest>) => void;
+  run: () => void;
 }
 
 interface ActorControlArbiterReleaseInactiveArgs {
@@ -31,13 +32,16 @@ interface ActorControlArbiterReleaseInactiveArgs {
  */
 interface ActorControlArbiter<TActor, TRequest> {
   /**
-   * Runs one update of the source with control scoped to it. The source's
-   * claims not renewed during the update expire when it ends.
+   * The actor control given to every Plan and Controller. It acts for the
+   * source whose update is running and throws outside of one.
    */
-  update({
-    source,
-    run,
-  }: ActorControlArbiterUpdateArgs<TActor, TRequest>): void;
+  readonly actorControl: ActorControlProvider<TActor, TRequest>;
+
+  /**
+   * Runs one update of the source, during which `actorControl` acts for it.
+   * The source's claims not renewed during the update expire when it ends.
+   */
+  update({ source, run }: ActorControlArbiterUpdateArgs): void;
 
   /**
    * Releases the claims of sources no longer active, which will not update
@@ -53,8 +57,7 @@ interface CreateActorControlArbiterArgs<TRequest> {
 }
 
 interface RequestControlArgs<TActor, TRequest> {
-  requester: object;
-  updateNumber: number;
+  requester: SourceUpdate;
   actor: TActor;
   request: TRequest;
 }
@@ -71,18 +74,18 @@ function createActorControlArbiter<TActor, TRequest>({
 > {
   const claims = new Map<TActor, Claim<TRequest>>();
   let updateCount = 0;
+  let runningUpdate: SourceUpdate | null = null;
 
   const requestControl = ({
     requester,
-    updateNumber,
     actor,
     request,
   }: RequestControlArgs<TActor, TRequest>): boolean => {
     const currentClaim = claims.get(actor) ?? null;
 
-    if (currentClaim !== null && currentClaim.holder === requester) {
+    if (currentClaim !== null && currentClaim.holder === requester.source) {
       currentClaim.request = request;
-      currentClaim.renewedInUpdate = updateNumber;
+      currentClaim.renewedInUpdate = requester.updateNumber;
       return true;
     }
 
@@ -91,9 +94,9 @@ function createActorControlArbiter<TActor, TRequest>({
     }
 
     claims.set(actor, {
-      holder: requester,
+      holder: requester.source,
       request,
-      renewedInUpdate: updateNumber,
+      renewedInUpdate: requester.updateNumber,
     });
 
     return true;
@@ -114,26 +117,33 @@ function createActorControlArbiter<TActor, TRequest>({
   };
 
   return {
+    actorControl: {
+      request({ actor, request }) {
+        if (runningUpdate === null) {
+          throw new Error(
+            'Actor control arbiter: actor requested outside a source update.'
+          );
+        }
+
+        return requestControl({ requester: runningUpdate, actor, request });
+      },
+    },
+
     update({ source, run }) {
       updateCount += 1;
-      const updateNumber = updateCount;
+      const sourceUpdate: SourceUpdate = { source, updateNumber: updateCount };
 
-      run({
-        actorControl: {
-          request({ actor, request }) {
-            return requestControl({
-              requester: source,
-              updateNumber,
-              actor,
-              request,
-            });
-          },
-        },
-      });
+      // Not reset in a `finally`: TSTL rethrows from it, so the error report
+      // would lose the original traceback. An error ends the cycle, and the
+      // next update replaces the stale value.
+      runningUpdate = sourceUpdate;
+      run();
+      runningUpdate = null;
 
       releaseClaims({
         shouldRelease: ({ claim }) =>
-          claim.holder === source && claim.renewedInUpdate !== updateNumber,
+          claim.holder === source &&
+          claim.renewedInUpdate !== sourceUpdate.updateNumber,
       });
     },
 
