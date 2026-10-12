@@ -1,4 +1,4 @@
-import type { AnyBeliefsModel } from './beliefs-model';
+import type { BeliefsModel } from './beliefs-model';
 
 export { type Provided, type ChildHandle, type ChildFactory, childFactory };
 
@@ -8,15 +8,24 @@ export { type Provided, type ChildHandle, type ChildFactory, childFactory };
  *
  * Providers are the only way components are constructed, so the runtime
  * always receives this metadata, while the component itself never sees it.
+ *
+ * A provider names the Scoped Beliefs type its component reads as
+ * `TScopedBeliefs`, so the compiler checks that the model produces it. The
+ * runtime handles components of every Scoped Beliefs type alike, so the
+ * default `unknown` is what it receives.
  */
-interface Provided<TComponent extends object, TCommonBeliefs> {
+interface Provided<
+  TComponent extends object,
+  TCommonBeliefs,
+  TScopedBeliefs = unknown,
+> {
   readonly component: TComponent;
 
   /**
    * Maintains the component's Scoped Beliefs. Omitted for a component with
    * only Common Beliefs.
    */
-  readonly beliefsModel?: AnyBeliefsModel<TCommonBeliefs>;
+  readonly beliefsModel?: BeliefsModel<unknown, TScopedBeliefs, TCommonBeliefs>;
 
   /**
    * The children the component currently has, as their providers created

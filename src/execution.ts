@@ -46,10 +46,23 @@ type WarlordIntention<TScopedBeliefs = null> = Intention<
 
 type WarlordUpdateChild = UpdateChild<WarlordBeliefs<unknown>, ActorControl>;
 
+/**
+ * The Scoped Beliefs type a component's `update` reads, so its provider can
+ * only attach a model producing exactly that.
+ */
+type ScopedBeliefsOf<TComponent> = TComponent extends {
+  update(args: {
+    beliefs: { readonly scopedBeliefs: infer TScopedBeliefs };
+  }): void;
+}
+  ? TScopedBeliefs
+  : never;
+
 /** A component as its `provide...` function returns it. */
 type ProvidedComponent<TComponent extends object> = Provided<
   TComponent,
-  CommonBeliefs
+  CommonBeliefs,
+  ScopedBeliefsOf<TComponent>
 >;
 
 /** The children list a provider keeps for its component. */

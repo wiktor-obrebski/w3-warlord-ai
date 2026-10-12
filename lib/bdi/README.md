@@ -162,16 +162,18 @@ readonly scopedBeliefs: TScopedBeliefs   // null for a component without a Belie
 
 The Beliefs a component receives in `update()`. It cannot read any other component's Scoped Beliefs.
 
-### `Provided<TValue, TCommonBeliefs>`, `childFactory`
+### `Provided<TComponent, TCommonBeliefs, TScopedBeliefs = unknown>`, `childFactory`
 
 ```ts
 readonly component: TComponent
-readonly beliefsModel?: AnyBeliefsModel<TCommonBeliefs>
+readonly beliefsModel?: BeliefsModel<unknown, TScopedBeliefs, TCommonBeliefs>
 readonly children: readonly Provided<object, TCommonBeliefs>[]
 
 childFactory({ children, provide }): ChildFactory<TComponent>   // () => ChildHandle<TComponent>
 ChildHandle<TComponent>: { component, discard() }
 ```
+
+A provider names the Scoped Beliefs type its component reads as `TScopedBeliefs`, so the compiler checks that the model produces it. The runtime handles every component alike, so it receives the default `unknown`.
 
 `discard()` removes the child's record; discarding twice throws.
 
