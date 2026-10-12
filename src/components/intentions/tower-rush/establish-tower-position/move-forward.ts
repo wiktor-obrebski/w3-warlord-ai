@@ -1,8 +1,9 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Vector } from '@lib/math';
 import { debug } from '../../../../debug';
-import { ActorControl, NORMAL_REQUEST } from '../../../../actor';
-import { CommonBeliefs, GoldMine } from '../../../../beliefs/common.beliefs';
+import type { ActorControl } from '../../../../contracts/actor-control';
+import type { GoldMine } from '../../../../contracts/world';
+import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
 import { positionOf } from '../../../../beliefs/common.assessments';
 import { TowerRushState } from '../tower-rush.state';
 
@@ -43,7 +44,7 @@ function updateMoveForward({
   const controlled = rush.forwardWorkers.filter(
     (worker) =>
       beliefs.ownUnits.has(worker) &&
-      actorControl.request({ actor: worker, request: NORMAL_REQUEST })
+      actorControl.request({ actor: worker, request: 'normal' })
   );
 
   holdArrivedMilitia({

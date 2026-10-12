@@ -1,6 +1,6 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { debug } from '../../../debug';
-import { ActorControl } from '../../../actor';
+import type { ActorControl } from '../../../contracts/actor-control';
 import {
   AssembledWarlordComponent,
   WarlordBeliefs,

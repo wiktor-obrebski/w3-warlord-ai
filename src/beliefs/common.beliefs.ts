@@ -11,18 +11,17 @@ import * as W3DestructableApi from '@lib/warcraft3-api/destructable';
 import * as W3OrcApi from '@lib/warcraft3-api/orc';
 import { CommonBeliefsModel } from '@lib/bdi';
 import { Point, Vector } from '@lib/math';
-import {
+import type {
+  GoldMine,
+  HomeDestructable,
   ObservedAttack,
-  observeAttacksOn,
-  takeObservedAttacks,
-} from './attack-observer';
+  OwnUnit,
+  VisibleEnemy,
+} from '../contracts/world';
+import { observeAttacksOn, takeObservedAttacks } from './attack-observer';
 import { GameClock, readGameClock, startGameClock } from './game-clock';
 
 export {
-  type OwnUnit,
-  type VisibleEnemy,
-  type GoldMine,
-  type HomeDestructable,
   type ObservedWorld,
   type CommonObservation,
   type CommonBeliefs,
@@ -65,39 +64,6 @@ const DeadUnitLife = 0.405;
 // attacks end; slow attackers, such as siege units, start an attack only
 // every few seconds and so are remembered only part of the time.
 const AttackMemorySeconds = 1;
-
-interface OwnUnit {
-  readonly unit: W3UnitApi.unit;
-  readonly position: Point;
-  readonly life: number;
-  readonly maxLife: number;
-  readonly isIdle: boolean;
-}
-
-// The handle is only for targeting orders; reasoning reads the observed
-// properties, which are collected only while the unit is visible.
-interface VisibleEnemy {
-  readonly unit: W3UnitApi.unit;
-  readonly position: Point;
-  readonly life: number;
-  readonly isMelee: boolean;
-  readonly isRanged: boolean;
-  readonly isSiege: boolean;
-  readonly isStructure: boolean;
-  readonly isWorker: boolean;
-  // A Night Elf Ancient walking and fighting like a unit.
-  readonly isUprootedAncient: boolean;
-}
-
-interface GoldMine {
-  readonly unit: W3UnitApi.unit;
-  readonly position: Point;
-}
-
-interface HomeDestructable {
-  readonly destructable: W3DestructableApi.destructable;
-  readonly position: Point;
-}
 
 interface ObservedWorld {
   // Game seconds since the bot started playing.

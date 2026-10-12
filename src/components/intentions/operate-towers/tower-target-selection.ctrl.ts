@@ -1,6 +1,6 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { debug } from '../../../debug';
-import { ActorControl, NORMAL_REQUEST } from '../../../actor';
+import type { ActorControl } from '../../../contracts/actor-control';
 import {
   AssembledWarlordComponent,
   WarlordBeliefs,
@@ -59,7 +59,7 @@ class TowerTargetSelectionController implements WarlordController {
     );
 
     for (const tower of beliefs.guardTowers) {
-      if (actorControl.request({ actor: tower, request: NORMAL_REQUEST })) {
+      if (actorControl.request({ actor: tower, request: 'normal' })) {
         this.attackBestTargetInRange({ tower, rankedTargets, beliefs });
       }
     }

@@ -2,7 +2,7 @@ import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import * as W3DestructableApi from '@lib/warcraft3-api/destructable';
 import { debug } from '../../../debug';
-import { ActorControl, NORMAL_REQUEST } from '../../../actor';
+import type { ActorControl } from '../../../contracts/actor-control';
 import {
   AssembledWarlordComponent,
   WarlordBeliefs,
@@ -63,7 +63,7 @@ class TowerRushEconomyController implements WarlordController {
       beliefs.townHall &&
       actorControl.request({
         actor: beliefs.townHall,
-        request: NORMAL_REQUEST,
+        request: 'normal',
       })
         ? beliefs.townHall
         : undefined;
@@ -152,7 +152,7 @@ function assignNewHomeWorkers({
 
     if (
       !beliefs.harvestingUnits.includes(peasant) &&
-      actorControl.request({ actor: peasant, request: NORMAL_REQUEST }) &&
+      actorControl.request({ actor: peasant, request: 'normal' }) &&
       !orderHarvest({ worker: peasant, resource, beliefs }).accepted
     ) {
       debug({
@@ -244,7 +244,7 @@ function returnIdleWorkersToTheirResource({
 }: ReturnIdleWorkersToTheirResourceArgs) {
   // Requested before checking idleness, so busy workers stay controlled too.
   const isReturning = ({ worker }: { worker: W3UnitApi.unit }) =>
-    actorControl.request({ actor: worker, request: NORMAL_REQUEST }) &&
+    actorControl.request({ actor: worker, request: 'normal' }) &&
     beliefs.idleUnits.includes(worker);
 
   for (const worker of rush.goldWorkers) {

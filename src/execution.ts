@@ -6,7 +6,7 @@ import {
   Plan,
   UpdateChild,
 } from '@lib/bdi';
-import { ActorControl } from './actor';
+import type { ActorControl } from './contracts/actor-control';
 import { CommonBeliefs } from './beliefs/common.beliefs';
 
 export {

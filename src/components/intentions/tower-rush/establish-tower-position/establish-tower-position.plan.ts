@@ -1,7 +1,7 @@
 import { PlanStatus } from '@lib/bdi';
 import { Point } from '@lib/math';
 import { debug } from '../../../../debug';
-import { ActorControl } from '../../../../actor';
+import type { ActorControl } from '../../../../contracts/actor-control';
 import {
   AssembledWarlordComponent,
   WarlordBeliefs,

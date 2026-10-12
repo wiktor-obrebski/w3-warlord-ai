@@ -63,7 +63,7 @@ Technical architecture
 - **Assemble function** — The `assemble<Name>Intention/Plan/Controller()` function through which every component is constructed; returns the component together with its optional BeliefsModel and its children (an `AssembledComponent`), while the component class stays private. Components create and discard children through child factories injected by their assemble function.
 - **Component tree** — The assembled Intentions and the children their assemble functions recorded; the tree the beliefs runtime and the actor control arbiter manage.
 - **Actor control arbiter** — Tracks which Plan or Controller controls each Actor and with what request; runs each Plan and Controller update with an actor control provider scoped to it, expires unrenewed claims after the update, and releases claims of sources that left the component tree. Whether a request takes an Actor is decided by the bot's actor control policy, not by the arbiter.
-- **Actor control policy** — The bot's rule for granting or refusing a request for an Actor held by another source or by none (`actorControlPolicy` in `src/actor.ts`).
+- **Actor control policy** — The bot's rule for granting or refusing a request for an Actor held by another source or by none (`actorControlPolicy` in `src/runtime.ts`).
 - **Central Timing Scheduler** — Invokes reasoning and control systems at their required frequencies; it does not decide which intentions should progress.
 - **Tactical frequency** — Fast update cadence for controllers and immediate combat behavior.
 - **Intention-monitoring frequency** — Cadence for checking active plans, progress, and lifecycle conditions.
@@ -91,7 +91,7 @@ revise Common Beliefs → Deliberation → assembled Intentions
 
 A component created during the tick is registered and has its Scoped Beliefs first revised before its first update.
 
-Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), component assembly (`AssembledComponent`, `childFactory`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The policy deciding which requests are granted is domain code in `src/actor.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
+Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), component assembly (`AssembledComponent`, `childFactory`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The policy deciding which requests are granted is domain code in `src/runtime.ts`, over the request type in `src/contracts/actor-control.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
 
 Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, diagnostic artifacts, and automated tests.
 
@@ -230,8 +230,8 @@ Before ordering an Actor, every Plan and Controller requests Actor Control for i
 src/
 ├─ main.ts        startup: installs the bot player, debug mode, starts the runtime
 ├─ runtime.ts     the bot loop
-├─ actor.ts       Actor type, actor control requests and policy
 ├─ execution.ts   Warlord component, Beliefs, and assembled component types
+├─ contracts/     type-only domain vocabulary shared across layers: Actor and actor control requests, observed world records
 ├─ beliefs/       common belief model, observing Warcraft state for decisions, and common assessments
 ├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
 ├─ deliberation/  creates, retains, and drops Intentions

@@ -3,13 +3,14 @@ import * as W3MathApi from '@lib/warcraft3-api/math';
 import * as W3TerrainApi from '@lib/warcraft3-api/terrain';
 import { Point, Vector } from '@lib/math';
 import { debug } from '../../../debug';
-import { ActorControl, PREEMPTIVE_REQUEST } from '../../../actor';
+import type { ActorControl } from '../../../contracts/actor-control';
+import type { OwnUnit } from '../../../contracts/world';
 import {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
 } from '../../../execution';
-import { CommonBeliefs, OwnUnit } from '../../../beliefs/common.beliefs';
+import { CommonBeliefs } from '../../../beliefs/common.beliefs';
 import { isRecentlyAttacked } from '../../../beliefs/common.assessments';
 import {
   WorkerSafetyBeliefs,
@@ -75,7 +76,7 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
         isUnsafe &&
         actorControl.request({
           actor: worker.unit,
-          request: PREEMPTIVE_REQUEST,
+          request: 'preemptive',
         })
       ) {
         this.protectWorker({ worker, beliefs });

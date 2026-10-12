@@ -243,7 +243,7 @@ request({ actor, request }: { actor: TActor; request: TRequest }): boolean
 Passed to a Plan or Controller during its update, scoped to it, so requests need not name the source. A source orders an Actor only after a request for it returned `true`:
 
 ```ts
-if (actorControl.request({ actor: worker, request: NORMAL_REQUEST })) {
+if (actorControl.request({ actor: worker, request: 'normal' })) {
   repair({ worker, tower });
 }
 ```

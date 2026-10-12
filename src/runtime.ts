@@ -1,9 +1,13 @@
 import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3TimerApi from '@lib/warcraft3-api/timer';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
-import { createActorControlArbiter, createBeliefsRuntime } from '@lib/bdi';
+import {
+  ActorControlPolicy,
+  createActorControlArbiter,
+  createBeliefsRuntime,
+} from '@lib/bdi';
 import { debug } from './debug';
-import { Actor, ActorControlRequest, actorControlPolicy } from './actor';
+import type { Actor, ActorControlRequest } from './contracts/actor-control';
 import { WarlordUpdateChild } from './execution';
 import { createCommonBeliefsModel } from './beliefs/common.beliefs';
 import { APPLY_PRESSURE } from './desires/apply-pressure';
@@ -23,6 +27,17 @@ const Desires = [
   PROTECT_ECONOMIC_ASSETS,
   USE_MILITARY_ASSETS_EFFECTIVELY,
 ];
+
+/**
+ * An uncontrolled Actor is granted to any request; one controlled normally
+ * only to a preemptive request; one controlled preemptively to none.
+ */
+const actorControlPolicy: ActorControlPolicy<ActorControlRequest> = ({
+  request,
+  currentClaim,
+}) =>
+  currentClaim === null ||
+  (request === 'preemptive' && currentClaim.request !== 'preemptive');
 
 /**
  * Runs the bot's BDI loop for one player, from the first tick until the game

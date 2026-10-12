@@ -1,22 +1,10 @@
 import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3TriggerApi from '@lib/warcraft3-api/trigger';
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
+import type { ObservedAttack } from '../contracts/world';
 import { GameClock, readGameClock } from './game-clock';
 
-export {
-  type ObservedAttack,
-  type AttackObserver,
-  observeAttacksOn,
-  takeObservedAttacks,
-};
-
-interface ObservedAttack {
-  readonly attacker: W3UnitApi.unit;
-  readonly attackedUnit: W3UnitApi.unit;
-  // Game seconds at which the attack started.
-  readonly time: number;
-}
+export { type AttackObserver, observeAttacksOn, takeObservedAttacks };
 
 interface AttackObserver {
   pending: ObservedAttack[];

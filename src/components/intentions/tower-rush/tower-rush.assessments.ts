@@ -1,9 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
-import {
-  CommonBeliefs,
-  HomeDestructable,
-} from '../../../beliefs/common.beliefs';
+import type { HomeDestructable } from '../../../contracts/world';
+import { CommonBeliefs } from '../../../beliefs/common.beliefs';
 import {
   completedLumberMill,
   lifeFractionOf,

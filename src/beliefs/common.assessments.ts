@@ -1,6 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
-import { CommonBeliefs, OwnUnit } from './common.beliefs';
+import type { OwnUnit } from '../contracts/world';
+import { CommonBeliefs } from './common.beliefs';
 
 export {
   isRecentlyAttacked,

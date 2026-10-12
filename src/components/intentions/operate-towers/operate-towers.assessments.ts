@@ -1,4 +1,5 @@
-import { CommonBeliefs, VisibleEnemy } from '../../../beliefs/common.beliefs';
+import type { VisibleEnemy } from '../../../contracts/world';
+import { CommonBeliefs } from '../../../beliefs/common.beliefs';
 import { recentAttackTarget } from '../../../beliefs/common.assessments';
 
 export { TARGET_PRIORITY, type RankedTarget, rankTowerTargets };

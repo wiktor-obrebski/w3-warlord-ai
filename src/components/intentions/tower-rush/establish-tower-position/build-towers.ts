@@ -3,7 +3,7 @@ import * as W3MathApi from '@lib/warcraft3-api/math';
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { debug } from '../../../../debug';
 import { Point, Vector } from '@lib/math';
-import { ActorControl } from '../../../../actor';
+import type { ActorControl } from '../../../../contracts/actor-control';
 import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
 import {
   closestUnit,

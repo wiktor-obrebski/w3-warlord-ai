@@ -1,10 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
-import {
-  CommonBeliefs,
-  OwnUnit,
-  VisibleEnemy,
-} from '../../../beliefs/common.beliefs';
+import type { OwnUnit, VisibleEnemy } from '../../../contracts/world';
+import { CommonBeliefs } from '../../../beliefs/common.beliefs';
 import { recentAttackTarget } from '../../../beliefs/common.assessments';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
