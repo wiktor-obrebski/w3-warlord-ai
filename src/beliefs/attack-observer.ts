@@ -13,7 +13,7 @@ export {
 
 interface ObservedAttack {
   readonly attacker: W3UnitApi.unit;
-  readonly target: W3UnitApi.unit;
+  readonly attackedUnit: W3UnitApi.unit;
   // Game seconds at which the attack started.
   readonly time: number;
 }
@@ -79,17 +79,17 @@ interface RecordAttackArgs {
 
 function recordAttack({ observer, clock }: RecordAttackArgs) {
   const attacker = W3TriggerApi.GetAttacker();
-  const target = W3TriggerApi.GetTriggerUnit();
+  const attackedUnit = W3TriggerApi.GetTriggerUnit();
 
-  if (!attacker || !target) {
+  if (!attacker || !attackedUnit) {
     throw new Error(
-      'Attack observer: attack event without attacker or target.'
+      'Attack observer: attack event without attacker or attacked unit.'
     );
   }
 
   observer.pending.push({
     attacker,
-    target,
+    attackedUnit,
     time: readGameClock({ clock }),
   });
 }

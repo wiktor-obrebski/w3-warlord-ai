@@ -1,8 +1,8 @@
 export { type Controller };
 
-interface ControllerUpdateArgs<TBeliefs, TControl> {
+interface ControllerUpdateArgs<TBeliefs, TActorControl> {
   beliefs: Readonly<TBeliefs>;
-  control: TControl;
+  actorControl: TActorControl;
 }
 
 /**
@@ -10,13 +10,16 @@ interface ControllerUpdateArgs<TBeliefs, TControl> {
  *
  * A Controller may keep private execution state but treats Beliefs as
  * read-only input. `TBeliefs` is the Beliefs it reads, normally
- * `ComponentBeliefs`; `TControl` is the agent's actor control capability,
+ * `ComponentBeliefs`; `TActorControl` is the agent's actor control capability,
  * normally an `ActorControlProvider`.
  */
-interface Controller<TBeliefs, TControl> {
+interface Controller<TBeliefs, TActorControl> {
   /**
-   * Reacts to the current Beliefs. It may order only the Actors `control`
-   * grants it.
+   * Reacts to the current Beliefs. It may order only the Actors
+   * `actorControl` grants it.
    */
-  update({ beliefs, control }: ControllerUpdateArgs<TBeliefs, TControl>): void;
+  update({
+    beliefs,
+    actorControl,
+  }: ControllerUpdateArgs<TBeliefs, TActorControl>): void;
 }

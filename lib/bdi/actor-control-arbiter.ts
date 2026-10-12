@@ -12,12 +12,12 @@ interface Claim<TRequest> {
 }
 
 interface ActorControlArbiterRunArgs<TActor, TRequest> {
-  control: ActorControlProvider<TActor, TRequest>;
+  actorControl: ActorControlProvider<TActor, TRequest>;
 }
 
 interface ActorControlArbiterUpdateArgs<TActor, TRequest> {
   source: object;
-  run: ({ control }: ActorControlArbiterRunArgs<TActor, TRequest>) => void;
+  run: ({ actorControl }: ActorControlArbiterRunArgs<TActor, TRequest>) => void;
 }
 
 interface ActorControlArbiterReleaseInactiveArgs {
@@ -119,7 +119,7 @@ function createActorControlArbiter<TActor, TRequest>({
       const updateNumber = updateCount;
 
       run({
-        control: {
+        actorControl: {
           request({ actor, request }) {
             return requestControl({
               requester: source,

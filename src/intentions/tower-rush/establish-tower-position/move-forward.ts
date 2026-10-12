@@ -23,16 +23,16 @@ function createMoveForwardState(): MoveForwardState {
 interface UpdateMoveForwardArgs {
   beliefs: Readonly<CommonBeliefs>;
   rush: TowerRushState;
-  state: MoveForwardState;
-  control: ActorControl;
+  moveForwardState: MoveForwardState;
+  actorControl: ActorControl;
 }
 
 /** Returns whether the forward workers have arrived as Peasants again. */
 function updateMoveForward({
   beliefs,
   rush,
-  state,
-  control,
+  moveForwardState,
+  actorControl,
 }: UpdateMoveForwardArgs): boolean {
   const destination = beliefs.enemyMainGoldMine;
 
@@ -43,19 +43,33 @@ function updateMoveForward({
   const controlled = rush.forwardWorkers.filter(
     (worker) =>
       beliefs.ownUnits.has(worker) &&
-      control.request({ actor: worker, request: NORMAL_REQUEST })
+      actorControl.request({ actor: worker, request: NORMAL_REQUEST })
   );
 
-  holdArrivedMilitia({ destination, beliefs, state, controlled });
-  sendNewMilitiaToEnemy({ destination, beliefs, state, controlled });
+  holdArrivedMilitia({
+    destination,
+    beliefs,
+    moveForwardState,
+    controlled,
+  });
+  sendNewMilitiaToEnemy({
+    destination,
+    beliefs,
+    moveForwardState,
+    controlled,
+  });
 
-  return forwardWorkersHaveRevertedToPeasants({ beliefs, rush, state });
+  return forwardWorkersHaveRevertedToPeasants({
+    beliefs,
+    rush,
+    moveForwardState,
+  });
 }
 
 interface SendNewMilitiaToEnemyArgs {
   destination: GoldMine;
   beliefs: Readonly<CommonBeliefs>;
-  state: MoveForwardState;
+  moveForwardState: MoveForwardState;
   controlled: readonly W3UnitApi.unit[];
 }
 
@@ -65,13 +79,13 @@ interface SendNewMilitiaToEnemyArgs {
 function sendNewMilitiaToEnemy({
   destination,
   beliefs,
-  state,
+  moveForwardState,
   controlled,
 }: SendNewMilitiaToEnemyArgs) {
   for (const worker of controlled) {
     if (
       beliefs.militia.includes(worker) &&
-      !state.forwardWorkersSentToEnemy.includes(worker)
+      !moveForwardState.forwardWorkersSentToEnemy.includes(worker)
     ) {
       W3UnitApi.IssuePointOrder(
         worker,
@@ -79,7 +93,7 @@ function sendNewMilitiaToEnemy({
         destination.position.x,
         destination.position.y
       );
-      state.forwardWorkersSentToEnemy.push(worker);
+      moveForwardState.forwardWorkersSentToEnemy.push(worker);
     }
   }
 }
@@ -87,7 +101,7 @@ function sendNewMilitiaToEnemy({
 interface HoldArrivedMilitiaArgs {
   destination: GoldMine;
   beliefs: Readonly<CommonBeliefs>;
-  state: MoveForwardState;
+  moveForwardState: MoveForwardState;
   controlled: readonly W3UnitApi.unit[];
 }
 
@@ -96,21 +110,21 @@ interface HoldArrivedMilitiaArgs {
 function holdArrivedMilitia({
   destination,
   beliefs,
-  state,
+  moveForwardState,
   controlled,
 }: HoldArrivedMilitiaArgs) {
-  for (const worker of state.forwardWorkersSentToEnemy) {
+  for (const worker of moveForwardState.forwardWorkersSentToEnemy) {
     if (
       controlled.includes(worker) &&
       beliefs.militia.includes(worker) &&
-      !state.forwardWorkersHoldingPosition.includes(worker) &&
+      !moveForwardState.forwardWorkersHoldingPosition.includes(worker) &&
       new Vector({
         start: positionOf({ beliefs, unit: worker }),
         end: destination.position,
       }).length <= ArrivalRadius
     ) {
       if (W3UnitApi.IssueImmediateOrder(worker, 'holdposition')) {
-        state.forwardWorkersHoldingPosition.push(worker);
+        moveForwardState.forwardWorkersHoldingPosition.push(worker);
       } else {
         debug({ message: 'Tower rush: hold position order rejected.' });
       }
@@ -121,13 +135,13 @@ function holdArrivedMilitia({
 interface ForwardWorkersHaveRevertedToPeasantsArgs {
   beliefs: Readonly<CommonBeliefs>;
   rush: TowerRushState;
-  state: MoveForwardState;
+  moveForwardState: MoveForwardState;
 }
 
 function forwardWorkersHaveRevertedToPeasants({
   beliefs,
   rush,
-  state,
+  moveForwardState,
 }: ForwardWorkersHaveRevertedToPeasantsArgs): boolean {
   const survivingForwardWorkers = rush.forwardWorkers.filter(
     (worker) =>
@@ -138,7 +152,7 @@ function forwardWorkersHaveRevertedToPeasants({
     survivingForwardWorkers.length > 0 &&
     survivingForwardWorkers.every(
       (worker) =>
-        state.forwardWorkersSentToEnemy.includes(worker) &&
+        moveForwardState.forwardWorkersSentToEnemy.includes(worker) &&
         beliefs.peasants.includes(worker)
     )
   );

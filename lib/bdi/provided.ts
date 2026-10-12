@@ -4,13 +4,13 @@ export { type Provided, type ChildHandle, type ChildFactory, childFactory };
 
 /**
  * An Intention, Plan, or Controller as its provider function creates it:
- * the execution value, together with what the runtime needs to manage it.
+ * the component, together with what the runtime needs to manage it.
  *
  * Providers are the only way components are constructed, so the runtime
  * always receives this metadata, while the component itself never sees it.
  */
-interface Provided<TValue extends object, TCommonBeliefs> {
-  readonly value: TValue;
+interface Provided<TComponent extends object, TCommonBeliefs> {
+  readonly component: TComponent;
 
   /**
    * Maintains the component's Scoped Beliefs. Omitted for a component with
@@ -26,11 +26,11 @@ interface Provided<TValue extends object, TCommonBeliefs> {
 }
 
 /**
- * A child created by a child factory: its execution value, and a way for the
+ * A child created by a child factory: the component, and a way for the
  * parent to give it up.
  */
-interface ChildHandle<TValue> {
-  readonly value: TValue;
+interface ChildHandle<TComponent> {
+  readonly component: TComponent;
 
   /**
    * Removes the child from its parent, so the runtime stops managing it:
@@ -42,28 +42,28 @@ interface ChildHandle<TValue> {
 /**
  * Creates a child of the component it was given to.
  */
-type ChildFactory<TValue> = () => ChildHandle<TValue>;
+type ChildFactory<TComponent> = () => ChildHandle<TComponent>;
 
-interface ChildFactoryArgs<TValue extends object, TCommonBeliefs> {
+interface ChildFactoryArgs<TComponent extends object, TCommonBeliefs> {
   children: Provided<object, TCommonBeliefs>[];
-  provide: () => Provided<TValue, TCommonBeliefs>;
+  provide: () => Provided<TComponent, TCommonBeliefs>;
 }
 
 /**
  * Lets a provider give its component a way to create children without
  * exposing their metadata: each call provides a child, records it in
- * `children`, and hands the component only the child's value.
+ * `children`, and hands the component only a handle to the child.
  */
-function childFactory<TValue extends object, TCommonBeliefs>({
+function childFactory<TComponent extends object, TCommonBeliefs>({
   children,
   provide,
-}: ChildFactoryArgs<TValue, TCommonBeliefs>): ChildFactory<TValue> {
+}: ChildFactoryArgs<TComponent, TCommonBeliefs>): ChildFactory<TComponent> {
   return () => {
     const provided = provide();
     children.push(provided);
 
     return {
-      value: provided.value,
+      component: provided.component,
       discard() {
         const index = children.indexOf(provided);
 

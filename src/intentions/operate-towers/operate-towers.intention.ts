@@ -36,8 +36,8 @@ class OperateTowersIntention implements WarlordIntention {
   }
 
   public update({ beliefs, updateChild }: OperateTowersIntentionUpdateArgs) {
-    if (this.interval.claim({ now: beliefs.common.time })) {
-      this.targetSelection ??= this.createTargetSelection().value;
+    if (this.interval.claim({ now: beliefs.commonBeliefs.time })) {
+      this.targetSelection ??= this.createTargetSelection().component;
       updateChild({ child: this.targetSelection });
     }
   }
@@ -47,7 +47,7 @@ function provideOperateTowersIntention(): ProvidedComponent<WarlordIntention> {
   const children: ProvidedChildren = [];
 
   return {
-    value: new OperateTowersIntention({
+    component: new OperateTowersIntention({
       createTargetSelection: childFactory({
         children,
         provide: () => provideTowerTargetSelectionController(),

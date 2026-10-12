@@ -20,12 +20,12 @@ const GuardTowerAttackRange = 700;
 
 interface TowerTarget {
   tower: W3UnitApi.unit;
-  target: W3UnitApi.unit;
+  attackTarget: W3UnitApi.unit;
 }
 
 interface TowerTargetSelectionControllerUpdateArgs {
   beliefs: WarlordBeliefs;
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
 interface TowerTargetSelectionControllerAttackBestTargetInRangeArgs {
@@ -36,7 +36,7 @@ interface TowerTargetSelectionControllerAttackBestTargetInRangeArgs {
 
 interface TowerTargetSelectionControllerRememberTowerTargetArgs {
   tower: W3UnitApi.unit;
-  target: W3UnitApi.unit;
+  attackTarget: W3UnitApi.unit;
 }
 
 /**
@@ -49,17 +49,17 @@ class TowerTargetSelectionController implements WarlordController {
   private towerTargets: TowerTarget[] = [];
 
   public update({
-    beliefs: { common: beliefs },
-    control,
+    beliefs: { commonBeliefs: beliefs },
+    actorControl,
   }: TowerTargetSelectionControllerUpdateArgs) {
     const rankedTargets = rankTowerTargets({ beliefs });
 
-    this.towerTargets = this.towerTargets.filter((entry) =>
-      beliefs.guardTowers.includes(entry.tower)
+    this.towerTargets = this.towerTargets.filter((towerTarget) =>
+      beliefs.guardTowers.includes(towerTarget.tower)
     );
 
     for (const tower of beliefs.guardTowers) {
-      if (control.request({ actor: tower, request: NORMAL_REQUEST })) {
+      if (actorControl.request({ actor: tower, request: NORMAL_REQUEST })) {
         this.attackBestTargetInRange({ tower, rankedTargets, beliefs });
       }
     }
@@ -73,9 +73,9 @@ class TowerTargetSelectionController implements WarlordController {
     rankedTargets,
     beliefs,
   }: TowerTargetSelectionControllerAttackBestTargetInRangeArgs) {
-    const currentTarget = this.towerTargets.find(
-      (entry) => entry.tower === tower
-    )?.target;
+    const currentAttackTarget = this.towerTargets.find(
+      (towerTarget) => towerTarget.tower === tower
+    )?.attackTarget;
     const towerBusy = !beliefs.idleUnits.includes(tower);
 
     for (const { enemy, priority } of rankedTargets) {
@@ -83,12 +83,12 @@ class TowerTargetSelectionController implements WarlordController {
         continue;
       }
 
-      if (enemy.unit === currentTarget && towerBusy) {
+      if (enemy.unit === currentAttackTarget && towerBusy) {
         return;
       }
 
       if (W3UnitApi.IssueTargetOrder(tower, 'attack', enemy.unit)) {
-        this.rememberTowerTarget({ tower, target: enemy.unit });
+        this.rememberTowerTarget({ tower, attackTarget: enemy.unit });
         debug({
           message: `Operate towers: Guard Tower attacks ${TARGET_PRIORITY[priority]} target with ${Math.floor(enemy.life)} life.`,
         });
@@ -101,19 +101,19 @@ class TowerTargetSelectionController implements WarlordController {
 
   private rememberTowerTarget({
     tower,
-    target,
+    attackTarget,
   }: TowerTargetSelectionControllerRememberTowerTargetArgs) {
     this.forgetTowerTarget({ tower });
-    this.towerTargets.push({ tower, target });
+    this.towerTargets.push({ tower, attackTarget });
   }
 
   private forgetTowerTarget({ tower }: { tower: W3UnitApi.unit }) {
     this.towerTargets = this.towerTargets.filter(
-      (entry) => entry.tower !== tower
+      (towerTarget) => towerTarget.tower !== tower
     );
   }
 }
 
 function provideTowerTargetSelectionController(): ProvidedComponent<WarlordController> {
-  return { value: new TowerTargetSelectionController(), children: [] };
+  return { component: new TowerTargetSelectionController(), children: [] };
 }

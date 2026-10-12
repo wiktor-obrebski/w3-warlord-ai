@@ -19,15 +19,17 @@ const ConstructionStartLifeFraction = 0.1;
 
 interface IsRecentlyAttackedArgs {
   beliefs: Readonly<CommonBeliefs>;
-  target: W3UnitApi.unit;
+  attackedUnit: W3UnitApi.unit;
 }
 
 /** Whether any attacker recently started an attack on the bot's unit. */
 function isRecentlyAttacked({
   beliefs,
-  target,
+  attackedUnit,
 }: IsRecentlyAttackedArgs): boolean {
-  return beliefs.recentAttacks.some((attack) => attack.target === target);
+  return beliefs.recentAttacks.some(
+    (attack) => attack.attackedUnit === attackedUnit
+  );
 }
 
 interface RecentAttackTargetArgs {
@@ -41,7 +43,7 @@ function recentAttackTarget({
   attacker,
 }: RecentAttackTargetArgs): W3UnitApi.unit | undefined {
   return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
-    ?.target;
+    ?.attackedUnit;
 }
 
 interface OwnUnitArgs {

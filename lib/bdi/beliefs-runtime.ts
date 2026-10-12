@@ -10,8 +10,8 @@ export { type ComponentBeliefs, type BeliefsRuntime, createBeliefsRuntime };
  * BeliefsModel. Scoped Beliefs types should have read-only properties.
  */
 interface ComponentBeliefs<TCommonBeliefs, TScopedBeliefs> {
-  readonly common: Readonly<TCommonBeliefs>;
-  readonly scoped: TScopedBeliefs;
+  readonly commonBeliefs: Readonly<TCommonBeliefs>;
+  readonly scopedBeliefs: TScopedBeliefs;
 }
 
 interface BeliefsRuntimeBeliefsOfArgs {
@@ -79,18 +79,18 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
     const registeredComponents: object[] = [];
 
     const visit = ({ provided }: VisitArgs<TCommonBeliefs>) => {
-      currentComponents.add(provided.value);
+      const { component } = provided;
+      currentComponents.add(component);
 
       if (
         provided.beliefsModel &&
-        beliefsContainer.getScopedBeliefs({ component: provided.value }) ===
-          null
+        beliefsContainer.getScopedBeliefs({ component }) === null
       ) {
         beliefsContainer.registerScopedBeliefs({
-          component: provided.value,
+          component,
           beliefsModel: provided.beliefsModel,
         });
-        registeredComponents.push(provided.value);
+        registeredComponents.push(component);
       }
 
       for (const child of provided.children) {
@@ -137,8 +137,8 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
       }
 
       return {
-        common: beliefsContainer.getCommonBeliefs(),
-        scoped: beliefsContainer.getScopedBeliefs({ component }),
+        commonBeliefs: beliefsContainer.getCommonBeliefs(),
+        scopedBeliefs: beliefsContainer.getScopedBeliefs({ component }),
       };
     },
 

@@ -34,7 +34,7 @@ interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
 interface BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs> {
   previous: Readonly<TBeliefs> | null;
   observation: Readonly<TObservation>;
-  common: Readonly<TCommonBeliefs>;
+  commonBeliefs: Readonly<TCommonBeliefs>;
 }
 
 /**
@@ -63,14 +63,14 @@ interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
   revise({
     previous,
     observation,
-    common,
+    commonBeliefs,
   }: BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs>): TBeliefs;
 }
 
 interface AnyBeliefsModelReviseArgs<TCommonBeliefs> {
   previous: unknown;
   observation: unknown;
-  common: Readonly<TCommonBeliefs>;
+  commonBeliefs: Readonly<TCommonBeliefs>;
 }
 
 /**
@@ -82,6 +82,6 @@ interface AnyBeliefsModel<TCommonBeliefs> {
   revise({
     previous,
     observation,
-    common,
+    commonBeliefs,
   }: AnyBeliefsModelReviseArgs<TCommonBeliefs>): unknown;
 }

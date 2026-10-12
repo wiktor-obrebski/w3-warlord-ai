@@ -28,7 +28,7 @@ Strict casing allows no consecutive capital letters, for example `rotate90Ccw`, 
 
 ### Specific Names
 
-A name says what it holds. General words that could name almost anything are not allowed as variable, parameter, or field names, such as `value`, `state`, `control`, `source`, `target`, `next`, `current`, `helper`, `entry`, `item`, `container`, `instance`, `result`, `data`, `registered`, `context`, `node`, or `args`. Pair the word with the concept it holds:
+A name says what it holds. General words that could name almost anything are not allowed as variable, parameter, or field names, such as `value`, `state`, `control`, `target`, `next`, `current`, `helper`, `entry`, `item`, `container`, `instance`, `result`, `data`, `registered`, `context`, `node`, or `args`. Pair the word with the concept it holds:
 
 ```ts
 const beliefsContainer = createBeliefContainer({ commonModel });
@@ -96,14 +96,14 @@ When a signature does not fit on one line, its parameter type moves to a local i
 interface BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs> {
   previous: Readonly<TBeliefs> | null;
   observation: Readonly<TObservation>;
-  common: Readonly<TCommonBeliefs>;
+  commonBeliefs: Readonly<TCommonBeliefs>;
 }
 
 interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
   revise({
     previous,
     observation,
-    common,
+    commonBeliefs,
   }: BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs>): TBeliefs;
 }
 ```

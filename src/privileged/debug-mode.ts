@@ -91,8 +91,8 @@ interface SetRowTextArgs {
 }
 
 function setRowText({ panel, row, text }: SetRowTextArgs) {
-  const item = W3PrivilegedApi.MultiboardGetItem(panel, row, 0);
+  const multiboardItem = W3PrivilegedApi.MultiboardGetItem(panel, row, 0);
 
-  W3PrivilegedApi.MultiboardSetItemValue(item, text);
-  W3PrivilegedApi.MultiboardReleaseItem(item);
+  W3PrivilegedApi.MultiboardSetItemValue(multiboardItem, text);
+  W3PrivilegedApi.MultiboardReleaseItem(multiboardItem);
 }

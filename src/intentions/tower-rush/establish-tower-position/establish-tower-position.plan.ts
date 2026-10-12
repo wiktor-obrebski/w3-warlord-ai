@@ -37,7 +37,7 @@ interface EstablishTowerPositionPlan extends WarlordPlan {
 
 interface EstablishTowerPositionUpdateArgs {
   beliefs: WarlordBeliefs;
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
 class EstablishTowerPosition implements EstablishTowerPositionPlan {
@@ -62,8 +62,8 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   }
 
   public update({
-    beliefs: { common: beliefs },
-    control,
+    beliefs: { commonBeliefs: beliefs },
+    actorControl,
   }: EstablishTowerPositionUpdateArgs) {
     if (this.currentStatus !== 'running') {
       throw new Error('Establish tower position: updated after it ended.');
@@ -71,8 +71,8 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
 
     switch (this.step) {
       case STEP.START:
-        updateStart({ beliefs, rush: this.rush, control });
-        this.advanceTo({ next: STEP.MOVE_FORWARD });
+        updateStart({ beliefs, rush: this.rush, actorControl });
+        this.advanceTo({ nextStep: STEP.MOVE_FORWARD });
         break;
 
       case STEP.MOVE_FORWARD:
@@ -80,11 +80,11 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
           updateMoveForward({
             beliefs,
             rush: this.rush,
-            state: this.moveForward,
-            control,
+            moveForwardState: this.moveForward,
+            actorControl,
           })
         ) {
-          this.advanceTo({ next: STEP.BUILD_TOWERS });
+          this.advanceTo({ nextStep: STEP.BUILD_TOWERS });
         }
         break;
 
@@ -92,13 +92,13 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
         const towerPositions = updateBuildTowers({
           beliefs,
           rush: this.rush,
-          state: this.buildTowers,
-          control,
+          buildTowersState: this.buildTowers,
+          actorControl,
         });
 
         if (towerPositions) {
           this.towerPositions = towerPositions;
-          this.advanceTo({ next: STEP.UPGRADE_TOWERS });
+          this.advanceTo({ nextStep: STEP.UPGRADE_TOWERS });
         }
         break;
       }
@@ -108,7 +108,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
           updateUpgradeTowers({
             beliefs,
             towerPositions: this.towerPositions,
-            control,
+            actorControl,
           })
         ) {
           this.currentStatus = 'succeeded';
@@ -120,11 +120,11 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
     }
   }
 
-  private advanceTo({ next }: { next: STEP }) {
+  private advanceTo({ nextStep }: { nextStep: STEP }) {
     debug({
-      message: `Establish tower position: ${STEP[this.step]} -> ${STEP[next]}`,
+      message: `Establish tower position: ${STEP[this.step]} -> ${STEP[nextStep]}`,
     });
-    this.step = next;
+    this.step = nextStep;
   }
 }
 
@@ -135,5 +135,5 @@ interface ProvideEstablishTowerPositionPlanArgs {
 function provideEstablishTowerPositionPlan({
   rush,
 }: ProvideEstablishTowerPositionPlanArgs): ProvidedComponent<EstablishTowerPositionPlan> {
-  return { value: new EstablishTowerPosition({ rush }), children: [] };
+  return { component: new EstablishTowerPosition({ rush }), children: [] };
 }

@@ -3,21 +3,23 @@ import type { Plan } from './plan';
 
 export { type UpdateChild, type Intention };
 
-interface UpdateChildArgs<TChildBeliefs, TControl> {
-  child: Plan<TChildBeliefs, TControl> | Controller<TChildBeliefs, TControl>;
+interface UpdateChildArgs<TChildBeliefs, TActorControl> {
+  child:
+    | Plan<TChildBeliefs, TActorControl>
+    | Controller<TChildBeliefs, TActorControl>;
 }
 
 /**
  * Updates one of an Intention's Plans or Controllers with that child's own
  * Beliefs and actor control scoped to it.
  */
-type UpdateChild<TChildBeliefs, TControl> = ({
+type UpdateChild<TChildBeliefs, TActorControl> = ({
   child,
-}: UpdateChildArgs<TChildBeliefs, TControl>) => void;
+}: UpdateChildArgs<TChildBeliefs, TActorControl>) => void;
 
-interface IntentionUpdateArgs<TBeliefs, TControl, TChildBeliefs> {
+interface IntentionUpdateArgs<TBeliefs, TActorControl, TChildBeliefs> {
   beliefs: Readonly<TBeliefs>;
-  updateChild: UpdateChild<TChildBeliefs, TControl>;
+  updateChild: UpdateChild<TChildBeliefs, TActorControl>;
 }
 
 /**
@@ -28,7 +30,7 @@ interface IntentionUpdateArgs<TBeliefs, TControl, TChildBeliefs> {
  * other execution state. `TChildBeliefs` is the Beliefs type its children
  * are updated with, whatever Scoped Beliefs each has.
  */
-interface Intention<TBeliefs, TControl, TChildBeliefs = TBeliefs> {
+interface Intention<TBeliefs, TActorControl, TChildBeliefs = TBeliefs> {
   /**
    * Makes progress on the commitment, once per cycle while retained. It
    * decides which of its children to update, and updates them only through
@@ -37,5 +39,5 @@ interface Intention<TBeliefs, TControl, TChildBeliefs = TBeliefs> {
   update({
     beliefs,
     updateChild,
-  }: IntentionUpdateArgs<TBeliefs, TControl, TChildBeliefs>): void;
+  }: IntentionUpdateArgs<TBeliefs, TActorControl, TChildBeliefs>): void;
 }

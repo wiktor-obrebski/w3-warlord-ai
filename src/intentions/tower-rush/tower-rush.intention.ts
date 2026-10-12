@@ -76,23 +76,23 @@ class TowerRush implements TowerRushIntention {
    * over in the same update.
    */
   public update({ beliefs, updateChild }: TowerRushUpdateArgs) {
-    if (!this.interval.claim({ now: beliefs.common.time })) {
+    if (!this.interval.claim({ now: beliefs.commonBeliefs.time })) {
       return;
     }
 
     if (!this.updatedBefore) {
       this.plan = this.factories.createEstablishTowerPositionPlan();
     } else {
-      this.economy ??= this.factories.createEconomyController().value;
+      this.economy ??= this.factories.createEconomyController().component;
     }
 
-    if (this.plan?.value.towersBuilt) {
+    if (this.plan?.component.towersBuilt) {
       this.towerMaintenance ??=
-        this.factories.createTowerMaintenanceController().value;
+        this.factories.createTowerMaintenanceController().component;
     }
 
     if (this.plan) {
-      updateChild({ child: this.plan.value });
+      updateChild({ child: this.plan.component });
       this.discardEndedPlan({ plan: this.plan });
     }
 
@@ -108,7 +108,7 @@ class TowerRush implements TowerRushIntention {
   }
 
   private discardEndedPlan({ plan }: TowerRushDiscardEndedPlanArgs) {
-    const { status } = plan.value;
+    const { status } = plan.component;
 
     if (status === 'running') {
       return;
@@ -129,7 +129,7 @@ function provideTowerRushIntention(): ProvidedComponent<TowerRushIntention> {
   const children: ProvidedChildren = [];
 
   return {
-    value: new TowerRush({
+    component: new TowerRush({
       factories: {
         createEstablishTowerPositionPlan: childFactory({
           children,

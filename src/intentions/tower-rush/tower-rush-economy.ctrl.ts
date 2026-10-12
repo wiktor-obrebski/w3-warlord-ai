@@ -40,7 +40,7 @@ const WorkerTargetStages: WorkerTargets[] = [
 
 interface TowerRushEconomyControllerUpdateArgs {
   beliefs: WarlordBeliefs;
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
 /**
@@ -56,12 +56,12 @@ class TowerRushEconomyController implements WarlordController {
   }
 
   public update({
-    beliefs: { common: beliefs },
-    control,
+    beliefs: { commonBeliefs: beliefs },
+    actorControl,
   }: TowerRushEconomyControllerUpdateArgs) {
     const townHall =
       beliefs.townHall &&
-      control.request({
+      actorControl.request({
         actor: beliefs.townHall,
         request: NORMAL_REQUEST,
       })
@@ -73,12 +73,12 @@ class TowerRushEconomyController implements WarlordController {
       beliefs,
       rush: this.rush,
       townHall,
-      control,
+      actorControl,
     });
     returnIdleWorkersToTheirResource({
       beliefs,
       rush: this.rush,
-      control,
+      actorControl,
     });
     maintainPeasantProduction({
       beliefs,
@@ -96,7 +96,7 @@ function provideTowerRushEconomyController({
   rush,
 }: ProvideTowerRushEconomyControllerArgs): ProvidedComponent<WarlordController> {
   return {
-    value: new TowerRushEconomyController({ rush }),
+    component: new TowerRushEconomyController({ rush }),
     children: [],
   };
 }
@@ -119,7 +119,7 @@ interface AssignNewHomeWorkersArgs {
   beliefs: Readonly<CommonBeliefs>;
   rush: TowerRushState;
   townHall: W3UnitApi.unit | undefined;
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
 // A trained Peasant leaves the Town Hall already harvesting the resource it
@@ -129,7 +129,7 @@ function assignNewHomeWorkers({
   beliefs,
   rush,
   townHall,
-  control,
+  actorControl,
 }: AssignNewHomeWorkersArgs) {
   for (const peasant of beliefs.peasants) {
     if (isAssignedWorker({ peasant, rush })) {
@@ -152,7 +152,7 @@ function assignNewHomeWorkers({
 
     if (
       !beliefs.harvestingUnits.includes(peasant) &&
-      control.request({ actor: peasant, request: NORMAL_REQUEST }) &&
+      actorControl.request({ actor: peasant, request: NORMAL_REQUEST }) &&
       !orderHarvest({ worker: peasant, resource, beliefs })
     ) {
       debug({
@@ -177,13 +177,13 @@ function finishPeasantTraining({
   townHall,
 }: FinishPeasantTrainingArgs): HOME_RESOURCE | undefined {
   const finished = rush.peasantsInTraining.shift();
-  const next = rush.peasantsInTraining[0];
+  const nextResource = rush.peasantsInTraining[0];
 
-  if (finished !== undefined && next !== undefined) {
+  if (finished !== undefined && nextResource !== undefined) {
     rush.peasantTrainingStartedAt += PeasantTrainingSeconds;
 
     if (townHall) {
-      setRally({ townHall, resource: next, beliefs });
+      setRally({ townHall, resource: nextResource, beliefs });
     }
   }
 
@@ -234,17 +234,17 @@ function describeWorkers({ rush }: { rush: TowerRushState }): string {
 interface ReturnIdleWorkersToTheirResourceArgs {
   beliefs: Readonly<CommonBeliefs>;
   rush: TowerRushState;
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
 function returnIdleWorkersToTheirResource({
   beliefs,
   rush,
-  control,
+  actorControl,
 }: ReturnIdleWorkersToTheirResourceArgs) {
   // Requested before checking idleness, so busy workers stay controlled too.
   const isReturning = ({ worker }: { worker: W3UnitApi.unit }) =>
-    control.request({ actor: worker, request: NORMAL_REQUEST }) &&
+    actorControl.request({ actor: worker, request: NORMAL_REQUEST }) &&
     beliefs.idleUnits.includes(worker);
 
   for (const worker of rush.goldWorkers) {
@@ -362,9 +362,9 @@ interface SetRallyArgs {
 }
 
 function setRally({ townHall, resource, beliefs }: SetRallyArgs) {
-  const target = rallyTarget({ townHall, resource, beliefs });
+  const rallyDestination = rallyTarget({ townHall, resource, beliefs });
 
-  if (!W3UnitApi.IssueTargetOrder(townHall, 'setrally', target)) {
+  if (!W3UnitApi.IssueTargetOrder(townHall, 'setrally', rallyDestination)) {
     debug({
       message: `Tower rush: rally to ${HOME_RESOURCE[resource]} rejected.`,
     });

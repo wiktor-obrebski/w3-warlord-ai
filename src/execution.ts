@@ -47,7 +47,10 @@ type WarlordIntention<TScopedBeliefs = null> = Intention<
 type WarlordUpdateChild = UpdateChild<WarlordBeliefs<unknown>, ActorControl>;
 
 /** A component as its `provide...` function returns it. */
-type ProvidedComponent<TValue extends object> = Provided<TValue, CommonBeliefs>;
+type ProvidedComponent<TComponent extends object> = Provided<
+  TComponent,
+  CommonBeliefs
+>;
 
 /** The children list a provider keeps for its component. */
 type ProvidedChildren = Provided<object, CommonBeliefs>[];

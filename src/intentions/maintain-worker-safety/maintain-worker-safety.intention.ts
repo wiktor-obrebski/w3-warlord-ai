@@ -37,7 +37,7 @@ class MaintainWorkerSafetyIntention implements WarlordIntention {
   }
 
   public update({ updateChild }: MaintainWorkerSafetyIntentionUpdateArgs) {
-    this.workerSafety ??= this.createWorkerSafetyController().value;
+    this.workerSafety ??= this.createWorkerSafetyController().component;
     updateChild({ child: this.workerSafety });
   }
 }
@@ -46,7 +46,7 @@ function provideMaintainWorkerSafetyIntention(): ProvidedComponent<WarlordIntent
   const children: ProvidedChildren = [];
 
   return {
-    value: new MaintainWorkerSafetyIntention({
+    component: new MaintainWorkerSafetyIntention({
       createWorkerSafetyController: childFactory({
         children,
         provide: () => provideWorkerSafetyController(),

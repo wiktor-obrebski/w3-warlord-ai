@@ -38,7 +38,7 @@ interface FleeRound {
 
 interface WorkerSafetyControllerUpdateArgs {
   beliefs: WarlordBeliefs<WorkerSafetyBeliefs>;
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
 interface WorkerSafetyControllerProtectWorkerArgs {
@@ -63,17 +63,20 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
   private readonly fleeRounds = new Map<W3UnitApi.unit, FleeRound>();
 
   public update({
-    beliefs: { common: beliefs, scoped: safety },
-    control,
+    beliefs: { commonBeliefs: beliefs, scopedBeliefs },
+    actorControl,
   }: WorkerSafetyControllerUpdateArgs) {
     for (const worker of beliefs.workers) {
       const isUnsafe =
         this.fleeRounds.has(worker.unit) ||
-        needsAttackProtection({ beliefs: safety, worker: worker.unit });
+        needsAttackProtection({ beliefs: scopedBeliefs, worker: worker.unit });
 
       if (
         isUnsafe &&
-        control.request({ actor: worker.unit, request: PREEMPTIVE_REQUEST })
+        actorControl.request({
+          actor: worker.unit,
+          request: PREEMPTIVE_REQUEST,
+        })
       ) {
         this.protectWorker({ worker, beliefs });
       }
@@ -92,7 +95,7 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
   }: WorkerSafetyControllerProtectWorkerArgs) {
     const isAttacked = isRecentlyAttacked({
       beliefs,
-      target: worker.unit,
+      attackedUnit: worker.unit,
     });
     const round = this.fleeRounds.get(worker.unit);
 
@@ -122,15 +125,17 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
   private forgetFleeRoundsOfLostWorkers({
     beliefs,
   }: WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs) {
-    const lost: W3UnitApi.unit[] = [];
+    const lostWorkers: W3UnitApi.unit[] = [];
 
     for (const worker of this.fleeRounds.keys()) {
-      if (!beliefs.workers.some((alive) => alive.unit === worker)) {
-        lost.push(worker);
+      if (
+        !beliefs.workers.some((livingWorker) => livingWorker.unit === worker)
+      ) {
+        lostWorkers.push(worker);
       }
     }
 
-    for (const worker of lost) {
+    for (const worker of lostWorkers) {
       this.fleeRounds.delete(worker);
     }
   }
@@ -140,7 +145,7 @@ function provideWorkerSafetyController(): ProvidedComponent<
   WarlordController<WorkerSafetyBeliefs>
 > {
   return {
-    value: new WorkerSafetyController(),
+    component: new WorkerSafetyController(),
     beliefsModel: workerSafetyBeliefsModel,
     children: [],
   };
@@ -190,7 +195,7 @@ function startFleeRound({
   worker,
   beliefs,
 }: StartFleeRoundArgs): FleeRound | undefined {
-  const nearby = nearbyThreats({ beliefs, position: worker.position });
+  const threats = nearbyThreats({ beliefs, position: worker.position });
   const threat = threatCenter({ beliefs, worker });
   const awayAngle = threat && angleAwayFrom({ threat, from: worker.position });
   const destination = fleeDestination({ from: worker.position, awayAngle });
@@ -208,7 +213,7 @@ function startFleeRound({
   }
 
   debug({
-    message: `Worker safety: attacked worker flees from ${nearby.length} nearby enemies.`,
+    message: `Worker safety: attacked worker flees from ${threats.length} nearby enemies.`,
   });
 
   return { origin: worker.position, destination };

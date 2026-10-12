@@ -6,9 +6,9 @@ export { type PlanStatus, type Plan };
  */
 type PlanStatus = 'running' | 'succeeded' | 'failed';
 
-interface PlanUpdateArgs<TBeliefs, TControl> {
+interface PlanUpdateArgs<TBeliefs, TActorControl> {
   beliefs: Readonly<TBeliefs>;
-  control: TControl;
+  actorControl: TActorControl;
 }
 
 /**
@@ -16,10 +16,10 @@ interface PlanUpdateArgs<TBeliefs, TControl> {
  * failure.
  *
  * A Plan owns its procedural execution state. `TBeliefs` is the Beliefs it
- * reads, normally `ComponentBeliefs`; `TControl` is the agent's actor control
+ * reads, normally `ComponentBeliefs`; `TActorControl` is the agent's actor control
  * capability, normally an `ActorControlProvider`.
  */
-interface Plan<TBeliefs, TControl> {
+interface Plan<TBeliefs, TActorControl> {
   /**
    * Current lifecycle status. It changes only during `update()`; reading it
    * inspects state and does not re-evaluate the Plan.
@@ -28,7 +28,10 @@ interface Plan<TBeliefs, TControl> {
 
   /**
    * Advances the Plan while it is running. It may order only the Actors
-   * `control` grants it.
+   * `actorControl` grants it.
    */
-  update({ beliefs, control }: PlanUpdateArgs<TBeliefs, TControl>): void;
+  update({
+    beliefs,
+    actorControl,
+  }: PlanUpdateArgs<TBeliefs, TActorControl>): void;
 }

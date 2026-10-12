@@ -27,13 +27,13 @@ enum TOWER_STATE {
 
 interface PlannedTower {
   unit?: W3UnitApi.unit;
-  state: TOWER_STATE;
+  towerStatus: TOWER_STATE;
 }
 
 interface UpdateUpgradeTowersArgs {
   beliefs: Readonly<CommonBeliefs>;
   towerPositions: readonly Point[];
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
 /**
@@ -46,7 +46,7 @@ interface UpdateUpgradeTowersArgs {
 function updateUpgradeTowers({
   beliefs,
   towerPositions,
-  control,
+  actorControl,
 }: UpdateUpgradeTowersArgs): boolean {
   const towers = towerPositions.map((position) =>
     plannedTowerAt({ position, beliefs })
@@ -56,16 +56,16 @@ function updateUpgradeTowers({
   for (const tower of towers) {
     if (
       tower.unit &&
-      tower.state === TOWER_STATE.SCOUT_TOWER &&
+      tower.towerStatus === TOWER_STATE.SCOUT_TOWER &&
       completedLumberMill({ beliefs }) !== undefined &&
       canAffordGuardTower({ budget }) &&
-      control.request({ actor: tower.unit, request: NORMAL_REQUEST })
+      actorControl.request({ actor: tower.unit, request: NORMAL_REQUEST })
     ) {
       orderGuardTower({ tower: tower.unit, budget });
     }
   }
 
-  return towers.every((tower) => tower.state === TOWER_STATE.GUARD_TOWER);
+  return towers.every((tower) => tower.towerStatus === TOWER_STATE.GUARD_TOWER);
 }
 
 interface PlannedTowerAtArgs {
@@ -87,7 +87,9 @@ function plannedTowerAt({
 
   return {
     unit,
-    state: unit ? towerState({ tower: unit, beliefs }) : TOWER_STATE.MISSING,
+    towerStatus: unit
+      ? towerState({ tower: unit, beliefs })
+      : TOWER_STATE.MISSING,
   };
 }
 

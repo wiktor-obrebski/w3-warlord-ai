@@ -129,7 +129,7 @@ function sortByDistanceTo({
         .length,
     }))
     .sort((a, b) => a.distance - b.distance)
-    .map((entry) => entry.destructable);
+    .map((withDistance) => withDistance.destructable);
 }
 
 interface IsAwayFromMillArgs {

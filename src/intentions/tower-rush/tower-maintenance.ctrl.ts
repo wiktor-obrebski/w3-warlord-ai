@@ -30,7 +30,7 @@ const RepairSwitchLifeFraction = 0.8;
 
 interface TowerMaintenanceControllerUpdateArgs {
   beliefs: WarlordBeliefs;
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
 /**
@@ -49,8 +49,8 @@ class TowerMaintenanceController implements WarlordController {
   }
 
   public update({
-    beliefs: { common: beliefs },
-    control,
+    beliefs: { commonBeliefs: beliefs },
+    actorControl,
   }: TowerMaintenanceControllerUpdateArgs) {
     const enemyMain = beliefs.enemyStartPosition;
 
@@ -62,7 +62,7 @@ class TowerMaintenanceController implements WarlordController {
     const previousTarget = this.repairTarget;
     const repairTarget = chooseRepairTarget({
       towers,
-      current: previousTarget,
+      currentRepairTarget: previousTarget,
       beliefs,
     });
     const targetChanged = repairTarget !== previousTarget;
@@ -79,7 +79,7 @@ class TowerMaintenanceController implements WarlordController {
     for (const worker of controlForwardPeasants({
       beliefs,
       rush: this.rush,
-      control,
+      actorControl,
     })) {
       if (repairTarget) {
         if (targetChanged || !beliefs.repairingUnits.includes(worker)) {
@@ -114,38 +114,40 @@ function provideTowerMaintenanceController({
   rush,
 }: ProvideTowerMaintenanceControllerArgs): ProvidedComponent<WarlordController> {
   return {
-    value: new TowerMaintenanceController({ rush }),
+    component: new TowerMaintenanceController({ rush }),
     children: [],
   };
 }
 
 interface ChooseRepairTargetArgs {
   towers: readonly W3UnitApi.unit[];
-  current: W3UnitApi.unit | undefined;
+  currentRepairTarget: W3UnitApi.unit | undefined;
   beliefs: Readonly<CommonBeliefs>;
 }
 
 function chooseRepairTarget({
   towers,
-  current,
+  currentRepairTarget,
   beliefs,
 }: ChooseRepairTargetArgs): W3UnitApi.unit | undefined {
   const lifeFraction = ({ tower }: { tower: W3UnitApi.unit }) =>
     lifeFractionOf({ beliefs, unit: tower });
-  const currentStanding = current !== undefined && towers.includes(current);
+  const currentStanding =
+    currentRepairTarget !== undefined && towers.includes(currentRepairTarget);
 
   if (
     currentStanding &&
-    lifeFraction({ tower: current }) < RepairSwitchLifeFraction
+    lifeFraction({ tower: currentRepairTarget }) < RepairSwitchLifeFraction
   ) {
-    return current;
+    return currentRepairTarget;
   }
 
   const mostDamaged = mostDamagedUnit({
     beliefs,
     units: towers.filter(
       (tower) =>
-        tower !== current && lifeFraction({ tower }) < RepairStartLifeFraction
+        tower !== currentRepairTarget &&
+        lifeFraction({ tower }) < RepairStartLifeFraction
     ),
   });
 
@@ -153,8 +155,8 @@ function chooseRepairTarget({
     return mostDamaged;
   }
 
-  return currentStanding && lifeFraction({ tower: current }) < 1
-    ? current
+  return currentStanding && lifeFraction({ tower: currentRepairTarget }) < 1
+    ? currentRepairTarget
     : undefined;
 }
 

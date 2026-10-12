@@ -50,31 +50,31 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
   const updateChild: WarlordUpdateChild = ({ child }) =>
     arbiter.update({
       source: child,
-      run: ({ control }) =>
+      run: ({ actorControl }) =>
         child.update({
           beliefs: beliefs.beliefsOf({ component: child }),
-          control,
+          actorControl,
         }),
     });
 
   const tick = () => {
-    const common = beliefs.reviseCommon();
+    const commonBeliefs = beliefs.reviseCommon();
 
-    if (common.enemyPlayersPlaying === 0) {
+    if (commonBeliefs.enemyPlayersPlaying === 0) {
       stopLoop({ loop });
       return;
     }
 
     intentions = deliberation.deliberate({
-      beliefs: common,
+      beliefs: commonBeliefs,
       desires: Desires,
       intentions,
     });
     beliefs.sync({ roots: intentions });
 
     for (const intention of intentions) {
-      intention.value.update({
-        beliefs: beliefs.beliefsOf({ component: intention.value }),
+      intention.component.update({
+        beliefs: beliefs.beliefsOf({ component: intention.component }),
         updateChild,
       });
     }

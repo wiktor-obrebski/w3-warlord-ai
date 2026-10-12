@@ -93,7 +93,7 @@ function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
         beliefs: reviseScoped({
           model: beliefsModel,
           previous: null,
-          common: commonBeliefs.beliefs,
+          commonBeliefs: commonBeliefs.beliefs,
         }),
         model: beliefsModel,
       });
@@ -109,7 +109,7 @@ function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
       scopedBeliefsInstance.beliefs = reviseScoped({
         model: scopedBeliefsInstance.model,
         previous: scopedBeliefsInstance.beliefs,
-        common: commonBeliefs.beliefs,
+        commonBeliefs: commonBeliefs.beliefs,
       });
 
       return scopedBeliefsInstance.beliefs;
@@ -138,13 +138,17 @@ function reviseCommon<TCommonObservation, TCommonBeliefs>({
 interface ReviseScopedArgs<TCommonBeliefs> {
   model: AnyBeliefsModel<TCommonBeliefs>;
   previous: unknown;
-  common: Readonly<TCommonBeliefs>;
+  commonBeliefs: Readonly<TCommonBeliefs>;
 }
 
 function reviseScoped<TCommonBeliefs>({
   model,
   previous,
-  common,
+  commonBeliefs,
 }: ReviseScopedArgs<TCommonBeliefs>) {
-  return model.revise({ previous, observation: model.observe(), common });
+  return model.revise({
+    previous,
+    observation: model.observe(),
+    commonBeliefs,
+  });
 }

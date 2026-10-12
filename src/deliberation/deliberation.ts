@@ -60,7 +60,7 @@ function createDeliberation(): Deliberation<
         : null;
       operateTowers = desires.includes(USE_MILITARY_ASSETS_EFFECTIVELY)
         ? (retained({ intention: operateTowers }) ??
-          (towerRush?.value.positionEstablished
+          (towerRush?.component.positionEstablished
             ? provideOperateTowersIntention()
             : null))
         : null;

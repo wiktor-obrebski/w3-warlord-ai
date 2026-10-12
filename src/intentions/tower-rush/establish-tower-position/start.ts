@@ -23,10 +23,10 @@ const CandidateSpacing = 64;
 interface UpdateStartArgs {
   beliefs: Readonly<CommonBeliefs>;
   rush: TowerRushState;
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
-function updateStart({ beliefs, rush, control }: UpdateStartArgs) {
+function updateStart({ beliefs, rush, actorControl }: UpdateStartArgs) {
   const { townHall, enemyMainGoldMine, homeGoldMine } = beliefs;
 
   if (!townHall) {
@@ -56,7 +56,7 @@ function updateStart({ beliefs, rush, control }: UpdateStartArgs) {
 
   // Nothing else has had a chance to claim the starting units yet.
   for (const actor of [...beliefs.peasants, townHall]) {
-    if (!control.request({ actor, request: NORMAL_REQUEST })) {
+    if (!actorControl.request({ actor, request: NORMAL_REQUEST })) {
       throw new Error(
         'Tower rush start: a starting unit is already controlled.'
       );

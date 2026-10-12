@@ -59,7 +59,7 @@ function forgetSentToSafety({ worker, rush }: ForgetSentToSafetyArgs) {
 interface ControlForwardPeasantsArgs {
   beliefs: Readonly<CommonBeliefs>;
   rush: TowerRushState;
-  control: ActorControl;
+  actorControl: ActorControl;
 }
 
 /**
@@ -73,7 +73,7 @@ interface ControlForwardPeasantsArgs {
 function controlForwardPeasants({
   beliefs,
   rush,
-  control,
+  actorControl,
 }: ControlForwardPeasantsArgs): W3UnitApi.unit[] {
   const controlled: W3UnitApi.unit[] = [];
 
@@ -82,7 +82,7 @@ function controlForwardPeasants({
       continue;
     }
 
-    if (control.request({ actor: worker, request: NORMAL_REQUEST })) {
+    if (actorControl.request({ actor: worker, request: NORMAL_REQUEST })) {
       controlled.push(worker);
     } else {
       forgetSentToSafety({ worker, rush });

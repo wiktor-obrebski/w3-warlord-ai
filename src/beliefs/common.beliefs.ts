@@ -532,7 +532,7 @@ function destructablesByDistance({
 
   found.sort((a, b) => a.distance - b.distance);
 
-  return found.map((entry) => entry.destructable);
+  return found.map((nearby) => nearby.destructable);
 }
 
 interface UnitsOfPlayerArgs {
