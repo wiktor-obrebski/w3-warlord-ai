@@ -24,6 +24,11 @@ interface AttackObserver {
 
 const NoAttacks: readonly ObservedAttack[] = [];
 
+interface ObserveAttacksOnArgs {
+  bot: W3PlayerApi.player;
+  clock: GameClock;
+}
+
 /**
  * Queues attacks started on the bot's own units until they are taken. A
  * player sees these on their own units, so reporting them is fair; whether
@@ -32,10 +37,7 @@ const NoAttacks: readonly ObservedAttack[] = [];
 function observeAttacksOn({
   bot,
   clock,
-}: {
-  bot: W3PlayerApi.player;
-  clock: GameClock;
-}): AttackObserver {
+}: ObserveAttacksOnArgs): AttackObserver {
   const observer: AttackObserver = { pending: [] };
   const trigger = W3TriggerApi.CreateTrigger();
 
@@ -52,12 +54,14 @@ function observeAttacksOn({
   return observer;
 }
 
+interface TakeObservedAttacksArgs {
+  observer: AttackObserver;
+}
+
 /** The attacks started since they were last taken, oldest first. */
 function takeObservedAttacks({
   observer,
-}: {
-  observer: AttackObserver;
-}): readonly ObservedAttack[] {
+}: TakeObservedAttacksArgs): readonly ObservedAttack[] {
   if (observer.pending.length === 0) {
     return NoAttacks;
   }
@@ -68,13 +72,12 @@ function takeObservedAttacks({
   return attacks;
 }
 
-function recordAttack({
-  observer,
-  clock,
-}: {
+interface RecordAttackArgs {
   observer: AttackObserver;
   clock: GameClock;
-}) {
+}
+
+function recordAttack({ observer, clock }: RecordAttackArgs) {
   const attacker = W3TriggerApi.GetAttacker();
   const target = W3TriggerApi.GetTriggerUnit();
 

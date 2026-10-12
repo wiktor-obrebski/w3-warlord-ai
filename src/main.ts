@@ -55,11 +55,13 @@ function debugObserver(): W3PlayerApi.player {
   return observer;
 }
 
+interface RunAfterMapInitializationArgs {
+  callback: (this: void) => void;
+}
+
 function runAfterMapInitialization({
   callback,
-}: {
-  callback: (this: void) => void;
-}) {
+}: RunAfterMapInitializationArgs) {
   const timer = W3TimerApi.CreateTimer();
 
   W3TimerApi.TimerStart(

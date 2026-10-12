@@ -1,5 +1,10 @@
 export { type Controller };
 
+interface ControllerUpdateArgs<TBeliefs, TControl> {
+  beliefs: Readonly<TBeliefs>;
+  control: TControl;
+}
+
 /**
  * Continuous reactive behavior with no procedural completion.
  *
@@ -13,11 +18,5 @@ interface Controller<TBeliefs, TControl> {
    * Reacts to the current Beliefs. It may order only the Actors `control`
    * grants it.
    */
-  update({
-    beliefs,
-    control,
-  }: {
-    beliefs: Readonly<TBeliefs>;
-    control: TControl;
-  }): void;
+  update({ beliefs, control }: ControllerUpdateArgs<TBeliefs, TControl>): void;
 }

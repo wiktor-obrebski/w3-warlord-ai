@@ -28,6 +28,11 @@ export { provideTowerMaintenanceController };
 const RepairStartLifeFraction = 0.6;
 const RepairSwitchLifeFraction = 0.8;
 
+interface TowerMaintenanceControllerUpdateArgs {
+  beliefs: WarlordBeliefs;
+  control: ActorControl;
+}
+
 /**
  * The forward Peasants it controls repair the most damaged tower, and hide
  * behind the towers when none needs repair. Only to be used once every rush
@@ -46,10 +51,7 @@ class TowerMaintenanceController implements WarlordController {
   public update({
     beliefs: { common: beliefs },
     control,
-  }: {
-    beliefs: WarlordBeliefs;
-    control: ActorControl;
-  }) {
+  }: TowerMaintenanceControllerUpdateArgs) {
     const enemyMain = beliefs.enemyStartPosition;
 
     if (!enemyMain) {
@@ -104,26 +106,30 @@ class TowerMaintenanceController implements WarlordController {
   }
 }
 
+interface ProvideTowerMaintenanceControllerArgs {
+  rush: TowerRushState;
+}
+
 function provideTowerMaintenanceController({
   rush,
-}: {
-  rush: TowerRushState;
-}): ProvidedComponent<WarlordController> {
+}: ProvideTowerMaintenanceControllerArgs): ProvidedComponent<WarlordController> {
   return {
     value: new TowerMaintenanceController({ rush }),
     children: [],
   };
 }
 
+interface ChooseRepairTargetArgs {
+  towers: readonly W3UnitApi.unit[];
+  current: W3UnitApi.unit | undefined;
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 function chooseRepairTarget({
   towers,
   current,
   beliefs,
-}: {
-  towers: readonly W3UnitApi.unit[];
-  current: W3UnitApi.unit | undefined;
-  beliefs: Readonly<CommonBeliefs>;
-}): W3UnitApi.unit | undefined {
+}: ChooseRepairTargetArgs): W3UnitApi.unit | undefined {
   const lifeFraction = ({ tower }: { tower: W3UnitApi.unit }) =>
     lifeFractionOf({ beliefs, unit: tower });
   const currentStanding = current !== undefined && towers.includes(current);
@@ -152,17 +158,14 @@ function chooseRepairTarget({
     : undefined;
 }
 
-function orderRepair({
-  worker,
-  tower,
-  beliefs,
-  rush,
-}: {
+interface OrderRepairArgs {
   worker: W3UnitApi.unit;
   tower: W3UnitApi.unit;
   beliefs: Readonly<CommonBeliefs>;
   rush: TowerRushState;
-}) {
+}
+
+function orderRepair({ worker, tower, beliefs, rush }: OrderRepairArgs) {
   if (W3UnitApi.IssueTargetOrder(worker, 'repair', tower)) {
     forgetSentToSafety({ worker, rush });
   } else {
@@ -172,13 +175,12 @@ function orderRepair({
   }
 }
 
-function describeTower({
-  tower,
-  beliefs,
-}: {
+interface DescribeTowerArgs {
   tower: W3UnitApi.unit;
   beliefs: Readonly<CommonBeliefs>;
-}): string {
+}
+
+function describeTower({ tower, beliefs }: DescribeTowerArgs): string {
   const { life, maxLife } = ownUnit({ beliefs, unit: tower });
 
   return `a tower at ${Math.floor(life)}/${Math.floor(maxLife)} life`;

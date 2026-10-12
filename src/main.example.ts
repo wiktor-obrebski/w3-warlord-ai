@@ -79,11 +79,11 @@ function buildAltar({ bot }: { bot: W3PlayerApi.player }) {
   debug({ message: 'All altar locations rejected.' });
 }
 
-function findPeon({
-  bot,
-}: {
+interface FindPeonArgs {
   bot: W3PlayerApi.player;
-}): W3UnitApi.unit | undefined {
+}
+
+function findPeon({ bot }: FindPeonArgs): W3UnitApi.unit | undefined {
   const units = W3GroupApi.CreateGroup();
 
   debug({ message: 'Enumerating bot units...' });

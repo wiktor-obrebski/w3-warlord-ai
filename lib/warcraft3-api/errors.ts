@@ -1,15 +1,17 @@
 export { UnexpectedWarcraftApiResponseError };
 
+interface UnexpectedWarcraftApiResponseErrorConstructorArgs {
+  api: string;
+  response: unknown;
+  context?: string;
+}
+
 class UnexpectedWarcraftApiResponseError extends Error {
   constructor({
     api,
     response,
     context,
-  }: {
-    api: string;
-    response: unknown;
-    context?: string;
-  }) {
+  }: UnexpectedWarcraftApiResponseErrorConstructorArgs) {
     super(
       `Unexpected Warcraft III API response from ${api}: ${String(response)}${
         context ? ` (${context})` : ''

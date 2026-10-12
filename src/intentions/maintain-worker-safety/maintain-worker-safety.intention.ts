@@ -12,6 +12,17 @@ import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
 export { provideMaintainWorkerSafetyIntention };
 
+interface MaintainWorkerSafetyIntentionConstructorArgs {
+  createWorkerSafetyController: ChildFactory<
+    WarlordController<WorkerSafetyBeliefs>
+  >;
+}
+
+interface MaintainWorkerSafetyIntentionUpdateArgs {
+  beliefs: WarlordBeliefs;
+  updateChild: WarlordUpdateChild;
+}
+
 /** Keeps attacked workers out of harm's way, every bot tick. */
 class MaintainWorkerSafetyIntention implements WarlordIntention {
   private readonly createWorkerSafetyController: ChildFactory<
@@ -21,20 +32,11 @@ class MaintainWorkerSafetyIntention implements WarlordIntention {
 
   public constructor({
     createWorkerSafetyController,
-  }: {
-    createWorkerSafetyController: ChildFactory<
-      WarlordController<WorkerSafetyBeliefs>
-    >;
-  }) {
+  }: MaintainWorkerSafetyIntentionConstructorArgs) {
     this.createWorkerSafetyController = createWorkerSafetyController;
   }
 
-  public update({
-    updateChild,
-  }: {
-    beliefs: WarlordBeliefs;
-    updateChild: WarlordUpdateChild;
-  }) {
+  public update({ updateChild }: MaintainWorkerSafetyIntentionUpdateArgs) {
     this.workerSafety ??= this.createWorkerSafetyController().value;
     updateChild({ child: this.workerSafety });
   }

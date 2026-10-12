@@ -6,6 +6,11 @@ export { type PlanStatus, type Plan };
  */
 type PlanStatus = 'running' | 'succeeded' | 'failed';
 
+interface PlanUpdateArgs<TBeliefs, TControl> {
+  beliefs: Readonly<TBeliefs>;
+  control: TControl;
+}
+
 /**
  * Finite procedural execution that progresses towards eventual success or
  * failure.
@@ -25,11 +30,5 @@ interface Plan<TBeliefs, TControl> {
    * Advances the Plan while it is running. It may order only the Actors
    * `control` grants it.
    */
-  update({
-    beliefs,
-    control,
-  }: {
-    beliefs: Readonly<TBeliefs>;
-    control: TControl;
-  }): void;
+  update({ beliefs, control }: PlanUpdateArgs<TBeliefs, TControl>): void;
 }

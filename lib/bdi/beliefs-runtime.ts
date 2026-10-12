@@ -14,6 +14,10 @@ interface ComponentBeliefs<TCommonBeliefs, TScopedBeliefs> {
   readonly scoped: TScopedBeliefs;
 }
 
+interface BeliefsRuntimeBeliefsOfArgs {
+  component: object;
+}
+
 /**
  * Owns the agent's belief state and its lifecycle. It manages the component
  * tree formed by the provided Intentions and their children: every component
@@ -40,9 +44,7 @@ interface BeliefsRuntime<TCommonBeliefs> {
    */
   beliefsOf({
     component,
-  }: {
-    component: object;
-  }): ComponentBeliefs<TCommonBeliefs, unknown>;
+  }: BeliefsRuntimeBeliefsOfArgs): ComponentBeliefs<TCommonBeliefs, unknown>;
 
   /**
    * Removes components gone from the tree since the last sync, such as
@@ -51,11 +53,20 @@ interface BeliefsRuntime<TCommonBeliefs> {
   prune(): ReadonlySet<object>;
 }
 
+interface CreateBeliefsRuntimeArgs<TCommonObservation, TCommonBeliefs> {
+  commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>;
+}
+
+interface VisitArgs<TCommonBeliefs> {
+  provided: Provided<object, TCommonBeliefs>;
+}
+
 function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
   commonModel,
-}: {
-  commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>;
-}): BeliefsRuntime<TCommonBeliefs> {
+}: CreateBeliefsRuntimeArgs<
+  TCommonObservation,
+  TCommonBeliefs
+>): BeliefsRuntime<TCommonBeliefs> {
   const container = createBeliefContainer<TCommonBeliefs>();
   let roots: readonly Provided<object, TCommonBeliefs>[] = [];
   let managed = new Set<object>();
@@ -83,11 +94,7 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
     const current = new Set<object>();
     const registered: object[] = [];
 
-    const visit = ({
-      provided,
-    }: {
-      provided: Provided<object, TCommonBeliefs>;
-    }) => {
+    const visit = ({ provided }: VisitArgs<TCommonBeliefs>) => {
       current.add(provided.value);
 
       if (

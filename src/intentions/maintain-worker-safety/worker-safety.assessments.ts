@@ -13,6 +13,11 @@ export { needsAttackProtection, nearbyThreats, threatCenter };
 // Not tuned in-game.
 const ThreatRadius = 1000;
 
+interface NeedsAttackProtectionArgs {
+  beliefs: Readonly<WorkerSafetyBeliefs>;
+  worker: W3UnitApi.unit;
+}
+
 /**
  * Whether the worker is attacked, or was attacked too recently to be safe
  * again.
@@ -20,11 +25,13 @@ const ThreatRadius = 1000;
 function needsAttackProtection({
   beliefs,
   worker,
-}: {
-  beliefs: Readonly<WorkerSafetyBeliefs>;
-  worker: W3UnitApi.unit;
-}): boolean {
+}: NeedsAttackProtectionArgs): boolean {
   return beliefs.lastAttackedAt.has(worker);
+}
+
+interface NearbyThreatsArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  position: Point;
 }
 
 /**
@@ -34,10 +41,7 @@ function needsAttackProtection({
 function nearbyThreats({
   beliefs,
   position,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  position: Point;
-}): VisibleEnemy[] {
+}: NearbyThreatsArgs): VisibleEnemy[] {
   return beliefs.visibleEnemies.filter(
     (enemy) =>
       (enemy.isUprootedAncient ||
@@ -49,6 +53,11 @@ function nearbyThreats({
   );
 }
 
+interface ThreatCenterArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  worker: OwnUnit;
+}
+
 /**
  * Where the threat to the worker comes from: the center of the nearby enemy
  * force, or of its visible attackers when no force is near. Undefined when
@@ -57,10 +66,7 @@ function nearbyThreats({
 function threatCenter({
   beliefs,
   worker,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  worker: OwnUnit;
-}): Point | undefined {
+}: ThreatCenterArgs): Point | undefined {
   const nearby = nearbyThreats({ beliefs, position: worker.position });
   const reference =
     nearby.length > 0
@@ -76,11 +82,11 @@ function threatCenter({
     : undefined;
 }
 
-function averagePosition({
-  enemies,
-}: {
+interface AveragePositionArgs {
   enemies: readonly VisibleEnemy[];
-}): Point {
+}
+
+function averagePosition({ enemies }: AveragePositionArgs): Point {
   const origin = new Point({ x: 0, y: 0 });
   let sum = new Vector({ x: 0, y: 0 });
 

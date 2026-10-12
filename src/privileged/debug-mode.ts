@@ -15,27 +15,26 @@ interface DebugMode {
   resourcePanel: W3PrivilegedApi.multiboard;
 }
 
+interface EnableDebugModeArgs {
+  observer: W3PlayerApi.player;
+}
+
 /**
  * Reveals the whole map to the human observer and shows the bot's resources.
  * Must run after map initialization, where multiboards cannot be shown.
  */
-function enableDebugMode({
-  observer,
-}: {
-  observer: W3PlayerApi.player;
-}): DebugMode {
+function enableDebugMode({ observer }: EnableDebugModeArgs): DebugMode {
   revealMap({ observer });
 
   return { resourcePanel: createResourcePanel() };
 }
 
-function updateDebugMode({
-  debugMode,
-  bot,
-}: {
+interface UpdateDebugModeArgs {
   debugMode: DebugMode;
   bot: W3PlayerApi.player;
-}) {
+}
+
+function updateDebugMode({ debugMode, bot }: UpdateDebugModeArgs) {
   const gold = W3PlayerApi.GetPlayerState(
     bot,
     W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD
@@ -85,15 +84,13 @@ function createResourcePanel(): W3PrivilegedApi.multiboard {
   return panel;
 }
 
-function setRowText({
-  panel,
-  row,
-  text,
-}: {
+interface SetRowTextArgs {
   panel: W3PrivilegedApi.multiboard;
   row: number;
   text: string;
-}) {
+}
+
+function setRowText({ panel, row, text }: SetRowTextArgs) {
   const item = W3PrivilegedApi.MultiboardGetItem(panel, row, 0);
 
   W3PrivilegedApi.MultiboardSetItemValue(item, text);

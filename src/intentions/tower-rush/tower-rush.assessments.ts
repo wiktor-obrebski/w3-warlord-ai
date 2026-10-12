@@ -18,18 +18,23 @@ export {
 const RUSH_TOWER_COUNT = 3;
 const MillTreeCandidates = 4;
 
-/** Whether every rush tower has been placed and finished construction. */
-function allRushTowersBuilt({
-  beliefs,
-}: {
+interface AllRushTowersBuiltArgs {
   beliefs: Readonly<CommonBeliefs>;
-}): boolean {
+}
+
+/** Whether every rush tower has been placed and finished construction. */
+function allRushTowersBuilt({ beliefs }: AllRushTowersBuiltArgs): boolean {
   return (
     beliefs.scoutTowers.length >= RUSH_TOWER_COUNT &&
     beliefs.scoutTowers.every(
       (tower) => !beliefs.buildingsUnderConstruction.includes(tower)
     )
   );
+}
+
+interface RushTowersAtLeastArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  lifeFraction: number;
 }
 
 /**
@@ -39,16 +44,18 @@ function allRushTowersBuilt({
 function rushTowersAtLeast({
   beliefs,
   lifeFraction,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  lifeFraction: number;
-}): boolean {
+}: RushTowersAtLeastArgs): boolean {
   return (
     beliefs.scoutTowers.length >= RUSH_TOWER_COUNT &&
     beliefs.scoutTowers.every(
       (tower) => lifeFractionOf({ beliefs, unit: tower }) >= lifeFraction
     )
   );
+}
+
+interface IsAvailableForwardPeasantArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  worker: W3UnitApi.unit;
 }
 
 /**
@@ -59,16 +66,18 @@ function rushTowersAtLeast({
 function isAvailableForwardPeasant({
   beliefs,
   worker,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  worker: W3UnitApi.unit;
-}): boolean {
+}: IsAvailableForwardPeasantArgs): boolean {
   return (
     beliefs.peasants.includes(worker) &&
     (beliefs.idleUnits.includes(worker) ||
       beliefs.holdingPositionUnits.includes(worker) ||
       beliefs.harvestingUnits.includes(worker))
   );
+}
+
+interface LumberDestructablesByPreferenceArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  peasantOrigin: W3UnitApi.unit;
 }
 
 /**
@@ -85,10 +94,7 @@ function isAvailableForwardPeasant({
 function lumberDestructablesByPreference({
   beliefs,
   peasantOrigin,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  peasantOrigin: W3UnitApi.unit;
-}): readonly HomeDestructable[] {
+}: LumberDestructablesByPreferenceArgs): readonly HomeDestructable[] {
   const mill = completedLumberMill({ beliefs });
 
   if (!mill) {
@@ -107,13 +113,15 @@ function lumberDestructablesByPreference({
   return [...candidates, ...nearestMill.slice(MillTreeCandidates)];
 }
 
+interface SortByDistanceToArgs {
+  destructables: readonly HomeDestructable[];
+  origin: Point;
+}
+
 function sortByDistanceTo({
   destructables,
   origin,
-}: {
-  destructables: readonly HomeDestructable[];
-  origin: Point;
-}): HomeDestructable[] {
+}: SortByDistanceToArgs): HomeDestructable[] {
   return destructables
     .map((destructable) => ({
       destructable,
@@ -124,13 +132,19 @@ function sortByDistanceTo({
     .map((entry) => entry.destructable);
 }
 
+interface IsAwayFromMillArgs {
+  destructable: HomeDestructable;
+}
+
+interface DestructablesAwayFromUnfinishedMillArgs {
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 // Nearest home first, with those on the far side of the Hall from the mill
 // ahead of the rest. Before the mill is placed, simply nearest home.
 function destructablesAwayFromUnfinishedMill({
   beliefs,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-}): readonly HomeDestructable[] {
+}: DestructablesAwayFromUnfinishedMillArgs): readonly HomeDestructable[] {
   const mill = beliefs.lumberMills[0];
 
   if (!mill) {
@@ -142,11 +156,7 @@ function destructablesAwayFromUnfinishedMill({
     start: hall,
     end: positionOf({ beliefs, unit: mill }),
   });
-  const isAwayFromMill = ({
-    destructable,
-  }: {
-    destructable: HomeDestructable;
-  }) =>
+  const isAwayFromMill = ({ destructable }: IsAwayFromMillArgs) =>
     new Vector({ start: hall, end: destructable.position }).dot({
       vector: toMill,
     }) < 0;

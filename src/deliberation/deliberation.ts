@@ -16,6 +16,10 @@ export { type ProvidedIntention, createDeliberation };
 /** An Intention as its provider created it. */
 type ProvidedIntention = ProvidedComponent<WarlordIntention<unknown>>;
 
+interface RetainedArgs<T extends ProvidedIntention> {
+  intention: T | null;
+}
+
 /**
  * A fixed policy for now:
  *
@@ -43,9 +47,7 @@ function createDeliberation(): Deliberation<
     deliberate({ beliefs: _beliefs, desires, intentions }) {
       const retained = <T extends ProvidedIntention>({
         intention,
-      }: {
-        intention: T | null;
-      }) =>
+      }: RetainedArgs<T>) =>
         intention !== null && intentions.includes(intention) ? intention : null;
       const active: ProvidedIntention[] = [];
 

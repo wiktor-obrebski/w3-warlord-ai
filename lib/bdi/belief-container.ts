@@ -11,6 +11,20 @@ interface ScopedBeliefs<TCommonBeliefs> {
   readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
 }
 
+interface BeliefContainerGetScopedBeliefsArgs {
+  component: object;
+}
+
+interface BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs> {
+  component: object;
+  beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
+}
+
+interface BeliefContainerSetScopedBeliefsArgs {
+  component: object;
+  beliefs: unknown;
+}
+
 /**
  * The agent's belief state: the Common Beliefs, and the Scoped Beliefs of
  * every component that has them, indexed by the component instance.
@@ -31,26 +45,18 @@ interface BeliefContainer<TCommonBeliefs> {
   /** Throws for a component without registered Scoped Beliefs. */
   getScopedBeliefs({
     component,
-  }: {
-    component: object;
-  }): ScopedBeliefs<TCommonBeliefs>;
+  }: BeliefContainerGetScopedBeliefsArgs): ScopedBeliefs<TCommonBeliefs>;
 
   /** Registers the component with no Beliefs yet. */
   registerScopedBeliefs({
     component,
     beliefsModel,
-  }: {
-    component: object;
-    beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
-  }): void;
+  }: BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs>): void;
 
   setScopedBeliefs({
     component,
     beliefs,
-  }: {
-    component: object;
-    beliefs: unknown;
-  }): void;
+  }: BeliefContainerSetScopedBeliefsArgs): void;
 
   removeScopedBeliefs({ component }: { component: object }): void;
 

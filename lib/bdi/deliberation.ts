@@ -1,5 +1,11 @@
 export { type Deliberation };
 
+interface DeliberationDeliberateArgs<TBeliefs, TDesire, TIntention> {
+  beliefs: Readonly<TBeliefs>;
+  desires: readonly TDesire[];
+  intentions: readonly TIntention[];
+}
+
 /**
  * Decides which Intentions the agent currently pursues, and so owns their
  * lifecycle.
@@ -17,9 +23,9 @@ interface Deliberation<TBeliefs, TDesire, TIntention> {
     beliefs,
     desires,
     intentions,
-  }: {
-    beliefs: Readonly<TBeliefs>;
-    desires: readonly TDesire[];
-    intentions: readonly TIntention[];
-  }): readonly TIntention[];
+  }: DeliberationDeliberateArgs<
+    TBeliefs,
+    TDesire,
+    TIntention
+  >): readonly TIntention[];
 }

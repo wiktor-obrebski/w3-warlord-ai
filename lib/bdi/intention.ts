@@ -3,15 +3,22 @@ import type { Plan } from './plan';
 
 export { type UpdateChild, type Intention };
 
+interface UpdateChildArgs<TChildBeliefs, TControl> {
+  child: Plan<TChildBeliefs, TControl> | Controller<TChildBeliefs, TControl>;
+}
+
 /**
  * Updates one of an Intention's Plans or Controllers with that child's own
  * Beliefs and actor control scoped to it.
  */
 type UpdateChild<TChildBeliefs, TControl> = ({
   child,
-}: {
-  child: Plan<TChildBeliefs, TControl> | Controller<TChildBeliefs, TControl>;
-}) => void;
+}: UpdateChildArgs<TChildBeliefs, TControl>) => void;
+
+interface IntentionUpdateArgs<TBeliefs, TControl, TChildBeliefs> {
+  beliefs: Readonly<TBeliefs>;
+  updateChild: UpdateChild<TChildBeliefs, TControl>;
+}
 
 /**
  * A concrete commitment the agent is currently pursuing.
@@ -30,8 +37,5 @@ interface Intention<TBeliefs, TControl, TChildBeliefs = TBeliefs> {
   update({
     beliefs,
     updateChild,
-  }: {
-    beliefs: Readonly<TBeliefs>;
-    updateChild: UpdateChild<TChildBeliefs, TControl>;
-  }): void;
+  }: IntentionUpdateArgs<TBeliefs, TControl, TChildBeliefs>): void;
 }

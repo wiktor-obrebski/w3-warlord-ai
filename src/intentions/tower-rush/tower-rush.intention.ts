@@ -31,6 +31,15 @@ interface TowerRushChildFactories {
   readonly createTowerMaintenanceController: ChildFactory<WarlordController>;
 }
 
+interface TowerRushUpdateArgs {
+  beliefs: WarlordBeliefs;
+  updateChild: WarlordUpdateChild;
+}
+
+interface TowerRushDiscardEndedPlanArgs {
+  plan: ChildHandle<EstablishTowerPositionPlan>;
+}
+
 /**
  * Commitment to a Human tower rush: Guard Towers established next to the
  * enemy main, funded by a home economy and kept repaired by the forward
@@ -66,13 +75,7 @@ class TowerRush implements TowerRushIntention {
    * released when its update ends, so the economy and maintenance take them
    * over in the same update.
    */
-  public update({
-    beliefs,
-    updateChild,
-  }: {
-    beliefs: WarlordBeliefs;
-    updateChild: WarlordUpdateChild;
-  }) {
+  public update({ beliefs, updateChild }: TowerRushUpdateArgs) {
     if (!this.interval.claim({ now: beliefs.common.time })) {
       return;
     }
@@ -104,11 +107,7 @@ class TowerRush implements TowerRushIntention {
     this.updatedBefore = true;
   }
 
-  private discardEndedPlan({
-    plan,
-  }: {
-    plan: ChildHandle<EstablishTowerPositionPlan>;
-  }) {
+  private discardEndedPlan({ plan }: TowerRushDiscardEndedPlanArgs) {
     const { status } = plan.value;
 
     if (status === 'running') {

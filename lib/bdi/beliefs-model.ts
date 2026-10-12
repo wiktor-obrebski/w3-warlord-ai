@@ -1,5 +1,10 @@
 export { type CommonBeliefsModel, type BeliefsModel, type AnyBeliefsModel };
 
+interface CommonBeliefsModelReviseArgs<TObservation, TCommonBeliefs> {
+  previous: Readonly<TCommonBeliefs> | null;
+  observation: Readonly<TObservation>;
+}
+
 /**
  * Maintains the agent's Common Beliefs: knowledge shared by every
  * Intention, Plan, and Controller.
@@ -20,10 +25,16 @@ interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
   revise({
     previous,
     observation,
-  }: {
-    previous: Readonly<TCommonBeliefs> | null;
-    observation: Readonly<TObservation>;
-  }): TCommonBeliefs;
+  }: CommonBeliefsModelReviseArgs<
+    TObservation,
+    TCommonBeliefs
+  >): TCommonBeliefs;
+}
+
+interface BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs> {
+  previous: Readonly<TBeliefs> | null;
+  observation: Readonly<TObservation>;
+  common: Readonly<TCommonBeliefs>;
 }
 
 /**
@@ -53,11 +64,13 @@ interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
     previous,
     observation,
     common,
-  }: {
-    previous: Readonly<TBeliefs> | null;
-    observation: Readonly<TObservation>;
-    common: Readonly<TCommonBeliefs>;
-  }): TBeliefs;
+  }: BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs>): TBeliefs;
+}
+
+interface AnyBeliefsModelReviseArgs<TCommonBeliefs> {
+  previous: unknown;
+  observation: unknown;
+  common: Readonly<TCommonBeliefs>;
 }
 
 /**
@@ -70,9 +83,5 @@ interface AnyBeliefsModel<TCommonBeliefs> {
     previous,
     observation,
     common,
-  }: {
-    previous: unknown;
-    observation: unknown;
-    common: Readonly<TCommonBeliefs>;
-  }): unknown;
+  }: AnyBeliefsModelReviseArgs<TCommonBeliefs>): unknown;
 }

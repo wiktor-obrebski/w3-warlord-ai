@@ -11,6 +11,19 @@ interface Claim<TRequest> {
   renewedInUpdate: number;
 }
 
+interface ActorControlArbiterRunArgs<TActor, TRequest> {
+  control: ActorControlProvider<TActor, TRequest>;
+}
+
+interface ActorControlArbiterUpdateArgs<TActor, TRequest> {
+  source: object;
+  run: ({ control }: ActorControlArbiterRunArgs<TActor, TRequest>) => void;
+}
+
+interface ActorControlArbiterReleaseInactiveArgs {
+  activeSources: ReadonlySet<object>;
+}
+
 /**
  * Keeps at most one controlling source per Actor and runs the control
  * leases. Whether a request takes an Actor held by another source, or by
@@ -24,14 +37,7 @@ interface ActorControlArbiter<TActor, TRequest> {
   update({
     source,
     run,
-  }: {
-    source: object;
-    run: ({
-      control,
-    }: {
-      control: ActorControlProvider<TActor, TRequest>;
-    }) => void;
-  }): void;
+  }: ActorControlArbiterUpdateArgs<TActor, TRequest>): void;
 
   /**
    * Releases the claims of sources no longer active, which will not update
@@ -39,16 +45,30 @@ interface ActorControlArbiter<TActor, TRequest> {
    */
   releaseInactive({
     activeSources,
-  }: {
-    activeSources: ReadonlySet<object>;
-  }): void;
+  }: ActorControlArbiterReleaseInactiveArgs): void;
+}
+
+interface CreateActorControlArbiterArgs<TRequest> {
+  policy: ActorControlPolicy<TRequest>;
+}
+
+interface RequestControlArgs<TActor, TRequest> {
+  requester: object;
+  updateNumber: number;
+  actor: TActor;
+  request: TRequest;
+}
+
+interface ReleaseClaimsArgs<TRequest> {
+  shouldRelease: ({ claim }: { claim: Claim<TRequest> }) => boolean;
 }
 
 function createActorControlArbiter<TActor, TRequest>({
   policy,
-}: {
-  policy: ActorControlPolicy<TRequest>;
-}): ActorControlArbiter<TActor, TRequest> {
+}: CreateActorControlArbiterArgs<TRequest>): ActorControlArbiter<
+  TActor,
+  TRequest
+> {
   const claims = new Map<TActor, Claim<TRequest>>();
   let updateCount = 0;
 
@@ -57,12 +77,7 @@ function createActorControlArbiter<TActor, TRequest>({
     updateNumber,
     actor,
     request,
-  }: {
-    requester: object;
-    updateNumber: number;
-    actor: TActor;
-    request: TRequest;
-  }): boolean => {
+  }: RequestControlArgs<TActor, TRequest>): boolean => {
     const currentClaim = claims.get(actor) ?? null;
 
     if (currentClaim !== null && currentClaim.holder === requester) {
@@ -84,11 +99,7 @@ function createActorControlArbiter<TActor, TRequest>({
     return true;
   };
 
-  const releaseClaims = ({
-    shouldRelease,
-  }: {
-    shouldRelease: ({ claim }: { claim: Claim<TRequest> }) => boolean;
-  }) => {
+  const releaseClaims = ({ shouldRelease }: ReleaseClaimsArgs<TRequest>) => {
     const released: TActor[] = [];
 
     for (const [actor, claim] of claims) {

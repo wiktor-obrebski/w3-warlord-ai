@@ -17,37 +17,40 @@ export {
 // Assumed, not verified in-game.
 const ConstructionStartLifeFraction = 0.1;
 
+interface IsRecentlyAttackedArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  target: W3UnitApi.unit;
+}
+
 /** Whether any attacker recently started an attack on the bot's unit. */
 function isRecentlyAttacked({
   beliefs,
   target,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  target: W3UnitApi.unit;
-}): boolean {
+}: IsRecentlyAttackedArgs): boolean {
   return beliefs.recentAttacks.some((attack) => attack.target === target);
+}
+
+interface RecentAttackTargetArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  attacker: W3UnitApi.unit;
 }
 
 /** The bot's unit the attacker recently started an attack on, if any. */
 function recentAttackTarget({
   beliefs,
   attacker,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  attacker: W3UnitApi.unit;
-}): W3UnitApi.unit | undefined {
+}: RecentAttackTargetArgs): W3UnitApi.unit | undefined {
   return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
     ?.target;
 }
 
-/** Throws for a unit not believed to be a living unit of the bot. */
-function ownUnit({
-  beliefs,
-  unit,
-}: {
+interface OwnUnitArgs {
   beliefs: Readonly<CommonBeliefs>;
   unit: W3UnitApi.unit;
-}): OwnUnit {
+}
+
+/** Throws for a unit not believed to be a living unit of the bot. */
+function ownUnit({ beliefs, unit }: OwnUnitArgs): OwnUnit {
   const believed = beliefs.ownUnits.get(unit);
 
   if (!believed) {
@@ -57,36 +60,36 @@ function ownUnit({
   return believed;
 }
 
-function positionOf({
-  beliefs,
-  unit,
-}: {
+interface PositionOfArgs {
   beliefs: Readonly<CommonBeliefs>;
   unit: W3UnitApi.unit;
-}): Point {
+}
+
+function positionOf({ beliefs, unit }: PositionOfArgs): Point {
   return ownUnit({ beliefs, unit }).position;
 }
 
-function lifeFractionOf({
-  beliefs,
-  unit,
-}: {
+interface LifeFractionOfArgs {
   beliefs: Readonly<CommonBeliefs>;
   unit: W3UnitApi.unit;
-}): number {
+}
+
+function lifeFractionOf({ beliefs, unit }: LifeFractionOfArgs): number {
   const { life, maxLife } = ownUnit({ beliefs, unit });
 
   return life / maxLife;
+}
+
+interface MostDamagedUnitArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  units: readonly W3UnitApi.unit[];
 }
 
 /** Of the bot's units, the one with the lowest life fraction. */
 function mostDamagedUnit({
   beliefs,
   units,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  units: readonly W3UnitApi.unit[];
-}): W3UnitApi.unit | undefined {
+}: MostDamagedUnitArgs): W3UnitApi.unit | undefined {
   let mostDamaged: W3UnitApi.unit | undefined;
 
   for (const unit of units) {
@@ -102,6 +105,11 @@ function mostDamagedUnit({
   return mostDamaged;
 }
 
+interface ConstructionProgressArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  building: W3UnitApi.unit;
+}
+
 /**
  * Warcraft exposes no construction progress, but a building's life rises
  * linearly from a fraction of its maximum while it is built. A damaged
@@ -110,10 +118,7 @@ function mostDamagedUnit({
 function constructionProgress({
   beliefs,
   building,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  building: W3UnitApi.unit;
-}): number {
+}: ConstructionProgressArgs): number {
   return (
     (lifeFractionOf({ beliefs, unit: building }) -
       ConstructionStartLifeFraction) /
@@ -121,14 +126,22 @@ function constructionProgress({
   );
 }
 
+interface CompletedLumberMillArgs {
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 function completedLumberMill({
   beliefs,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-}): W3UnitApi.unit | undefined {
+}: CompletedLumberMillArgs): W3UnitApi.unit | undefined {
   return beliefs.lumberMills.find(
     (mill) => !beliefs.buildingsUnderConstruction.includes(mill)
   );
+}
+
+interface ClosestUnitArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  units: readonly W3UnitApi.unit[];
+  to: W3UnitApi.unit;
 }
 
 /** Of the bot's units, the one closest to `to`. */
@@ -136,11 +149,7 @@ function closestUnit({
   beliefs,
   units,
   to,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  units: readonly W3UnitApi.unit[];
-  to: W3UnitApi.unit;
-}): W3UnitApi.unit | undefined {
+}: ClosestUnitArgs): W3UnitApi.unit | undefined {
   const origin = positionOf({ beliefs, unit: to });
   let closest: W3UnitApi.unit | undefined;
   let closestDistance = Infinity;

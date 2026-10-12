@@ -36,6 +36,20 @@ interface FleeRound {
   destination: Point;
 }
 
+interface WorkerSafetyControllerUpdateArgs {
+  beliefs: WarlordBeliefs<WorkerSafetyBeliefs>;
+  control: ActorControl;
+}
+
+interface WorkerSafetyControllerProtectWorkerArgs {
+  worker: OwnUnit;
+  beliefs: Readonly<CommonBeliefs>;
+}
+
+interface WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs {
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 /**
  * Attacked workers run away from the nearby enemy force. When each worker was
  * last attacked is kept in the controller's Scoped Beliefs.
@@ -51,10 +65,7 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
   public update({
     beliefs: { common: beliefs, scoped: safety },
     control,
-  }: {
-    beliefs: WarlordBeliefs<WorkerSafetyBeliefs>;
-    control: ActorControl;
-  }) {
+  }: WorkerSafetyControllerUpdateArgs) {
     for (const worker of beliefs.workers) {
       const isUnsafe =
         this.fleeRounds.has(worker.unit) ||
@@ -78,10 +89,7 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
   private protectWorker({
     worker,
     beliefs,
-  }: {
-    worker: OwnUnit;
-    beliefs: Readonly<CommonBeliefs>;
-  }) {
+  }: WorkerSafetyControllerProtectWorkerArgs) {
     const isAttacked = isRecentlyAttacked({
       beliefs,
       target: worker.unit,
@@ -113,9 +121,7 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
 
   private forgetFleeRoundsOfLostWorkers({
     beliefs,
-  }: {
-    beliefs: Readonly<CommonBeliefs>;
-  }) {
+  }: WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs) {
     const lost: W3UnitApi.unit[] = [];
 
     for (const worker of this.fleeRounds.keys()) {
@@ -140,15 +146,14 @@ function provideWorkerSafetyController(): ProvidedComponent<
   };
 }
 
-// An unreachable destination ends the move short of it, leaving the worker
-// idle.
-function fleeRoundFinished({
-  worker,
-  round,
-}: {
+interface FleeRoundFinishedArgs {
   worker: OwnUnit;
   round: FleeRound;
-}): boolean {
+}
+
+// An unreachable destination ends the move short of it, leaving the worker
+// idle.
+function fleeRoundFinished({ worker, round }: FleeRoundFinishedArgs): boolean {
   return (
     worker.isIdle ||
     new Vector({ start: worker.position, end: round.destination }).length <=
@@ -156,13 +161,12 @@ function fleeRoundFinished({
   );
 }
 
-function fledHalfway({
-  worker,
-  round,
-}: {
+interface FledHalfwayArgs {
   worker: OwnUnit;
   round: FleeRound;
-}): boolean {
+}
+
+function fledHalfway({ worker, round }: FledHalfwayArgs): boolean {
   return (
     new Vector({ start: round.origin, end: worker.position }).length >=
     FleeRoundDistance / 2
@@ -177,13 +181,15 @@ function stopFleeing({ worker }: { worker: OwnUnit }) {
   }
 }
 
+interface StartFleeRoundArgs {
+  worker: OwnUnit;
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 function startFleeRound({
   worker,
   beliefs,
-}: {
-  worker: OwnUnit;
-  beliefs: Readonly<CommonBeliefs>;
-}): FleeRound | undefined {
+}: StartFleeRoundArgs): FleeRound | undefined {
   const nearby = nearbyThreats({ beliefs, position: worker.position });
   const threat = threatCenter({ beliefs, worker });
   const awayAngle = threat && angleAwayFrom({ threat, from: worker.position });
@@ -208,18 +214,17 @@ function startFleeRound({
   return { origin: worker.position, destination };
 }
 
+interface FleeDestinationArgs {
+  from: Point;
+  awayAngle: number | undefined;
+}
+
 // A worker standing still is easily killed, so it always runs somewhere.
 // Directions closest to straight away come first; without a direction to
 // run from, e.g. when the attacker is not visible, the search starts from a
 // random one. When no direction is walkable, a random one is taken anyway
 // and Warcraft moves the worker as close to it as it can.
-function fleeDestination({
-  from,
-  awayAngle,
-}: {
-  from: Point;
-  awayAngle: number | undefined;
-}): Point {
+function fleeDestination({ from, awayAngle }: FleeDestinationArgs): Point {
   const preferredAngle = awayAngle ?? W3MathApi.GetRandomReal(0, Math.PI * 2);
 
   for (const offset of FleeAngleOffsets) {
@@ -265,28 +270,28 @@ function isWalkable({ point }: { point: Point }): boolean {
   );
 }
 
+interface AngleAwayFromArgs {
+  threat: Point;
+  from: Point;
+}
+
 // Undefined when standing on the threat, which gives no direction.
 function angleAwayFrom({
   threat,
   from,
-}: {
-  threat: Point;
-  from: Point;
-}): number | undefined {
+}: AngleAwayFromArgs): number | undefined {
   const away = new Vector({ start: threat, end: from });
 
   return away.isZeroLength() ? undefined : away.slope;
 }
 
-function pointAt({
-  from,
-  angle,
-  distance,
-}: {
+interface PointAtArgs {
   from: Point;
   angle: number;
   distance: number;
-}): Point {
+}
+
+function pointAt({ from, angle, distance }: PointAtArgs): Point {
   return from.translate({
     vector: new Vector({ x: distance, y: 0 }).rotate({ angle }),
   });

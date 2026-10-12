@@ -44,6 +44,11 @@ interface ChildHandle<TValue> {
  */
 type ChildFactory<TValue> = () => ChildHandle<TValue>;
 
+interface ChildFactoryArgs<TValue extends object, TCommonBeliefs> {
+  children: Provided<object, TCommonBeliefs>[];
+  provide: () => Provided<TValue, TCommonBeliefs>;
+}
+
 /**
  * Lets a provider give its component a way to create children without
  * exposing their metadata: each call provides a child, records it in
@@ -52,10 +57,7 @@ type ChildFactory<TValue> = () => ChildHandle<TValue>;
 function childFactory<TValue extends object, TCommonBeliefs>({
   children,
   provide,
-}: {
-  children: Provided<object, TCommonBeliefs>[];
-  provide: () => Provided<TValue, TCommonBeliefs>;
-}): ChildFactory<TValue> {
+}: ChildFactoryArgs<TValue, TCommonBeliefs>): ChildFactory<TValue> {
   return () => {
     const provided = provide();
     children.push(provided);

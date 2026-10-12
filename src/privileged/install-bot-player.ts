@@ -23,6 +23,10 @@ interface MapGlobals {
 
 declare const map_globals: MapGlobals;
 
+interface InstallBotPlayerArgs {
+  computerPlayer: W3PlayerApi.player;
+}
+
 /**
  * Moves the computer player chosen in the lobby into an empty slot and
  * returns that slot's player for the bot to control.
@@ -32,9 +36,7 @@ declare const map_globals: MapGlobals;
  */
 function installBotPlayer({
   computerPlayer,
-}: {
-  computerPlayer: W3PlayerApi.player;
-}): W3PlayerApi.player {
+}: InstallBotPlayerArgs): W3PlayerApi.player {
   const installations = setupBotInstallations();
   const botPlayer = findEmptyPlayerSlot();
 
@@ -100,13 +102,12 @@ function findEmptyPlayerSlot(): W3PlayerApi.player | undefined {
   return undefined;
 }
 
-function transferPlayer({
-  fromPlayer,
-  toPlayer,
-}: {
+interface TransferPlayerArgs {
   fromPlayer: W3PlayerApi.player;
   toPlayer: W3PlayerApi.player;
-}) {
+}
+
+function transferPlayer({ fromPlayer, toPlayer }: TransferPlayerArgs) {
   const units = W3GroupApi.CreateGroup();
   W3GroupApi.GroupEnumUnitsOfPlayer(units, fromPlayer, null);
 

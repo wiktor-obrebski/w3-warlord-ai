@@ -35,6 +35,11 @@ interface EstablishTowerPositionPlan extends WarlordPlan {
   readonly towersBuilt: boolean;
 }
 
+interface EstablishTowerPositionUpdateArgs {
+  beliefs: WarlordBeliefs;
+  control: ActorControl;
+}
+
 class EstablishTowerPosition implements EstablishTowerPositionPlan {
   private readonly rush: TowerRushState;
   private currentStatus: PlanStatus = 'running';
@@ -59,10 +64,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   public update({
     beliefs: { common: beliefs },
     control,
-  }: {
-    beliefs: WarlordBeliefs;
-    control: ActorControl;
-  }) {
+  }: EstablishTowerPositionUpdateArgs) {
     if (this.currentStatus !== 'running') {
       throw new Error('Establish tower position: updated after it ended.');
     }
@@ -126,10 +128,12 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   }
 }
 
+interface ProvideEstablishTowerPositionPlanArgs {
+  rush: TowerRushState;
+}
+
 function provideEstablishTowerPositionPlan({
   rush,
-}: {
-  rush: TowerRushState;
-}): ProvidedComponent<EstablishTowerPositionPlan> {
+}: ProvideEstablishTowerPositionPlanArgs): ProvidedComponent<EstablishTowerPositionPlan> {
   return { value: new EstablishTowerPosition({ rush }), children: [] };
 }

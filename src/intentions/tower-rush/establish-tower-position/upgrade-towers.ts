@@ -30,6 +30,12 @@ interface PlannedTower {
   state: TOWER_STATE;
 }
 
+interface UpdateUpgradeTowersArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  towerPositions: readonly Point[];
+  control: ActorControl;
+}
+
 /**
  * Returns whether every rush tower has become a Guard Tower.
  *
@@ -41,11 +47,7 @@ function updateUpgradeTowers({
   beliefs,
   towerPositions,
   control,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  towerPositions: readonly Point[];
-  control: ActorControl;
-}): boolean {
+}: UpdateUpgradeTowersArgs): boolean {
   const towers = towerPositions.map((position) =>
     plannedTowerAt({ position, beliefs })
   );
@@ -66,13 +68,15 @@ function updateUpgradeTowers({
   return towers.every((tower) => tower.state === TOWER_STATE.GUARD_TOWER);
 }
 
+interface PlannedTowerAtArgs {
+  position: Point;
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 function plannedTowerAt({
   position,
   beliefs,
-}: {
-  position: Point;
-  beliefs: Readonly<CommonBeliefs>;
-}): PlannedTower {
+}: PlannedTowerAtArgs): PlannedTower {
   const unit = [...beliefs.scoutTowers, ...beliefs.guardTowers].find(
     (tower) =>
       new Vector({
@@ -87,15 +91,14 @@ function plannedTowerAt({
   };
 }
 
-// Upgrading is checked before the unit type, which may already read as the
-// Guard Tower before the upgrade finishes.
-function towerState({
-  tower,
-  beliefs,
-}: {
+interface TowerStateArgs {
   tower: W3UnitApi.unit;
   beliefs: Readonly<CommonBeliefs>;
-}): TOWER_STATE {
+}
+
+// Upgrading is checked before the unit type, which may already read as the
+// Guard Tower before the upgrade finishes.
+function towerState({ tower, beliefs }: TowerStateArgs): TOWER_STATE {
   if (beliefs.buildingsUnderConstruction.includes(tower)) {
     return TOWER_STATE.UNDER_CONSTRUCTION;
   }
@@ -109,26 +112,25 @@ function towerState({
     : TOWER_STATE.SCOUT_TOWER;
 }
 
-function canAffordGuardTower({
-  budget,
-}: {
+interface CanAffordGuardTowerArgs {
   budget: { gold: number; lumber: number };
-}) {
+}
+
+function canAffordGuardTower({ budget }: CanAffordGuardTowerArgs) {
   return (
     budget.gold >= GUARD_TOWER_UPGRADE_GOLD_COST &&
     budget.lumber >= GuardTowerUpgradeLumberCost
   );
 }
 
-// Believed resources do not reflect orders issued this tick, so the budget
-// is reduced locally to avoid ordering upgrades that cannot be paid for.
-function orderGuardTower({
-  tower,
-  budget,
-}: {
+interface OrderGuardTowerArgs {
   tower: W3UnitApi.unit;
   budget: { gold: number; lumber: number };
-}) {
+}
+
+// Believed resources do not reflect orders issued this tick, so the budget
+// is reduced locally to avoid ordering upgrades that cannot be paid for.
+function orderGuardTower({ tower, budget }: OrderGuardTowerArgs) {
   if (
     W3UnitApi.IssueImmediateOrderById(tower, W3HumanApi.Building.GUARD_TOWER)
   ) {

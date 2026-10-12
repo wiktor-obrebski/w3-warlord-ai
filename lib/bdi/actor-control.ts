@@ -31,6 +31,11 @@ interface ActorControlClaim<TRequest> {
   readonly request: TRequest;
 }
 
+interface ActorControlPolicyArgs<TRequest> {
+  request: TRequest;
+  currentClaim: ActorControlClaim<TRequest> | null;
+}
+
 /**
  * Decides whether a request takes control of an Actor the requesting source
  * does not hold: one held by another source (`currentClaim`), or one held by
@@ -40,7 +45,4 @@ interface ActorControlClaim<TRequest> {
 type ActorControlPolicy<TRequest> = ({
   request,
   currentClaim,
-}: {
-  request: TRequest;
-  currentClaim: ActorControlClaim<TRequest> | null;
-}) => boolean;
+}: ActorControlPolicyArgs<TRequest>) => boolean;

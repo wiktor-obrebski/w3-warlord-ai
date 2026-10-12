@@ -20,18 +20,20 @@ function createMoveForwardState(): MoveForwardState {
   return { forwardWorkersSentToEnemy: [], forwardWorkersHoldingPosition: [] };
 }
 
+interface UpdateMoveForwardArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  state: MoveForwardState;
+  control: ActorControl;
+}
+
 /** Returns whether the forward workers have arrived as Peasants again. */
 function updateMoveForward({
   beliefs,
   rush,
   state,
   control,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  rush: TowerRushState;
-  state: MoveForwardState;
-  control: ActorControl;
-}): boolean {
+}: UpdateMoveForwardArgs): boolean {
   const destination = beliefs.enemyMainGoldMine;
 
   if (!destination) {
@@ -50,6 +52,13 @@ function updateMoveForward({
   return forwardWorkersHaveRevertedToPeasants({ beliefs, rush, state });
 }
 
+interface SendNewMilitiaToEnemyArgs {
+  destination: GoldMine;
+  beliefs: Readonly<CommonBeliefs>;
+  state: MoveForwardState;
+  controlled: readonly W3UnitApi.unit[];
+}
+
 // Warcraft scripts cannot queue orders, so a move issued together with the
 // Call to Arms order would cancel the transformation. Forward workers are
 // sent only once they have become Militia.
@@ -58,12 +67,7 @@ function sendNewMilitiaToEnemy({
   beliefs,
   state,
   controlled,
-}: {
-  destination: GoldMine;
-  beliefs: Readonly<CommonBeliefs>;
-  state: MoveForwardState;
-  controlled: readonly W3UnitApi.unit[];
-}) {
+}: SendNewMilitiaToEnemyArgs) {
   for (const worker of controlled) {
     if (
       beliefs.militia.includes(worker) &&
@@ -80,6 +84,13 @@ function sendNewMilitiaToEnemy({
   }
 }
 
+interface HoldArrivedMilitiaArgs {
+  destination: GoldMine;
+  beliefs: Readonly<CommonBeliefs>;
+  state: MoveForwardState;
+  controlled: readonly W3UnitApi.unit[];
+}
+
 // Idle Militia acquire and chase nearby enemies on their own, which would
 // pull them away from the tower sites before they revert to Peasants.
 function holdArrivedMilitia({
@@ -87,12 +98,7 @@ function holdArrivedMilitia({
   beliefs,
   state,
   controlled,
-}: {
-  destination: GoldMine;
-  beliefs: Readonly<CommonBeliefs>;
-  state: MoveForwardState;
-  controlled: readonly W3UnitApi.unit[];
-}) {
+}: HoldArrivedMilitiaArgs) {
   for (const worker of state.forwardWorkersSentToEnemy) {
     if (
       controlled.includes(worker) &&
@@ -112,15 +118,17 @@ function holdArrivedMilitia({
   }
 }
 
+interface ForwardWorkersHaveRevertedToPeasantsArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  state: MoveForwardState;
+}
+
 function forwardWorkersHaveRevertedToPeasants({
   beliefs,
   rush,
   state,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  rush: TowerRushState;
-  state: MoveForwardState;
-}): boolean {
+}: ForwardWorkersHaveRevertedToPeasantsArgs): boolean {
   const survivingForwardWorkers = rush.forwardWorkers.filter(
     (worker) =>
       beliefs.peasants.includes(worker) || beliefs.militia.includes(worker)

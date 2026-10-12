@@ -20,15 +20,13 @@ const MinLumberMillDistance = 384;
 const MaxLumberMillDistance = 1200;
 const CandidateSpacing = 64;
 
-function updateStart({
-  beliefs,
-  rush,
-  control,
-}: {
+interface UpdateStartArgs {
   beliefs: Readonly<CommonBeliefs>;
   rush: TowerRushState;
   control: ActorControl;
-}) {
+}
+
+function updateStart({ beliefs, rush, control }: UpdateStartArgs) {
   const { townHall, enemyMainGoldMine, homeGoldMine } = beliefs;
 
   if (!townHall) {
@@ -79,6 +77,13 @@ function updateStart({
   trainPeasant({ townHall, beliefs, rush });
 }
 
+interface OrderLumberMillArgs {
+  builder: W3UnitApi.unit;
+  hall: Point;
+  mine: Point;
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 // Spots are tried from the one closest to both the Town Hall and a tree;
 // IssueBuildOrderById rejects blocked spots, so the order itself is the
 // placement test. Only the half facing away from the gold mine is searched
@@ -88,12 +93,7 @@ function orderLumberMill({
   hall,
   mine,
   beliefs,
-}: {
-  builder: W3UnitApi.unit;
-  hall: Point;
-  mine: Point;
-  beliefs: Readonly<CommonBeliefs>;
-}) {
+}: OrderLumberMillArgs) {
   const trees = treePositions({ builder, beliefs });
   const sites = lumberMillCandidates({ hall, mine })
     .map((position) => ({
@@ -125,15 +125,17 @@ function orderLumberMill({
   debug({ message: 'Tower rush start: all Lumber Mill locations rejected.' });
 }
 
+interface LumberMillCandidatesArgs {
+  hall: Point;
+  mine: Point;
+}
+
 // Rings around the Town Hall, spaced about CandidateSpacing apart, on the
 // half facing away from the gold mine.
 function lumberMillCandidates({
   hall,
   mine,
-}: {
-  hall: Point;
-  mine: Point;
-}): Point[] {
+}: LumberMillCandidatesArgs): Point[] {
   const awayFromMine = new Vector({ start: mine, end: hall }).slope;
   const candidates: Point[] = [];
 
@@ -162,16 +164,15 @@ function lumberMillCandidates({
   return candidates;
 }
 
+interface TreePositionsArgs {
+  builder: W3UnitApi.unit;
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 // Beliefs cannot tell trees apart from other destructables, so a harvest
 // order is used as the test: Warcraft rejects it for non-trees. The builder's
 // build order replaces these test orders.
-function treePositions({
-  builder,
-  beliefs,
-}: {
-  builder: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
-}): Point[] {
+function treePositions({ builder, beliefs }: TreePositionsArgs): Point[] {
   return beliefs.destructablesNearHomeByDistance
     .filter(({ destructable }) =>
       W3UnitApi.IssueTargetOrder(builder, 'harvest', destructable)
@@ -179,14 +180,13 @@ function treePositions({
     .map((tree) => tree.position);
 }
 
-// Without any trees every spot scores alike, leaving only the hall distance.
-function nearestDistance({
-  position,
-  others,
-}: {
+interface NearestDistanceArgs {
   position: Point;
   others: Point[];
-}): number {
+}
+
+// Without any trees every spot scores alike, leaving only the hall distance.
+function nearestDistance({ position, others }: NearestDistanceArgs): number {
   let nearest = others.length === 0 ? 0 : Infinity;
 
   for (const other of others) {

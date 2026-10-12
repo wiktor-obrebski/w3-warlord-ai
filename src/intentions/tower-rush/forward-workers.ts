@@ -11,19 +11,21 @@ export { hideBehindClosestTower, forgetSentToSafety, controlForwardPeasants };
 // Clears the tower's 128x128 footprint with room for the Peasant.
 const HidingDistanceBehindTower = 160;
 
+interface HideBehindClosestTowerArgs {
+  worker: W3UnitApi.unit;
+  towers: readonly W3UnitApi.unit[];
+  enemyMain: Point;
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+}
+
 function hideBehindClosestTower({
   worker,
   towers,
   enemyMain,
   beliefs,
   rush,
-}: {
-  worker: W3UnitApi.unit;
-  towers: readonly W3UnitApi.unit[];
-  enemyMain: Point;
-  beliefs: Readonly<CommonBeliefs>;
-  rush: TowerRushState;
-}) {
+}: HideBehindClosestTowerArgs) {
   const shelter = closestUnit({ beliefs, units: towers, to: worker });
 
   if (!shelter) {
@@ -43,16 +45,21 @@ function hideBehindClosestTower({
   }
 }
 
-function forgetSentToSafety({
-  worker,
-  rush,
-}: {
+interface ForgetSentToSafetyArgs {
   worker: W3UnitApi.unit;
   rush: TowerRushState;
-}) {
+}
+
+function forgetSentToSafety({ worker, rush }: ForgetSentToSafetyArgs) {
   rush.forwardWorkersSentToSafety = rush.forwardWorkersSentToSafety.filter(
     (sent) => sent !== worker
   );
+}
+
+interface ControlForwardPeasantsArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  control: ActorControl;
 }
 
 /**
@@ -67,11 +74,7 @@ function controlForwardPeasants({
   beliefs,
   rush,
   control,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  rush: TowerRushState;
-  control: ActorControl;
-}): W3UnitApi.unit[] {
+}: ControlForwardPeasantsArgs): W3UnitApi.unit[] {
   const controlled: W3UnitApi.unit[] = [];
 
   for (const worker of rush.forwardWorkers) {
@@ -89,14 +92,13 @@ function controlForwardPeasants({
   return controlled;
 }
 
-// On the far side of the tower as seen from the enemy main hall.
-function spotBehind({
-  tower,
-  enemyMain,
-}: {
+interface SpotBehindArgs {
   tower: Point;
   enemyMain: Point;
-}): Point {
+}
+
+// On the far side of the tower as seen from the enemy main hall.
+function spotBehind({ tower, enemyMain }: SpotBehindArgs): Point {
   const awayFromEnemyMain = new Vector({
     start: enemyMain,
     end: tower,

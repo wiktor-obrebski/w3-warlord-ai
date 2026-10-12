@@ -151,15 +151,20 @@ interface CommonBeliefs extends ObservedWorld {
   readonly recentAttacks: readonly ObservedAttack[];
 }
 
+interface CreateCommonBeliefsModelArgs {
+  bot: W3PlayerApi.player;
+}
+
 /**
  * Maintains the Common Beliefs every component reads, revised by the runtime
  * at the start of every tick.
  */
 function createCommonBeliefsModel({
   bot,
-}: {
-  bot: W3PlayerApi.player;
-}): CommonBeliefsModel<CommonObservation, CommonBeliefs> {
+}: CreateCommonBeliefsModelArgs): CommonBeliefsModel<
+  CommonObservation,
+  CommonBeliefs
+> {
   const clock = startGameClock();
   const attackObserver = observeAttacksOn({ bot, clock });
 
@@ -184,16 +189,18 @@ function createCommonBeliefsModel({
   };
 }
 
+interface ReviseRecentAttacksArgs {
+  previous: readonly ObservedAttack[];
+  started: readonly ObservedAttack[];
+  now: number;
+}
+
 // Unchanged memory is returned as it is, so it is not copied every tick.
 function reviseRecentAttacks({
   previous,
   started,
   now,
-}: {
-  previous: readonly ObservedAttack[];
-  started: readonly ObservedAttack[];
-  now: number;
-}): readonly ObservedAttack[] {
+}: ReviseRecentAttacksArgs): readonly ObservedAttack[] {
   const isRecent = ({ attack }: { attack: ObservedAttack }) =>
     now - attack.time <= AttackMemorySeconds;
 
@@ -214,13 +221,12 @@ function reviseRecentAttacks({
   return attacks;
 }
 
-function observeWorld({
-  bot,
-  clock,
-}: {
+interface ObserveWorldArgs {
   bot: W3PlayerApi.player;
   clock: GameClock;
-}): ObservedWorld {
+}
+
+function observeWorld({ bot, clock }: ObserveWorldArgs): ObservedWorld {
   const ownStartPosition = startPositionOf({ whichPlayer: bot });
   const enemies = enemyPlayers({ bot });
   const enemy = enemies[0];
@@ -362,11 +368,13 @@ function isUnitAlive({ unit }: { unit: W3UnitApi.unit }): boolean {
   return W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE) > DeadUnitLife;
 }
 
+interface IsDestructableAliveArgs {
+  destructable: W3DestructableApi.destructable;
+}
+
 function isDestructableAlive({
   destructable,
-}: {
-  destructable: W3DestructableApi.destructable;
-}): boolean {
+}: IsDestructableAliveArgs): boolean {
   return W3DestructableApi.GetDestructableLife(destructable) > 0;
 }
 
@@ -377,11 +385,11 @@ function unitPosition({ unit }: { unit: W3UnitApi.unit }): Point {
   });
 }
 
-function startPositionOf({
-  whichPlayer,
-}: {
+interface StartPositionOfArgs {
   whichPlayer: W3PlayerApi.player;
-}): Point {
+}
+
+function startPositionOf({ whichPlayer }: StartPositionOfArgs): Point {
   const startLocation = W3PlayerApi.GetPlayerStartLocation(whichPlayer);
 
   return new Point({
@@ -390,11 +398,11 @@ function startPositionOf({
   });
 }
 
-function enemyPlayers({
-  bot,
-}: {
+interface EnemyPlayersArgs {
   bot: W3PlayerApi.player;
-}): W3PlayerApi.player[] {
+}
+
+function enemyPlayers({ bot }: EnemyPlayersArgs): W3PlayerApi.player[] {
   const enemies: W3PlayerApi.player[] = [];
 
   for (let id = 0; id < W3PlayerApi.bj_MAX_PLAYERS; id++) {
@@ -413,13 +421,12 @@ function enemyPlayers({
   return enemies;
 }
 
-function visibleEnemies({
-  bot,
-  enemies,
-}: {
+interface VisibleEnemiesArgs {
   bot: W3PlayerApi.player;
   enemies: W3PlayerApi.player[];
-}): VisibleEnemy[] {
+}
+
+function visibleEnemies({ bot, enemies }: VisibleEnemiesArgs): VisibleEnemy[] {
   const visible: VisibleEnemy[] = [];
 
   for (const enemy of enemies) {
@@ -457,11 +464,13 @@ function visibleEnemies({
   return visible;
 }
 
+interface FindClosestGoldMineArgs {
+  position: Point;
+}
+
 function findClosestGoldMine({
   position,
-}: {
-  position: Point;
-}): GoldMine | undefined {
+}: FindClosestGoldMineArgs): GoldMine | undefined {
   let closest: GoldMine | undefined;
   let closestDistance = Infinity;
 
@@ -485,13 +494,15 @@ function findClosestGoldMine({
   return closest;
 }
 
+interface DestructablesByDistanceArgs {
+  position: Point;
+  radius: number;
+}
+
 function destructablesByDistance({
   position,
   radius,
-}: {
-  position: Point;
-  radius: number;
-}): HomeDestructable[] {
+}: DestructablesByDistanceArgs): HomeDestructable[] {
   const min = position.translate({
     vector: new Vector({ x: -radius, y: -radius }),
   });
@@ -524,34 +535,36 @@ function destructablesByDistance({
   return found.map((entry) => entry.destructable);
 }
 
-function unitsOfPlayer({
-  whichPlayer,
-}: {
+interface UnitsOfPlayerArgs {
   whichPlayer: W3PlayerApi.player;
-}): W3UnitApi.unit[] {
+}
+
+function unitsOfPlayer({ whichPlayer }: UnitsOfPlayerArgs): W3UnitApi.unit[] {
   const group = W3GroupApi.CreateGroup();
   W3GroupApi.GroupEnumUnitsOfPlayer(group, whichPlayer, null);
   return drainGroup({ whichGroup: group });
 }
 
+interface UnitsInRangeArgs {
+  position: Point;
+  radius: number;
+}
+
 function unitsInRange({
   position,
   radius,
-}: {
-  position: Point;
-  radius: number;
-}): W3UnitApi.unit[] {
+}: UnitsInRangeArgs): W3UnitApi.unit[] {
   const group = W3GroupApi.CreateGroup();
 
   W3GroupApi.GroupEnumUnitsInRange(group, position.x, position.y, radius, null);
   return drainGroup({ whichGroup: group });
 }
 
-function drainGroup({
-  whichGroup,
-}: {
+interface DrainGroupArgs {
   whichGroup: UnitGroup;
-}): W3UnitApi.unit[] {
+}
+
+function drainGroup({ whichGroup }: DrainGroupArgs): W3UnitApi.unit[] {
   const units: W3UnitApi.unit[] = [];
 
   while (true) {

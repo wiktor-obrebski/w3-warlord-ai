@@ -21,15 +21,15 @@ interface RankedTarget {
   readonly priority: TARGET_PRIORITY;
 }
 
+interface RankTowerTargetsArgs {
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 /**
  * The visible enemies worth a Guard Tower's fire, best first: by priority,
  * then by lowest life.
  */
-function rankTowerTargets({
-  beliefs,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-}): RankedTarget[] {
+function rankTowerTargets({ beliefs }: RankTowerTargetsArgs): RankedTarget[] {
   const ranked: RankedTarget[] = [];
 
   for (const enemy of beliefs.visibleEnemies) {
@@ -49,6 +49,11 @@ function rankTowerTargets({
   return ranked;
 }
 
+interface TargetPriorityArgs {
+  enemy: VisibleEnemy;
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 // Melee, ranged and siege are independent properties, so the first matching
 // rule decides. Workers rank only as workers, whatever they attack. Buildings
 // that can attack, such as Ancients, only outrank other buildings while they
@@ -56,10 +61,7 @@ function rankTowerTargets({
 function targetPriority({
   enemy,
   beliefs,
-}: {
-  enemy: VisibleEnemy;
-  beliefs: Readonly<CommonBeliefs>;
-}): TARGET_PRIORITY | undefined {
+}: TargetPriorityArgs): TARGET_PRIORITY | undefined {
   if (enemy.isWorker) {
     return TARGET_PRIORITY.WORKER;
   }
@@ -99,11 +101,13 @@ function targetPriority({
   return undefined;
 }
 
+interface AttackingTowerPriorityArgs {
+  enemy: VisibleEnemy;
+}
+
 function attackingTowerPriority({
   enemy,
-}: {
-  enemy: VisibleEnemy;
-}): TARGET_PRIORITY | undefined {
+}: AttackingTowerPriorityArgs): TARGET_PRIORITY | undefined {
   if (enemy.isSiege) {
     return TARGET_PRIORITY.SIEGE_ATTACKING_TOWER;
   }

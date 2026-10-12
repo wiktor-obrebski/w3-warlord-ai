@@ -23,6 +23,22 @@ interface TowerTarget {
   target: W3UnitApi.unit;
 }
 
+interface TowerTargetSelectionControllerUpdateArgs {
+  beliefs: WarlordBeliefs;
+  control: ActorControl;
+}
+
+interface TowerTargetSelectionControllerAttackBestTargetInRangeArgs {
+  tower: W3UnitApi.unit;
+  rankedTargets: readonly RankedTarget[];
+  beliefs: Readonly<CommonBeliefs>;
+}
+
+interface TowerTargetSelectionControllerRememberTowerTargetArgs {
+  tower: W3UnitApi.unit;
+  target: W3UnitApi.unit;
+}
+
 /**
  * Targets are ranked once for all Guard Towers; each tower then attacks the
  * best one within its own range, so overlapping towers focus the same target.
@@ -35,10 +51,7 @@ class TowerTargetSelectionController implements WarlordController {
   public update({
     beliefs: { common: beliefs },
     control,
-  }: {
-    beliefs: WarlordBeliefs;
-    control: ActorControl;
-  }) {
+  }: TowerTargetSelectionControllerUpdateArgs) {
     const rankedTargets = rankTowerTargets({ beliefs });
 
     this.towerTargets = this.towerTargets.filter((entry) =>
@@ -59,11 +72,7 @@ class TowerTargetSelectionController implements WarlordController {
     tower,
     rankedTargets,
     beliefs,
-  }: {
-    tower: W3UnitApi.unit;
-    rankedTargets: readonly RankedTarget[];
-    beliefs: Readonly<CommonBeliefs>;
-  }) {
+  }: TowerTargetSelectionControllerAttackBestTargetInRangeArgs) {
     const currentTarget = this.towerTargets.find(
       (entry) => entry.tower === tower
     )?.target;
@@ -93,10 +102,7 @@ class TowerTargetSelectionController implements WarlordController {
   private rememberTowerTarget({
     tower,
     target,
-  }: {
-    tower: W3UnitApi.unit;
-    target: W3UnitApi.unit;
-  }) {
+  }: TowerTargetSelectionControllerRememberTowerTargetArgs) {
     this.forgetTowerTarget({ tower });
     this.towerTargets.push({ tower, target });
   }

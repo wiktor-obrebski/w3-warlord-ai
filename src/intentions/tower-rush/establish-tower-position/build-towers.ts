@@ -76,6 +76,13 @@ interface PlacementRules {
   requireEnemyMainInReach: boolean;
 }
 
+interface UpdateBuildTowersArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  state: BuildTowersState;
+  control: ActorControl;
+}
+
 /**
  * Returns where the rush towers stand once building them is finished.
  *
@@ -91,12 +98,7 @@ function updateBuildTowers({
   rush,
   state,
   control,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  rush: TowerRushState;
-  state: BuildTowersState;
-  control: ActorControl;
-}): Point[] | undefined {
+}: UpdateBuildTowersArgs): Point[] | undefined {
   const enemyMain = beliefs.enemyStartPosition;
 
   if (!enemyMain) {
@@ -199,6 +201,11 @@ function updateBuildTowers({
   return towerBuildingFinished({ beliefs, rush }) ? towerPositions : undefined;
 }
 
+interface BusyNonBuilderArgs {
+  controlledWorkers: readonly W3UnitApi.unit[];
+  state: BuildTowersState;
+}
+
 // A missing tower must not wait for a free Peasant: Warcraft can keep a
 // Peasant busy on its own, e.g. attacking or repairing, until the other
 // towers finish. Any controlled forward Peasant that is not building a tower
@@ -206,10 +213,7 @@ function updateBuildTowers({
 function busyNonBuilder({
   controlledWorkers,
   state,
-}: {
-  controlledWorkers: readonly W3UnitApi.unit[];
-  state: BuildTowersState;
-}): W3UnitApi.unit | undefined {
+}: BusyNonBuilderArgs): W3UnitApi.unit | undefined {
   const builders = state.pendingTowerSites.map((site) => site.builder);
   const worker = controlledWorkers.find(
     (candidate) => !builders.includes(candidate)
@@ -225,17 +229,19 @@ function busyNonBuilder({
   return worker;
 }
 
+interface HelpUnfinishedTowerArgs {
+  worker: W3UnitApi.unit;
+  beliefs: Readonly<CommonBeliefs>;
+  state: BuildTowersState;
+}
+
 // A tower without a living builder would never finish, so it is taken over
 // first. Otherwise a second worker only pays off early in construction.
 function helpUnfinishedTower({
   worker,
   beliefs,
   state,
-}: {
-  worker: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
-  state: BuildTowersState;
-}) {
+}: HelpUnfinishedTowerArgs) {
   const unfinished = beliefs.scoutTowers.filter((tower) =>
     beliefs.buildingsUnderConstruction.includes(tower)
   );
@@ -273,16 +279,18 @@ function helpUnfinishedTower({
   }
 }
 
+interface HasLivingBuilderArgs {
+  tower: W3UnitApi.unit;
+  beliefs: Readonly<CommonBeliefs>;
+  state: BuildTowersState;
+}
+
 // Builders and helpers are only remembered while they are alive and busy.
 function hasLivingBuilder({
   tower,
   beliefs,
   state,
-}: {
-  tower: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
-  state: BuildTowersState;
-}): boolean {
+}: HasLivingBuilderArgs): boolean {
   const towerPosition = positionOf({ beliefs, unit: tower });
 
   return (
@@ -294,14 +302,16 @@ function hasLivingBuilder({
   );
 }
 
+interface ForgetFinishedTowerHelpersArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  state: BuildTowersState;
+}
+
 // Helpers that are free again have finished or abandoned their help.
 function forgetFinishedTowerHelpers({
   beliefs,
   state,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  state: BuildTowersState;
-}) {
+}: ForgetFinishedTowerHelpersArgs) {
   state.towerHelpers = state.towerHelpers.filter(
     (help) =>
       beliefs.peasants.includes(help.helper) &&
@@ -310,15 +320,17 @@ function forgetFinishedTowerHelpers({
   );
 }
 
+interface TowerBuildingFinishedArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+}
+
 // A Peasant is only sent to safety once it is done building and helping, so
 // building need not wait for it to arrive; upgrades can start meanwhile.
 function towerBuildingFinished({
   beliefs,
   rush,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  rush: TowerRushState;
-}): boolean {
+}: TowerBuildingFinishedArgs): boolean {
   const livingForwardPeasants = rush.forwardWorkers.filter((worker) =>
     beliefs.peasants.includes(worker)
   );
@@ -332,6 +344,11 @@ function towerBuildingFinished({
   );
 }
 
+interface ForgetAbandonedTowerSitesArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  state: BuildTowersState;
+}
+
 // Before its tower starts, a site lasts only while its builder still carries
 // the build order; any other order means the build was given up, even when
 // Warcraft gave that order on its own. Once the tower has started, the site
@@ -339,10 +356,7 @@ function towerBuildingFinished({
 function forgetAbandonedTowerSites({
   beliefs,
   state,
-}: {
-  beliefs: Readonly<CommonBeliefs>;
-  state: BuildTowersState;
-}) {
+}: ForgetAbandonedTowerSitesArgs) {
   const towerPositions = beliefs.scoutTowers.map((tower) =>
     positionOf({ beliefs, unit: tower })
   );
@@ -367,18 +381,27 @@ function forgetAbandonedTowerSites({
   });
 }
 
+interface HasStartedTowerArgs {
+  site: TowerSite;
+  towerPositions: Point[];
+}
+
 function hasStartedTower({
   site,
   towerPositions,
-}: {
-  site: TowerSite;
-  towerPositions: Point[];
-}): boolean {
+}: HasStartedTowerArgs): boolean {
   return towerPositions.some(
     (tower) =>
       new Vector({ start: tower, end: site.position }).length <=
       StartedTowerMatchDistance
   );
+}
+
+interface OrderScoutTowerArgs {
+  worker: W3UnitApi.unit;
+  rules: PlacementRules;
+  beliefs: Readonly<CommonBeliefs>;
+  state: BuildTowersState;
 }
 
 // Spots covering both the mine and the main hall are preferred; covering
@@ -388,12 +411,7 @@ function orderScoutTower({
   rules,
   beliefs,
   state,
-}: {
-  worker: W3UnitApi.unit;
-  rules: PlacementRules;
-  beliefs: Readonly<CommonBeliefs>;
-  state: BuildTowersState;
-}) {
+}: OrderScoutTowerArgs) {
   probeRejections = {
     enemyMainTooClose: 0,
     enemyMainOutOfReach: 0,
@@ -438,13 +456,15 @@ function orderScoutTower({
 
 let lastProbeState = '';
 
+interface ProbeNearestTowerArgs {
+  position: Point;
+  towers: Point[];
+}
+
 function probeNearestTower({
   position,
   towers,
-}: {
-  position: Point;
-  towers: Point[];
-}): string {
+}: ProbeNearestTowerArgs): string {
   let nearest: number | undefined;
 
   for (const tower of towers) {
@@ -467,15 +487,17 @@ let probeRejections = {
   warcraft: 0,
 };
 
+interface OrderScoutTowerNextToFirstTowerArgs {
+  worker: W3UnitApi.unit;
+  rules: PlacementRules;
+  state: BuildTowersState;
+}
+
 function orderScoutTowerNextToFirstTower({
   worker,
   rules,
   state,
-}: {
-  worker: W3UnitApi.unit;
-  rules: PlacementRules;
-  state: BuildTowersState;
-}): boolean {
+}: OrderScoutTowerNextToFirstTowerArgs): boolean {
   const firstTower = rules.occupied[0];
 
   if (!firstTower) {
@@ -496,16 +518,18 @@ function orderScoutTowerNextToFirstTower({
   return false;
 }
 
+interface OrderScoutTowerNearMineArgs {
+  worker: W3UnitApi.unit;
+  rules: PlacementRules;
+  state: BuildTowersState;
+}
+
 // Returns the distance from the mine at which the tower was ordered.
 function orderScoutTowerNearMine({
   worker,
   rules,
   state,
-}: {
-  worker: W3UnitApi.unit;
-  rules: PlacementRules;
-  state: BuildTowersState;
-}): number | undefined {
+}: OrderScoutTowerNearMineArgs): number | undefined {
   let distance = MinDistanceFromMine;
   let rejections = 0;
 
@@ -526,6 +550,13 @@ function orderScoutTowerNearMine({
   return undefined;
 }
 
+interface TryOrderScoutTowerArgs {
+  worker: W3UnitApi.unit;
+  position: Point;
+  rules: PlacementRules;
+  state: BuildTowersState;
+}
+
 // IssueBuildOrderById returns false for blocked or unbuildable spots (but
 // true when only resources are missing), so the order itself is used as the
 // placement test.
@@ -534,12 +565,7 @@ function tryOrderScoutTower({
   position,
   rules,
   state,
-}: {
-  worker: W3UnitApi.unit;
-  position: Point;
-  rules: PlacementRules;
-  state: BuildTowersState;
-}): boolean {
+}: TryOrderScoutTowerArgs): boolean {
   const distanceToEnemyMain = new Vector({
     start: rules.enemyMain,
     end: position,
@@ -586,13 +612,12 @@ function tryOrderScoutTower({
   return accepted;
 }
 
-function randomPointAround({
-  center,
-  distance,
-}: {
+interface RandomPointAroundArgs {
   center: Point;
   distance: number;
-}): Point {
+}
+
+function randomPointAround({ center, distance }: RandomPointAroundArgs): Point {
   const angle = W3MathApi.GetRandomReal(0, Math.PI * 2);
 
   return center.translate({
@@ -600,15 +625,17 @@ function randomPointAround({
   });
 }
 
+interface RandomPointOnSquareAroundArgs {
+  center: Point;
+  halfSize: number;
+}
+
 // A point on the square of the given half-size, so that a tower placed there
 // sits flush against the one at the center from any direction.
 function randomPointOnSquareAround({
   center,
   halfSize,
-}: {
-  center: Point;
-  halfSize: number;
-}): Point {
+}: RandomPointOnSquareAroundArgs): Point {
   const angle = W3MathApi.GetRandomReal(0, Math.PI * 2);
   const direction = new Vector({ x: 1, y: 0 }).rotate({ angle });
   const scale =
@@ -617,13 +644,12 @@ function randomPointOnSquareAround({
   return center.translate({ vector: direction.multiply({ scalar: scale }) });
 }
 
-function overlapsTower({
-  position,
-  towers,
-}: {
+interface OverlapsTowerArgs {
   position: Point;
   towers: Point[];
-}): boolean {
+}
+
+function overlapsTower({ position, towers }: OverlapsTowerArgs): boolean {
   return towers.some((tower) => {
     const offset = new Vector({ start: tower, end: position });
 
