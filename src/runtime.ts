@@ -1,14 +1,10 @@
 import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3TimerApi from '@lib/warcraft3-api/timer';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
-import {
-  ActorControlPolicy,
-  createActorControlArbiter,
-  createBeliefsRuntime,
-} from '@lib/bdi';
+import { createBeliefsRuntime } from '@lib/bdi';
 import { debug } from './debug';
-import type { Actor, ActorControlRequest } from './contracts/actor-control';
 import type { WarlordUpdateChild } from './contracts/component';
+import { createActorControl } from './capabilities/actor-control/actor-control.api';
 import {
   CommonBeliefs,
   createCommonBeliefsModel,
@@ -32,17 +28,6 @@ const Desires = [
 ];
 
 /**
- * An uncontrolled Actor is granted to any request; one controlled normally
- * only to a preemptive request; one controlled preemptively to none.
- */
-const actorControlPolicy: ActorControlPolicy<ActorControlRequest> = ({
-  request,
-  currentClaim,
-}) =>
-  currentClaim === null ||
-  (request === 'preemptive' && currentClaim.request !== 'preemptive');
-
-/**
  * Runs the bot's BDI loop for one player, from the first tick until the game
  * is won.
  *
@@ -59,9 +44,7 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
   const beliefs = createBeliefsRuntime({
     commonModel: createCommonBeliefsModel({ bot }),
   });
-  const arbiter = createActorControlArbiter<Actor, ActorControlRequest>({
-    policy: actorControlPolicy,
-  });
+  const arbiter = createActorControl();
   const deliberation = createDeliberation({
     actorControl: arbiter.actorControl,
   });

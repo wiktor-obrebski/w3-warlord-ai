@@ -4,4 +4,4 @@ The type-only vocabulary of the Warlord domain, shared by every layer: the shape
 
 Contracts describe the domain; they are not the bot's knowledge about it. Belief types, such as `CommonBeliefs`, a component's declaration of the Common Beliefs it needs, or its Scoped Beliefs, stay with the code that maintains or reads them, even when several components need the same fact.
 
-Only types belong here, so modules use `import type` for contracts. Behavior built on them, such as the actor control policy, lives in the layer that runs it.
+Only types belong here, so modules use `import type` for contracts. Behavior built on them, such as the actor control policy, lives elsewhere, here in `capabilities/actor-control/`.

@@ -64,7 +64,7 @@ Technical architecture
 - **Capabilities** — What a component needs from outside its module beyond its Beliefs, such as actor control, declared by the component as a `<Name>Capabilities` interface and received once through its assemble function. Its owner supplies an object implementing it, a capabilities provider: Deliberation for Intentions, an Intention for its private children. `update()` receives only Beliefs.
 - **Component tree** — The assembled Intentions and the children their assemble functions recorded; the tree the beliefs runtime and the actor control arbiter manage.
 - **Actor control arbiter** — Tracks which Plan or Controller controls each Actor and with what request; provides the one actor control every Plan and Controller receives as a capability, which acts for the source whose update the arbiter is running; expires unrenewed claims after the update, and releases claims of sources that left the component tree. Whether a request takes an Actor is decided by the bot's actor control policy, not by the arbiter.
-- **Actor control policy** — The bot's rule for granting or refusing a request for an Actor held by another source or by none (`actorControlPolicy` in `src/runtime.ts`).
+- **Actor control policy** — The bot's rule for granting or refusing a request for an Actor held by another source or by none (`actorControlPolicy` in `src/capabilities/actor-control/`).
 - **Central Timing Scheduler** — Invokes reasoning and control systems at their required frequencies; it does not decide which intentions should progress.
 - **Tactical frequency** — Fast update cadence for controllers and immediate combat behavior.
 - **Intention-monitoring frequency** — Cadence for checking active plans, progress, and lifecycle conditions.
@@ -92,7 +92,7 @@ revise Common Beliefs → Deliberation → assembled Intentions
 
 A component created during the tick is registered and has its Scoped Beliefs first revised before its first update.
 
-Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), component assembly (`AssembledComponent`, `childFactory`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The policy deciding which requests are granted is domain code in `src/runtime.ts`, over the request type in `src/contracts/actor-control.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
+Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), component assembly (`AssembledComponent`, `childFactory`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The bot's actor control, the arbiter together with the policy deciding which requests are granted, is created by `createActorControl` in `src/capabilities/actor-control/`, over the request type in `src/contracts/actor-control.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
 
 Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, diagnostic artifacts, and automated tests.
 
@@ -239,27 +239,29 @@ src/
 │  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, *.common-beliefs.ts, scoped *.beliefs.ts, and *.assessments.ts
 │  ├─ plans/        Plans assembled by several Intentions
 │  └─ controllers/  Controllers assembled by several Intentions
+├─ capabilities/  implementations of what components declare in their Capabilities, one module per capability: actor control
 └─ privileged/    installation and debug-mode code beyond normal gameplay
 ```
 
 Which modules may import which, to be enforced by an architecture linter later:
 
-| Module                                                           | May import                                                                   |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `lib/**`                                                         | nothing from `src/`                                                          |
-| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                          |
-| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                          |
-| `desires/`                                                       | `@lib/bdi`                                                                   |
-| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                      |
-| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                      |
-| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`    |
-| `runtime.ts`                                                     | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `deliberation/`, `debug.ts` |
-| `main.ts`                                                        | `@lib/**`, `runtime.ts`, `privileged/`, `debug.ts`                           |
-| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                      |
-| `debug.ts`                                                       | `@lib/warcraft3-api/**`                                                      |
+| Module                                                           | May import                                                                                               |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `lib/**`                                                         | nothing from `src/`                                                                                      |
+| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                                      |
+| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                                                      |
+| `desires/`                                                       | `@lib/bdi`                                                                                               |
+| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                                  |
+| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                                  |
+| `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                                  |
+| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`                                |
+| `runtime.ts`                                                     | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/**/*.api.ts`, `debug.ts` |
+| `main.ts`                                                        | `@lib/**`, `runtime.ts`, `privileged/`, `debug.ts`                                                       |
+| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                                  |
+| `debug.ts`                                                       | `@lib/warcraft3-api/**`                                                                                  |
 
 - Contracts are imported with `import type`.
-- From outside a component module, only its `*.api.ts` file is imported. Components never import other component modules: a reusable Plan or Controller reaches an Intention through its Capabilities.
+- From outside a component or capability module, only its `*.api.ts` file is imported. Components never import other component modules or `capabilities/`: a reusable Plan or Controller, like any capability, reaches an Intention through its Capabilities.
 - Only `privileged/` imports `@lib/warcraft3-api/privileged`.
 - No import cycles other than type-only imports.
 - Temporary exceptions: component modules may still import `debug.ts`, and Intention modules `components/intentions/update-interval.ts`.
