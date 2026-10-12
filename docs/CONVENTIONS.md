@@ -70,6 +70,22 @@ function functionFactory() {
 
 TSTL assigns an export block's bindings where the block appears, so exported constants, classes, and enums would still be `nil` at the top of a module. `lib/warcraft-tstl-plugin` moves those assignments to the end of the module.
 
+## Declaration Order
+
+Public declarations come first, private ones below. The public interface is what matters most in a module, so it is visible at first glance. After the export block, declare the exported functions, interfaces, and types, then the module's private declarations.
+
+```ts
+export { createActorControl };
+
+function createActorControl() {
+  return createArbiter({ policy: actorControlPolicy });
+}
+
+const actorControlPolicy = ...;
+```
+
+Where initialization order forbids it, the declaration stays above its use: a module-level `const` evaluated while the module loads, such as the exported constant `myFunction4` above, cannot move below the code that reads it at load time. Function bodies run later, so a private `const` they use may sit below them.
+
 ### Component Public API
 
 Every Intention module, and every reusable Plan or Controller module, has one public entry point, `<component-name>.api.ts`. It declares nothing itself; it only re-exports what other modules need to use or compose the component, such as its assemble function, its Capabilities, the Common Beliefs it needs, and types read by its owner. Other modules import the component only through this file; the rest of the module is internal. Plans and Controllers private to an Intention are part of its module and have no API file of their own.
