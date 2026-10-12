@@ -153,7 +153,7 @@ function assignNewHomeWorkers({
     if (
       !beliefs.harvestingUnits.includes(peasant) &&
       actorControl.request({ actor: peasant, request: NORMAL_REQUEST }) &&
-      !orderHarvest({ worker: peasant, resource, beliefs })
+      !orderHarvest({ worker: peasant, resource, beliefs }).accepted
     ) {
       debug({
         message: `Tower rush: ${HOME_RESOURCE[resource]} harvest order rejected.`,
@@ -425,11 +425,9 @@ interface OrderHarvestArgs {
   beliefs: Readonly<CommonBeliefs>;
 }
 
-function orderHarvest({
-  worker,
-  resource,
-  beliefs,
-}: OrderHarvestArgs): boolean {
+function orderHarvest({ worker, resource, beliefs }: OrderHarvestArgs): {
+  accepted: boolean;
+} {
   return resource === HOME_RESOURCE.GOLD
     ? orderHarvestGold({ worker, beliefs })
     : orderHarvestPreferredTree({ worker, beliefs });
@@ -440,16 +438,20 @@ interface OrderHarvestGoldArgs {
   beliefs: Readonly<CommonBeliefs>;
 }
 
-function orderHarvestGold({ worker, beliefs }: OrderHarvestGoldArgs): boolean {
+function orderHarvestGold({ worker, beliefs }: OrderHarvestGoldArgs): {
+  accepted: boolean;
+} {
   if (!beliefs.homeGoldMine) {
     throw new Error('Tower rush: home gold mine not found.');
   }
 
-  return W3UnitApi.IssueTargetOrder(
-    worker,
-    'harvest',
-    beliefs.homeGoldMine.unit
-  );
+  return {
+    accepted: W3UnitApi.IssueTargetOrder(
+      worker,
+      'harvest',
+      beliefs.homeGoldMine.unit
+    ),
+  };
 }
 
 interface OrderHarvestPreferredTreeArgs {
@@ -462,17 +464,17 @@ interface OrderHarvestPreferredTreeArgs {
 function orderHarvestPreferredTree({
   worker,
   beliefs,
-}: OrderHarvestPreferredTreeArgs): boolean {
+}: OrderHarvestPreferredTreeArgs): { accepted: boolean } {
   for (const { destructable } of lumberDestructablesByPreference({
     beliefs,
     peasantOrigin: worker,
   })) {
     if (W3UnitApi.IssueTargetOrder(worker, 'harvest', destructable)) {
-      return true;
+      return { accepted: true };
     }
   }
 
   debug({ message: 'Tower rush: no nearby tree accepted a harvest order.' });
 
-  return false;
+  return { accepted: false };
 }

@@ -82,14 +82,14 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
             rush: this.rush,
             moveForwardState: this.moveForward,
             actorControl,
-          })
+          }).arrived
         ) {
           this.advanceTo({ nextStep: STEP.BUILD_TOWERS });
         }
         break;
 
       case STEP.BUILD_TOWERS: {
-        const towerPositions = updateBuildTowers({
+        const { towerPositions } = updateBuildTowers({
           beliefs,
           rush: this.rush,
           buildTowersState: this.buildTowers,
@@ -109,7 +109,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
             beliefs,
             towerPositions: this.towerPositions,
             actorControl,
-          })
+          }).allUpgraded
         ) {
           this.currentStatus = 'succeeded';
           debug({

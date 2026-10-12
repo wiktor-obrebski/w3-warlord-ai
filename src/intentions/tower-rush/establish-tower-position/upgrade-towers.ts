@@ -37,7 +37,7 @@ interface UpdateUpgradeTowersArgs {
 }
 
 /**
- * Returns whether every rush tower has become a Guard Tower.
+ * Returns whether every rush tower has become a Guard Tower (`allUpgraded`).
  *
  * Each completed Scout Tower is upgraded as soon as the player can afford it,
  * in the order the towers are stored, so a short budget upgrades them one by
@@ -47,7 +47,7 @@ function updateUpgradeTowers({
   beliefs,
   towerPositions,
   actorControl,
-}: UpdateUpgradeTowersArgs): boolean {
+}: UpdateUpgradeTowersArgs): { allUpgraded: boolean } {
   const towers = towerPositions.map((position) =>
     plannedTowerAt({ position, beliefs })
   );
@@ -65,7 +65,11 @@ function updateUpgradeTowers({
     }
   }
 
-  return towers.every((tower) => tower.towerStatus === TOWER_STATE.GUARD_TOWER);
+  return {
+    allUpgraded: towers.every(
+      (tower) => tower.towerStatus === TOWER_STATE.GUARD_TOWER
+    ),
+  };
 }
 
 interface PlannedTowerAtArgs {

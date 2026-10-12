@@ -12,7 +12,7 @@ interface DeliberationDeliberateArgs<TBeliefs, TDesire, TIntention> {
  */
 interface Deliberation<TBeliefs, TDesire, TIntention> {
   /**
-   * Returns the Intentions to pursue from now on.
+   * Returns the `intentions` to pursue from now on.
    *
    * An Intention is retained by returning the same instance from
    * `intentions`, so it keeps its execution state; it is dropped by leaving it
@@ -23,9 +23,7 @@ interface Deliberation<TBeliefs, TDesire, TIntention> {
     beliefs,
     desires,
     intentions,
-  }: DeliberationDeliberateArgs<
-    TBeliefs,
-    TDesire,
-    TIntention
-  >): readonly TIntention[];
+  }: DeliberationDeliberateArgs<TBeliefs, TDesire, TIntention>): {
+    intentions: readonly TIntention[];
+  };
 }

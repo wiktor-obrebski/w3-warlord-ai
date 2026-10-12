@@ -27,13 +27,13 @@ interface UpdateMoveForwardArgs {
   actorControl: ActorControl;
 }
 
-/** Returns whether the forward workers have arrived as Peasants again. */
+/** Returns whether the forward workers `arrived` as Peasants again. */
 function updateMoveForward({
   beliefs,
   rush,
   moveForwardState,
   actorControl,
-}: UpdateMoveForwardArgs): boolean {
+}: UpdateMoveForwardArgs): { arrived: boolean } {
   const destination = beliefs.enemyMainGoldMine;
 
   if (!destination) {
@@ -59,11 +59,13 @@ function updateMoveForward({
     controlled,
   });
 
-  return forwardWorkersHaveRevertedToPeasants({
-    beliefs,
-    rush,
-    moveForwardState,
-  });
+  return {
+    arrived: forwardWorkersHaveRevertedToPeasants({
+      beliefs,
+      rush,
+      moveForwardState,
+    }),
+  };
 }
 
 interface SendNewMilitiaToEnemyArgs {

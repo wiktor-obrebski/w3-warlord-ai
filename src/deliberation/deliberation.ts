@@ -79,7 +79,7 @@ function createDeliberation(): Deliberation<
         active.push(operateTowers);
       }
 
-      return active;
+      return { intentions: active };
     },
   };
 }

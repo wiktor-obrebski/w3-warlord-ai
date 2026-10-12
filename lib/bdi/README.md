@@ -94,7 +94,7 @@ The assembled components form the component tree the beliefs runtime manages; th
 
 ```text
 1. commonBeliefs = beliefs.reviseCommon()
-2. intentions     = deliberation.deliberate({ beliefs: commonBeliefs, desires, intentions })   // assembled components
+2. { intentions } = deliberation.deliberate({ beliefs: commonBeliefs, desires, intentions })   // assembled components
 3. beliefs.sync({ roots: intentions })
      register new components, remove gone ones, revise every Scoped Beliefs
 4. intention.component.update({ beliefs: beliefs.beliefsOf({ component: intention.component }), updateChild }) for every Intention
@@ -189,7 +189,7 @@ readonly description: string
 ### `Deliberation<TBeliefs, TDesire, TIntention>`
 
 ```ts
-deliberate({ beliefs, desires, intentions }): readonly TIntention[]
+deliberate({ beliefs, desires, intentions }): { intentions: readonly TIntention[] }
 ```
 
 The returned set defines which commitments remain active:

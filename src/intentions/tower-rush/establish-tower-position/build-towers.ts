@@ -98,7 +98,7 @@ function updateBuildTowers({
   rush,
   buildTowersState,
   actorControl,
-}: UpdateBuildTowersArgs): Point[] | undefined {
+}: UpdateBuildTowersArgs): { towerPositions: Point[] | undefined } {
   const enemyMain = beliefs.enemyStartPosition;
 
   if (!enemyMain) {
@@ -202,7 +202,11 @@ function updateBuildTowers({
     });
   }
 
-  return towerBuildingFinished({ beliefs, rush }) ? towerPositions : undefined;
+  return {
+    towerPositions: towerBuildingFinished({ beliefs, rush })
+      ? towerPositions
+      : undefined,
+  };
 }
 
 interface BusyNonBuilderArgs {
@@ -438,7 +442,7 @@ function orderScoutTower({
         worker,
         rules: searchRules,
         buildTowersState,
-      })
+      }).accepted
     ) {
       debug({
         message: `Tower rush: Scout Tower ordered next to the first tower; ${coverage}.`,
@@ -446,7 +450,7 @@ function orderScoutTower({
       return;
     }
 
-    const distanceFromMine = orderScoutTowerNearMine({
+    const { distanceFromMine } = orderScoutTowerNearMine({
       worker,
       rules: searchRules,
       buildTowersState,
@@ -508,11 +512,11 @@ function orderScoutTowerNextToFirstTower({
   worker,
   rules,
   buildTowersState,
-}: OrderScoutTowerNextToFirstTowerArgs): boolean {
+}: OrderScoutTowerNextToFirstTowerArgs): { accepted: boolean } {
   const firstTower = rules.occupied[0];
 
   if (!firstTower) {
-    return false;
+    return { accepted: false };
   }
 
   for (let attempt = 0; attempt < AttemptsNextToFirstTower; attempt++) {
@@ -521,12 +525,14 @@ function orderScoutTowerNextToFirstTower({
       halfSize: MinTowerCenterOffset,
     });
 
-    if (tryOrderScoutTower({ worker, position, rules, buildTowersState })) {
-      return true;
+    if (
+      tryOrderScoutTower({ worker, position, rules, buildTowersState }).accepted
+    ) {
+      return { accepted: true };
     }
   }
 
-  return false;
+  return { accepted: false };
 }
 
 interface OrderScoutTowerNearMineArgs {
@@ -535,20 +541,23 @@ interface OrderScoutTowerNearMineArgs {
   buildTowersState: BuildTowersState;
 }
 
-// Returns the distance from the mine at which the tower was ordered.
+// Returns the distance from the mine at which the tower was ordered, if it
+// was.
 function orderScoutTowerNearMine({
   worker,
   rules,
   buildTowersState,
-}: OrderScoutTowerNearMineArgs): number | undefined {
+}: OrderScoutTowerNearMineArgs): { distanceFromMine: number | undefined } {
   let distance = MinDistanceFromMine;
   let rejections = 0;
 
   while (distance <= TowerReach) {
     const position = randomPointAround({ center: rules.mine, distance });
 
-    if (tryOrderScoutTower({ worker, position, rules, buildTowersState })) {
-      return distance;
+    if (
+      tryOrderScoutTower({ worker, position, rules, buildTowersState }).accepted
+    ) {
+      return { distanceFromMine: distance };
     }
 
     rejections++;
@@ -558,7 +567,7 @@ function orderScoutTowerNearMine({
     }
   }
 
-  return undefined;
+  return { distanceFromMine: undefined };
 }
 
 interface TryOrderScoutTowerArgs {
@@ -576,7 +585,7 @@ function tryOrderScoutTower({
   position,
   rules,
   buildTowersState,
-}: TryOrderScoutTowerArgs): boolean {
+}: TryOrderScoutTowerArgs): { accepted: boolean } {
   const distanceToEnemyMain = new Vector({
     start: rules.enemyMain,
     end: position,
@@ -620,7 +629,7 @@ function tryOrderScoutTower({
     buildTowersState.pendingTowerSites.push({ builder: worker, position });
   }
 
-  return accepted;
+  return { accepted };
 }
 
 interface RandomPointAroundArgs {

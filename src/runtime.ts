@@ -65,11 +65,11 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
       return;
     }
 
-    intentions = deliberation.deliberate({
+    ({ intentions } = deliberation.deliberate({
       beliefs: commonBeliefs,
       desires: Desires,
       intentions,
-    });
+    }));
     beliefs.sync({ roots: intentions });
 
     for (const intention of intentions) {
