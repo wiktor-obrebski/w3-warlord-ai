@@ -1,7 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
 import type { OwnUnit, VisibleEnemy } from '../../../contracts/world';
-import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import type { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
 export {
@@ -31,7 +31,7 @@ function needsAttackProtection({
 }
 
 interface NearbyThreatsArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
   position: Point;
 }
 
@@ -55,7 +55,7 @@ function nearbyThreats({
 }
 
 interface ThreatCenterArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
   worker: OwnUnit;
 }
 
@@ -103,7 +103,7 @@ function averagePosition({ enemies }: AveragePositionArgs): Point {
 }
 
 interface IsRecentlyAttackedArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
   attackedUnit: W3UnitApi.unit;
 }
 
@@ -118,7 +118,7 @@ function isRecentlyAttacked({
 }
 
 interface RecentAttackTargetArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
   attacker: W3UnitApi.unit;
 }
 

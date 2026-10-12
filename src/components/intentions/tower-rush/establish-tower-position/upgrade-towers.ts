@@ -3,7 +3,7 @@ import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
 import { Point, Vector } from '@lib/math';
-import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
+import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { completedLumberMill, positionOf } from '../tower-rush.assessments';
 
 export { GUARD_TOWER_UPGRADE_GOLD_COST, updateUpgradeTowers };
@@ -28,7 +28,7 @@ interface PlannedTower {
 }
 
 interface UpdateUpgradeTowersArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   towerPositions: readonly Point[];
   actorControl: ActorControl;
 }
@@ -71,7 +71,7 @@ function updateUpgradeTowers({
 
 interface PlannedTowerAtArgs {
   position: Point;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 function plannedTowerAt({
@@ -96,7 +96,7 @@ function plannedTowerAt({
 
 interface CalculateTowerCurrentStateArgs {
   tower: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 // Upgrading is checked before the unit type, which may already read as the

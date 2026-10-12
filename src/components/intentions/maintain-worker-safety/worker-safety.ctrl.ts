@@ -5,12 +5,12 @@ import { Point, Vector } from '@lib/math';
 import { debug } from '../../../debug';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type { OwnUnit } from '../../../contracts/world';
-import {
+import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
-} from '../../../execution';
-import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+} from '../../../contracts/component';
+import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import {
   WorkerSafetyBeliefs,
   workerSafetyBeliefsModel,
@@ -46,16 +46,19 @@ interface WorkerSafetyControllerConstructorArgs {
 }
 
 interface WorkerSafetyControllerUpdateArgs {
-  beliefs: WarlordBeliefs<WorkerSafetyBeliefs>;
+  beliefs: WarlordBeliefs<
+    MaintainWorkerSafetyCommonBeliefs,
+    WorkerSafetyBeliefs
+  >;
 }
 
 interface WorkerSafetyControllerProtectWorkerArgs {
   worker: OwnUnit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
 }
 
 interface WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
 }
 
 /**
@@ -67,7 +70,10 @@ interface WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs {
  * releases it by no longer requesting it. While recovering, the worker is not
  * ordered at all.
  */
-class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
+class WorkerSafetyController implements WarlordController<
+  MaintainWorkerSafetyCommonBeliefs,
+  WorkerSafetyBeliefs
+> {
   private readonly capabilities: WorkerSafetyControllerCapabilities;
   private readonly fleeRounds = new Map<W3UnitApi.unit, FleeRound>();
 
@@ -160,7 +166,8 @@ interface AssembleWorkerSafetyControllerArgs {
 function assembleWorkerSafetyController({
   capabilities,
 }: AssembleWorkerSafetyControllerArgs): AssembledWarlordComponent<
-  WarlordController<WorkerSafetyBeliefs>
+  WarlordController<MaintainWorkerSafetyCommonBeliefs, WorkerSafetyBeliefs>,
+  MaintainWorkerSafetyCommonBeliefs
 > {
   return {
     component: new WorkerSafetyController({ capabilities }),
@@ -206,7 +213,7 @@ function stopFleeing({ worker }: { worker: OwnUnit }) {
 
 interface StartFleeRoundArgs {
   worker: OwnUnit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
 }
 
 function startFleeRound({

@@ -8,8 +8,11 @@ import {
 } from '@lib/bdi';
 import { debug } from './debug';
 import type { Actor, ActorControlRequest } from './contracts/actor-control';
-import { WarlordUpdateChild } from './execution';
-import { createCommonBeliefsModel } from './beliefs/common.beliefs';
+import type { WarlordUpdateChild } from './contracts/component';
+import {
+  CommonBeliefs,
+  createCommonBeliefsModel,
+} from './beliefs/common.beliefs';
 import { APPLY_PRESSURE } from './desires/apply-pressure';
 import { PROTECT_ECONOMIC_ASSETS } from './desires/protect-economic-assets';
 import { USE_MILITARY_ASSETS_EFFECTIVELY } from './desires/use-military-assets-effectively';
@@ -65,7 +68,7 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
   const loop = W3TimerApi.CreateTimer();
   let intentions: readonly AssembledIntention[] = [];
 
-  const updateChild: WarlordUpdateChild = ({ child }) =>
+  const updateChild: WarlordUpdateChild<CommonBeliefs> = ({ child }) =>
     arbiter.update({
       source: child,
       run: () =>

@@ -3,7 +3,7 @@ import { Vector } from '@lib/math';
 import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
 import type { GoldMine } from '../../../../contracts/world';
-import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
+import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { TowerRushState } from '../tower-rush.state';
 import { positionOf } from '../tower-rush.assessments';
 
@@ -22,7 +22,7 @@ function createMoveForwardState(): MoveForwardState {
 }
 
 interface UpdateMoveForwardArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   moveForwardState: MoveForwardState;
   actorControl: ActorControl;
@@ -71,7 +71,7 @@ function updateMoveForward({
 
 interface SendNewMilitiaToEnemyArgs {
   destination: GoldMine;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   moveForwardState: MoveForwardState;
   controlled: readonly W3UnitApi.unit[];
 }
@@ -103,7 +103,7 @@ function sendNewMilitiaToEnemy({
 
 interface HoldArrivedMilitiaArgs {
   destination: GoldMine;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   moveForwardState: MoveForwardState;
   controlled: readonly W3UnitApi.unit[];
 }
@@ -136,7 +136,7 @@ function holdArrivedMilitia({
 }
 
 interface ForwardWorkersHaveRevertedToPeasantsArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   moveForwardState: MoveForwardState;
 }

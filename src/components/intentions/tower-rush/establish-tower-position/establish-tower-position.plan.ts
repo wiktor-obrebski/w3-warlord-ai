@@ -2,11 +2,12 @@ import { PlanStatus } from '@lib/bdi';
 import { Point } from '@lib/math';
 import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
-import {
+import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordPlan,
-} from '../../../../execution';
+} from '../../../../contracts/component';
+import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { TowerRushState } from '../tower-rush.state';
 import { updateStart } from './start';
 import { createMoveForwardState, updateMoveForward } from './move-forward';
@@ -30,7 +31,7 @@ enum STEP {
  * Each step requests the Actors it orders, so the plan's control moves with
  * the step: e.g. the forward Peasants are released once the towers are built.
  */
-interface EstablishTowerPositionPlan extends WarlordPlan {
+interface EstablishTowerPositionPlan extends WarlordPlan<TowerRushCommonBeliefs> {
   /** Whether building the rush towers has finished. */
   readonly towersBuilt: boolean;
 }
@@ -45,7 +46,7 @@ interface EstablishTowerPositionConstructorArgs {
 }
 
 interface EstablishTowerPositionUpdateArgs {
-  beliefs: WarlordBeliefs;
+  beliefs: WarlordBeliefs<TowerRushCommonBeliefs>;
 }
 
 class EstablishTowerPosition implements EstablishTowerPositionPlan {
@@ -150,7 +151,10 @@ interface AssembleEstablishTowerPositionPlanArgs {
 function assembleEstablishTowerPositionPlan({
   rush,
   capabilities,
-}: AssembleEstablishTowerPositionPlanArgs): AssembledWarlordComponent<EstablishTowerPositionPlan> {
+}: AssembleEstablishTowerPositionPlanArgs): AssembledWarlordComponent<
+  EstablishTowerPositionPlan,
+  TowerRushCommonBeliefs
+> {
   return {
     component: new EstablishTowerPosition({ rush, capabilities }),
     children: [],

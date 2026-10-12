@@ -1,12 +1,12 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { debug } from '../../../debug';
 import type { ActorControl } from '../../../contracts/actor-control';
-import {
+import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
-} from '../../../execution';
-import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+} from '../../../contracts/component';
+import type { OperateTowersCommonBeliefs } from './operate-towers.common-beliefs';
 import {
   RankedTarget,
   rankTowerTargets,
@@ -32,13 +32,13 @@ interface TowerTargetSelectionControllerConstructorArgs {
 }
 
 interface TowerTargetSelectionControllerUpdateArgs {
-  beliefs: WarlordBeliefs;
+  beliefs: WarlordBeliefs<OperateTowersCommonBeliefs>;
 }
 
 interface TowerTargetSelectionControllerAttackBestTargetInRangeArgs {
   tower: W3UnitApi.unit;
   rankedTargets: readonly RankedTarget[];
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<OperateTowersCommonBeliefs>;
 }
 
 interface TowerTargetSelectionControllerRememberTowerTargetArgs {
@@ -50,7 +50,7 @@ interface TowerTargetSelectionControllerRememberTowerTargetArgs {
  * Targets are ranked once for all Guard Towers; each tower then attacks the
  * best one within its own range, so overlapping towers focus the same target.
  */
-class TowerTargetSelectionController implements WarlordController {
+class TowerTargetSelectionController implements WarlordController<OperateTowersCommonBeliefs> {
   private readonly capabilities: TowerTargetSelectionControllerCapabilities;
   // The last attack order of each Guard Tower, so it is not re-issued while
   // the tower is still carrying it out.
@@ -138,7 +138,10 @@ interface AssembleTowerTargetSelectionControllerArgs {
 
 function assembleTowerTargetSelectionController({
   capabilities,
-}: AssembleTowerTargetSelectionControllerArgs): AssembledWarlordComponent<WarlordController> {
+}: AssembleTowerTargetSelectionControllerArgs): AssembledWarlordComponent<
+  WarlordController<OperateTowersCommonBeliefs>,
+  OperateTowersCommonBeliefs
+> {
   return {
     component: new TowerTargetSelectionController({ capabilities }),
     children: [],

@@ -2,7 +2,7 @@ import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { debug } from '../../../debug';
 import { Point, Vector } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
-import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { TowerRushState } from './tower-rush.state';
 import { closestUnit, positionOf } from './tower-rush.assessments';
 
@@ -15,7 +15,7 @@ interface HideBehindClosestTowerArgs {
   worker: W3UnitApi.unit;
   towers: readonly W3UnitApi.unit[];
   enemyMain: Point;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
 }
 
@@ -57,7 +57,7 @@ function forgetSentToSafety({ worker, rush }: ForgetSentToSafetyArgs) {
 }
 
 interface ControlForwardPeasantsArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   actorControl: ActorControl;
 }

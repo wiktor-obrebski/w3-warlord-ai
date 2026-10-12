@@ -1,12 +1,12 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { debug } from '../../../debug';
 import type { ActorControl } from '../../../contracts/actor-control';
-import {
+import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
-} from '../../../execution';
-import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+} from '../../../contracts/component';
+import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { TowerRushState } from './tower-rush.state';
 import {
   controlForwardPeasants,
@@ -38,7 +38,7 @@ interface TowerMaintenanceControllerConstructorArgs {
 }
 
 interface TowerMaintenanceControllerUpdateArgs {
-  beliefs: WarlordBeliefs;
+  beliefs: WarlordBeliefs<TowerRushCommonBeliefs>;
 }
 
 /**
@@ -47,7 +47,7 @@ interface TowerMaintenanceControllerUpdateArgs {
  * tower is built, so a tower's life fraction reflects damage, not build
  * progress.
  */
-class TowerMaintenanceController implements WarlordController {
+class TowerMaintenanceController implements WarlordController<TowerRushCommonBeliefs> {
   private readonly rush: TowerRushState;
   private readonly capabilities: TowerMaintenanceControllerCapabilities;
   // The tower the forward Peasants are repairing.
@@ -126,7 +126,10 @@ interface AssembleTowerMaintenanceControllerArgs {
 function assembleTowerMaintenanceController({
   rush,
   capabilities,
-}: AssembleTowerMaintenanceControllerArgs): AssembledWarlordComponent<WarlordController> {
+}: AssembleTowerMaintenanceControllerArgs): AssembledWarlordComponent<
+  WarlordController<TowerRushCommonBeliefs>,
+  TowerRushCommonBeliefs
+> {
   return {
     component: new TowerMaintenanceController({ rush, capabilities }),
     children: [],
@@ -136,7 +139,7 @@ function assembleTowerMaintenanceController({
 interface ChooseRepairTargetArgs {
   towers: readonly W3UnitApi.unit[];
   currentRepairTarget: W3UnitApi.unit | undefined;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 function chooseRepairTarget({
@@ -177,7 +180,7 @@ function chooseRepairTarget({
 interface OrderRepairArgs {
   worker: W3UnitApi.unit;
   tower: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
 }
 
@@ -193,7 +196,7 @@ function orderRepair({ worker, tower, beliefs, rush }: OrderRepairArgs) {
 
 interface DescribeTowerArgs {
   tower: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 function describeTower({ tower, beliefs }: DescribeTowerArgs): string {

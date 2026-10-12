@@ -3,7 +3,7 @@ import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
 import { Point, Vector } from '@lib/math';
-import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
+import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { TowerRushState } from '../tower-rush.state';
 import { positionOf } from '../tower-rush.assessments';
 import { trainPeasant } from '../tower-rush-economy.ctrl';
@@ -21,7 +21,7 @@ const MaxLumberMillDistance = 1200;
 const CandidateSpacing = 64;
 
 interface UpdateStartArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   actorControl: ActorControl;
 }
@@ -81,7 +81,7 @@ interface OrderLumberMillArgs {
   builder: W3UnitApi.unit;
   hall: Point;
   mine: Point;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 // Spots are tried from the one closest to both the Town Hall and a tree;
@@ -166,7 +166,7 @@ function lumberMillCandidates({
 
 interface TreePositionsArgs {
   builder: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 // Beliefs cannot tell trees apart from other destructables, so a harvest

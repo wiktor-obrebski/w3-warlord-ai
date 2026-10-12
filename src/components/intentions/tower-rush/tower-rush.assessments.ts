@@ -1,7 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
 import type { HomeDestructable, OwnUnit } from '../../../contracts/world';
-import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 
 export {
   RUSH_TOWER_COUNT,
@@ -24,7 +24,7 @@ const MillTreeCandidates = 4;
 const ConstructionStartLifeFraction = 0.1;
 
 interface AllRushTowersBuiltArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 /** Whether every rush tower has been placed and finished construction. */
@@ -38,7 +38,7 @@ function allRushTowersBuilt({ beliefs }: AllRushTowersBuiltArgs): boolean {
 }
 
 interface RushTowersAtLeastArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   lifeFraction: number;
 }
 
@@ -59,7 +59,7 @@ function rushTowersAtLeast({
 }
 
 interface IsAvailableForwardPeasantArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   worker: W3UnitApi.unit;
 }
 
@@ -81,7 +81,7 @@ function isAvailableForwardPeasant({
 }
 
 interface LumberDestructablesByPreferenceArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   peasantOrigin: W3UnitApi.unit;
 }
 
@@ -142,7 +142,7 @@ interface IsAwayFromMillArgs {
 }
 
 interface DestructablesAwayFromUnfinishedMillArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 // Nearest home first, with those on the far side of the Hall from the mill
@@ -174,7 +174,7 @@ function destructablesAwayFromUnfinishedMill({
 }
 
 interface OwnUnitArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   unit: W3UnitApi.unit;
 }
 
@@ -190,7 +190,7 @@ function ownUnit({ beliefs, unit }: OwnUnitArgs): OwnUnit {
 }
 
 interface PositionOfArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   unit: W3UnitApi.unit;
 }
 
@@ -199,7 +199,7 @@ function positionOf({ beliefs, unit }: PositionOfArgs): Point {
 }
 
 interface LifeFractionOfArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   unit: W3UnitApi.unit;
 }
 
@@ -210,7 +210,7 @@ function lifeFractionOf({ beliefs, unit }: LifeFractionOfArgs): number {
 }
 
 interface MostDamagedUnitArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   units: readonly W3UnitApi.unit[];
 }
 
@@ -235,7 +235,7 @@ function mostDamagedUnit({
 }
 
 interface ConstructionProgressArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   building: W3UnitApi.unit;
 }
 
@@ -256,7 +256,7 @@ function constructionProgress({
 }
 
 interface CompletedLumberMillArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 function completedLumberMill({
@@ -268,7 +268,7 @@ function completedLumberMill({
 }
 
 interface ClosestUnitArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   units: readonly W3UnitApi.unit[];
   to: W3UnitApi.unit;
 }

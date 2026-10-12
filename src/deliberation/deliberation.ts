@@ -1,6 +1,9 @@
 import { Deliberation, Desire } from '@lib/bdi';
 import { CommonBeliefs } from '../beliefs/common.beliefs';
-import { AssembledWarlordComponent, WarlordIntention } from '../execution';
+import type {
+  AssembledWarlordComponent,
+  WarlordIntention,
+} from '../contracts/component';
 import { APPLY_PRESSURE } from '../desires/apply-pressure';
 import { PROTECT_ECONOMIC_ASSETS } from '../desires/protect-economic-assets';
 import { USE_MILITARY_ASSETS_EFFECTIVELY } from '../desires/use-military-assets-effectively';
@@ -22,7 +25,10 @@ import {
 export { type AssembledIntention, createDeliberation };
 
 /** An Intention as its assemble function builds it. */
-type AssembledIntention = AssembledWarlordComponent<WarlordIntention<unknown>>;
+type AssembledIntention = AssembledWarlordComponent<
+  WarlordIntention<CommonBeliefs, unknown>,
+  CommonBeliefs
+>;
 
 interface RetainedArgs<T extends AssembledIntention> {
   intention: T | null;
@@ -63,7 +69,10 @@ function createDeliberation({
     actorControl,
   };
   let workerSafety: AssembledIntention | null = null;
-  let towerRush: AssembledWarlordComponent<TowerRushIntention> | null = null;
+  let towerRush: AssembledWarlordComponent<
+    TowerRushIntention<CommonBeliefs>,
+    CommonBeliefs
+  > | null = null;
   let operateTowers: AssembledIntention | null = null;
 
   return {
@@ -76,20 +85,20 @@ function createDeliberation({
 
       workerSafety = desires.includes(PROTECT_ECONOMIC_ASSETS)
         ? (retained({ intention: workerSafety }) ??
-          assembleMaintainWorkerSafetyIntention({
+          assembleMaintainWorkerSafetyIntention<CommonBeliefs>({
             capabilities: workerSafetyCapabilitiesProvider,
           }))
         : null;
       towerRush = desires.includes(APPLY_PRESSURE)
         ? (retained({ intention: towerRush }) ??
-          assembleTowerRushIntention({
+          assembleTowerRushIntention<CommonBeliefs>({
             capabilities: towerRushCapabilitiesProvider,
           }))
         : null;
       operateTowers = desires.includes(USE_MILITARY_ASSETS_EFFECTIVELY)
         ? (retained({ intention: operateTowers }) ??
           (towerRush?.component.positionEstablished
-            ? assembleOperateTowersIntention({
+            ? assembleOperateTowersIntention<CommonBeliefs>({
                 capabilities: operateTowersCapabilitiesProvider,
               })
             : null))

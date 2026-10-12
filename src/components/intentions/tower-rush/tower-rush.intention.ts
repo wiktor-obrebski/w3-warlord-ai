@@ -1,14 +1,15 @@
 import { ChildFactory, ChildHandle, childFactory } from '@lib/bdi';
 import type { ActorControl } from '../../../contracts/actor-control';
-import {
+import type {
   AssembledChildren,
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
-} from '../../../execution';
+} from '../../../contracts/component';
 import { UpdateInterval } from '../update-interval';
+import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { createTowerRushState } from './tower-rush.state';
 import {
   EstablishTowerPositionPlan,
@@ -29,20 +30,24 @@ interface TowerRushCapabilities {
   readonly actorControl: ActorControl;
 }
 
-interface TowerRushIntention extends WarlordIntention {
+interface TowerRushIntention<
+  TCommonBeliefs extends TowerRushCommonBeliefs = TowerRushCommonBeliefs,
+> extends WarlordIntention<TCommonBeliefs> {
   /** Whether every rush tower stands as a Guard Tower. */
   readonly positionEstablished: boolean;
 }
 
+type TowerRushController = WarlordController<TowerRushCommonBeliefs>;
+
 interface TowerRushChildFactories {
   readonly createEstablishTowerPositionPlan: ChildFactory<EstablishTowerPositionPlan>;
-  readonly createEconomyController: ChildFactory<WarlordController>;
-  readonly createTowerMaintenanceController: ChildFactory<WarlordController>;
+  readonly createEconomyController: ChildFactory<TowerRushController>;
+  readonly createTowerMaintenanceController: ChildFactory<TowerRushController>;
 }
 
 interface TowerRushUpdateArgs {
-  beliefs: WarlordBeliefs;
-  updateChild: WarlordUpdateChild;
+  beliefs: WarlordBeliefs<TowerRushCommonBeliefs>;
+  updateChild: WarlordUpdateChild<TowerRushCommonBeliefs>;
 }
 
 interface TowerRushDiscardEndedPlanArgs {
@@ -58,8 +63,8 @@ class TowerRush implements TowerRushIntention {
   private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
   private readonly factories: TowerRushChildFactories;
   private plan: ChildHandle<EstablishTowerPositionPlan> | null = null;
-  private economy: WarlordController | null = null;
-  private towerMaintenance: WarlordController | null = null;
+  private economy: TowerRushController | null = null;
+  private towerMaintenance: TowerRushController | null = null;
   private established = false;
   private updatedBefore = false;
 
@@ -137,11 +142,20 @@ interface AssembleTowerRushIntentionArgs {
   capabilities: TowerRushCapabilities;
 }
 
-function assembleTowerRushIntention({
+/**
+ * Assembles the tower rush for a bot whose Common Beliefs are
+ * `TCommonBeliefs`, which must provide what the tower rush needs to know.
+ */
+function assembleTowerRushIntention<
+  TCommonBeliefs extends TowerRushCommonBeliefs,
+>({
   capabilities,
-}: AssembleTowerRushIntentionArgs): AssembledWarlordComponent<TowerRushIntention> {
+}: AssembleTowerRushIntentionArgs): AssembledWarlordComponent<
+  TowerRushIntention<TCommonBeliefs>,
+  TCommonBeliefs
+> {
   const rush = createTowerRushState();
-  const children: AssembledChildren = [];
+  const children: AssembledChildren<TCommonBeliefs> = [];
 
   return {
     component: new TowerRush({

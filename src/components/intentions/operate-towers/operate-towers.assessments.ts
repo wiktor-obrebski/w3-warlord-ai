@@ -1,6 +1,6 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import type { VisibleEnemy } from '../../../contracts/world';
-import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+import type { OperateTowersCommonBeliefs } from './operate-towers.common-beliefs';
 
 export { TARGET_PRIORITY, type RankedTarget, rankTowerTargets };
 
@@ -23,7 +23,7 @@ interface RankedTarget {
 }
 
 interface RankTowerTargetsArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<OperateTowersCommonBeliefs>;
 }
 
 /**
@@ -52,7 +52,7 @@ function rankTowerTargets({ beliefs }: RankTowerTargetsArgs): RankedTarget[] {
 
 interface TargetPriorityArgs {
   enemy: VisibleEnemy;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<OperateTowersCommonBeliefs>;
 }
 
 // Melee, ranged and siege are independent properties, so the first matching
@@ -123,7 +123,7 @@ function attackingTowerPriority({
 }
 
 interface RecentAttackTargetArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<OperateTowersCommonBeliefs>;
   attacker: W3UnitApi.unit;
 }
 

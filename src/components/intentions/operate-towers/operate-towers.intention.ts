@@ -1,14 +1,15 @@
 import { ChildFactory, childFactory } from '@lib/bdi';
 import type { ActorControl } from '../../../contracts/actor-control';
-import {
+import type {
   AssembledChildren,
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
-} from '../../../execution';
+} from '../../../contracts/component';
 import { UpdateInterval } from '../update-interval';
+import type { OperateTowersCommonBeliefs } from './operate-towers.common-beliefs';
 import { assembleTowerTargetSelectionController } from './tower-target-selection.ctrl';
 
 export { assembleOperateTowersIntention, type OperateTowersCapabilities };
@@ -19,20 +20,22 @@ interface OperateTowersCapabilities {
   readonly actorControl: ActorControl;
 }
 
+type OperateTowersController = WarlordController<OperateTowersCommonBeliefs>;
+
 interface OperateTowersIntentionConstructorArgs {
-  createTargetSelection: ChildFactory<WarlordController>;
+  createTargetSelection: ChildFactory<OperateTowersController>;
 }
 
 interface OperateTowersIntentionUpdateArgs {
-  beliefs: WarlordBeliefs;
-  updateChild: WarlordUpdateChild;
+  beliefs: WarlordBeliefs<OperateTowersCommonBeliefs>;
+  updateChild: WarlordUpdateChild<OperateTowersCommonBeliefs>;
 }
 
 /** Directs the fire of the bot's Guard Towers. */
-class OperateTowersIntention implements WarlordIntention {
+class OperateTowersIntention implements WarlordIntention<OperateTowersCommonBeliefs> {
   private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
-  private readonly createTargetSelection: ChildFactory<WarlordController>;
-  private targetSelection: WarlordController | null = null;
+  private readonly createTargetSelection: ChildFactory<OperateTowersController>;
+  private targetSelection: OperateTowersController | null = null;
 
   public constructor({
     createTargetSelection,
@@ -52,10 +55,20 @@ interface AssembleOperateTowersIntentionArgs {
   capabilities: OperateTowersCapabilities;
 }
 
-function assembleOperateTowersIntention({
+/**
+ * Assembles tower operation for a bot whose Common Beliefs are
+ * `TCommonBeliefs`, which must provide what operating the towers needs to
+ * know.
+ */
+function assembleOperateTowersIntention<
+  TCommonBeliefs extends OperateTowersCommonBeliefs,
+>({
   capabilities,
-}: AssembleOperateTowersIntentionArgs): AssembledWarlordComponent<WarlordIntention> {
-  const children: AssembledChildren = [];
+}: AssembleOperateTowersIntentionArgs): AssembledWarlordComponent<
+  WarlordIntention<TCommonBeliefs>,
+  TCommonBeliefs
+> {
+  const children: AssembledChildren<TCommonBeliefs> = [];
 
   return {
     component: new OperateTowersIntention({

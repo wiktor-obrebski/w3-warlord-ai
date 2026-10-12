@@ -4,7 +4,7 @@ import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { debug } from '../../../../debug';
 import { Point, Vector } from '@lib/math';
 import type { ActorControl } from '../../../../contracts/actor-control';
-import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
+import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { TowerRushState } from '../tower-rush.state';
 import {
   controlForwardPeasants,
@@ -75,7 +75,7 @@ interface PlacementRules {
 }
 
 interface UpdateBuildTowersArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   buildTowersState: BuildTowersState;
   actorControl: ActorControl;
@@ -239,7 +239,7 @@ function busyNonBuilder({
 
 interface HelpUnfinishedTowerArgs {
   worker: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   buildTowersState: BuildTowersState;
 }
 
@@ -289,7 +289,7 @@ function helpUnfinishedTower({
 
 interface HasLivingBuilderArgs {
   tower: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   buildTowersState: BuildTowersState;
 }
 
@@ -311,7 +311,7 @@ function hasLivingBuilder({
 }
 
 interface ForgetFinishedTowerHelpersArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   buildTowersState: BuildTowersState;
 }
 
@@ -329,7 +329,7 @@ function forgetFinishedTowerHelpers({
 }
 
 interface TowerBuildingFinishedArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
 }
 
@@ -353,7 +353,7 @@ function towerBuildingFinished({
 }
 
 interface ForgetAbandonedTowerSitesArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   buildTowersState: BuildTowersState;
 }
 
@@ -409,7 +409,7 @@ function hasStartedTower({
 interface OrderScoutTowerArgs {
   worker: W3UnitApi.unit;
   rules: PlacementRules;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   buildTowersState: BuildTowersState;
 }
 

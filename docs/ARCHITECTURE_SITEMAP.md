@@ -211,9 +211,9 @@ Beliefs + Desires → Deliberation → Intentions → Plans & Controllers
                                                   └─ order Actors under Actor Control → Warcraft orders
 ```
 
-Beliefs come in two categories. Common Beliefs (`src/beliefs/common.beliefs.ts`) hold broadly useful game knowledge and are read by every component. Scoped Beliefs are private to one component instance: a component's assemble function may return a shared, stateless BeliefsModel (`*.beliefs.ts`), and the runtime keeps that component's own Beliefs in the BeliefContainer, indexed by the component instance. Each component receives `{ commonBeliefs, scopedBeliefs }` in `update()`, with `scopedBeliefs` null when it has no model; it never sees its model. Intentions, Plans, and Controllers keep only execution state. Perception is not a separate layer: each model's `observe()` reads Warcraft state. Retained beliefs are limited to short attack memory (Common Beliefs) and when workers were last attacked (the worker safety controller's Scoped Beliefs, the current example of the mechanism).
+Beliefs come in two categories. Common Beliefs (`src/beliefs/common.beliefs.ts`) hold broadly useful game knowledge and are read by every component. Components do not know the global `CommonBeliefs` type: each Intention module declares the part it needs as its own interface (`*.common-beliefs.ts`), shared by its private Plans and Controllers and exported through its API file. Its assemble function is generic over the bot's Common Beliefs type and constrained by that interface, so Deliberation, assembling it with `CommonBeliefs`, fails to compile when the global Common Beliefs stop providing what the module needs; the same object is passed at runtime, without projection or copying. Scoped Beliefs are private to one component instance: a component's assemble function may return a shared, stateless BeliefsModel (`*.beliefs.ts`), and the runtime keeps that component's own Beliefs in the BeliefContainer, indexed by the component instance. Each component receives `{ commonBeliefs, scopedBeliefs }` in `update()`, with `scopedBeliefs` null when it has no model; it never sees its model. Intentions, Plans, and Controllers keep only execution state. Perception is not a separate layer: each model's `observe()` reads Warcraft state. Retained beliefs are limited to short attack memory (Common Beliefs) and when workers were last attacked (the worker safety controller's Scoped Beliefs, the current example of the mechanism).
 
-Every component is constructed through its `assemble...()` function (`src/execution.ts` holds the Warlord component types). Intentions create their Plans and Controllers through child factories injected by their assemble functions, and discard them when done, e.g. the tower rush discards its plan once the tower position is established. Actor control is the one capability so far: the runtime hands the arbiter's actor control to Deliberation, whose capabilities providers pass it to each Intention, and each Intention passes it on to its children.
+Every component is constructed through its `assemble...()` function (`src/contracts/component.ts` holds the Warlord component types). Intentions create their Plans and Controllers through child factories injected by their assemble functions, and discard them when done, e.g. the tower rush discards its plan once the tower position is established. Actor control is the one capability so far: the runtime hands the arbiter's actor control to Deliberation, whose capabilities providers pass it to each Intention, and each Intention passes it on to its children.
 
 Assessments are pure functions in `*.assessments.ts`: no state, no Warcraft API access, read-only Beliefs. They are private to the component module interpreting the Beliefs and live next to it; there are no shared assessments, since components may legitimately read the same facts differently, and some duplication between modules is accepted. `*.beliefs.ts` keeps only Belief types and revision; Plans and Controllers call assessments instead of interpreting Beliefs themselves.
 
@@ -231,13 +231,12 @@ Before ordering an Actor, every Plan and Controller requests Actor Control for i
 src/
 ├─ main.ts        startup: installs the bot player, debug mode, starts the runtime
 ├─ runtime.ts     the bot loop
-├─ execution.ts   Warlord component, Beliefs, and assembled component types
-├─ contracts/     type-only domain vocabulary shared across layers: Actor and actor control requests, observed world records
+├─ contracts/     type-only domain vocabulary shared across layers: Warlord component types, Actor and actor control requests, observed world records
 ├─ beliefs/       common belief model, observing Warcraft state for decisions
 ├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
 ├─ deliberation/  creates, retains, and drops Intentions
 ├─ components/
-│  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
+│  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, *.common-beliefs.ts, scoped *.beliefs.ts, and *.assessments.ts
 │  ├─ plans/        Plans assembled by several Intentions
 │  └─ controllers/  Controllers assembled by several Intentions
 └─ privileged/    installation and debug-mode code beyond normal gameplay

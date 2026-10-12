@@ -3,12 +3,12 @@ import * as W3HumanApi from '@lib/warcraft3-api/human';
 import * as W3DestructableApi from '@lib/warcraft3-api/destructable';
 import { debug } from '../../../debug';
 import type { ActorControl } from '../../../contracts/actor-control';
-import {
+import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
-} from '../../../execution';
-import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+} from '../../../contracts/component';
+import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { HOME_RESOURCE, TowerRushState } from './tower-rush.state';
 import { lumberDestructablesByPreference } from './tower-rush.assessments';
 import { GUARD_TOWER_UPGRADE_GOLD_COST } from './establish-tower-position/upgrade-towers';
@@ -48,7 +48,7 @@ interface TowerRushEconomyControllerConstructorArgs {
 }
 
 interface TowerRushEconomyControllerUpdateArgs {
-  beliefs: WarlordBeliefs;
+  beliefs: WarlordBeliefs<TowerRushCommonBeliefs>;
 }
 
 /**
@@ -56,7 +56,7 @@ interface TowerRushEconomyControllerUpdateArgs {
  * worker are requested on each update, so they stay controlled for as long as
  * the economy runs; one taken over meanwhile is left alone.
  */
-class TowerRushEconomyController implements WarlordController {
+class TowerRushEconomyController implements WarlordController<TowerRushCommonBeliefs> {
   private readonly rush: TowerRushState;
   private readonly capabilities: TowerRushEconomyControllerCapabilities;
 
@@ -109,7 +109,10 @@ interface AssembleTowerRushEconomyControllerArgs {
 function assembleTowerRushEconomyController({
   rush,
   capabilities,
-}: AssembleTowerRushEconomyControllerArgs): AssembledWarlordComponent<WarlordController> {
+}: AssembleTowerRushEconomyControllerArgs): AssembledWarlordComponent<
+  WarlordController<TowerRushCommonBeliefs>,
+  TowerRushCommonBeliefs
+> {
   return {
     component: new TowerRushEconomyController({ rush, capabilities }),
     children: [],
@@ -117,7 +120,7 @@ function assembleTowerRushEconomyController({
 }
 
 interface ForgetDeadWorkersArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
 }
 
@@ -131,7 +134,7 @@ function forgetDeadWorkers({ beliefs, rush }: ForgetDeadWorkersArgs) {
 }
 
 interface AssignNewHomeWorkersArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   townHall: W3UnitApi.unit | undefined;
   actorControl: ActorControl;
@@ -178,7 +181,7 @@ function assignNewHomeWorkers({
 }
 
 interface FinishPeasantTrainingArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   townHall: W3UnitApi.unit | undefined;
 }
@@ -247,7 +250,7 @@ function describeWorkers({ rush }: { rush: TowerRushState }): string {
 }
 
 interface ReturnIdleWorkersToTheirResourceArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   actorControl: ActorControl;
 }
@@ -276,7 +279,7 @@ function returnIdleWorkersToTheirResource({
 }
 
 interface MaintainPeasantProductionArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   townHall: W3UnitApi.unit | undefined;
 }
@@ -301,7 +304,7 @@ function maintainPeasantProduction({
 }
 
 interface CanQueuePeasantArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
 }
 
@@ -321,7 +324,7 @@ function canQueuePeasant({ beliefs, rush }: CanQueuePeasantArgs): boolean {
 }
 
 interface GoldReservedForUpgradesArgs {
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
 }
 
@@ -344,7 +347,7 @@ function goldReservedForUpgrades({
 
 interface TrainPeasantArgs {
   townHall: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
 }
 
@@ -373,7 +376,7 @@ function trainPeasant({ townHall, beliefs, rush }: TrainPeasantArgs) {
 interface SetRallyArgs {
   townHall: W3UnitApi.unit;
   resource: HOME_RESOURCE;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 function setRally({ townHall, resource, beliefs }: SetRallyArgs) {
@@ -389,7 +392,7 @@ function setRally({ townHall, resource, beliefs }: SetRallyArgs) {
 interface RallyTargetArgs {
   townHall: W3UnitApi.unit;
   resource: HOME_RESOURCE;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 // The rallied destructable is not checked to be a tree; a Peasant rallied to
@@ -437,7 +440,7 @@ function isAssignedWorker({ peasant, rush }: IsAssignedWorkerArgs): boolean {
 interface OrderHarvestArgs {
   worker: W3UnitApi.unit;
   resource: HOME_RESOURCE;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 function orderHarvest({ worker, resource, beliefs }: OrderHarvestArgs): {
@@ -450,7 +453,7 @@ function orderHarvest({ worker, resource, beliefs }: OrderHarvestArgs): {
 
 interface OrderHarvestGoldArgs {
   worker: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 function orderHarvestGold({ worker, beliefs }: OrderHarvestGoldArgs): {
@@ -471,7 +474,7 @@ function orderHarvestGold({ worker, beliefs }: OrderHarvestGoldArgs): {
 
 interface OrderHarvestPreferredTreeArgs {
   worker: W3UnitApi.unit;
-  beliefs: Readonly<CommonBeliefs>;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
 // Beliefs cannot tell trees apart from other destructables, so the harvest
