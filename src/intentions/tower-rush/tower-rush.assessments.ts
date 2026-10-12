@@ -7,11 +7,23 @@ import {
   positionOf,
 } from '../../beliefs/common.assessments';
 
-export const RUSH_TOWER_COUNT = 3;
-const MILL_TREE_CANDIDATES = 4;
+export {
+  RUSH_TOWER_COUNT,
+  allRushTowersBuilt,
+  rushTowersAtLeast,
+  isAvailableForwardPeasant,
+  lumberDestructablesByPreference,
+};
+
+const RUSH_TOWER_COUNT = 3;
+const MillTreeCandidates = 4;
+
+interface AllRushTowersBuiltArgs {
+  beliefs: Readonly<CommonBeliefs>;
+}
 
 /** Whether every rush tower has been placed and finished construction. */
-export function allRushTowersBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
+function allRushTowersBuilt({ beliefs }: AllRushTowersBuiltArgs): boolean {
   return (
     beliefs.scoutTowers.length >= RUSH_TOWER_COUNT &&
     beliefs.scoutTowers.every(
@@ -20,20 +32,30 @@ export function allRushTowersBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
   );
 }
 
+interface RushTowersAtLeastArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  lifeFraction: number;
+}
+
 /**
  * Whether every rush tower has been placed and stands at or above the life
  * fraction; during construction this tracks build progress.
  */
-export function rushTowersAtLeast(
-  beliefs: Readonly<CommonBeliefs>,
-  lifeFraction: number
-): boolean {
+function rushTowersAtLeast({
+  beliefs,
+  lifeFraction,
+}: RushTowersAtLeastArgs): boolean {
   return (
     beliefs.scoutTowers.length >= RUSH_TOWER_COUNT &&
     beliefs.scoutTowers.every(
-      (tower) => lifeFractionOf(beliefs, tower) >= lifeFraction
+      (tower) => lifeFractionOf({ beliefs, unit: tower }) >= lifeFraction
     )
   );
+}
+
+interface IsAvailableForwardPeasantArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  worker: W3UnitApi.unit;
 }
 
 /**
@@ -41,16 +63,21 @@ export function rushTowersAtLeast(
  * sent back to harvesting. Anything else means it is busy with an order of
  * its own, such as building or repairing.
  */
-export function isAvailableForwardPeasant(
-  beliefs: Readonly<CommonBeliefs>,
-  worker: W3UnitApi.unit
-): boolean {
+function isAvailableForwardPeasant({
+  beliefs,
+  worker,
+}: IsAvailableForwardPeasantArgs): boolean {
   return (
     beliefs.peasants.includes(worker) &&
     (beliefs.idleUnits.includes(worker) ||
       beliefs.holdingPositionUnits.includes(worker) ||
       beliefs.harvestingUnits.includes(worker))
   );
+}
+
+interface LumberDestructablesByPreferenceArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  peasantOrigin: W3UnitApi.unit;
 }
 
 /**
@@ -64,46 +91,60 @@ export function isAvailableForwardPeasant(
  * orders share this order so a new Peasant ordered to harvest is not turned
  * away from the tree it was rallied to.
  */
-export function lumberDestructablesByPreference(
-  beliefs: Readonly<CommonBeliefs>,
-  peasantOrigin: W3UnitApi.unit
-): readonly HomeDestructable[] {
-  const mill = completedLumberMill(beliefs);
+function lumberDestructablesByPreference({
+  beliefs,
+  peasantOrigin,
+}: LumberDestructablesByPreferenceArgs): readonly HomeDestructable[] {
+  const mill = completedLumberMill({ beliefs });
 
   if (!mill) {
-    return destructablesAwayFromUnfinishedMill(beliefs);
+    return destructablesAwayFromUnfinishedMill({ beliefs });
   }
 
-  const nearestMill = sortByDistanceTo(
-    beliefs.destructablesNearHomeByDistance,
-    positionOf(beliefs, mill)
-  );
-  const candidates = sortByDistanceTo(
-    nearestMill.slice(0, MILL_TREE_CANDIDATES),
-    positionOf(beliefs, peasantOrigin)
-  );
+  const nearestMill = sortByDistanceTo({
+    destructables: beliefs.destructablesNearHomeByDistance,
+    origin: positionOf({ beliefs, unit: mill }),
+  });
+  const candidates = sortByDistanceTo({
+    destructables: nearestMill.slice(0, MillTreeCandidates),
+    origin: positionOf({ beliefs, unit: peasantOrigin }),
+  });
 
-  return [...candidates, ...nearestMill.slice(MILL_TREE_CANDIDATES)];
+  return [...candidates, ...nearestMill.slice(MillTreeCandidates)];
 }
 
-function sortByDistanceTo(
-  destructables: readonly HomeDestructable[],
-  origin: Point
-): HomeDestructable[] {
+interface SortByDistanceToArgs {
+  destructables: readonly HomeDestructable[];
+  origin: Point;
+}
+
+function sortByDistanceTo({
+  destructables,
+  origin,
+}: SortByDistanceToArgs): HomeDestructable[] {
   return destructables
     .map((destructable) => ({
       destructable,
-      distance: new Vector(origin, destructable.position).length,
+      distance: new Vector({ start: origin, end: destructable.position })
+        .length,
     }))
     .sort((a, b) => a.distance - b.distance)
     .map((entry) => entry.destructable);
 }
 
+interface IsAwayFromMillArgs {
+  destructable: HomeDestructable;
+}
+
+interface DestructablesAwayFromUnfinishedMillArgs {
+  beliefs: Readonly<CommonBeliefs>;
+}
+
 // Nearest home first, with those on the far side of the Hall from the mill
 // ahead of the rest. Before the mill is placed, simply nearest home.
-function destructablesAwayFromUnfinishedMill(
-  beliefs: Readonly<CommonBeliefs>
-): readonly HomeDestructable[] {
+function destructablesAwayFromUnfinishedMill({
+  beliefs,
+}: DestructablesAwayFromUnfinishedMillArgs): readonly HomeDestructable[] {
   const mill = beliefs.lumberMills[0];
 
   if (!mill) {
@@ -111,13 +152,18 @@ function destructablesAwayFromUnfinishedMill(
   }
 
   const hall = beliefs.ownStartPosition;
-  const toMill = new Vector(hall, positionOf(beliefs, mill));
-  const isAwayFromMill = (destructable: HomeDestructable) =>
-    new Vector(hall, destructable.position).dot(toMill) < 0;
+  const toMill = new Vector({
+    start: hall,
+    end: positionOf({ beliefs, unit: mill }),
+  });
+  const isAwayFromMill = ({ destructable }: IsAwayFromMillArgs) =>
+    new Vector({ start: hall, end: destructable.position }).dot({
+      vector: toMill,
+    }) < 0;
   const nearHome = beliefs.destructablesNearHomeByDistance;
 
   return [
-    ...nearHome.filter((destructable) => isAwayFromMill(destructable)),
-    ...nearHome.filter((destructable) => !isAwayFromMill(destructable)),
+    ...nearHome.filter((destructable) => isAwayFromMill({ destructable })),
+    ...nearHome.filter((destructable) => !isAwayFromMill({ destructable })),
   ];
 }

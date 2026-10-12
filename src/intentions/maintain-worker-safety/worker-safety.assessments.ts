@@ -8,36 +8,54 @@ import {
 import { recentAttackTarget } from '../../beliefs/common.assessments';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
+export { needsAttackProtection, nearbyThreats, threatCenter };
+
 // Not tuned in-game.
-const THREAT_RADIUS = 1000;
+const ThreatRadius = 1000;
+
+interface NeedsAttackProtectionArgs {
+  beliefs: Readonly<WorkerSafetyBeliefs>;
+  worker: W3UnitApi.unit;
+}
 
 /**
  * Whether the worker is attacked, or was attacked too recently to be safe
  * again.
  */
-export function needsAttackProtection(
-  beliefs: Readonly<WorkerSafetyBeliefs>,
-  worker: W3UnitApi.unit
-): boolean {
+function needsAttackProtection({
+  beliefs,
+  worker,
+}: NeedsAttackProtectionArgs): boolean {
   return beliefs.lastAttackedAt.has(worker);
+}
+
+interface NearbyThreatsArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  position: Point;
 }
 
 /**
  * The enemy force fighting near the position: combat units and the Ancients
  * that walk into the fight.
  */
-export function nearbyThreats(
-  beliefs: Readonly<CommonBeliefs>,
-  position: Point
-): VisibleEnemy[] {
+function nearbyThreats({
+  beliefs,
+  position,
+}: NearbyThreatsArgs): VisibleEnemy[] {
   return beliefs.visibleEnemies.filter(
     (enemy) =>
       (enemy.isUprootedAncient ||
         (!enemy.isStructure &&
           !enemy.isWorker &&
           (enemy.isMelee || enemy.isRanged))) &&
-      new Vector(position, enemy.position).length <= THREAT_RADIUS
+      new Vector({ start: position, end: enemy.position }).length <=
+        ThreatRadius
   );
+}
+
+interface ThreatCenterArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  worker: OwnUnit;
 }
 
 /**
@@ -45,28 +63,40 @@ export function nearbyThreats(
  * force, or of its visible attackers when no force is near. Undefined when
  * neither is visible.
  */
-export function threatCenter(
-  beliefs: Readonly<CommonBeliefs>,
-  worker: OwnUnit
-): Point | undefined {
-  const nearby = nearbyThreats(beliefs, worker.position);
+function threatCenter({
+  beliefs,
+  worker,
+}: ThreatCenterArgs): Point | undefined {
+  const nearby = nearbyThreats({ beliefs, position: worker.position });
   const reference =
     nearby.length > 0
       ? nearby
       : beliefs.visibleEnemies.filter(
-          (enemy) => recentAttackTarget(beliefs, enemy.unit) === worker.unit
+          (enemy) =>
+            recentAttackTarget({ beliefs, attacker: enemy.unit }) ===
+            worker.unit
         );
 
-  return reference.length > 0 ? averagePosition(reference) : undefined;
+  return reference.length > 0
+    ? averagePosition({ enemies: reference })
+    : undefined;
 }
 
-function averagePosition(enemies: readonly VisibleEnemy[]): Point {
-  const origin = new Point(0, 0);
-  let sum = new Vector(0, 0);
+interface AveragePositionArgs {
+  enemies: readonly VisibleEnemy[];
+}
+
+function averagePosition({ enemies }: AveragePositionArgs): Point {
+  const origin = new Point({ x: 0, y: 0 });
+  let sum = new Vector({ x: 0, y: 0 });
 
   for (const enemy of enemies) {
-    sum = sum.add(new Vector(origin, enemy.position));
+    sum = sum.add({
+      vector: new Vector({ start: origin, end: enemy.position }),
+    });
   }
 
-  return origin.translate(sum.multiply(1 / enemies.length));
+  return origin.translate({
+    vector: sum.multiply({ scalar: 1 / enemies.length }),
+  });
 }

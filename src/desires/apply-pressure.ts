@@ -1,6 +1,8 @@
 import { Desire } from '@lib/bdi';
 
-export const ApplyPressure: Desire = {
+export { APPLY_PRESSURE };
+
+const APPLY_PRESSURE: Desire = {
   id: 'ApplyPressure',
   description: 'Keep the enemy under pressure.',
 };

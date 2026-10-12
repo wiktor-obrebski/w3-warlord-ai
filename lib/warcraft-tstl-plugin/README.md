@@ -91,6 +91,12 @@ is emitted as:
 KillUnit(unit)
 ```
 
+### Defers local export blocks
+
+TSTL assigns the bindings of an `export { ... }` block without a module specifier where the block appears. Only function declarations are hoisted above it, so a block at the top of a module, as [the export convention](../../docs/CONVENTIONS.md#export-convention) requires, would export constants, classes, and enums as `nil`.
+
+The plugin moves those assignments to the end of the module, just before it returns its exports. Re-exports such as `export { Point } from './point'` stay where they are.
+
 ## Supported import style
 
 Use namespace imports:

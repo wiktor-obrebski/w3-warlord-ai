@@ -82,7 +82,7 @@ Types can be accessed through the same namespace:
 ```ts
 import * as PlayerApi from '@lib/warcraft3-api/player';
 
-function handlePlayer(player: PlayerApi.player) {
+function handlePlayer({ player }: { player: PlayerApi.player }) {
   const id = PlayerApi.GetPlayerId(player);
 }
 ```

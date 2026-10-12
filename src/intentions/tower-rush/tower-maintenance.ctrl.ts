@@ -20,11 +20,18 @@ import {
 } from './forward-workers';
 import { isAvailableForwardPeasant } from './tower-rush.assessments';
 
+export { provideTowerMaintenanceController };
+
 // A repair starts below the start fraction and is not interrupted before the
 // switch fraction; above it, a tower below the start fraction takes over,
 // otherwise the repair goes on to full life.
-const REPAIR_START_LIFE_FRACTION = 0.6;
-const REPAIR_SWITCH_LIFE_FRACTION = 0.8;
+const RepairStartLifeFraction = 0.6;
+const RepairSwitchLifeFraction = 0.8;
+
+interface TowerMaintenanceControllerUpdateArgs {
+  beliefs: WarlordBeliefs;
+  control: ActorControl;
+}
 
 /**
  * The forward Peasants it controls repair the most damaged tower, and hide
@@ -37,11 +44,14 @@ class TowerMaintenanceController implements WarlordController {
   // The tower the forward Peasants are repairing.
   private repairTarget: W3UnitApi.unit | undefined;
 
-  public constructor(rush: TowerRushState) {
+  public constructor({ rush }: { rush: TowerRushState }) {
     this.rush = rush;
   }
 
-  public update({ common: beliefs }: WarlordBeliefs, control: ActorControl) {
+  public update({
+    beliefs: { common: beliefs },
+    control,
+  }: TowerMaintenanceControllerUpdateArgs) {
     const enemyMain = beliefs.enemyStartPosition;
 
     if (!enemyMain) {
@@ -50,87 +60,128 @@ class TowerMaintenanceController implements WarlordController {
 
     const towers = [...beliefs.scoutTowers, ...beliefs.guardTowers];
     const previousTarget = this.repairTarget;
-    const repairTarget = chooseRepairTarget(towers, previousTarget, beliefs);
+    const repairTarget = chooseRepairTarget({
+      towers,
+      current: previousTarget,
+      beliefs,
+    });
     const targetChanged = repairTarget !== previousTarget;
     this.repairTarget = repairTarget;
 
     if (targetChanged) {
-      debug(
-        repairTarget
-          ? `Tower rush: repairing ${describeTower(repairTarget, beliefs)}.`
-          : 'Tower rush: no tower needs repair.'
-      );
+      debug({
+        message: repairTarget
+          ? `Tower rush: repairing ${describeTower({ tower: repairTarget, beliefs })}.`
+          : 'Tower rush: no tower needs repair.',
+      });
     }
 
-    for (const worker of controlForwardPeasants(beliefs, this.rush, control)) {
+    for (const worker of controlForwardPeasants({
+      beliefs,
+      rush: this.rush,
+      control,
+    })) {
       if (repairTarget) {
         if (targetChanged || !beliefs.repairingUnits.includes(worker)) {
-          orderRepair(worker, repairTarget, beliefs, this.rush);
+          orderRepair({
+            worker,
+            tower: repairTarget,
+            beliefs,
+            rush: this.rush,
+          });
         }
       } else if (
-        isAvailableForwardPeasant(beliefs, worker) &&
+        isAvailableForwardPeasant({ beliefs, worker }) &&
         !this.rush.forwardWorkersSentToSafety.includes(worker)
       ) {
-        hideBehindClosestTower(worker, towers, enemyMain, beliefs, this.rush);
+        hideBehindClosestTower({
+          worker,
+          towers,
+          enemyMain,
+          beliefs,
+          rush: this.rush,
+        });
       }
     }
   }
 }
 
-export function provideTowerMaintenanceController(
-  rush: TowerRushState
-): ProvidedComponent<WarlordController> {
-  return { value: new TowerMaintenanceController(rush), children: [] };
+interface ProvideTowerMaintenanceControllerArgs {
+  rush: TowerRushState;
 }
 
-function chooseRepairTarget(
-  towers: readonly W3UnitApi.unit[],
-  current: W3UnitApi.unit | undefined,
-  beliefs: Readonly<CommonBeliefs>
-): W3UnitApi.unit | undefined {
-  const lifeFraction = (tower: W3UnitApi.unit) =>
-    lifeFractionOf(beliefs, tower);
+function provideTowerMaintenanceController({
+  rush,
+}: ProvideTowerMaintenanceControllerArgs): ProvidedComponent<WarlordController> {
+  return {
+    value: new TowerMaintenanceController({ rush }),
+    children: [],
+  };
+}
+
+interface ChooseRepairTargetArgs {
+  towers: readonly W3UnitApi.unit[];
+  current: W3UnitApi.unit | undefined;
+  beliefs: Readonly<CommonBeliefs>;
+}
+
+function chooseRepairTarget({
+  towers,
+  current,
+  beliefs,
+}: ChooseRepairTargetArgs): W3UnitApi.unit | undefined {
+  const lifeFraction = ({ tower }: { tower: W3UnitApi.unit }) =>
+    lifeFractionOf({ beliefs, unit: tower });
   const currentStanding = current !== undefined && towers.includes(current);
 
-  if (currentStanding && lifeFraction(current) < REPAIR_SWITCH_LIFE_FRACTION) {
+  if (
+    currentStanding &&
+    lifeFraction({ tower: current }) < RepairSwitchLifeFraction
+  ) {
     return current;
   }
 
-  const mostDamaged = mostDamagedUnit(
+  const mostDamaged = mostDamagedUnit({
     beliefs,
-    towers.filter(
+    units: towers.filter(
       (tower) =>
-        tower !== current && lifeFraction(tower) < REPAIR_START_LIFE_FRACTION
-    )
-  );
+        tower !== current && lifeFraction({ tower }) < RepairStartLifeFraction
+    ),
+  });
 
   if (mostDamaged) {
     return mostDamaged;
   }
 
-  return currentStanding && lifeFraction(current) < 1 ? current : undefined;
+  return currentStanding && lifeFraction({ tower: current }) < 1
+    ? current
+    : undefined;
 }
 
-function orderRepair(
-  worker: W3UnitApi.unit,
-  tower: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState
-) {
+interface OrderRepairArgs {
+  worker: W3UnitApi.unit;
+  tower: W3UnitApi.unit;
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+}
+
+function orderRepair({ worker, tower, beliefs, rush }: OrderRepairArgs) {
   if (W3UnitApi.IssueTargetOrder(worker, 'repair', tower)) {
-    forgetSentToSafety(worker, rush);
+    forgetSentToSafety({ worker, rush });
   } else {
-    debug(
-      `Tower rush: repair order rejected for ${describeTower(tower, beliefs)}.`
-    );
+    debug({
+      message: `Tower rush: repair order rejected for ${describeTower({ tower, beliefs })}.`,
+    });
   }
 }
 
-function describeTower(
-  tower: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>
-): string {
-  const { life, maxLife } = ownUnit(beliefs, tower);
+interface DescribeTowerArgs {
+  tower: W3UnitApi.unit;
+  beliefs: Readonly<CommonBeliefs>;
+}
+
+function describeTower({ tower, beliefs }: DescribeTowerArgs): string {
+  const { life, maxLife } = ownUnit({ beliefs, unit: tower });
 
   return `a tower at ${Math.floor(life)}/${Math.floor(maxLife)} life`;
 }

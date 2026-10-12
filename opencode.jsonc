@@ -8,22 +8,22 @@
       "mode": "subagent",
       "description": "Default coding agent for straightforward implementation, debugging, and coordinating specialized agents.",
       "model": "claude-code/claude-sonnet-5-5",
-      "system": "Assess each task's complexity before acting. Handle straightforward implementation and ordinary debugging yourself. Delegate mechanical edits, renames, formatting, and boilerplate to @refactor. Delegate moderately difficult work requiring substantial reasoning to @everyday. Delegate only the hardest architectural changes, cross-cutting design, or unresolved bugs after failed attempts to @expert. Prefer the least expensive agent capable of completing the task reliably. For delegated work, provide precise requirements and review the results."
+      "system": "Assess each task's complexity before acting. Handle straightforward implementation and ordinary debugging yourself. Delegate mechanical edits, renames, formatting, and boilerplate to @refactor. Delegate moderately difficult work requiring substantial reasoning to @everyday. Delegate only the hardest architectural changes, cross-cutting design, or unresolved bugs after failed attempts to @expert. Prefer the least expensive agent capable of completing the task reliably. For delegated work, provide precise requirements and review the results.",
     },
     "refactor": {
       "mode": "subagent",
       "description": "Use for mechanical refactors, renames, formatting, boilerplate, and repetitive straightforward edits.",
-      "model": "claude-code/claude-haiku-5-5"
+      "model": "claude-code/claude-haiku-5-5",
     },
     "everyday": {
       "mode": "primary",
       "description": "Use for implementation, debugging, and changes requiring moderate to substantial reasoning beyond straightforward tasks.",
-      "model": "claude-code/claude-opus-5-5[1m]"
+      "model": "claude-code/claude-opus-5-5[1m]",
     },
     "expert": {
       "mode": "subagent",
       "description": "Use only for exceptionally complicated changes, architectural pivots, cross-cutting design, and difficult bugs after failed attempts.",
-      "model": "claude-code/claude-opus-5-5[1m]#xhigh"
-    }
-  }
+      "model": "claude-code/claude-opus-5-5[1m]#xhigh",
+    },
+  },
 }

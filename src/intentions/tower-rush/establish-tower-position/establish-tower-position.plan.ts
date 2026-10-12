@@ -13,11 +13,13 @@ import { createMoveForwardState, updateMoveForward } from './move-forward';
 import { createBuildTowersState, updateBuildTowers } from './build-towers';
 import { updateUpgradeTowers } from './upgrade-towers';
 
-enum Step {
-  Start,
-  MoveForward,
-  BuildTowers,
-  UpgradeTowers,
+export { type EstablishTowerPositionPlan, provideEstablishTowerPositionPlan };
+
+enum STEP {
+  START,
+  MOVE_FORWARD,
+  BUILD_TOWERS,
+  UPGRADE_TOWERS,
 }
 
 /**
@@ -28,21 +30,26 @@ enum Step {
  * Each step requests the Actors it orders, so the plan's control moves with
  * the step: e.g. the forward Peasants are released once the towers are built.
  */
-export interface EstablishTowerPositionPlan extends WarlordPlan {
+interface EstablishTowerPositionPlan extends WarlordPlan {
   /** Whether building the rush towers has finished. */
   readonly towersBuilt: boolean;
+}
+
+interface EstablishTowerPositionUpdateArgs {
+  beliefs: WarlordBeliefs;
+  control: ActorControl;
 }
 
 class EstablishTowerPosition implements EstablishTowerPositionPlan {
   private readonly rush: TowerRushState;
   private currentStatus: PlanStatus = 'running';
-  private step = Step.Start;
+  private step = STEP.START;
   private readonly moveForward = createMoveForwardState();
   private readonly buildTowers = createBuildTowersState();
   // Where the rush towers stood when BuildTowers ended.
   private towerPositions: Point[] = [];
 
-  public constructor(rush: TowerRushState) {
+  public constructor({ rush }: { rush: TowerRushState }) {
     this.rush = rush;
   }
 
@@ -51,60 +58,82 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   }
 
   public get towersBuilt(): boolean {
-    return this.step === Step.UpgradeTowers;
+    return this.step === STEP.UPGRADE_TOWERS;
   }
 
-  public update({ common: beliefs }: WarlordBeliefs, control: ActorControl) {
+  public update({
+    beliefs: { common: beliefs },
+    control,
+  }: EstablishTowerPositionUpdateArgs) {
     if (this.currentStatus !== 'running') {
       throw new Error('Establish tower position: updated after it ended.');
     }
 
     switch (this.step) {
-      case Step.Start:
-        updateStart(beliefs, this.rush, control);
-        this.advanceTo(Step.MoveForward);
+      case STEP.START:
+        updateStart({ beliefs, rush: this.rush, control });
+        this.advanceTo({ next: STEP.MOVE_FORWARD });
         break;
 
-      case Step.MoveForward:
-        if (updateMoveForward(beliefs, this.rush, this.moveForward, control)) {
-          this.advanceTo(Step.BuildTowers);
+      case STEP.MOVE_FORWARD:
+        if (
+          updateMoveForward({
+            beliefs,
+            rush: this.rush,
+            state: this.moveForward,
+            control,
+          })
+        ) {
+          this.advanceTo({ next: STEP.BUILD_TOWERS });
         }
         break;
 
-      case Step.BuildTowers: {
-        const towerPositions = updateBuildTowers(
+      case STEP.BUILD_TOWERS: {
+        const towerPositions = updateBuildTowers({
           beliefs,
-          this.rush,
-          this.buildTowers,
-          control
-        );
+          rush: this.rush,
+          state: this.buildTowers,
+          control,
+        });
 
         if (towerPositions) {
           this.towerPositions = towerPositions;
-          this.advanceTo(Step.UpgradeTowers);
+          this.advanceTo({ next: STEP.UPGRADE_TOWERS });
         }
         break;
       }
 
-      case Step.UpgradeTowers:
-        if (updateUpgradeTowers(beliefs, this.towerPositions, control)) {
+      case STEP.UPGRADE_TOWERS:
+        if (
+          updateUpgradeTowers({
+            beliefs,
+            towerPositions: this.towerPositions,
+            control,
+          })
+        ) {
           this.currentStatus = 'succeeded';
-          debug(
-            `Establish tower position: ${Step[this.step]} -> ${this.currentStatus}`
-          );
+          debug({
+            message: `Establish tower position: ${STEP[this.step]} -> ${this.currentStatus}`,
+          });
         }
         break;
     }
   }
 
-  private advanceTo(next: Step) {
-    debug(`Establish tower position: ${Step[this.step]} -> ${Step[next]}`);
+  private advanceTo({ next }: { next: STEP }) {
+    debug({
+      message: `Establish tower position: ${STEP[this.step]} -> ${STEP[next]}`,
+    });
     this.step = next;
   }
 }
 
-export function provideEstablishTowerPositionPlan(
-  rush: TowerRushState
-): ProvidedComponent<EstablishTowerPositionPlan> {
-  return { value: new EstablishTowerPosition(rush), children: [] };
+interface ProvideEstablishTowerPositionPlanArgs {
+  rush: TowerRushState;
+}
+
+function provideEstablishTowerPositionPlan({
+  rush,
+}: ProvideEstablishTowerPositionPlanArgs): ProvidedComponent<EstablishTowerPositionPlan> {
+  return { value: new EstablishTowerPosition({ rush }), children: [] };
 }

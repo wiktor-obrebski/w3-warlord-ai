@@ -1,8 +1,15 @@
+export { type CommonBeliefsModel, type BeliefsModel, type AnyBeliefsModel };
+
+interface CommonBeliefsModelReviseArgs<TObservation, TCommonBeliefs> {
+  previous: Readonly<TCommonBeliefs> | null;
+  observation: Readonly<TObservation>;
+}
+
 /**
  * Maintains the agent's Common Beliefs: knowledge shared by every
  * Intention, Plan, and Controller.
  */
-export interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
+interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
   /**
    * Reads what the agent can currently observe of the external environment.
    */
@@ -15,10 +22,19 @@ export interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
    * Must not mutate its inputs. Should return `previous` itself when nothing
    * changed, and reuse unchanged nested values otherwise.
    */
-  revise(
-    previous: Readonly<TCommonBeliefs> | null,
-    observation: Readonly<TObservation>
-  ): TCommonBeliefs;
+  revise({
+    previous,
+    observation,
+  }: CommonBeliefsModelReviseArgs<
+    TObservation,
+    TCommonBeliefs
+  >): TCommonBeliefs;
+}
+
+interface BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs> {
+  previous: Readonly<TBeliefs> | null;
+  observation: Readonly<TObservation>;
+  common: Readonly<TCommonBeliefs>;
 }
 
 /**
@@ -29,7 +45,7 @@ export interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
  * component instances; each instance still has its own Scoped Beliefs,
  * revised from its own previous ones.
  */
-export interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
+interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
   /**
    * Reads what the model needs to observe of the external environment.
    */
@@ -44,22 +60,28 @@ export interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
    * Must not mutate its inputs. Should return `previous` itself when nothing
    * changed, and reuse unchanged nested values otherwise.
    */
-  revise(
-    previous: Readonly<TBeliefs> | null,
-    observation: Readonly<TObservation>,
-    common: Readonly<TCommonBeliefs>
-  ): TBeliefs;
+  revise({
+    previous,
+    observation,
+    common,
+  }: BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs>): TBeliefs;
+}
+
+interface AnyBeliefsModelReviseArgs<TCommonBeliefs> {
+  previous: unknown;
+  observation: unknown;
+  common: Readonly<TCommonBeliefs>;
 }
 
 /**
  * A BeliefsModel whatever it observes or produces, as the beliefs runtime
  * handles it.
  */
-export interface AnyBeliefsModel<TCommonBeliefs> {
+interface AnyBeliefsModel<TCommonBeliefs> {
   observe(): unknown;
-  revise(
-    previous: unknown,
-    observation: unknown,
-    common: Readonly<TCommonBeliefs>
-  ): unknown;
+  revise({
+    previous,
+    observation,
+    common,
+  }: AnyBeliefsModelReviseArgs<TCommonBeliefs>): unknown;
 }

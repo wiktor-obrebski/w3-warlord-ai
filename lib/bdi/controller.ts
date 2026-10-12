@@ -1,3 +1,10 @@
+export { type Controller };
+
+interface ControllerUpdateArgs<TBeliefs, TControl> {
+  beliefs: Readonly<TBeliefs>;
+  control: TControl;
+}
+
 /**
  * Continuous reactive behavior with no procedural completion.
  *
@@ -6,10 +13,10 @@
  * `ComponentBeliefs`; `TControl` is the agent's actor control capability,
  * normally an `ActorControlProvider`.
  */
-export interface Controller<TBeliefs, TControl> {
+interface Controller<TBeliefs, TControl> {
   /**
    * Reacts to the current Beliefs. It may order only the Actors `control`
    * grants it.
    */
-  update(beliefs: Readonly<TBeliefs>, control: TControl): void;
+  update({ beliefs, control }: ControllerUpdateArgs<TBeliefs, TControl>): void;
 }

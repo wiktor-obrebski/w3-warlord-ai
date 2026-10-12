@@ -10,6 +10,19 @@ import {
 import { provideWorkerSafetyController } from './worker-safety.ctrl';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
+export { provideMaintainWorkerSafetyIntention };
+
+interface MaintainWorkerSafetyIntentionConstructorArgs {
+  createWorkerSafetyController: ChildFactory<
+    WarlordController<WorkerSafetyBeliefs>
+  >;
+}
+
+interface MaintainWorkerSafetyIntentionUpdateArgs {
+  beliefs: WarlordBeliefs;
+  updateChild: WarlordUpdateChild;
+}
+
 /** Keeps attacked workers out of harm's way, every bot tick. */
 class MaintainWorkerSafetyIntention implements WarlordIntention {
   private readonly createWorkerSafetyController: ChildFactory<
@@ -17,27 +30,28 @@ class MaintainWorkerSafetyIntention implements WarlordIntention {
   >;
   private workerSafety: WarlordController<WorkerSafetyBeliefs> | null = null;
 
-  public constructor(
-    createWorkerSafetyController: ChildFactory<
-      WarlordController<WorkerSafetyBeliefs>
-    >
-  ) {
+  public constructor({
+    createWorkerSafetyController,
+  }: MaintainWorkerSafetyIntentionConstructorArgs) {
     this.createWorkerSafetyController = createWorkerSafetyController;
   }
 
-  public update(_beliefs: WarlordBeliefs, updateChild: WarlordUpdateChild) {
+  public update({ updateChild }: MaintainWorkerSafetyIntentionUpdateArgs) {
     this.workerSafety ??= this.createWorkerSafetyController().value;
-    updateChild(this.workerSafety);
+    updateChild({ child: this.workerSafety });
   }
 }
 
-export function provideMaintainWorkerSafetyIntention(): ProvidedComponent<WarlordIntention> {
+function provideMaintainWorkerSafetyIntention(): ProvidedComponent<WarlordIntention> {
   const children: ProvidedChildren = [];
 
   return {
-    value: new MaintainWorkerSafetyIntention(
-      childFactory(children, provideWorkerSafetyController)
-    ),
+    value: new MaintainWorkerSafetyIntention({
+      createWorkerSafetyController: childFactory({
+        children,
+        provide: () => provideWorkerSafetyController(),
+      }),
+    }),
     children,
   };
 }

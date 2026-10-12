@@ -6,25 +6,34 @@ import { CommonBeliefs, GoldMine } from '../../../beliefs/common.beliefs';
 import { positionOf } from '../../../beliefs/common.assessments';
 import { TowerRushState } from '../tower-rush.state';
 
-// A move order to a gold mine ends at the mine's edge, not its center.
-const ARRIVAL_RADIUS = 400;
+export { type MoveForwardState, createMoveForwardState, updateMoveForward };
 
-export interface MoveForwardState {
+// A move order to a gold mine ends at the mine's edge, not its center.
+const ArrivalRadius = 400;
+
+interface MoveForwardState {
   forwardWorkersSentToEnemy: W3UnitApi.unit[];
   forwardWorkersHoldingPosition: W3UnitApi.unit[];
 }
 
-export function createMoveForwardState(): MoveForwardState {
+function createMoveForwardState(): MoveForwardState {
   return { forwardWorkersSentToEnemy: [], forwardWorkersHoldingPosition: [] };
 }
 
+interface UpdateMoveForwardArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  state: MoveForwardState;
+  control: ActorControl;
+}
+
 /** Returns whether the forward workers have arrived as Peasants again. */
-export function updateMoveForward(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
-  state: MoveForwardState,
-  control: ActorControl
-): boolean {
+function updateMoveForward({
+  beliefs,
+  rush,
+  state,
+  control,
+}: UpdateMoveForwardArgs): boolean {
   const destination = beliefs.enemyMainGoldMine;
 
   if (!destination) {
@@ -33,24 +42,32 @@ export function updateMoveForward(
 
   const controlled = rush.forwardWorkers.filter(
     (worker) =>
-      beliefs.ownUnits.has(worker) && control.request(worker, NORMAL_REQUEST)
+      beliefs.ownUnits.has(worker) &&
+      control.request({ actor: worker, request: NORMAL_REQUEST })
   );
 
-  holdArrivedMilitia(destination, beliefs, state, controlled);
-  sendNewMilitiaToEnemy(destination, beliefs, state, controlled);
+  holdArrivedMilitia({ destination, beliefs, state, controlled });
+  sendNewMilitiaToEnemy({ destination, beliefs, state, controlled });
 
-  return forwardWorkersHaveRevertedToPeasants(beliefs, rush, state);
+  return forwardWorkersHaveRevertedToPeasants({ beliefs, rush, state });
+}
+
+interface SendNewMilitiaToEnemyArgs {
+  destination: GoldMine;
+  beliefs: Readonly<CommonBeliefs>;
+  state: MoveForwardState;
+  controlled: readonly W3UnitApi.unit[];
 }
 
 // Warcraft scripts cannot queue orders, so a move issued together with the
 // Call to Arms order would cancel the transformation. Forward workers are
 // sent only once they have become Militia.
-function sendNewMilitiaToEnemy(
-  destination: GoldMine,
-  beliefs: Readonly<CommonBeliefs>,
-  state: MoveForwardState,
-  controlled: readonly W3UnitApi.unit[]
-) {
+function sendNewMilitiaToEnemy({
+  destination,
+  beliefs,
+  state,
+  controlled,
+}: SendNewMilitiaToEnemyArgs) {
   for (const worker of controlled) {
     if (
       beliefs.militia.includes(worker) &&
@@ -67,36 +84,51 @@ function sendNewMilitiaToEnemy(
   }
 }
 
+interface HoldArrivedMilitiaArgs {
+  destination: GoldMine;
+  beliefs: Readonly<CommonBeliefs>;
+  state: MoveForwardState;
+  controlled: readonly W3UnitApi.unit[];
+}
+
 // Idle Militia acquire and chase nearby enemies on their own, which would
 // pull them away from the tower sites before they revert to Peasants.
-function holdArrivedMilitia(
-  destination: GoldMine,
-  beliefs: Readonly<CommonBeliefs>,
-  state: MoveForwardState,
-  controlled: readonly W3UnitApi.unit[]
-) {
+function holdArrivedMilitia({
+  destination,
+  beliefs,
+  state,
+  controlled,
+}: HoldArrivedMilitiaArgs) {
   for (const worker of state.forwardWorkersSentToEnemy) {
     if (
       controlled.includes(worker) &&
       beliefs.militia.includes(worker) &&
       !state.forwardWorkersHoldingPosition.includes(worker) &&
-      new Vector(positionOf(beliefs, worker), destination.position).length <=
-        ARRIVAL_RADIUS
+      new Vector({
+        start: positionOf({ beliefs, unit: worker }),
+        end: destination.position,
+      }).length <= ArrivalRadius
     ) {
       if (W3UnitApi.IssueImmediateOrder(worker, 'holdposition')) {
         state.forwardWorkersHoldingPosition.push(worker);
       } else {
-        debug('Tower rush: hold position order rejected.');
+        debug({ message: 'Tower rush: hold position order rejected.' });
       }
     }
   }
 }
 
-function forwardWorkersHaveRevertedToPeasants(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
-  state: MoveForwardState
-): boolean {
+interface ForwardWorkersHaveRevertedToPeasantsArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  state: MoveForwardState;
+}
+
+function forwardWorkersHaveRevertedToPeasants({
+  beliefs,
+  rush,
+  state,
+}: ForwardWorkersHaveRevertedToPeasantsArgs): boolean {
   const survivingForwardWorkers = rush.forwardWorkers.filter(
     (worker) =>
       beliefs.peasants.includes(worker) || beliefs.militia.includes(worker)

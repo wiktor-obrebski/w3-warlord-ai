@@ -6,40 +6,42 @@ import { startRuntime } from './runtime';
 import { installBotPlayer } from './privileged/install-bot-player';
 import { enableDebugMode, updateDebugMode } from './privileged/debug-mode';
 
-const DEBUG_MODE = true;
-const DEBUG_MODE_UPDATE_SECONDS = 0.1;
+export { main };
+
+const DebugModeEnabled = true;
+const DebugModeUpdateSeconds = 0.1;
 
 /**
  * Entry point called by the runtime wrapper during melee initialization,
  * once per computer player handed over to Warlord AI.
  */
-export function main(computerPlayer: W3PlayerApi.player) {
-  const bot = installBotPlayer(computerPlayer);
+function main(computerPlayer: W3PlayerApi.player) {
+  const bot = installBotPlayer({ computerPlayer });
 
-  runAfterMapInitialization(() => play(bot));
+  runAfterMapInitialization({ callback: () => play({ bot }) });
 }
 
-function play(bot: W3PlayerApi.player) {
-  debug(`Bot player id: ${W3PlayerApi.GetPlayerId(bot)}`);
+function play({ bot }: { bot: W3PlayerApi.player }) {
+  debug({ message: `Bot player id: ${W3PlayerApi.GetPlayerId(bot)}` });
 
-  if (DEBUG_MODE) {
-    startDebugMode(bot);
+  if (DebugModeEnabled) {
+    startDebugMode({ bot });
   }
 
-  startRuntime(bot);
+  startRuntime({ bot });
 }
 
-function startDebugMode(bot: W3PlayerApi.player) {
-  const debugMode = enableDebugMode(debugObserver());
+function startDebugMode({ bot }: { bot: W3PlayerApi.player }) {
+  const debugMode = enableDebugMode({ observer: debugObserver() });
   const timer = W3TimerApi.CreateTimer();
 
   W3TimerApi.TimerStart(
     timer,
-    DEBUG_MODE_UPDATE_SECONDS,
+    DebugModeUpdateSeconds,
     true,
-    WarlordApi.guard(() => updateDebugMode(debugMode, bot))
+    WarlordApi.guard(() => updateDebugMode({ debugMode, bot }))
   );
-  updateDebugMode(debugMode, bot);
+  updateDebugMode({ debugMode, bot });
 }
 
 // The same player `debug` messages are shown to.
@@ -53,7 +55,13 @@ function debugObserver(): W3PlayerApi.player {
   return observer;
 }
 
-function runAfterMapInitialization(callback: (this: void) => void) {
+interface RunAfterMapInitializationArgs {
+  callback: (this: void) => void;
+}
+
+function runAfterMapInitialization({
+  callback,
+}: RunAfterMapInitializationArgs) {
   const timer = W3TimerApi.CreateTimer();
 
   W3TimerApi.TimerStart(

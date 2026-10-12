@@ -6,39 +6,60 @@ import { CommonBeliefs } from '../../beliefs/common.beliefs';
 import { closestUnit, positionOf } from '../../beliefs/common.assessments';
 import { TowerRushState } from './tower-rush.state';
 
-// Clears the tower's 128x128 footprint with room for the Peasant.
-const HIDING_DISTANCE_BEHIND_TOWER = 160;
+export { hideBehindClosestTower, forgetSentToSafety, controlForwardPeasants };
 
-export function hideBehindClosestTower(
-  worker: W3UnitApi.unit,
-  towers: readonly W3UnitApi.unit[],
-  enemyMain: Point,
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState
-) {
-  const shelter = closestUnit(beliefs, towers, worker);
+// Clears the tower's 128x128 footprint with room for the Peasant.
+const HidingDistanceBehindTower = 160;
+
+interface HideBehindClosestTowerArgs {
+  worker: W3UnitApi.unit;
+  towers: readonly W3UnitApi.unit[];
+  enemyMain: Point;
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+}
+
+function hideBehindClosestTower({
+  worker,
+  towers,
+  enemyMain,
+  beliefs,
+  rush,
+}: HideBehindClosestTowerArgs) {
+  const shelter = closestUnit({ beliefs, units: towers, to: worker });
 
   if (!shelter) {
     return;
   }
 
-  const spot = spotBehind(positionOf(beliefs, shelter), enemyMain);
+  const spot = spotBehind({
+    tower: positionOf({ beliefs, unit: shelter }),
+    enemyMain,
+  });
 
   if (W3UnitApi.IssuePointOrder(worker, 'move', spot.x, spot.y)) {
     rush.forwardWorkersSentToSafety.push(worker);
-    debug('Tower rush: forward Peasant hides behind a tower.');
+    debug({ message: 'Tower rush: forward Peasant hides behind a tower.' });
   } else {
-    debug('Tower rush: move to safety rejected.');
+    debug({ message: 'Tower rush: move to safety rejected.' });
   }
 }
 
-export function forgetSentToSafety(
-  worker: W3UnitApi.unit,
-  rush: TowerRushState
-) {
+interface ForgetSentToSafetyArgs {
+  worker: W3UnitApi.unit;
+  rush: TowerRushState;
+}
+
+function forgetSentToSafety({ worker, rush }: ForgetSentToSafetyArgs) {
   rush.forwardWorkersSentToSafety = rush.forwardWorkersSentToSafety.filter(
     (sent) => sent !== worker
   );
+}
+
+interface ControlForwardPeasantsArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  control: ActorControl;
 }
 
 /**
@@ -49,11 +70,11 @@ export function forgetSentToSafety(
  * Peasant for longer than the time between two tower rush updates, so a
  * takeover is always seen here.
  */
-export function controlForwardPeasants(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
-  control: ActorControl
-): W3UnitApi.unit[] {
+function controlForwardPeasants({
+  beliefs,
+  rush,
+  control,
+}: ControlForwardPeasantsArgs): W3UnitApi.unit[] {
   const controlled: W3UnitApi.unit[] = [];
 
   for (const worker of rush.forwardWorkers) {
@@ -61,21 +82,29 @@ export function controlForwardPeasants(
       continue;
     }
 
-    if (control.request(worker, NORMAL_REQUEST)) {
+    if (control.request({ actor: worker, request: NORMAL_REQUEST })) {
       controlled.push(worker);
     } else {
-      forgetSentToSafety(worker, rush);
+      forgetSentToSafety({ worker, rush });
     }
   }
 
   return controlled;
 }
 
-// On the far side of the tower as seen from the enemy main hall.
-function spotBehind(tower: Point, enemyMain: Point): Point {
-  const awayFromEnemyMain = new Vector(enemyMain, tower).normalize();
+interface SpotBehindArgs {
+  tower: Point;
+  enemyMain: Point;
+}
 
-  return tower.translate(
-    awayFromEnemyMain.multiply(HIDING_DISTANCE_BEHIND_TOWER)
-  );
+// On the far side of the tower as seen from the enemy main hall.
+function spotBehind({ tower, enemyMain }: SpotBehindArgs): Point {
+  const awayFromEnemyMain = new Vector({
+    start: enemyMain,
+    end: tower,
+  }).normalize();
+
+  return tower.translate({
+    vector: awayFromEnemyMain.multiply({ scalar: HidingDistanceBehindTower }),
+  });
 }

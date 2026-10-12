@@ -2,6 +2,8 @@ import * as W3GroupApi from '@lib/warcraft3-api/group';
 import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3PrivilegedApi from '@lib/warcraft3-api/privileged';
 
+export { installBotPlayer };
+
 interface BotInstallation {
   computerPlayer: W3PlayerApi.player;
   botPlayer: W3PlayerApi.player;
@@ -21,6 +23,10 @@ interface MapGlobals {
 
 declare const map_globals: MapGlobals;
 
+interface InstallBotPlayerArgs {
+  computerPlayer: W3PlayerApi.player;
+}
+
 /**
  * Moves the computer player chosen in the lobby into an empty slot and
  * returns that slot's player for the bot to control.
@@ -28,9 +34,9 @@ declare const map_globals: MapGlobals;
  * Must run before `MeleeInitVictoryDefeat`, which only tracks players whose
  * slot state is playing at that moment.
  */
-export function installBotPlayer(
-  computerPlayer: W3PlayerApi.player
-): W3PlayerApi.player {
+function installBotPlayer({
+  computerPlayer,
+}: InstallBotPlayerArgs): W3PlayerApi.player {
   const installations = setupBotInstallations();
   const botPlayer = findEmptyPlayerSlot();
 
@@ -38,7 +44,7 @@ export function installBotPlayer(
     throw new Error('No empty player slot available for Warlord AI.');
   }
 
-  transferPlayer(computerPlayer, botPlayer);
+  transferPlayer({ fromPlayer: computerPlayer, toPlayer: botPlayer });
   W3PrivilegedApi.SetPlayerName(botPlayer, 'Warlord AI');
 
   installations.push({ computerPlayer, botPlayer });
@@ -96,10 +102,12 @@ function findEmptyPlayerSlot(): W3PlayerApi.player | undefined {
   return undefined;
 }
 
-function transferPlayer(
-  fromPlayer: W3PlayerApi.player,
-  toPlayer: W3PlayerApi.player
-) {
+interface TransferPlayerArgs {
+  fromPlayer: W3PlayerApi.player;
+  toPlayer: W3PlayerApi.player;
+}
+
+function transferPlayer({ fromPlayer, toPlayer }: TransferPlayerArgs) {
   const units = W3GroupApi.CreateGroup();
   W3GroupApi.GroupEnumUnitsOfPlayer(units, fromPlayer, null);
 

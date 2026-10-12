@@ -80,11 +80,11 @@ Every Intention, Plan, and Controller is constructed by a provider function, whi
 
 The component class stays private to its module, so the runtime always receives a component together with its metadata, and the component never sees it.
 
-A component that creates children at run time receives child factories from its provider. `childFactory(children, provide)` returns a function that calls the child's provider, records the result in the parent's `children`, and returns only a handle:
+A component that creates children at run time receives child factories from its provider. `childFactory({ children, provide })` returns a function that calls the child's provider, records the result in the parent's `children`, and returns only a handle:
 
 ```ts
 const plan = this.createPlan(); // { value, discard }
-updateChild(plan.value);
+updateChild({ child: plan.value });
 plan.discard(); // the child leaves the tree
 ```
 
@@ -94,12 +94,12 @@ The records form the component tree the beliefs runtime manages; the same mechan
 
 ```text
 1. common     = beliefs.reviseCommon()
-2. intentions = deliberation.deliberate(common, desires, intentions)   // Provided records
-3. beliefs.sync(intentions)
+2. intentions = deliberation.deliberate({ beliefs: common, desires, intentions })   // Provided records
+3. beliefs.sync({ roots: intentions })
      register new components, remove gone ones, revise every Scoped Beliefs
-4. intention.value.update(beliefs.beliefsOf(intention.value), updateChild) for every Intention
-     → updateChild(child): arbiter.update(child, control => child.update(beliefs.beliefsOf(child), control))
-5. arbiter.releaseInactive(beliefs.prune())
+4. intention.value.update({ beliefs: beliefs.beliefsOf({ component: intention.value }), updateChild }) for every Intention
+     → updateChild({ child }): arbiter.update({ source: child, run: ({ control }) => child.update({ beliefs: beliefs.beliefsOf({ component: child }), control }) })
+5. arbiter.releaseInactive({ activeSources: beliefs.prune() })
 ```
 
 A component created during step 4 is registered, and its Scoped Beliefs first revised, by `beliefsOf()` before its first update. A component discarded during step 4 is removed by `prune()`, which also releases its actor control. Revising a new component adds Beliefs but changes no other component's.
@@ -110,16 +110,21 @@ A component created during step 4 is registered, and its Scoped Beliefs first re
 
 ```ts
 observe(): TObservation
-revise(previous: Readonly<TCommonBeliefs> | null, observation: Readonly<TObservation>): TCommonBeliefs
+revise({ previous, observation }: {
+  previous: Readonly<TCommonBeliefs> | null;
+  observation: Readonly<TObservation>;
+}): TCommonBeliefs
 ```
 
 ### `BeliefsModel<TObservation, TBeliefs, TCommonBeliefs>`
 
 ```ts
 observe(): TObservation
-revise(previous: Readonly<TBeliefs> | null,
-       observation: Readonly<TObservation>,
-       common: Readonly<TCommonBeliefs>): TBeliefs   // never null
+revise({ previous, observation, common }: {
+  previous: Readonly<TBeliefs> | null;
+  observation: Readonly<TObservation>;
+  common: Readonly<TCommonBeliefs>;
+}): TBeliefs   // never null
 ```
 
 `observe()` takes no parameters and reads the external environment only. `AnyBeliefsModel` is any model, as the runtime handles it.
@@ -127,11 +132,11 @@ revise(previous: Readonly<TBeliefs> | null,
 ### `BeliefContainer<TCommonBeliefs>`
 
 ```ts
-getCommonBeliefs() / setCommonBeliefs(beliefs)
-getScopedBeliefs(component): { beliefs, beliefsModel }   // beliefs null before the first revision
-registerScopedBeliefs(component, beliefsModel)
-setScopedBeliefs(component, beliefs)
-removeScopedBeliefs(component)
+getCommonBeliefs() / setCommonBeliefs({ beliefs })
+getScopedBeliefs({ component }): { beliefs, beliefsModel }   // beliefs null before the first revision
+registerScopedBeliefs({ component, beliefsModel })
+setScopedBeliefs({ component, beliefs })
+removeScopedBeliefs({ component })
 ```
 
 Stores belief state only; owned by the beliefs runtime.
@@ -139,10 +144,10 @@ Stores belief state only; owned by the beliefs runtime.
 ### `BeliefsRuntime<TCommonBeliefs>`
 
 ```ts
-createBeliefsRuntime(commonModel): BeliefsRuntime<TCommonBeliefs>
+createBeliefsRuntime({ commonModel }): BeliefsRuntime<TCommonBeliefs>
 reviseCommon(): Readonly<TCommonBeliefs>
-sync(roots: readonly Provided[]): void
-beliefsOf(component): ComponentBeliefs<TCommonBeliefs, unknown>   // throws for an unmanaged component
+sync({ roots }: { roots: readonly Provided[] }): void
+beliefsOf({ component }): ComponentBeliefs<TCommonBeliefs, unknown>   // throws for an unmanaged component
 prune(): ReadonlySet<object>                                       // the managed components
 ```
 
@@ -164,7 +169,7 @@ readonly value: TValue
 readonly beliefsModel?: AnyBeliefsModel<TCommonBeliefs>
 readonly children: readonly Provided<object, TCommonBeliefs>[]
 
-childFactory(children, provide): ChildFactory<TValue>   // () => ChildHandle<TValue>
+childFactory({ children, provide }): ChildFactory<TValue>   // () => ChildHandle<TValue>
 ChildHandle<TValue>: { value, discard() }
 ```
 
@@ -180,7 +185,7 @@ readonly description: string
 ### `Deliberation<TBeliefs, TDesire, TIntention>`
 
 ```ts
-deliberate(beliefs, desires, intentions): readonly TIntention[]
+deliberate({ beliefs, desires, intentions }): readonly TIntention[]
 ```
 
 The returned set defines which commitments remain active:
@@ -194,16 +199,19 @@ Retained Intentions must not be recreated. One Desire may lead to any number of 
 ### `Intention<TBeliefs, TControl, TChildBeliefs = TBeliefs>`
 
 ```ts
-update(beliefs, updateChild: UpdateChild<TChildBeliefs, TControl>): void
+update({ beliefs, updateChild }: {
+  beliefs: Readonly<TBeliefs>;
+  updateChild: UpdateChild<TChildBeliefs, TControl>;
+}): void
 ```
 
-An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to create, update, and discard them. It updates a child only through `updateChild(child)`, which runs the child's `update()` with the child's own Beliefs and actor control scoped to it.
+An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to create, update, and discard them. It updates a child only through `updateChild({ child })`, which runs the child's `update()` with the child's own Beliefs and actor control scoped to it.
 
 ### `Plan<TBeliefs, TControl>`
 
 ```ts
 readonly status: PlanStatus  // "running" | "succeeded" | "failed"
-update(beliefs, control: TControl): void
+update({ beliefs, control }: { beliefs: Readonly<TBeliefs>; control: TControl }): void
 ```
 
 `TBeliefs` is normally `ComponentBeliefs`; `TControl` is the agent's actor control capability, normally an `ActorControlProvider<TActor, TRequest>`.
@@ -213,7 +221,7 @@ update(beliefs, control: TControl): void
 ### `Controller<TBeliefs, TControl>`
 
 ```ts
-update(beliefs, control: TControl): void
+update({ beliefs, control }: { beliefs: Readonly<TBeliefs>; control: TControl }): void
 ```
 
 A Controller reacts continuously and never completes. It may keep private execution state.
@@ -225,14 +233,14 @@ An **Actor** is anything in the environment the agent can give orders to; its ty
 ### `ActorControlProvider<TActor, TRequest>`
 
 ```ts
-request(actor, request: TRequest): boolean
+request({ actor, request }: { actor: TActor; request: TRequest }): boolean
 ```
 
 Passed to a Plan or Controller during its update, scoped to it, so requests need not name the source. A source orders an Actor only after a request for it returned `true`:
 
 ```ts
-if (control.request(worker, NORMAL_REQUEST)) {
-  repair(worker, tower);
+if (control.request({ actor: worker, request: NORMAL_REQUEST })) {
+  repair({ worker, tower });
 }
 ```
 
@@ -241,8 +249,13 @@ if (control.request(worker, NORMAL_REQUEST)) {
 ### `ActorControlPolicy<TRequest>`
 
 ```ts
-(request: TRequest, currentClaim: ActorControlClaim<TRequest> | null) =>
-  boolean;
+({
+  request,
+  currentClaim,
+}: {
+  request: TRequest;
+  currentClaim: ActorControlClaim<TRequest> | null;
+}) => boolean;
 ```
 
 The agent's rule for whether a request takes an Actor the requester does not already control. `currentClaim` is the claim another source holds, with the request that granted or last renewed it, or `null` for an uncontrolled Actor. The library only enforces the mechanism around it: one controller per Actor, renewal of one's own claim (always granted, never sent to the policy; the claim keeps the latest request), and leases.
@@ -254,9 +267,9 @@ Control is a lease. During each of its updates, a source requests every Actor it
 ### `ActorControlArbiter<TActor, TRequest>`
 
 ```ts
-createActorControlArbiter<TActor, TRequest>(policy): ActorControlArbiter<TActor, TRequest>
-update(source, run: (control) => void): void
-releaseInactive(activeSources: ReadonlySet<object>): void
+createActorControlArbiter<TActor, TRequest>({ policy }): ActorControlArbiter<TActor, TRequest>
+update({ source, run }: { source: object; run: ({ control }) => void }): void
+releaseInactive({ activeSources }: { activeSources: ReadonlySet<object> }): void
 ```
 
 Owned by the agent's runtime and created with the agent's policy. `update` runs one source update with control scoped to it, then expires the source's unrenewed claims. `releaseInactive` drops the claims of sources no longer in the managed component tree, such as a discarded Plan, which will not update again to let them expire.

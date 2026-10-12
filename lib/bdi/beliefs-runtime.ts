@@ -2,14 +2,20 @@ import { createBeliefContainer } from './belief-container';
 import type { CommonBeliefsModel } from './beliefs-model';
 import type { Provided } from './provided';
 
+export { type ComponentBeliefs, type BeliefsRuntime, createBeliefsRuntime };
+
 /**
  * The Beliefs one component reads during its update: the Common Beliefs and
  * its own Scoped Beliefs, which are null for a component without a
  * BeliefsModel. Scoped Beliefs types should have read-only properties.
  */
-export interface ComponentBeliefs<TCommonBeliefs, TScopedBeliefs> {
+interface ComponentBeliefs<TCommonBeliefs, TScopedBeliefs> {
   readonly common: Readonly<TCommonBeliefs>;
   readonly scoped: TScopedBeliefs;
+}
+
+interface BeliefsRuntimeBeliefsOfArgs {
+  component: object;
 }
 
 /**
@@ -18,7 +24,7 @@ export interface ComponentBeliefs<TCommonBeliefs, TScopedBeliefs> {
  * with a BeliefsModel gets Scoped Beliefs, revised each cycle, and loses them
  * when it leaves the tree.
  */
-export interface BeliefsRuntime<TCommonBeliefs> {
+interface BeliefsRuntime<TCommonBeliefs> {
   /**
    * Revises the Common Beliefs; the first step of every cycle.
    */
@@ -29,14 +35,16 @@ export interface BeliefsRuntime<TCommonBeliefs> {
    * components new to it, removes the Scoped Beliefs of components gone from
    * it, and revises the Scoped Beliefs of every registered component.
    */
-  sync(roots: readonly Provided<object, TCommonBeliefs>[]): void;
+  sync({ roots }: { roots: readonly Provided<object, TCommonBeliefs>[] }): void;
 
   /**
    * The Beliefs of a managed component for this cycle. A component created
    * since the last sync is registered and first revised here, so its Scoped
    * Beliefs exist before its first update.
    */
-  beliefsOf(component: object): ComponentBeliefs<TCommonBeliefs, unknown>;
+  beliefsOf({
+    component,
+  }: BeliefsRuntimeBeliefsOfArgs): ComponentBeliefs<TCommonBeliefs, unknown>;
 
   /**
    * Removes components gone from the tree since the last sync, such as
@@ -45,22 +53,38 @@ export interface BeliefsRuntime<TCommonBeliefs> {
   prune(): ReadonlySet<object>;
 }
 
-export function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>(
-  commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>
-): BeliefsRuntime<TCommonBeliefs> {
+interface CreateBeliefsRuntimeArgs<TCommonObservation, TCommonBeliefs> {
+  commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>;
+}
+
+interface VisitArgs<TCommonBeliefs> {
+  provided: Provided<object, TCommonBeliefs>;
+}
+
+function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
+  commonModel,
+}: CreateBeliefsRuntimeArgs<
+  TCommonObservation,
+  TCommonBeliefs
+>): BeliefsRuntime<TCommonBeliefs> {
   const container = createBeliefContainer<TCommonBeliefs>();
   let roots: readonly Provided<object, TCommonBeliefs>[] = [];
   let managed = new Set<object>();
 
-  const reviseScoped = (component: object) => {
-    const { beliefs: previous, beliefsModel } =
-      container.getScopedBeliefs(component);
+  const reviseScoped = ({ component }: { component: object }) => {
+    const { beliefs: previous, beliefsModel } = container.getScopedBeliefs({
+      component,
+    });
     const observation = beliefsModel.observe();
 
-    container.setScopedBeliefs(
+    container.setScopedBeliefs({
       component,
-      beliefsModel.revise(previous, observation, container.getCommonBeliefs())
-    );
+      beliefs: beliefsModel.revise({
+        previous,
+        observation,
+        common: container.getCommonBeliefs(),
+      }),
+    });
   };
 
   // Matches the managed components to the current tree, registering new
@@ -70,29 +94,32 @@ export function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>(
     const current = new Set<object>();
     const registered: object[] = [];
 
-    const visit = (provided: Provided<object, TCommonBeliefs>) => {
+    const visit = ({ provided }: VisitArgs<TCommonBeliefs>) => {
       current.add(provided.value);
 
       if (
         provided.beliefsModel &&
-        !container.hasScopedBeliefs(provided.value)
+        !container.hasScopedBeliefs({ component: provided.value })
       ) {
-        container.registerScopedBeliefs(provided.value, provided.beliefsModel);
+        container.registerScopedBeliefs({
+          component: provided.value,
+          beliefsModel: provided.beliefsModel,
+        });
         registered.push(provided.value);
       }
 
       for (const child of provided.children) {
-        visit(child);
+        visit({ provided: child });
       }
     };
 
     for (const root of roots) {
-      visit(root);
+      visit({ provided: root });
     }
 
     for (const component of container.scopedComponents()) {
       if (!current.has(component)) {
-        container.removeScopedBeliefs(component);
+        container.removeScopedBeliefs({ component });
       }
     }
 
@@ -106,26 +133,29 @@ export function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>(
       const previous = container.hasCommonBeliefs()
         ? container.getCommonBeliefs()
         : null;
-      const next = commonModel.revise(previous, commonModel.observe());
+      const next = commonModel.revise({
+        previous,
+        observation: commonModel.observe(),
+      });
 
-      container.setCommonBeliefs(next);
+      container.setCommonBeliefs({ beliefs: next });
 
       return next;
     },
 
-    sync(newRoots) {
+    sync({ roots: newRoots }) {
       roots = newRoots;
       refresh();
 
       for (const component of container.scopedComponents()) {
-        reviseScoped(component);
+        reviseScoped({ component });
       }
     },
 
-    beliefsOf(component) {
+    beliefsOf({ component }) {
       if (!managed.has(component)) {
         for (const registered of refresh()) {
-          reviseScoped(registered);
+          reviseScoped({ component: registered });
         }
 
         if (!managed.has(component)) {
@@ -135,8 +165,8 @@ export function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>(
 
       return {
         common: container.getCommonBeliefs(),
-        scoped: container.hasScopedBeliefs(component)
-          ? container.getScopedBeliefs(component).beliefs
+        scoped: container.hasScopedBeliefs({ component })
+          ? container.getScopedBeliefs({ component }).beliefs
           : null,
       };
     },

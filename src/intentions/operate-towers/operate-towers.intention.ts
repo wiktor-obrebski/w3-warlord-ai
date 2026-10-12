@@ -10,33 +10,49 @@ import {
 import { UpdateInterval } from '../update-interval';
 import { provideTowerTargetSelectionController } from './tower-target-selection.ctrl';
 
-const UPDATE_SECONDS = 1;
+export { provideOperateTowersIntention };
+
+const UpdateSeconds = 1;
+
+interface OperateTowersIntentionConstructorArgs {
+  createTargetSelection: ChildFactory<WarlordController>;
+}
+
+interface OperateTowersIntentionUpdateArgs {
+  beliefs: WarlordBeliefs;
+  updateChild: WarlordUpdateChild;
+}
 
 /** Directs the fire of the bot's Guard Towers. */
 class OperateTowersIntention implements WarlordIntention {
-  private readonly interval = new UpdateInterval(UPDATE_SECONDS);
+  private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
   private readonly createTargetSelection: ChildFactory<WarlordController>;
   private targetSelection: WarlordController | null = null;
 
-  public constructor(createTargetSelection: ChildFactory<WarlordController>) {
+  public constructor({
+    createTargetSelection,
+  }: OperateTowersIntentionConstructorArgs) {
     this.createTargetSelection = createTargetSelection;
   }
 
-  public update(beliefs: WarlordBeliefs, updateChild: WarlordUpdateChild) {
-    if (this.interval.claim(beliefs.common.time)) {
+  public update({ beliefs, updateChild }: OperateTowersIntentionUpdateArgs) {
+    if (this.interval.claim({ now: beliefs.common.time })) {
       this.targetSelection ??= this.createTargetSelection().value;
-      updateChild(this.targetSelection);
+      updateChild({ child: this.targetSelection });
     }
   }
 }
 
-export function provideOperateTowersIntention(): ProvidedComponent<WarlordIntention> {
+function provideOperateTowersIntention(): ProvidedComponent<WarlordIntention> {
   const children: ProvidedChildren = [];
 
   return {
-    value: new OperateTowersIntention(
-      childFactory(children, provideTowerTargetSelectionController)
-    ),
+    value: new OperateTowersIntention({
+      createTargetSelection: childFactory({
+        children,
+        provide: () => provideTowerTargetSelectionController(),
+      }),
+    }),
     children,
   };
 }

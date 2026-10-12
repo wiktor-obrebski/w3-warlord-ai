@@ -1,12 +1,28 @@
 import type { AnyBeliefsModel } from './beliefs-model';
 
+export { type ScopedBeliefs, type BeliefContainer, createBeliefContainer };
+
 /**
  * A component's Scoped Beliefs and the model that maintains them.
  */
-export interface ScopedBeliefs<TCommonBeliefs> {
+interface ScopedBeliefs<TCommonBeliefs> {
   /** Null until the component's first revision. */
   readonly beliefs: unknown;
   readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
+}
+
+interface BeliefContainerGetScopedBeliefsArgs {
+  component: object;
+}
+
+interface BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs> {
+  component: object;
+  beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
+}
+
+interface BeliefContainerSetScopedBeliefsArgs {
+  component: object;
+  beliefs: unknown;
 }
 
 /**
@@ -16,28 +32,33 @@ export interface ScopedBeliefs<TCommonBeliefs> {
  * The container only stores state; the beliefs runtime decides when it is
  * revised, registered, and removed.
  */
-export interface BeliefContainer<TCommonBeliefs> {
+interface BeliefContainer<TCommonBeliefs> {
   hasCommonBeliefs(): boolean;
 
   /** Throws before the Common Beliefs were first revised. */
   getCommonBeliefs(): Readonly<TCommonBeliefs>;
 
-  setCommonBeliefs(beliefs: TCommonBeliefs): void;
+  setCommonBeliefs({ beliefs }: { beliefs: TCommonBeliefs }): void;
 
-  hasScopedBeliefs(component: object): boolean;
+  hasScopedBeliefs({ component }: { component: object }): boolean;
 
   /** Throws for a component without registered Scoped Beliefs. */
-  getScopedBeliefs(component: object): ScopedBeliefs<TCommonBeliefs>;
+  getScopedBeliefs({
+    component,
+  }: BeliefContainerGetScopedBeliefsArgs): ScopedBeliefs<TCommonBeliefs>;
 
   /** Registers the component with no Beliefs yet. */
-  registerScopedBeliefs(
-    component: object,
-    beliefsModel: AnyBeliefsModel<TCommonBeliefs>
-  ): void;
+  registerScopedBeliefs({
+    component,
+    beliefsModel,
+  }: BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs>): void;
 
-  setScopedBeliefs(component: object, beliefs: unknown): void;
+  setScopedBeliefs({
+    component,
+    beliefs,
+  }: BeliefContainerSetScopedBeliefsArgs): void;
 
-  removeScopedBeliefs(component: object): void;
+  removeScopedBeliefs({ component }: { component: object }): void;
 
   /** The components with registered Scoped Beliefs, as a new list. */
   scopedComponents(): object[];
@@ -48,13 +69,13 @@ interface ScopedEntry<TCommonBeliefs> {
   readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
 }
 
-export function createBeliefContainer<
+function createBeliefContainer<
   TCommonBeliefs,
 >(): BeliefContainer<TCommonBeliefs> {
   let common: TCommonBeliefs | null = null;
   const scoped = new Map<object, ScopedEntry<TCommonBeliefs>>();
 
-  const scopedEntry = (component: object) => {
+  const scopedEntry = ({ component }: { component: object }) => {
     const entry = scoped.get(component);
 
     if (!entry) {
@@ -75,15 +96,15 @@ export function createBeliefContainer<
       return common;
     },
 
-    setCommonBeliefs(beliefs) {
+    setCommonBeliefs({ beliefs }) {
       common = beliefs;
     },
 
-    hasScopedBeliefs: (component) => scoped.has(component),
+    hasScopedBeliefs: ({ component }) => scoped.has(component),
 
-    getScopedBeliefs: (component) => scopedEntry(component),
+    getScopedBeliefs: ({ component }) => scopedEntry({ component }),
 
-    registerScopedBeliefs(component, beliefsModel) {
+    registerScopedBeliefs({ component, beliefsModel }) {
       if (scoped.has(component)) {
         throw new Error('Beliefs: component already registered.');
       }
@@ -91,11 +112,11 @@ export function createBeliefContainer<
       scoped.set(component, { beliefs: null, beliefsModel });
     },
 
-    setScopedBeliefs(component, beliefs) {
-      scopedEntry(component).beliefs = beliefs;
+    setScopedBeliefs({ component, beliefs }) {
+      scopedEntry({ component }).beliefs = beliefs;
     },
 
-    removeScopedBeliefs(component) {
+    removeScopedBeliefs({ component }) {
       scoped.delete(component);
     },
 

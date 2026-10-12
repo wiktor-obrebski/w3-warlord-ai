@@ -1,40 +1,42 @@
 import type { Point } from './point';
 
-const TOLERANCE = 0.000001;
-const TWO_PI = Math.PI * 2;
+export { Vector };
 
-export class Vector {
+const Tolerance = 0.000001;
+const TwoPi = Math.PI * 2;
+
+class Vector {
   public readonly x: number;
   public readonly y: number;
 
   /**
    * Creates a vector from its x and y components.
    */
-  public constructor(x: number, y: number);
+  public constructor({ x, y }: { x: number; y: number });
 
   /**
    * Creates a vector pointing from `start` to `end`.
    */
-  public constructor(start: Point, end: Point);
+  public constructor({ start, end }: { start: Point; end: Point });
 
-  public constructor(...args: [number, number] | [Point, Point]) {
-    if (typeof args[0] === 'number' && typeof args[1] === 'number') {
-      this.x = args[0];
-      this.y = args[1];
+  public constructor(
+    args: { x: number; y: number } | { start: Point; end: Point }
+  ) {
+    if ('start' in args) {
+      this.x = args.end.x - args.start.x;
+      this.y = args.end.y - args.start.y;
       return;
     }
 
-    const [first, second] = args as [Point, Point];
-
-    this.x = second.x - first.x;
-    this.y = second.y - first.y;
+    this.x = args.x;
+    this.y = args.y;
   }
 
   /**
    * Returns a copy of this vector.
    */
   public clone(): Vector {
-    return new Vector(this.x, this.y);
+    return new Vector({ x: this.x, y: this.y });
   }
 
   /**
@@ -44,7 +46,7 @@ export class Vector {
    */
   public get slope(): number {
     const angle = Math.atan2(this.y, this.x);
-    return angle < 0 ? angle + TWO_PI : angle;
+    return angle < 0 ? angle + TwoPi : angle;
   }
 
   /**
@@ -58,27 +60,30 @@ export class Vector {
    * Returns whether this vector has effectively zero length.
    */
   public isZeroLength(): boolean {
-    return this.length < TOLERANCE;
+    return this.length < Tolerance;
   }
 
   /**
    * Returns whether this vector is equal to another vector within the configured tolerance.
    */
-  public equalTo(vector: Vector): boolean {
-    return equalNumber(this.x, vector.x) && equalNumber(this.y, vector.y);
+  public equalTo({ vector }: { vector: Vector }): boolean {
+    return (
+      equalNumber({ a: this.x, b: vector.x }) &&
+      equalNumber({ a: this.y, b: vector.y })
+    );
   }
 
   /**
    * Returns this vector multiplied by a scalar.
    */
-  public multiply(scalar: number): Vector {
-    return new Vector(this.x * scalar, this.y * scalar);
+  public multiply({ scalar }: { scalar: number }): Vector {
+    return new Vector({ x: this.x * scalar, y: this.y * scalar });
   }
 
   /**
    * Returns the dot product of this vector and another vector.
    */
-  public dot(vector: Vector): number {
+  public dot({ vector }: { vector: Vector }): number {
     return this.x * vector.x + this.y * vector.y;
   }
 
@@ -87,7 +92,7 @@ export class Vector {
    *
    * The result is a scalar whose sign indicates their relative orientation.
    */
-  public cross(vector: Vector): number {
+  public cross({ vector }: { vector: Vector }): number {
     return this.x * vector.y - this.y * vector.x;
   }
 
@@ -99,56 +104,59 @@ export class Vector {
   public normalize(): Vector {
     const length = this.length;
 
-    if (length < TOLERANCE) {
+    if (length < Tolerance) {
       throw new Error('Cannot normalize a zero-length vector');
     }
 
-    return new Vector(this.x / length, this.y / length);
+    return new Vector({ x: this.x / length, y: this.y / length });
   }
 
   /**
    * Returns this vector rotated counterclockwise by the given angle in radians.
    */
-  public rotate(angle: number): Vector {
+  public rotate({ angle }: { angle: number }): Vector {
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
 
-    return new Vector(this.x * cos - this.y * sin, this.x * sin + this.y * cos);
+    return new Vector({
+      x: this.x * cos - this.y * sin,
+      y: this.x * sin + this.y * cos,
+    });
   }
 
   /**
    * Returns this vector rotated 90 degrees counterclockwise.
    */
-  public rotate90CCW(): Vector {
-    return new Vector(-this.y, this.x);
+  public rotate90Ccw(): Vector {
+    return new Vector({ x: -this.y, y: this.x });
   }
 
   /**
    * Returns this vector rotated 90 degrees clockwise.
    */
-  public rotate90CW(): Vector {
-    return new Vector(this.y, -this.x);
+  public rotate90Cw(): Vector {
+    return new Vector({ x: this.y, y: -this.x });
   }
 
   /**
    * Returns a vector with the opposite direction and the same length.
    */
   public invert(): Vector {
-    return new Vector(-this.x, -this.y);
+    return new Vector({ x: -this.x, y: -this.y });
   }
 
   /**
    * Returns the sum of this vector and another vector.
    */
-  public add(vector: Vector): Vector {
-    return new Vector(this.x + vector.x, this.y + vector.y);
+  public add({ vector }: { vector: Vector }): Vector {
+    return new Vector({ x: this.x + vector.x, y: this.y + vector.y });
   }
 
   /**
    * Returns another vector subtracted from this vector.
    */
-  public subtract(vector: Vector): Vector {
-    return new Vector(this.x - vector.x, this.y - vector.y);
+  public subtract({ vector }: { vector: Vector }): Vector {
+    return new Vector({ x: this.x - vector.x, y: this.y - vector.y });
   }
 
   /**
@@ -158,13 +166,16 @@ export class Vector {
    *
    * @throws If either vector has zero length.
    */
-  public angleTo(vector: Vector): number {
+  public angleTo({ vector }: { vector: Vector }): number {
     const first = this.normalize();
     const second = vector.normalize();
-    let angle = Math.atan2(first.cross(second), first.dot(second));
+    let angle = Math.atan2(
+      first.cross({ vector: second }),
+      first.dot({ vector: second })
+    );
 
     if (angle < 0) {
-      angle += TWO_PI;
+      angle += TwoPi;
     }
 
     return angle;
@@ -175,16 +186,16 @@ export class Vector {
    *
    * @throws If the target vector has zero length.
    */
-  public projectionOn(vector: Vector): Vector {
+  public projectionOn({ vector }: { vector: Vector }): Vector {
     const normalized = vector.normalize();
-    return normalized.multiply(this.dot(normalized));
+    return normalized.multiply({ scalar: this.dot({ vector: normalized }) });
   }
 }
 
 /**
  * Returns whether two numbers are equal within the configured tolerance.
  */
-function equalNumber(a: number, b: number): boolean {
+function equalNumber({ a, b }: { a: number; b: number }): boolean {
   const difference = a - b;
-  return difference < TOLERANCE && difference > -TOLERANCE;
+  return difference < Tolerance && difference > -Tolerance;
 }
