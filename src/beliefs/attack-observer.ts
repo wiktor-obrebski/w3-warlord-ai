@@ -10,8 +10,6 @@ interface AttackObserver {
   pending: ObservedAttack[];
 }
 
-const NoAttacks: readonly ObservedAttack[] = [];
-
 interface ObserveAttacksOnArgs {
   bot: W3PlayerApi.player;
   clock: GameClock;
@@ -59,6 +57,8 @@ function takeObservedAttacks({
 
   return attacks;
 }
+
+const NoAttacks: readonly ObservedAttack[] = [];
 
 interface RecordAttackArgs {
   observer: AttackObserver;

@@ -23,39 +23,6 @@ import {
 
 export { type BuildTowersState, createBuildTowersState, updateBuildTowers };
 
-// Center distance at which a target still counts as within reach of the
-// upgraded tower (Guard Tower range is 700). Not verified in-game.
-const TowerReach = 700;
-// The exact gold mine and Scout Tower footprints are not known here, so the
-// search starts at the smallest plausible non-colliding distance and widens
-// on rejection. The accepted distances are logged to tune these values.
-const MinDistanceFromMine = 64;
-const DistanceIncrease = 16;
-const RejectionsPerDistanceIncrease = 10;
-// Observed: a rooted Tree of Life attacks. It killed Peasants and towers
-// placed about 450 from the enemy start location where it stands, and still
-// occasionally reached towers at 560.
-const MinDistanceFromEnemyMain = 620;
-// A Scout Tower occupies a 128x128 square; the margin allows for Warcraft
-// shifting the placement onto its build grid. Pending sites must be checked
-// here because Warcraft only sees a tower once its construction has started.
-const MinTowerCenterOffset = 160;
-// How far Warcraft's grid snapping may move a tower from its ordered spot.
-const StartedTowerMatchDistance = 64;
-const AttemptsNextToFirstTower = 10;
-const MaxBuildProgressWorthHelping = 0.5;
-const ReserveUpgradeGoldLifeFraction = 0.5;
-
-interface TowerSite {
-  builder: W3UnitApi.unit;
-  position: Point;
-}
-
-interface TowerHelper {
-  builder: W3UnitApi.unit;
-  tower: W3UnitApi.unit;
-}
-
 interface BuildTowersState {
   // Build orders whose builder is still busy with them.
   pendingTowerSites: TowerSite[];
@@ -65,13 +32,6 @@ interface BuildTowersState {
 
 function createBuildTowersState(): BuildTowersState {
   return { pendingTowerSites: [], towerHelpers: [] };
-}
-
-interface PlacementRules {
-  mine: Point;
-  enemyMain: Point;
-  occupied: Point[];
-  requireEnemyMainInReach: boolean;
 }
 
 interface UpdateBuildTowersArgs {
@@ -205,6 +165,46 @@ function updateBuildTowers({
       ? towerPositions
       : undefined,
   };
+}
+
+// Center distance at which a target still counts as within reach of the
+// upgraded tower (Guard Tower range is 700). Not verified in-game.
+const TowerReach = 700;
+// The exact gold mine and Scout Tower footprints are not known here, so the
+// search starts at the smallest plausible non-colliding distance and widens
+// on rejection. The accepted distances are logged to tune these values.
+const MinDistanceFromMine = 64;
+const DistanceIncrease = 16;
+const RejectionsPerDistanceIncrease = 10;
+// Observed: a rooted Tree of Life attacks. It killed Peasants and towers
+// placed about 450 from the enemy start location where it stands, and still
+// occasionally reached towers at 560.
+const MinDistanceFromEnemyMain = 620;
+// A Scout Tower occupies a 128x128 square; the margin allows for Warcraft
+// shifting the placement onto its build grid. Pending sites must be checked
+// here because Warcraft only sees a tower once its construction has started.
+const MinTowerCenterOffset = 160;
+// How far Warcraft's grid snapping may move a tower from its ordered spot.
+const StartedTowerMatchDistance = 64;
+const AttemptsNextToFirstTower = 10;
+const MaxBuildProgressWorthHelping = 0.5;
+const ReserveUpgradeGoldLifeFraction = 0.5;
+
+interface TowerSite {
+  builder: W3UnitApi.unit;
+  position: Point;
+}
+
+interface TowerHelper {
+  builder: W3UnitApi.unit;
+  tower: W3UnitApi.unit;
+}
+
+interface PlacementRules {
+  mine: Point;
+  enemyMain: Point;
+  occupied: Point[];
+  requireEnemyMainInReach: boolean;
 }
 
 interface BusyNonBuilderArgs {

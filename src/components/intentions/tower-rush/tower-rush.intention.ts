@@ -24,8 +24,6 @@ export {
   assembleTowerRushIntention,
 };
 
-const UpdateSeconds = 1;
-
 interface TowerRushCapabilities {
   readonly actorControl: ActorControl;
 }
@@ -36,6 +34,60 @@ interface TowerRushIntention<
   /** Whether every rush tower stands as a Guard Tower. */
   readonly positionEstablished: boolean;
 }
+
+interface AssembleTowerRushIntentionArgs {
+  capabilities: TowerRushCapabilities;
+}
+
+/**
+ * Assembles the tower rush for a bot whose Common Beliefs are
+ * `TCommonBeliefs`, which must provide what the tower rush needs to know.
+ */
+function assembleTowerRushIntention<
+  TCommonBeliefs extends TowerRushCommonBeliefs,
+>({
+  capabilities,
+}: AssembleTowerRushIntentionArgs): AssembledWarlordComponent<
+  TowerRushIntention<TCommonBeliefs>,
+  TCommonBeliefs
+> {
+  const rush = createTowerRushState();
+  const children: AssembledChildren<TCommonBeliefs> = [];
+
+  return {
+    component: new TowerRush({
+      factories: {
+        createEstablishTowerPositionPlan: childFactory({
+          children,
+          assemble: () =>
+            assembleEstablishTowerPositionPlan({
+              rush,
+              capabilities: { actorControl: capabilities.actorControl },
+            }),
+        }),
+        createEconomyController: childFactory({
+          children,
+          assemble: () =>
+            assembleTowerRushEconomyController({
+              rush,
+              capabilities: { actorControl: capabilities.actorControl },
+            }),
+        }),
+        createTowerMaintenanceController: childFactory({
+          children,
+          assemble: () =>
+            assembleTowerMaintenanceController({
+              rush,
+              capabilities: { actorControl: capabilities.actorControl },
+            }),
+        }),
+      },
+    }),
+    children,
+  };
+}
+
+const UpdateSeconds = 1;
 
 type TowerRushController = WarlordController<TowerRushCommonBeliefs>;
 
@@ -136,56 +188,4 @@ class TowerRush implements TowerRushIntention {
     this.plan = null;
     this.established = true;
   }
-}
-
-interface AssembleTowerRushIntentionArgs {
-  capabilities: TowerRushCapabilities;
-}
-
-/**
- * Assembles the tower rush for a bot whose Common Beliefs are
- * `TCommonBeliefs`, which must provide what the tower rush needs to know.
- */
-function assembleTowerRushIntention<
-  TCommonBeliefs extends TowerRushCommonBeliefs,
->({
-  capabilities,
-}: AssembleTowerRushIntentionArgs): AssembledWarlordComponent<
-  TowerRushIntention<TCommonBeliefs>,
-  TCommonBeliefs
-> {
-  const rush = createTowerRushState();
-  const children: AssembledChildren<TCommonBeliefs> = [];
-
-  return {
-    component: new TowerRush({
-      factories: {
-        createEstablishTowerPositionPlan: childFactory({
-          children,
-          assemble: () =>
-            assembleEstablishTowerPositionPlan({
-              rush,
-              capabilities: { actorControl: capabilities.actorControl },
-            }),
-        }),
-        createEconomyController: childFactory({
-          children,
-          assemble: () =>
-            assembleTowerRushEconomyController({
-              rush,
-              capabilities: { actorControl: capabilities.actorControl },
-            }),
-        }),
-        createTowerMaintenanceController: childFactory({
-          children,
-          assemble: () =>
-            assembleTowerMaintenanceController({
-              rush,
-              capabilities: { actorControl: capabilities.actorControl },
-            }),
-        }),
-      },
-    }),
-    children,
-  };
 }

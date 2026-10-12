@@ -16,13 +16,6 @@ import { updateUpgradeTowers } from './upgrade-towers';
 
 export { type EstablishTowerPositionPlan, assembleEstablishTowerPositionPlan };
 
-enum STEP {
-  START,
-  MOVE_FORWARD,
-  BUILD_TOWERS,
-  UPGRADE_TOWERS,
-}
-
 /**
  * Sends the forward workers next to the enemy main, builds the rush towers
  * there, and upgrades them to Guard Towers. Succeeds once every rush tower is
@@ -34,6 +27,31 @@ enum STEP {
 interface EstablishTowerPositionPlan extends WarlordPlan<TowerRushCommonBeliefs> {
   /** Whether building the rush towers has finished. */
   readonly towersBuilt: boolean;
+}
+
+interface AssembleEstablishTowerPositionPlanArgs {
+  rush: TowerRushState;
+  capabilities: EstablishTowerPositionPlanCapabilities;
+}
+
+function assembleEstablishTowerPositionPlan({
+  rush,
+  capabilities,
+}: AssembleEstablishTowerPositionPlanArgs): AssembledWarlordComponent<
+  EstablishTowerPositionPlan,
+  TowerRushCommonBeliefs
+> {
+  return {
+    component: new EstablishTowerPosition({ rush, capabilities }),
+    children: [],
+  };
+}
+
+enum STEP {
+  START,
+  MOVE_FORWARD,
+  BUILD_TOWERS,
+  UPGRADE_TOWERS,
 }
 
 interface EstablishTowerPositionPlanCapabilities {
@@ -141,22 +159,4 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
     });
     this.step = nextStep;
   }
-}
-
-interface AssembleEstablishTowerPositionPlanArgs {
-  rush: TowerRushState;
-  capabilities: EstablishTowerPositionPlanCapabilities;
-}
-
-function assembleEstablishTowerPositionPlan({
-  rush,
-  capabilities,
-}: AssembleEstablishTowerPositionPlanArgs): AssembledWarlordComponent<
-  EstablishTowerPositionPlan,
-  TowerRushCommonBeliefs
-> {
-  return {
-    component: new EstablishTowerPosition({ rush, capabilities }),
-    children: [],
-  };
 }

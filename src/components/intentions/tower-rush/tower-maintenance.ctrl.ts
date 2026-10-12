@@ -22,6 +22,24 @@ import {
 
 export { assembleTowerMaintenanceController };
 
+interface AssembleTowerMaintenanceControllerArgs {
+  rush: TowerRushState;
+  capabilities: TowerMaintenanceControllerCapabilities;
+}
+
+function assembleTowerMaintenanceController({
+  rush,
+  capabilities,
+}: AssembleTowerMaintenanceControllerArgs): AssembledWarlordComponent<
+  WarlordController<TowerRushCommonBeliefs>,
+  TowerRushCommonBeliefs
+> {
+  return {
+    component: new TowerMaintenanceController({ rush, capabilities }),
+    children: [],
+  };
+}
+
 // A repair starts below the start fraction and is not interrupted before the
 // switch fraction; above it, a tower below the start fraction takes over,
 // otherwise the repair goes on to full life.
@@ -116,24 +134,6 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
       }
     }
   }
-}
-
-interface AssembleTowerMaintenanceControllerArgs {
-  rush: TowerRushState;
-  capabilities: TowerMaintenanceControllerCapabilities;
-}
-
-function assembleTowerMaintenanceController({
-  rush,
-  capabilities,
-}: AssembleTowerMaintenanceControllerArgs): AssembledWarlordComponent<
-  WarlordController<TowerRushCommonBeliefs>,
-  TowerRushCommonBeliefs
-> {
-  return {
-    component: new TowerMaintenanceController({ rush, capabilities }),
-    children: [],
-  };
 }
 
 interface ChooseRepairTargetArgs {

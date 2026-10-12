@@ -14,41 +14,8 @@ import { assembleTowerTargetSelectionController } from './tower-target-selection
 
 export { assembleOperateTowersIntention, type OperateTowersCapabilities };
 
-const UpdateSeconds = 1;
-
 interface OperateTowersCapabilities {
   readonly actorControl: ActorControl;
-}
-
-type OperateTowersController = WarlordController<OperateTowersCommonBeliefs>;
-
-interface OperateTowersIntentionConstructorArgs {
-  createTargetSelection: ChildFactory<OperateTowersController>;
-}
-
-interface OperateTowersIntentionUpdateArgs {
-  beliefs: WarlordBeliefs<OperateTowersCommonBeliefs>;
-  updateChild: WarlordUpdateChild<OperateTowersCommonBeliefs>;
-}
-
-/** Directs the fire of the bot's Guard Towers. */
-class OperateTowersIntention implements WarlordIntention<OperateTowersCommonBeliefs> {
-  private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
-  private readonly createTargetSelection: ChildFactory<OperateTowersController>;
-  private targetSelection: OperateTowersController | null = null;
-
-  public constructor({
-    createTargetSelection,
-  }: OperateTowersIntentionConstructorArgs) {
-    this.createTargetSelection = createTargetSelection;
-  }
-
-  public update({ beliefs, updateChild }: OperateTowersIntentionUpdateArgs) {
-    if (this.interval.claim({ now: beliefs.commonBeliefs.time })) {
-      this.targetSelection ??= this.createTargetSelection().component;
-      updateChild({ child: this.targetSelection });
-    }
-  }
 }
 
 interface AssembleOperateTowersIntentionArgs {
@@ -82,4 +49,37 @@ function assembleOperateTowersIntention<
     }),
     children,
   };
+}
+
+const UpdateSeconds = 1;
+
+type OperateTowersController = WarlordController<OperateTowersCommonBeliefs>;
+
+interface OperateTowersIntentionConstructorArgs {
+  createTargetSelection: ChildFactory<OperateTowersController>;
+}
+
+interface OperateTowersIntentionUpdateArgs {
+  beliefs: WarlordBeliefs<OperateTowersCommonBeliefs>;
+  updateChild: WarlordUpdateChild<OperateTowersCommonBeliefs>;
+}
+
+/** Directs the fire of the bot's Guard Towers. */
+class OperateTowersIntention implements WarlordIntention<OperateTowersCommonBeliefs> {
+  private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
+  private readonly createTargetSelection: ChildFactory<OperateTowersController>;
+  private targetSelection: OperateTowersController | null = null;
+
+  public constructor({
+    createTargetSelection,
+  }: OperateTowersIntentionConstructorArgs) {
+    this.createTargetSelection = createTargetSelection;
+  }
+
+  public update({ beliefs, updateChild }: OperateTowersIntentionUpdateArgs) {
+    if (this.interval.claim({ now: beliefs.commonBeliefs.time })) {
+      this.targetSelection ??= this.createTargetSelection().component;
+      updateChild({ child: this.targetSelection });
+    }
+  }
 }

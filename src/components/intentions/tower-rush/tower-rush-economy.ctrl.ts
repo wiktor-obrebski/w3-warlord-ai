@@ -15,6 +15,52 @@ import { GUARD_TOWER_UPGRADE_GOLD_COST } from './establish-tower-position/upgrad
 
 export { assembleTowerRushEconomyController, trainPeasant };
 
+interface AssembleTowerRushEconomyControllerArgs {
+  rush: TowerRushState;
+  capabilities: TowerRushEconomyControllerCapabilities;
+}
+
+function assembleTowerRushEconomyController({
+  rush,
+  capabilities,
+}: AssembleTowerRushEconomyControllerArgs): AssembledWarlordComponent<
+  WarlordController<TowerRushCommonBeliefs>,
+  TowerRushCommonBeliefs
+> {
+  return {
+    component: new TowerRushEconomyController({ rush, capabilities }),
+    children: [],
+  };
+}
+
+interface TrainPeasantArgs {
+  townHall: W3UnitApi.unit;
+  beliefs: Readonly<TowerRushCommonBeliefs>;
+  rush: TowerRushState;
+}
+
+function trainPeasant({ townHall, beliefs, rush }: TrainPeasantArgs) {
+  const resource = nextWorkerResource({ rush });
+  const startsNow = rush.peasantsInTraining.length === 0;
+
+  if (startsNow) {
+    setRally({ townHall, resource, beliefs });
+  }
+
+  if (W3UnitApi.IssueImmediateOrderById(townHall, W3HumanApi.Unit.PEASANT)) {
+    if (startsNow) {
+      rush.peasantTrainingStartedAt = beliefs.time;
+    }
+
+    rush.peasantsInTraining.push(resource);
+    debug({
+      message: `Tower rush: Peasant training ${startsNow ? 'ordered' : 'queued'} for ${HOME_RESOURCE[resource]}.`,
+    });
+  } else {
+    debug({ message: 'Tower rush: Peasant training order rejected.' });
+  }
+}
+
 const PeasantGoldCost = 75;
 // Warcraft's listed Peasant training time; not verified in-game.
 const PeasantTrainingSeconds = 15;
@@ -99,24 +145,6 @@ class TowerRushEconomyController implements WarlordController<TowerRushCommonBel
       townHall,
     });
   }
-}
-
-interface AssembleTowerRushEconomyControllerArgs {
-  rush: TowerRushState;
-  capabilities: TowerRushEconomyControllerCapabilities;
-}
-
-function assembleTowerRushEconomyController({
-  rush,
-  capabilities,
-}: AssembleTowerRushEconomyControllerArgs): AssembledWarlordComponent<
-  WarlordController<TowerRushCommonBeliefs>,
-  TowerRushCommonBeliefs
-> {
-  return {
-    component: new TowerRushEconomyController({ rush, capabilities }),
-    children: [],
-  };
 }
 
 interface ForgetDeadWorkersArgs {
@@ -343,34 +371,6 @@ function goldReservedForUpgrades({
   );
 
   return towersAwaitingUpgrade.length * GUARD_TOWER_UPGRADE_GOLD_COST;
-}
-
-interface TrainPeasantArgs {
-  townHall: W3UnitApi.unit;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
-  rush: TowerRushState;
-}
-
-function trainPeasant({ townHall, beliefs, rush }: TrainPeasantArgs) {
-  const resource = nextWorkerResource({ rush });
-  const startsNow = rush.peasantsInTraining.length === 0;
-
-  if (startsNow) {
-    setRally({ townHall, resource, beliefs });
-  }
-
-  if (W3UnitApi.IssueImmediateOrderById(townHall, W3HumanApi.Unit.PEASANT)) {
-    if (startsNow) {
-      rush.peasantTrainingStartedAt = beliefs.time;
-    }
-
-    rush.peasantsInTraining.push(resource);
-    debug({
-      message: `Tower rush: Peasant training ${startsNow ? 'ordered' : 'queued'} for ${HOME_RESOURCE[resource]}.`,
-    });
-  } else {
-    debug({ message: 'Tower rush: Peasant training order rejected.' });
-  }
 }
 
 interface SetRallyArgs {

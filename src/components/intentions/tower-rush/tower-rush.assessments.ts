@@ -19,9 +19,6 @@ export {
 };
 
 const RUSH_TOWER_COUNT = 3;
-const MillTreeCandidates = 4;
-// Assumed, not verified in-game.
-const ConstructionStartLifeFraction = 0.1;
 
 interface AllRushTowersBuiltArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
@@ -116,61 +113,6 @@ function lumberDestructablesByPreference({
   });
 
   return [...candidates, ...nearestMill.slice(MillTreeCandidates)];
-}
-
-interface SortByDistanceToArgs {
-  destructables: readonly HomeDestructable[];
-  origin: Point;
-}
-
-function sortByDistanceTo({
-  destructables,
-  origin,
-}: SortByDistanceToArgs): HomeDestructable[] {
-  return destructables
-    .map((destructable) => ({
-      destructable,
-      distance: new Vector({ start: origin, end: destructable.position })
-        .length,
-    }))
-    .sort((a, b) => a.distance - b.distance)
-    .map((withDistance) => withDistance.destructable);
-}
-
-interface IsAwayFromMillArgs {
-  destructable: HomeDestructable;
-}
-
-interface DestructablesAwayFromUnfinishedMillArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
-}
-
-// Nearest home first, with those on the far side of the Hall from the mill
-// ahead of the rest. Before the mill is placed, simply nearest home.
-function destructablesAwayFromUnfinishedMill({
-  beliefs,
-}: DestructablesAwayFromUnfinishedMillArgs): readonly HomeDestructable[] {
-  const mill = beliefs.lumberMills[0];
-
-  if (!mill) {
-    return beliefs.destructablesNearHomeByDistance;
-  }
-
-  const hall = beliefs.ownStartPosition;
-  const toMill = new Vector({
-    start: hall,
-    end: positionOf({ beliefs, unit: mill }),
-  });
-  const isAwayFromMill = ({ destructable }: IsAwayFromMillArgs) =>
-    new Vector({ start: hall, end: destructable.position }).dot({
-      vector: toMill,
-    }) < 0;
-  const nearHome = beliefs.destructablesNearHomeByDistance;
-
-  return [
-    ...nearHome.filter((destructable) => isAwayFromMill({ destructable })),
-    ...nearHome.filter((destructable) => !isAwayFromMill({ destructable })),
-  ];
 }
 
 interface OwnUnitArgs {
@@ -296,4 +238,63 @@ function closestUnit({
   }
 
   return closest;
+}
+
+const MillTreeCandidates = 4;
+// Assumed, not verified in-game.
+const ConstructionStartLifeFraction = 0.1;
+
+interface SortByDistanceToArgs {
+  destructables: readonly HomeDestructable[];
+  origin: Point;
+}
+
+function sortByDistanceTo({
+  destructables,
+  origin,
+}: SortByDistanceToArgs): HomeDestructable[] {
+  return destructables
+    .map((destructable) => ({
+      destructable,
+      distance: new Vector({ start: origin, end: destructable.position })
+        .length,
+    }))
+    .sort((a, b) => a.distance - b.distance)
+    .map((withDistance) => withDistance.destructable);
+}
+
+interface IsAwayFromMillArgs {
+  destructable: HomeDestructable;
+}
+
+interface DestructablesAwayFromUnfinishedMillArgs {
+  beliefs: Readonly<TowerRushCommonBeliefs>;
+}
+
+// Nearest home first, with those on the far side of the Hall from the mill
+// ahead of the rest. Before the mill is placed, simply nearest home.
+function destructablesAwayFromUnfinishedMill({
+  beliefs,
+}: DestructablesAwayFromUnfinishedMillArgs): readonly HomeDestructable[] {
+  const mill = beliefs.lumberMills[0];
+
+  if (!mill) {
+    return beliefs.destructablesNearHomeByDistance;
+  }
+
+  const hall = beliefs.ownStartPosition;
+  const toMill = new Vector({
+    start: hall,
+    end: positionOf({ beliefs, unit: mill }),
+  });
+  const isAwayFromMill = ({ destructable }: IsAwayFromMillArgs) =>
+    new Vector({ start: hall, end: destructable.position }).dot({
+      vector: toMill,
+    }) < 0;
+  const nearHome = beliefs.destructablesNearHomeByDistance;
+
+  return [
+    ...nearHome.filter((destructable) => isAwayFromMill({ destructable })),
+    ...nearHome.filter((destructable) => !isAwayFromMill({ destructable })),
+  ];
 }

@@ -2,15 +2,6 @@ import type { BeliefsModel, CommonBeliefsModel } from './beliefs-model';
 
 export { type BeliefContainer, createBeliefContainer };
 
-/**
- * Beliefs and the model that revises them. An instance is created with its
- * first revision, so its Beliefs are never null.
- */
-interface BeliefsInstance<TBeliefs, TModel> {
-  beliefs: TBeliefs;
-  readonly model: TModel;
-}
-
 interface BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs> {
   component: object;
   beliefsModel: BeliefsModel<unknown, TCommonBeliefs>;
@@ -124,6 +115,15 @@ function createBeliefContainer<TCommonBeliefs, TCommonObservation>({
 
     scopedComponents: () => [...scopedBeliefs.keys()],
   };
+}
+
+/**
+ * Beliefs and the model that revises them. An instance is created with its
+ * first revision, so its Beliefs are never null.
+ */
+interface BeliefsInstance<TBeliefs, TModel> {
+  beliefs: TBeliefs;
+  readonly model: TModel;
 }
 
 interface ReviseCommonArgs<TCommonBeliefs, TCommonObservation> {

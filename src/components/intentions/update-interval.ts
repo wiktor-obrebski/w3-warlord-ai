@@ -1,9 +1,5 @@
 export { UpdateInterval };
 
-// Game clock readings on bot ticks can land just short of a whole interval;
-// without the tolerance such an update would slip to the next tick.
-const ClockToleranceSeconds = 0.01;
-
 /**
  * Lets an intention progress less often than every bot tick.
  */
@@ -32,3 +28,7 @@ class UpdateInterval {
     return true;
   }
 }
+
+// Game clock readings on bot ticks can land just short of a whole interval;
+// without the tolerance such an update would slip to the next tick.
+const ClockToleranceSeconds = 0.01;

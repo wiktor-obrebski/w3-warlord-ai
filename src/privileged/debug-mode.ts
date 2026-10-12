@@ -3,14 +3,6 @@ import * as W3PrivilegedApi from '@lib/warcraft3-api/privileged';
 
 export { type DebugMode, enableDebugMode, updateDebugMode };
 
-const ResourcePanelWidth = 0.12;
-// A minimized multiboard shows only its title and sizes itself to the title
-// text; there is no width setting for it, so the title is padded instead.
-// Not verified in-game that trailing spaces count towards the width.
-const ResourcePanelTitle = 'Warlord AI' + ' '.repeat(20);
-const GoldRow = 0;
-const LumberRow = 1;
-
 interface DebugMode {
   resourcePanel: W3PrivilegedApi.multiboard;
 }
@@ -55,6 +47,14 @@ function updateDebugMode({ debugMode, bot }: UpdateDebugModeArgs) {
     text: `Lumber: ${lumber}`,
   });
 }
+
+const ResourcePanelWidth = 0.12;
+// A minimized multiboard shows only its title and sizes itself to the title
+// text; there is no width setting for it, so the title is padded instead.
+// Not verified in-game that trailing spaces count towards the width.
+const ResourcePanelTitle = 'Warlord AI' + ' '.repeat(20);
+const GoldRow = 0;
+const LumberRow = 1;
 
 // Applies to the observer only, so the bot's own vision is unaffected.
 function revealMap({ observer }: { observer: W3PlayerApi.player }) {

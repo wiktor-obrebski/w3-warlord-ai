@@ -4,25 +4,6 @@ import * as W3PrivilegedApi from '@lib/warcraft3-api/privileged';
 
 export { installBotPlayer };
 
-interface BotInstallation {
-  computerPlayer: W3PlayerApi.player;
-  botPlayer: W3PlayerApi.player;
-}
-
-/**
- * Globals of the map script itself. Every bot runs in its own bundle instance,
- * so state shared between installed bots has to live here.
- */
-interface MapGlobals {
-  GetPlayerSlotState: (
-    this: void,
-    whichPlayer: W3PlayerApi.player
-  ) => W3PlayerApi.playerslotstate;
-  WarlordBotInstallations?: BotInstallation[];
-}
-
-declare const map_globals: MapGlobals;
-
 interface InstallBotPlayerArgs {
   computerPlayer: W3PlayerApi.player;
 }
@@ -51,6 +32,25 @@ function installBotPlayer({
 
   return botPlayer;
 }
+
+interface BotInstallation {
+  computerPlayer: W3PlayerApi.player;
+  botPlayer: W3PlayerApi.player;
+}
+
+/**
+ * Globals of the map script itself. Every bot runs in its own bundle instance,
+ * so state shared between installed bots has to live here.
+ */
+interface MapGlobals {
+  GetPlayerSlotState: (
+    this: void,
+    whichPlayer: W3PlayerApi.player
+  ) => W3PlayerApi.playerslotstate;
+  WarlordBotInstallations?: BotInstallation[];
+}
+
+declare const map_globals: MapGlobals;
 
 /**
  * The first installation replaces `GetPlayerSlotState` so the map sees every

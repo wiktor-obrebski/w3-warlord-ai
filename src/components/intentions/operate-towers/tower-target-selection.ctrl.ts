@@ -15,6 +15,22 @@ import {
 
 export { assembleTowerTargetSelectionController };
 
+interface AssembleTowerTargetSelectionControllerArgs {
+  capabilities: TowerTargetSelectionControllerCapabilities;
+}
+
+function assembleTowerTargetSelectionController({
+  capabilities,
+}: AssembleTowerTargetSelectionControllerArgs): AssembledWarlordComponent<
+  WarlordController<OperateTowersCommonBeliefs>,
+  OperateTowersCommonBeliefs
+> {
+  return {
+    component: new TowerTargetSelectionController({ capabilities }),
+    children: [],
+  };
+}
+
 // Not verified in-game that IsUnitInRange matches the tower's own reach.
 const GuardTowerAttackRange = 700;
 
@@ -130,20 +146,4 @@ class TowerTargetSelectionController implements WarlordController<OperateTowersC
       (towerTarget) => towerTarget.tower !== tower
     );
   }
-}
-
-interface AssembleTowerTargetSelectionControllerArgs {
-  capabilities: TowerTargetSelectionControllerCapabilities;
-}
-
-function assembleTowerTargetSelectionController({
-  capabilities,
-}: AssembleTowerTargetSelectionControllerArgs): AssembledWarlordComponent<
-  WarlordController<OperateTowersCommonBeliefs>,
-  OperateTowersCommonBeliefs
-> {
-  return {
-    component: new TowerTargetSelectionController({ capabilities }),
-    children: [],
-  };
 }

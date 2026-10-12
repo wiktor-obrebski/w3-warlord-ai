@@ -48,18 +48,6 @@ type WarlordUpdateChild<TCommonBeliefs> = UpdateChild<
 >;
 
 /**
- * The Scoped Beliefs type a component's `update` reads, so its assemble
- * function can only attach a model producing exactly that.
- */
-type ScopedBeliefsOf<TComponent> = TComponent extends {
-  update(args: {
-    beliefs: { readonly scopedBeliefs: infer TScopedBeliefs };
-  }): void;
-}
-  ? TScopedBeliefs
-  : never;
-
-/**
  * A component as its `assemble...` function returns it, for a bot whose
  * Common Beliefs are `TCommonBeliefs`.
  */
@@ -73,3 +61,15 @@ type AssembledChildren<TCommonBeliefs> = AssembledComponent<
   object,
   TCommonBeliefs
 >[];
+
+/**
+ * The Scoped Beliefs type a component's `update` reads, so its assemble
+ * function can only attach a model producing exactly that.
+ */
+type ScopedBeliefsOf<TComponent> = TComponent extends {
+  update(args: {
+    beliefs: { readonly scopedBeliefs: infer TScopedBeliefs };
+  }): void;
+}
+  ? TScopedBeliefs
+  : never;

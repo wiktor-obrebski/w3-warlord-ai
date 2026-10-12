@@ -28,43 +28,6 @@ export {
   createCommonBeliefsModel,
 };
 
-type UnitGroup = ReturnType<typeof W3GroupApi.CreateGroup>;
-
-const MainGoldMineSearchRadius = 1500;
-const HomeDestructableSearchRadius = 1500;
-// Night Elf and Undead melee starts replace their main mine with an
-// entangled or haunted one and hide the original, which range enumeration
-// then skips.
-const GoldMineTypes: number[] = [
-  W3NeutralApi.Building.GOLD_MINE,
-  W3NightElfApi.Building.ENTANGLED_GOLD_MINE,
-  W3UndeadApi.Building.HAUNTED_GOLD_MINE,
-];
-// Warcraft has no siege classification for units; these are the units whose
-// attack type is siege.
-const SiegeUnitTypes: number[] = [
-  W3HumanApi.Unit.MORTAR_TEAM,
-  W3HumanApi.Unit.SIEGE_ENGINE,
-  W3HumanApi.Unit.SIEGE_ENGINE_WITH_BARRAGE,
-  W3OrcApi.Unit.DEMOLISHER,
-  W3NightElfApi.Unit.GLAIVE_THROWER,
-  W3UndeadApi.Unit.MEAT_WAGON,
-];
-const NoOrder = 0;
-// Assumed, not verified in-game: a build order's id is the rawcode of the
-// building, as with IssueBuildOrderById.
-const ScoutTowerBuildOrder: number = W3HumanApi.Building.SCOUT_TOWER;
-const HarvestOrderStrings = ['harvest', 'resumeharvesting', 'returnresources'];
-// Warcraft treats units at or below this life as dead.
-const DeadUnitLife = 0.405;
-
-// Warcraft offers no way to read whom a unit is attacking, so attacks are
-// observed as they start and remembered for a short while afterwards. The
-// window is kept short so units stop counting as attacked soon after the
-// attacks end; slow attackers, such as siege units, start an attack only
-// every few seconds and so are remembered only part of the time.
-const AttackMemorySeconds = 1;
-
 interface ObservedWorld {
   // Game seconds since the bot started playing.
   readonly time: number;
@@ -154,6 +117,43 @@ function createCommonBeliefsModel({
     },
   };
 }
+
+type UnitGroup = ReturnType<typeof W3GroupApi.CreateGroup>;
+
+const MainGoldMineSearchRadius = 1500;
+const HomeDestructableSearchRadius = 1500;
+// Night Elf and Undead melee starts replace their main mine with an
+// entangled or haunted one and hide the original, which range enumeration
+// then skips.
+const GoldMineTypes: number[] = [
+  W3NeutralApi.Building.GOLD_MINE,
+  W3NightElfApi.Building.ENTANGLED_GOLD_MINE,
+  W3UndeadApi.Building.HAUNTED_GOLD_MINE,
+];
+// Warcraft has no siege classification for units; these are the units whose
+// attack type is siege.
+const SiegeUnitTypes: number[] = [
+  W3HumanApi.Unit.MORTAR_TEAM,
+  W3HumanApi.Unit.SIEGE_ENGINE,
+  W3HumanApi.Unit.SIEGE_ENGINE_WITH_BARRAGE,
+  W3OrcApi.Unit.DEMOLISHER,
+  W3NightElfApi.Unit.GLAIVE_THROWER,
+  W3UndeadApi.Unit.MEAT_WAGON,
+];
+const NoOrder = 0;
+// Assumed, not verified in-game: a build order's id is the rawcode of the
+// building, as with IssueBuildOrderById.
+const ScoutTowerBuildOrder: number = W3HumanApi.Building.SCOUT_TOWER;
+const HarvestOrderStrings = ['harvest', 'resumeharvesting', 'returnresources'];
+// Warcraft treats units at or below this life as dead.
+const DeadUnitLife = 0.405;
+
+// Warcraft offers no way to read whom a unit is attacking, so attacks are
+// observed as they start and remembered for a short while afterwards. The
+// window is kept short so units stop counting as attacked soon after the
+// attacks end; slow attackers, such as siege units, start an attack only
+// every few seconds and so are remembered only part of the time.
+const AttackMemorySeconds = 1;
 
 interface ReviseRecentAttacksArgs {
   previous: readonly ObservedAttack[];

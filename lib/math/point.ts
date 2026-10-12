@@ -2,8 +2,6 @@ import type { Vector } from './vector';
 
 export { Point };
 
-const Tolerance = 0.000001;
-
 /**
  * Represents a point in two-dimensional space.
  */
@@ -43,6 +41,8 @@ class Point {
     return new Point({ x: this.x + vector.x, y: this.y + vector.y });
   }
 }
+
+const Tolerance = 0.000001;
 
 /**
  * Returns whether two numbers are equal within the configured tolerance.

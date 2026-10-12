@@ -9,23 +9,6 @@ import { completedLumberMill, positionOf } from '../tower-rush.assessments';
 export { GUARD_TOWER_UPGRADE_GOLD_COST, updateUpgradeTowers };
 
 const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
-const GuardTowerUpgradeLumberCost = 50;
-// Towers do not move, so their stored position matches closely; rush towers
-// stand at least 160 apart.
-const TowerMatchDistance = 32;
-
-enum TOWER_STATE {
-  MISSING,
-  UNDER_CONSTRUCTION,
-  SCOUT_TOWER,
-  UPGRADING,
-  GUARD_TOWER,
-}
-
-interface PlannedTower {
-  unit?: W3UnitApi.unit;
-  towerStatus: TOWER_STATE;
-}
 
 interface UpdateUpgradeTowersArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
@@ -67,6 +50,24 @@ function updateUpgradeTowers({
       (tower) => tower.towerStatus === TOWER_STATE.GUARD_TOWER
     ),
   };
+}
+
+const GuardTowerUpgradeLumberCost = 50;
+// Towers do not move, so their stored position matches closely; rush towers
+// stand at least 160 apart.
+const TowerMatchDistance = 32;
+
+enum TOWER_STATE {
+  MISSING,
+  UNDER_CONSTRUCTION,
+  SCOUT_TOWER,
+  UPGRADING,
+  GUARD_TOWER,
+}
+
+interface PlannedTower {
+  unit?: W3UnitApi.unit;
+  towerStatus: TOWER_STATE;
 }
 
 interface PlannedTowerAtArgs {

@@ -2,9 +2,6 @@ import type { Point } from './point';
 
 export { Vector };
 
-const Tolerance = 0.000001;
-const TwoPi = Math.PI * 2;
-
 class Vector {
   public readonly x: number;
   public readonly y: number;
@@ -191,6 +188,9 @@ class Vector {
     return normalized.multiply({ scalar: this.dot({ vector: normalized }) });
   }
 }
+
+const Tolerance = 0.000001;
+const TwoPi = Math.PI * 2;
 
 /**
  * Returns whether two numbers are equal within the configured tolerance.

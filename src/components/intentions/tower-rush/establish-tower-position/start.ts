@@ -10,16 +10,6 @@ import { trainPeasant } from '../tower-rush-economy.ctrl';
 
 export { updateStart };
 
-const StartingPeasantCount = 5;
-const ForwardWorkerCount = 3;
-// Town Hall and Lumber Mill footprints are assumed, not verified, to be about
-// 512 and 384 wide, so the closest non-overlapping centers are about 450
-// apart along an axis; the search starts a little closer to cover diagonals
-// of the build grid.
-const MinLumberMillDistance = 384;
-const MaxLumberMillDistance = 1200;
-const CandidateSpacing = 64;
-
 interface UpdateStartArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
@@ -76,6 +66,16 @@ function updateStart({ beliefs, rush, actorControl }: UpdateStartArgs) {
   W3UnitApi.IssueTargetOrder(homeWorker, 'harvest', homeGoldMine.unit);
   trainPeasant({ townHall, beliefs, rush });
 }
+
+const StartingPeasantCount = 5;
+const ForwardWorkerCount = 3;
+// Town Hall and Lumber Mill footprints are assumed, not verified, to be about
+// 512 and 384 wide, so the closest non-overlapping centers are about 450
+// apart along an axis; the search starts a little closer to cover diagonals
+// of the build grid.
+const MinLumberMillDistance = 384;
+const MaxLumberMillDistance = 1200;
+const CandidateSpacing = 64;
 
 interface OrderLumberMillArgs {
   builder: W3UnitApi.unit;

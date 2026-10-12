@@ -11,9 +11,6 @@ export {
   isRecentlyAttacked,
 };
 
-// Not tuned in-game.
-const ThreatRadius = 1000;
-
 interface NeedsAttackProtectionArgs {
   beliefs: Readonly<WorkerSafetyBeliefs>;
   worker: W3UnitApi.unit;
@@ -83,6 +80,24 @@ function threatCenter({
     : undefined;
 }
 
+interface IsRecentlyAttackedArgs {
+  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  attackedUnit: W3UnitApi.unit;
+}
+
+/** Whether any attacker recently started an attack on the bot's unit. */
+function isRecentlyAttacked({
+  beliefs,
+  attackedUnit,
+}: IsRecentlyAttackedArgs): boolean {
+  return beliefs.recentAttacks.some(
+    (attack) => attack.attackedUnit === attackedUnit
+  );
+}
+
+// Not tuned in-game.
+const ThreatRadius = 1000;
+
 interface AveragePositionArgs {
   enemies: readonly VisibleEnemy[];
 }
@@ -100,21 +115,6 @@ function averagePosition({ enemies }: AveragePositionArgs): Point {
   return origin.translate({
     vector: sum.multiply({ scalar: 1 / enemies.length }),
   });
-}
-
-interface IsRecentlyAttackedArgs {
-  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
-  attackedUnit: W3UnitApi.unit;
-}
-
-/** Whether any attacker recently started an attack on the bot's unit. */
-function isRecentlyAttacked({
-  beliefs,
-  attackedUnit,
-}: IsRecentlyAttackedArgs): boolean {
-  return beliefs.recentAttacks.some(
-    (attack) => attack.attackedUnit === attackedUnit
-  );
 }
 
 interface RecentAttackTargetArgs {

@@ -2,20 +2,6 @@ import type { ActorControlPolicy, ActorControlProvider } from './actor-control';
 
 export { createActorControlArbiter, type ActorControlArbiter };
 
-// A source is the Plan or Controller instance being updated.
-interface Claim<TRequest> {
-  holder: object;
-  // The request that granted the claim or last renewed it.
-  request: TRequest;
-  // The number of the holder's update that last granted or renewed the claim.
-  renewedInUpdate: number;
-}
-
-interface SourceUpdate {
-  source: object;
-  updateNumber: number;
-}
-
 interface ActorControlArbiterUpdateArgs {
   source: object;
   run: () => void;
@@ -54,16 +40,6 @@ interface ActorControlArbiter<TActor, TRequest> {
 
 interface CreateActorControlArbiterArgs<TRequest> {
   policy: ActorControlPolicy<TRequest>;
-}
-
-interface RequestControlArgs<TActor, TRequest> {
-  requester: SourceUpdate;
-  actor: TActor;
-  request: TRequest;
-}
-
-interface ReleaseClaimsArgs<TRequest> {
-  shouldRelease: ({ claim }: { claim: Claim<TRequest> }) => boolean;
 }
 
 function createActorControlArbiter<TActor, TRequest>({
@@ -153,4 +129,28 @@ function createActorControlArbiter<TActor, TRequest>({
       });
     },
   };
+}
+
+// A source is the Plan or Controller instance being updated.
+interface Claim<TRequest> {
+  holder: object;
+  // The request that granted the claim or last renewed it.
+  request: TRequest;
+  // The number of the holder's update that last granted or renewed the claim.
+  renewedInUpdate: number;
+}
+
+interface SourceUpdate {
+  source: object;
+  updateNumber: number;
+}
+
+interface RequestControlArgs<TActor, TRequest> {
+  requester: SourceUpdate;
+  actor: TActor;
+  request: TRequest;
+}
+
+interface ReleaseClaimsArgs<TRequest> {
+  shouldRelease: ({ claim }: { claim: Claim<TRequest> }) => boolean;
 }

@@ -9,9 +9,6 @@ import { positionOf } from '../tower-rush.assessments';
 
 export { type MoveForwardState, createMoveForwardState, updateMoveForward };
 
-// A move order to a gold mine ends at the mine's edge, not its center.
-const ArrivalRadius = 400;
-
 interface MoveForwardState {
   forwardWorkersSentToEnemy: W3UnitApi.unit[];
   forwardWorkersHoldingPosition: W3UnitApi.unit[];
@@ -68,6 +65,9 @@ function updateMoveForward({
     }),
   };
 }
+
+// A move order to a gold mine ends at the mine's edge, not its center.
+const ArrivalRadius = 400;
 
 interface SendNewMilitiaToEnemyArgs {
   destination: GoldMine;

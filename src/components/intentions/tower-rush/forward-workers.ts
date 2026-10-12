@@ -8,9 +8,6 @@ import { closestUnit, positionOf } from './tower-rush.assessments';
 
 export { hideBehindClosestTower, forgetSentToSafety, controlForwardPeasants };
 
-// Clears the tower's 128x128 footprint with room for the Peasant.
-const HidingDistanceBehindTower = 160;
-
 interface HideBehindClosestTowerArgs {
   worker: W3UnitApi.unit;
   towers: readonly W3UnitApi.unit[];
@@ -91,6 +88,9 @@ function controlForwardPeasants({
 
   return controlled;
 }
+
+// Clears the tower's 128x128 footprint with room for the Peasant.
+const HidingDistanceBehindTower = 160;
 
 interface SpotBehindArgs {
   tower: Point;

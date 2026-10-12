@@ -31,16 +31,6 @@ interface CommonBeliefsModel<TCommonBeliefs, TObservation = unknown> {
   >): TCommonBeliefs;
 }
 
-/**
- * `Readonly<T>`, except that `unknown` stays `unknown`.
- *
- * `Readonly` maps over the properties of `T`, which turns `unknown` into
- * `{}`. The beliefs runtime handles every model as
- * `BeliefsModel<unknown, TCommonBeliefs>` and so passes `unknown` Beliefs and
- * Observations, which `{}` would reject.
- */
-type Immutable<T> = unknown extends T ? T : Readonly<T>;
-
 interface BeliefsModelReviseArgs<TBeliefs, TCommonBeliefs, TObservation> {
   previous: Immutable<TBeliefs> | null;
   observation: Immutable<TObservation>;
@@ -83,3 +73,13 @@ interface BeliefsModel<
     commonBeliefs,
   }: BeliefsModelReviseArgs<TBeliefs, TCommonBeliefs, TObservation>): TBeliefs;
 }
+
+/**
+ * `Readonly<T>`, except that `unknown` stays `unknown`.
+ *
+ * `Readonly` maps over the properties of `T`, which turns `unknown` into
+ * `{}`. The beliefs runtime handles every model as
+ * `BeliefsModel<unknown, TCommonBeliefs>` and so passes `unknown` Beliefs and
+ * Observations, which `{}` would reject.
+ */
+type Immutable<T> = unknown extends T ? T : Readonly<T>;

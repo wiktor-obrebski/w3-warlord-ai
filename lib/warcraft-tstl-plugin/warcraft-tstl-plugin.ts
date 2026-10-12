@@ -3,15 +3,6 @@ import * as tstl from 'typescript-to-lua';
 
 export { plugin as default };
 
-const ApiPrefix = '@lib/warcraft3-api';
-
-const namespaces = new Set<string>();
-let deferredExports: tstl.Statement[] = [];
-
-function isWarcraftApiModule({ name }: { name: string }): boolean {
-  return name === ApiPrefix || name.startsWith(`${ApiPrefix}/`);
-}
-
 const plugin: tstl.Plugin = {
   visitors: {
     [ts.SyntaxKind.SourceFile]: (
@@ -91,3 +82,12 @@ const plugin: tstl.Plugin = {
     },
   },
 };
+
+const ApiPrefix = '@lib/warcraft3-api';
+
+const namespaces = new Set<string>();
+let deferredExports: tstl.Statement[] = [];
+
+function isWarcraftApiModule({ name }: { name: string }): boolean {
+  return name === ApiPrefix || name.startsWith(`${ApiPrefix}/`);
+}

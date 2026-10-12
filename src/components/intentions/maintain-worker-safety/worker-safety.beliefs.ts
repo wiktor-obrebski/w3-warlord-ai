@@ -5,11 +5,6 @@ import { isRecentlyAttacked } from './worker-safety.assessments';
 
 export { type WorkerSafetyBeliefs, workerSafetyBeliefsModel };
 
-// A worker unattacked for this long is safe again.
-const SafeAfterAttackSeconds = 1;
-
-const NoAttacks: ReadonlyMap<W3UnitApi.unit, number> = new Map();
-
 interface WorkerSafetyBeliefs {
   // When each worker attacked within the last SafeAfterAttackSeconds was
   // last attacked.
@@ -69,3 +64,8 @@ const workerSafetyBeliefsModel: BeliefsModel<
     return previous ?? { lastAttackedAt: NoAttacks };
   },
 };
+
+// A worker unattacked for this long is safe again.
+const SafeAfterAttackSeconds = 1;
+
+const NoAttacks: ReadonlyMap<W3UnitApi.unit, number> = new Map();

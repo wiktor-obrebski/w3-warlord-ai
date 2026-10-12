@@ -24,6 +24,23 @@ import {
 
 export { assembleWorkerSafetyController };
 
+interface AssembleWorkerSafetyControllerArgs {
+  capabilities: WorkerSafetyControllerCapabilities;
+}
+
+function assembleWorkerSafetyController({
+  capabilities,
+}: AssembleWorkerSafetyControllerArgs): AssembledWarlordComponent<
+  WarlordController<MaintainWorkerSafetyCommonBeliefs, WorkerSafetyBeliefs>,
+  MaintainWorkerSafetyCommonBeliefs
+> {
+  return {
+    component: new WorkerSafetyController({ capabilities }),
+    beliefsModel: workerSafetyBeliefsModel,
+    children: [],
+  };
+}
+
 const FleeRoundDistance = 300;
 const FleeDestinationReachedDistance = 32;
 const FleeAngleStep = Math.PI / 6;
@@ -157,23 +174,6 @@ class WorkerSafetyController implements WarlordController<
       this.fleeRounds.delete(worker);
     }
   }
-}
-
-interface AssembleWorkerSafetyControllerArgs {
-  capabilities: WorkerSafetyControllerCapabilities;
-}
-
-function assembleWorkerSafetyController({
-  capabilities,
-}: AssembleWorkerSafetyControllerArgs): AssembledWarlordComponent<
-  WarlordController<MaintainWorkerSafetyCommonBeliefs, WorkerSafetyBeliefs>,
-  MaintainWorkerSafetyCommonBeliefs
-> {
-  return {
-    component: new WorkerSafetyController({ capabilities }),
-    beliefsModel: workerSafetyBeliefsModel,
-    children: [],
-  };
 }
 
 interface FleeRoundFinishedArgs {

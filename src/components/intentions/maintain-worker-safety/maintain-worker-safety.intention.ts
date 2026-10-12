@@ -21,37 +21,6 @@ interface MaintainWorkerSafetyCapabilities {
   readonly actorControl: ActorControl;
 }
 
-type WorkerSafetyController = WarlordController<
-  MaintainWorkerSafetyCommonBeliefs,
-  WorkerSafetyBeliefs
->;
-
-interface MaintainWorkerSafetyIntentionConstructorArgs {
-  createWorkerSafetyController: ChildFactory<WorkerSafetyController>;
-}
-
-interface MaintainWorkerSafetyIntentionUpdateArgs {
-  beliefs: WarlordBeliefs<MaintainWorkerSafetyCommonBeliefs>;
-  updateChild: WarlordUpdateChild<MaintainWorkerSafetyCommonBeliefs>;
-}
-
-/** Keeps attacked workers out of harm's way, every bot tick. */
-class MaintainWorkerSafetyIntention implements WarlordIntention<MaintainWorkerSafetyCommonBeliefs> {
-  private readonly createWorkerSafetyController: ChildFactory<WorkerSafetyController>;
-  private workerSafety: WorkerSafetyController | null = null;
-
-  public constructor({
-    createWorkerSafetyController,
-  }: MaintainWorkerSafetyIntentionConstructorArgs) {
-    this.createWorkerSafetyController = createWorkerSafetyController;
-  }
-
-  public update({ updateChild }: MaintainWorkerSafetyIntentionUpdateArgs) {
-    this.workerSafety ??= this.createWorkerSafetyController().component;
-    updateChild({ child: this.workerSafety });
-  }
-}
-
 interface AssembleMaintainWorkerSafetyIntentionArgs {
   capabilities: MaintainWorkerSafetyCapabilities;
 }
@@ -82,4 +51,35 @@ function assembleMaintainWorkerSafetyIntention<
     }),
     children,
   };
+}
+
+type WorkerSafetyController = WarlordController<
+  MaintainWorkerSafetyCommonBeliefs,
+  WorkerSafetyBeliefs
+>;
+
+interface MaintainWorkerSafetyIntentionConstructorArgs {
+  createWorkerSafetyController: ChildFactory<WorkerSafetyController>;
+}
+
+interface MaintainWorkerSafetyIntentionUpdateArgs {
+  beliefs: WarlordBeliefs<MaintainWorkerSafetyCommonBeliefs>;
+  updateChild: WarlordUpdateChild<MaintainWorkerSafetyCommonBeliefs>;
+}
+
+/** Keeps attacked workers out of harm's way, every bot tick. */
+class MaintainWorkerSafetyIntention implements WarlordIntention<MaintainWorkerSafetyCommonBeliefs> {
+  private readonly createWorkerSafetyController: ChildFactory<WorkerSafetyController>;
+  private workerSafety: WorkerSafetyController | null = null;
+
+  public constructor({
+    createWorkerSafetyController,
+  }: MaintainWorkerSafetyIntentionConstructorArgs) {
+    this.createWorkerSafetyController = createWorkerSafetyController;
+  }
+
+  public update({ updateChild }: MaintainWorkerSafetyIntentionUpdateArgs) {
+    this.workerSafety ??= this.createWorkerSafetyController().component;
+    updateChild({ child: this.workerSafety });
+  }
 }
