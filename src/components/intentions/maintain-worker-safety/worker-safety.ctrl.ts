@@ -2,15 +2,15 @@ import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as W3MathApi from '@lib/warcraft3-api/math';
 import * as W3TerrainApi from '@lib/warcraft3-api/terrain';
 import { Point, Vector } from '@lib/math';
-import { debug } from '../../debug';
-import { ActorControl, PREEMPTIVE_REQUEST } from '../../actor';
+import { debug } from '../../../debug';
+import { ActorControl, PREEMPTIVE_REQUEST } from '../../../actor';
 import {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
-} from '../../execution';
-import { CommonBeliefs, OwnUnit } from '../../beliefs/common.beliefs';
-import { isRecentlyAttacked } from '../../beliefs/common.assessments';
+} from '../../../execution';
+import { CommonBeliefs, OwnUnit } from '../../../beliefs/common.beliefs';
+import { isRecentlyAttacked } from '../../../beliefs/common.assessments';
 import {
   WorkerSafetyBeliefs,
   workerSafetyBeliefsModel,

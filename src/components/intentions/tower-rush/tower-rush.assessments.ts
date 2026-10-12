@@ -1,11 +1,14 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
-import { CommonBeliefs, HomeDestructable } from '../../beliefs/common.beliefs';
+import {
+  CommonBeliefs,
+  HomeDestructable,
+} from '../../../beliefs/common.beliefs';
 import {
   completedLumberMill,
   lifeFractionOf,
   positionOf,
-} from '../../beliefs/common.assessments';
+} from '../../../beliefs/common.assessments';
 
 export {
   RUSH_TOWER_COUNT,

@@ -1,13 +1,13 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as W3HumanApi from '@lib/warcraft3-api/human';
-import { debug } from '../../../debug';
-import { ActorControl, NORMAL_REQUEST } from '../../../actor';
+import { debug } from '../../../../debug';
+import { ActorControl, NORMAL_REQUEST } from '../../../../actor';
 import { Point, Vector } from '@lib/math';
-import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
 import {
   completedLumberMill,
   positionOf,
-} from '../../../beliefs/common.assessments';
+} from '../../../../beliefs/common.assessments';
 
 export { GUARD_TOWER_UPGRADE_GOLD_COST, updateUpgradeTowers };
 

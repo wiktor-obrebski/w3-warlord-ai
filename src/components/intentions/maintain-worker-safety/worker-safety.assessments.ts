@@ -4,8 +4,8 @@ import {
   CommonBeliefs,
   OwnUnit,
   VisibleEnemy,
-} from '../../beliefs/common.beliefs';
-import { recentAttackTarget } from '../../beliefs/common.assessments';
+} from '../../../beliefs/common.beliefs';
+import { recentAttackTarget } from '../../../beliefs/common.assessments';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
 export { needsAttackProtection, nearbyThreats, threatCenter };

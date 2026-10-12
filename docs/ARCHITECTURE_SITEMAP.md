@@ -235,7 +235,10 @@ src/
 ├─ beliefs/       common belief model, observing Warcraft state for decisions, and common assessments
 ├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
 ├─ deliberation/  creates, retains, and drops Intentions
-├─ intentions/    *.intention.ts, *.plan.ts, *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
+├─ components/
+│  ├─ intentions/   one module per Intention: *.intention.ts, its private *.plan.ts and *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
+│  ├─ plans/        Plans assembled by several Intentions
+│  └─ controllers/  Controllers assembled by several Intentions
 └─ privileged/    installation and debug-mode code beyond normal gameplay
 ```
 

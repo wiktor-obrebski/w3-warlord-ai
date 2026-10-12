@@ -1,12 +1,12 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
-import { debug } from '../../debug';
-import { ActorControl, NORMAL_REQUEST } from '../../actor';
+import { debug } from '../../../debug';
+import { ActorControl, NORMAL_REQUEST } from '../../../actor';
 import {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
-} from '../../execution';
-import { CommonBeliefs } from '../../beliefs/common.beliefs';
+} from '../../../execution';
+import { CommonBeliefs } from '../../../beliefs/common.beliefs';
 import {
   RankedTarget,
   rankTowerTargets,

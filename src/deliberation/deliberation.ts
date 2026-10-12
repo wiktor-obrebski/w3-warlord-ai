@@ -4,12 +4,12 @@ import { AssembledWarlordComponent, WarlordIntention } from '../execution';
 import { APPLY_PRESSURE } from '../desires/apply-pressure';
 import { PROTECT_ECONOMIC_ASSETS } from '../desires/protect-economic-assets';
 import { USE_MILITARY_ASSETS_EFFECTIVELY } from '../desires/use-military-assets-effectively';
-import { assembleMaintainWorkerSafetyIntention } from '../intentions/maintain-worker-safety/maintain-worker-safety.intention';
+import { assembleMaintainWorkerSafetyIntention } from '../components/intentions/maintain-worker-safety/maintain-worker-safety.intention';
 import {
   assembleTowerRushIntention,
   TowerRushIntention,
-} from '../intentions/tower-rush/tower-rush.intention';
-import { assembleOperateTowersIntention } from '../intentions/operate-towers/operate-towers.intention';
+} from '../components/intentions/tower-rush/tower-rush.intention';
+import { assembleOperateTowersIntention } from '../components/intentions/operate-towers/operate-towers.intention';
 
 export { type AssembledIntention, createDeliberation };
 

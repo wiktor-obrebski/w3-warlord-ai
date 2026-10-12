@@ -6,7 +6,7 @@ import {
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
-} from '../../execution';
+} from '../../../execution';
 import { assembleWorkerSafetyController } from './worker-safety.ctrl';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 

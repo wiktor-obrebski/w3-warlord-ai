@@ -1,12 +1,12 @@
 import { PlanStatus } from '@lib/bdi';
 import { Point } from '@lib/math';
-import { debug } from '../../../debug';
-import { ActorControl } from '../../../actor';
+import { debug } from '../../../../debug';
+import { ActorControl } from '../../../../actor';
 import {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordPlan,
-} from '../../../execution';
+} from '../../../../execution';
 import { TowerRushState } from '../tower-rush.state';
 import { updateStart } from './start';
 import { createMoveForwardState, updateMoveForward } from './move-forward';

@@ -1,9 +1,9 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Vector } from '@lib/math';
-import { debug } from '../../../debug';
-import { ActorControl, NORMAL_REQUEST } from '../../../actor';
-import { CommonBeliefs, GoldMine } from '../../../beliefs/common.beliefs';
-import { positionOf } from '../../../beliefs/common.assessments';
+import { debug } from '../../../../debug';
+import { ActorControl, NORMAL_REQUEST } from '../../../../actor';
+import { CommonBeliefs, GoldMine } from '../../../../beliefs/common.beliefs';
+import { positionOf } from '../../../../beliefs/common.assessments';
 import { TowerRushState } from '../tower-rush.state';
 
 export { type MoveForwardState, createMoveForwardState, updateMoveForward };
