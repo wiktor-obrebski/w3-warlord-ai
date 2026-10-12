@@ -1,24 +1,27 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/claude-opus-5-5",
+  "model": "claude-code/claude-opus-5-5[1m]",
   "autoupdate": false,
-  // "agents": {
-  //   "cheap": {
-  //     "mode": "subagent",
-  //     "description": "Use for simple mechanical coding tasks: renames, straightforward edits, boilerplate, simple tests, formatting, and obvious fixes.",
-  //     "model": "opencode/glm-5.3-flash"
-  //   },
-
-  //   "coder": {
-  //     "mode": "subagent",
-  //     "description": "Use for normal implementation, refactoring, debugging, and changes requiring moderate reasoning.",
-  //     "model": "opencode/kimi-k2.7-code"
-  //   },
-
-  //   "expert": {
-  //     "mode": "subagent",
-  //     "description": "Use only for difficult problems: architecture, unclear bugs, failed previous attempts, cross-cutting design, or problems requiring deep reasoning.",
-  //     "model": "opencode/gpt-5.6-sol"
-  //   }
-  // }
+  "agents": {
+    "everyday": {
+      "mode": "all",
+      "description": "Use for everyday implementation, debugging, and changes requiring moderate reasoning.",
+      "model": "claude-code/claude-opus-5-5[1m]"
+    },
+    "expert": {
+      "mode": "all",
+      "description": "Use only for the most complicated changes, especially architectural pivots, cross-cutting design, and unclear bugs after failed attempts.",
+      "model": "claude-code/claude-opus-5-5[1m]#xhigh"
+    },
+    "simple": {
+      "mode": "all",
+      "description": "Use for tasks that are quite obvious to do, such as the simplest features and straightforward edits.",
+      "model": "claude-code/claude-sonnet-5-5"
+    },
+    "refactor": {
+      "mode": "all",
+      "description": "Use for refactors and other simplest technical changes: renames, formatting, boilerplate, and mechanical edits.",
+      "model": "claude-code/claude-haiku-5-5"
+    }
+  }
 }
