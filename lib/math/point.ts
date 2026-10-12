@@ -1,4 +1,4 @@
-import type { Vector } from "./vector";
+import type { Vector } from './vector';
 
 const TOLERANCE = 0.000001;
 

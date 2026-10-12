@@ -1,4 +1,4 @@
-import type { Point } from "./point";
+import type { Point } from './point';
 
 const TOLERANCE = 0.000001;
 const TWO_PI = Math.PI * 2;
@@ -18,7 +18,7 @@ export class Vector {
   public constructor(start: Point, end: Point);
 
   public constructor(...args: [number, number] | [Point, Point]) {
-    if (typeof args[0] === "number" && typeof args[1] === "number") {
+    if (typeof args[0] === 'number' && typeof args[1] === 'number') {
       this.x = args[0];
       this.y = args[1];
       return;
@@ -26,8 +26,8 @@ export class Vector {
 
     const [first, second] = args as [Point, Point];
 
-      this.x = second.x - first.x;
-      this.y = second.y - first.y;
+    this.x = second.x - first.x;
+    this.y = second.y - first.y;
   }
 
   /**
@@ -100,7 +100,7 @@ export class Vector {
     const length = this.length;
 
     if (length < TOLERANCE) {
-      throw new Error("Cannot normalize a zero-length vector");
+      throw new Error('Cannot normalize a zero-length vector');
     }
 
     return new Vector(this.x / length, this.y / length);
@@ -113,10 +113,7 @@ export class Vector {
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
 
-    return new Vector(
-      this.x * cos - this.y * sin,
-      this.x * sin + this.y * cos,
-    );
+    return new Vector(this.x * cos - this.y * sin, this.x * sin + this.y * cos);
   }
 
   /**

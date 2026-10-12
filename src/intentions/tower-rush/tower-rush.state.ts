@@ -1,4 +1,4 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
 
 export enum HomeResource {
   Gold,

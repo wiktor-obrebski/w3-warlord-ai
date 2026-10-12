@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/terrain" {
+declare module '@lib/warcraft3-api/terrain' {
   /**
    * @ai-generated Pathing type for ground units walking on the terrain, used with `IsTerrainPathable`.
    *
@@ -14,5 +14,9 @@ declare module "@lib/warcraft3-api/terrain" {
    * @note Returns true if the pathingtype is *not* set, false if it *is* set.
    * @patch 1.18a
    */
-  export function IsTerrainPathable(x: number, y: number, t: pathingtype): boolean;
+  export function IsTerrainPathable(
+    x: number,
+    y: number,
+    t: pathingtype
+  ): boolean;
 }

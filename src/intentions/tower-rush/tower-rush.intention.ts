@@ -1,4 +1,4 @@
-import { ChildFactory, ChildHandle, childFactory } from "@lib/bdi";
+import { ChildFactory, ChildHandle, childFactory } from '@lib/bdi';
 import {
   ProvidedChildren,
   ProvidedComponent,
@@ -6,15 +6,15 @@ import {
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
-} from "../../execution";
-import { UpdateInterval } from "../update-interval";
-import { createTowerRushState } from "./tower-rush.state";
+} from '../../execution';
+import { UpdateInterval } from '../update-interval';
+import { createTowerRushState } from './tower-rush.state';
 import {
   EstablishTowerPositionPlan,
   provideEstablishTowerPositionPlan,
-} from "./establish-tower-position/establish-tower-position.plan";
-import { provideTowerRushEconomyController } from "./tower-rush-economy.ctrl";
-import { provideTowerMaintenanceController } from "./tower-maintenance.ctrl";
+} from './establish-tower-position/establish-tower-position.plan';
+import { provideTowerRushEconomyController } from './tower-rush-economy.ctrl';
+import { provideTowerMaintenanceController } from './tower-maintenance.ctrl';
 
 const UPDATE_SECONDS = 1;
 
@@ -99,12 +99,12 @@ class TowerRush implements TowerRushIntention {
   private discardEndedPlan(plan: ChildHandle<EstablishTowerPositionPlan>) {
     const { status } = plan.value;
 
-    if (status === "running") {
+    if (status === 'running') {
       return;
     }
 
-    if (status === "failed") {
-      throw new Error("Tower rush: establishing the tower position failed.");
+    if (status === 'failed') {
+      throw new Error('Tower rush: establishing the tower position failed.');
     }
 
     plan.discard();
@@ -120,13 +120,13 @@ export function provideTowerRushIntention(): ProvidedComponent<TowerRushIntentio
   return {
     value: new TowerRush({
       createEstablishTowerPositionPlan: childFactory(children, () =>
-        provideEstablishTowerPositionPlan(rush),
+        provideEstablishTowerPositionPlan(rush)
       ),
       createEconomyController: childFactory(children, () =>
-        provideTowerRushEconomyController(rush),
+        provideTowerRushEconomyController(rush)
       ),
       createTowerMaintenanceController: childFactory(children, () =>
-        provideTowerMaintenanceController(rush),
+        provideTowerMaintenanceController(rush)
       ),
     }),
     children,

@@ -1,5 +1,5 @@
-import { CommonBeliefs, VisibleEnemy } from "../../beliefs/common.beliefs";
-import { recentAttackTarget } from "../../beliefs/common.assessments";
+import { CommonBeliefs, VisibleEnemy } from '../../beliefs/common.beliefs';
+import { recentAttackTarget } from '../../beliefs/common.assessments';
 
 export enum TargetPriority {
   MeleeAttackingPeasant = 1,
@@ -24,7 +24,7 @@ export interface RankedTarget {
  * then by lowest life.
  */
 export function rankTowerTargets(
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ): RankedTarget[] {
   const ranked: RankedTarget[] = [];
 
@@ -39,7 +39,7 @@ export function rankTowerTargets(
   ranked.sort((a, b) =>
     a.priority === b.priority
       ? a.enemy.life - b.enemy.life
-      : a.priority - b.priority,
+      : a.priority - b.priority
   );
 
   return ranked;
@@ -51,7 +51,7 @@ export function rankTowerTargets(
 // attack a tower.
 function targetPriority(
   enemy: VisibleEnemy,
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ): TargetPriority | undefined {
   if (enemy.isWorker) {
     return TargetPriority.Worker;
@@ -93,7 +93,7 @@ function targetPriority(
 }
 
 function attackingTowerPriority(
-  enemy: VisibleEnemy,
+  enemy: VisibleEnemy
 ): TargetPriority | undefined {
   if (enemy.isSiege) {
     return TargetPriority.SiegeAttackingTower;

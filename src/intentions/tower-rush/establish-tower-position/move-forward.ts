@@ -1,10 +1,10 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { Vector } from "@lib/math";
-import { debug } from "../../../debug";
-import { ActorControl, NORMAL_REQUEST } from "../../../actor";
-import { CommonBeliefs, GoldMine } from "../../../beliefs/common.beliefs";
-import { positionOf } from "../../../beliefs/common.assessments";
-import { TowerRushState } from "../tower-rush.state";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import { Vector } from '@lib/math';
+import { debug } from '../../../debug';
+import { ActorControl, NORMAL_REQUEST } from '../../../actor';
+import { CommonBeliefs, GoldMine } from '../../../beliefs/common.beliefs';
+import { positionOf } from '../../../beliefs/common.assessments';
+import { TowerRushState } from '../tower-rush.state';
 
 // A move order to a gold mine ends at the mine's edge, not its center.
 const ARRIVAL_RADIUS = 400;
@@ -23,16 +23,17 @@ export function updateMoveForward(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: MoveForwardState,
-  control: ActorControl,
+  control: ActorControl
 ): boolean {
   const destination = beliefs.enemyMainGoldMine;
 
   if (!destination) {
-    throw new Error("Tower rush: enemy main gold mine not found.");
+    throw new Error('Tower rush: enemy main gold mine not found.');
   }
 
   const controlled = rush.forwardWorkers.filter(
-    (worker) => beliefs.ownUnits.has(worker) && control.request(worker, NORMAL_REQUEST),
+    (worker) =>
+      beliefs.ownUnits.has(worker) && control.request(worker, NORMAL_REQUEST)
   );
 
   holdArrivedMilitia(destination, beliefs, state, controlled);
@@ -48,7 +49,7 @@ function sendNewMilitiaToEnemy(
   destination: GoldMine,
   beliefs: Readonly<CommonBeliefs>,
   state: MoveForwardState,
-  controlled: readonly W3UnitApi.unit[],
+  controlled: readonly W3UnitApi.unit[]
 ) {
   for (const worker of controlled) {
     if (
@@ -57,9 +58,9 @@ function sendNewMilitiaToEnemy(
     ) {
       W3UnitApi.IssuePointOrder(
         worker,
-        "move",
+        'move',
         destination.position.x,
-        destination.position.y,
+        destination.position.y
       );
       state.forwardWorkersSentToEnemy.push(worker);
     }
@@ -72,7 +73,7 @@ function holdArrivedMilitia(
   destination: GoldMine,
   beliefs: Readonly<CommonBeliefs>,
   state: MoveForwardState,
-  controlled: readonly W3UnitApi.unit[],
+  controlled: readonly W3UnitApi.unit[]
 ) {
   for (const worker of state.forwardWorkersSentToEnemy) {
     if (
@@ -82,10 +83,10 @@ function holdArrivedMilitia(
       new Vector(positionOf(beliefs, worker), destination.position).length <=
         ARRIVAL_RADIUS
     ) {
-      if (W3UnitApi.IssueImmediateOrder(worker, "holdposition")) {
+      if (W3UnitApi.IssueImmediateOrder(worker, 'holdposition')) {
         state.forwardWorkersHoldingPosition.push(worker);
       } else {
-        debug("Tower rush: hold position order rejected.");
+        debug('Tower rush: hold position order rejected.');
       }
     }
   }
@@ -94,11 +95,11 @@ function holdArrivedMilitia(
 function forwardWorkersHaveRevertedToPeasants(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
-  state: MoveForwardState,
+  state: MoveForwardState
 ): boolean {
   const survivingForwardWorkers = rush.forwardWorkers.filter(
     (worker) =>
-      beliefs.peasants.includes(worker) || beliefs.militia.includes(worker),
+      beliefs.peasants.includes(worker) || beliefs.militia.includes(worker)
   );
 
   return (
@@ -106,7 +107,7 @@ function forwardWorkersHaveRevertedToPeasants(
     survivingForwardWorkers.every(
       (worker) =>
         state.forwardWorkersSentToEnemy.includes(worker) &&
-        beliefs.peasants.includes(worker),
+        beliefs.peasants.includes(worker)
     )
   );
 }

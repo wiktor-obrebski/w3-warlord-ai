@@ -33,5 +33,5 @@ export interface ActorControlClaim<TRequest> {
  */
 export type ActorControlPolicy<TRequest> = (
   request: TRequest,
-  currentClaim: ActorControlClaim<TRequest> | null,
+  currentClaim: ActorControlClaim<TRequest> | null
 ) => boolean;

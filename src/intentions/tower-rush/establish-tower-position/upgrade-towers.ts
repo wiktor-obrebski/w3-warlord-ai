@@ -1,13 +1,13 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import * as W3HumanApi from "@lib/warcraft3-api/human";
-import { debug } from "../../../debug";
-import { ActorControl, NORMAL_REQUEST } from "../../../actor";
-import { Point, Vector } from "@lib/math";
-import { CommonBeliefs } from "../../../beliefs/common.beliefs";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import * as W3HumanApi from '@lib/warcraft3-api/human';
+import { debug } from '../../../debug';
+import { ActorControl, NORMAL_REQUEST } from '../../../actor';
+import { Point, Vector } from '@lib/math';
+import { CommonBeliefs } from '../../../beliefs/common.beliefs';
 import {
   completedLumberMill,
   positionOf,
-} from "../../../beliefs/common.assessments";
+} from '../../../beliefs/common.assessments';
 
 export const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
 const GUARD_TOWER_UPGRADE_LUMBER_COST = 50;
@@ -38,10 +38,10 @@ interface PlannedTower {
 export function updateUpgradeTowers(
   beliefs: Readonly<CommonBeliefs>,
   towerPositions: readonly Point[],
-  control: ActorControl,
+  control: ActorControl
 ): boolean {
   const towers = towerPositions.map((position) =>
-    plannedTowerAt(position, beliefs),
+    plannedTowerAt(position, beliefs)
   );
   const budget = { gold: beliefs.gold, lumber: beliefs.lumber };
 
@@ -62,12 +62,12 @@ export function updateUpgradeTowers(
 
 function plannedTowerAt(
   position: Point,
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ): PlannedTower {
   const unit = [...beliefs.scoutTowers, ...beliefs.guardTowers].find(
     (tower) =>
       new Vector(position, positionOf(beliefs, tower)).length <=
-      TOWER_MATCH_DISTANCE,
+      TOWER_MATCH_DISTANCE
   );
 
   return { unit, state: unit ? towerState(unit, beliefs) : TowerState.Missing };
@@ -77,7 +77,7 @@ function plannedTowerAt(
 // Guard Tower before the upgrade finishes.
 function towerState(
   tower: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ): TowerState {
   if (beliefs.buildingsUnderConstruction.includes(tower)) {
     return TowerState.UnderConstruction;
@@ -103,17 +103,17 @@ function canAffordGuardTower(budget: { gold: number; lumber: number }) {
 // is reduced locally to avoid ordering upgrades that cannot be paid for.
 function orderGuardTower(
   tower: W3UnitApi.unit,
-  budget: { gold: number; lumber: number },
+  budget: { gold: number; lumber: number }
 ) {
   if (
     W3UnitApi.IssueImmediateOrderById(tower, W3HumanApi.Building.GUARD_TOWER)
   ) {
     debug(
-      `Tower rush: Guard Tower upgrade ordered (gold ${budget.gold}, lumber ${budget.lumber}).`,
+      `Tower rush: Guard Tower upgrade ordered (gold ${budget.gold}, lumber ${budget.lumber}).`
     );
     budget.gold -= GUARD_TOWER_UPGRADE_GOLD_COST;
     budget.lumber -= GUARD_TOWER_UPGRADE_LUMBER_COST;
   } else {
-    debug("Tower rush: Guard Tower upgrade order rejected.");
+    debug('Tower rush: Guard Tower upgrade order rejected.');
   }
 }

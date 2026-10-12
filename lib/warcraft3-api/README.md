@@ -14,17 +14,12 @@ DisplayTextToPlayer(...);
 application code uses explicit API modules:
 
 ```ts
-import * as PlayerApi from "@lib/warcraft3-api/player";
-import * as UiApi from "@lib/warcraft3-api/ui";
+import * as PlayerApi from '@lib/warcraft3-api/player';
+import * as UiApi from '@lib/warcraft3-api/ui';
 
 const player = PlayerApi.Player(0);
 
-UiApi.DisplayTextToPlayer(
-  player,
-  0,
-  0,
-  "Hello",
-);
+UiApi.DisplayTextToPlayer(player, 0, 0, 'Hello');
 ```
 
 ## Runtime behavior
@@ -77,7 +72,7 @@ Every newly added Warcraft API function should include JSDoc based on the Jassdo
 Use namespace imports:
 
 ```ts
-import * as UnitApi from "@lib/warcraft3-api/unit";
+import * as UnitApi from '@lib/warcraft3-api/unit';
 
 UnitApi.KillUnit(unit);
 ```
@@ -85,7 +80,7 @@ UnitApi.KillUnit(unit);
 Types can be accessed through the same namespace:
 
 ```ts
-import * as PlayerApi from "@lib/warcraft3-api/player";
+import * as PlayerApi from '@lib/warcraft3-api/player';
 
 function handlePlayer(player: PlayerApi.player) {
   const id = PlayerApi.GetPlayerId(player);
@@ -97,11 +92,11 @@ Avoid direct use of `war3-types-strict` in application code, because that would 
 Also avoid named imports:
 
 ```ts
-import { Player } from "@lib/warcraft3-api/player";
+import { Player } from '@lib/warcraft3-api/player';
 ```
 
 The supported form is:
 
 ```ts
-import * as PlayerApi from "@lib/warcraft3-api/player";
+import * as PlayerApi from '@lib/warcraft3-api/player';
 ```

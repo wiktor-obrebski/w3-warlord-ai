@@ -3,7 +3,7 @@
 `build-map.sh` copies a local Warcraft III map, embeds the packaged Lua bot,
 and adds automatic startup.
 
-The bot will start only for "Computer (Normal)" slots. 
+The bot will start only for "Computer (Normal)" slots.
 
 ## Requirements
 

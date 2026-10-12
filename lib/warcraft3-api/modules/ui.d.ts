@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/ui" {
+declare module '@lib/warcraft3-api/ui' {
   /**
    * Returns: nothing
    *
@@ -20,5 +20,10 @@ declare module "@lib/warcraft3-api/ui" {
    * @note See: `DisplayTimedTextToPlayer`, `DisplayTimedTextFromPlayer`, `BlzDisplayChatMessage`.
    * @patch 1.00
    */
-  export function DisplayTextToPlayer(toPlayer: player, x: number, y: number, message: string): void;
+  export function DisplayTextToPlayer(
+    toPlayer: player,
+    x: number,
+    y: number,
+    message: string
+  ): void;
 }

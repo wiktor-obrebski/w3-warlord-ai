@@ -1,10 +1,10 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { debug } from "../../debug";
-import { Point, Vector } from "@lib/math";
-import { ActorControl, NORMAL_REQUEST } from "../../actor";
-import { CommonBeliefs } from "../../beliefs/common.beliefs";
-import { closestUnit, positionOf } from "../../beliefs/common.assessments";
-import { TowerRushState } from "./tower-rush.state";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import { debug } from '../../debug';
+import { Point, Vector } from '@lib/math';
+import { ActorControl, NORMAL_REQUEST } from '../../actor';
+import { CommonBeliefs } from '../../beliefs/common.beliefs';
+import { closestUnit, positionOf } from '../../beliefs/common.assessments';
+import { TowerRushState } from './tower-rush.state';
 
 // Clears the tower's 128x128 footprint with room for the Peasant.
 const HIDING_DISTANCE_BEHIND_TOWER = 160;
@@ -14,7 +14,7 @@ export function hideBehindClosestTower(
   towers: readonly W3UnitApi.unit[],
   enemyMain: Point,
   beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
+  rush: TowerRushState
 ) {
   const shelter = closestUnit(beliefs, towers, worker);
 
@@ -24,17 +24,20 @@ export function hideBehindClosestTower(
 
   const spot = spotBehind(positionOf(beliefs, shelter), enemyMain);
 
-  if (W3UnitApi.IssuePointOrder(worker, "move", spot.x, spot.y)) {
+  if (W3UnitApi.IssuePointOrder(worker, 'move', spot.x, spot.y)) {
     rush.forwardWorkersSentToSafety.push(worker);
-    debug("Tower rush: forward Peasant hides behind a tower.");
+    debug('Tower rush: forward Peasant hides behind a tower.');
   } else {
-    debug("Tower rush: move to safety rejected.");
+    debug('Tower rush: move to safety rejected.');
   }
 }
 
-export function forgetSentToSafety(worker: W3UnitApi.unit, rush: TowerRushState) {
+export function forgetSentToSafety(
+  worker: W3UnitApi.unit,
+  rush: TowerRushState
+) {
   rush.forwardWorkersSentToSafety = rush.forwardWorkersSentToSafety.filter(
-    (sent) => sent !== worker,
+    (sent) => sent !== worker
   );
 }
 
@@ -49,7 +52,7 @@ export function forgetSentToSafety(worker: W3UnitApi.unit, rush: TowerRushState)
 export function controlForwardPeasants(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
-  control: ActorControl,
+  control: ActorControl
 ): W3UnitApi.unit[] {
   const controlled: W3UnitApi.unit[] = [];
 
@@ -73,6 +76,6 @@ function spotBehind(tower: Point, enemyMain: Point): Point {
   const awayFromEnemyMain = new Vector(enemyMain, tower).normalize();
 
   return tower.translate(
-    awayFromEnemyMain.multiply(HIDING_DISTANCE_BEHIND_TOWER),
+    awayFromEnemyMain.multiply(HIDING_DISTANCE_BEHIND_TOWER)
   );
 }

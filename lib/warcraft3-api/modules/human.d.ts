@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/human" {
+declare module '@lib/warcraft3-api/human' {
   export const enum Unit {
     PEASANT = 1752196449, // hpea
     MILITIA = 1752000876, // hmil

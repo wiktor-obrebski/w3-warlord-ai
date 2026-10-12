@@ -1,8 +1,10 @@
-declare module "@lib/warcraft3-api/trigger" {
+declare module '@lib/warcraft3-api/trigger' {
   /**
    * @patch 1.00
    */
-  export interface trigger extends agent { __trigger: never; }
+  export interface trigger extends agent {
+    __trigger: never;
+  }
 
   /**
    * Currently useless, although triggers return an event reference when you register
@@ -16,7 +18,9 @@ declare module "@lib/warcraft3-api/trigger" {
    *
    * @patch 1.00
    */
-  export interface event extends agent { __event: never; }
+  export interface event extends agent {
+    __event: never;
+  }
 
   /**
    * Events of this type are similar to `unitevent` but are limited to the specified player.
@@ -28,27 +32,35 @@ declare module "@lib/warcraft3-api/trigger" {
    *   or BJ `TriggerRegisterAnyUnitEventBJ`, `TriggerRegisterPlayerUnitEventSimple` to register for this event.
    * @patch 1.00
    */
-  export interface playerunitevent extends eventid { __playerunitevent: never; }
+  export interface playerunitevent extends eventid {
+    __playerunitevent: never;
+  }
 
   /**
    * @bug wrong type, should be `extends agent` instead.
    * @patch 1.00
    */
-  export interface triggeraction extends handle { __triggeraction: never; }
+  export interface triggeraction extends handle {
+    __triggeraction: never;
+  }
 
   /**
    * A single unit reference.
    *
    * @patch 1.00
    */
-  export interface unit extends widget { __unit: never; }
+  export interface unit extends widget {
+    __unit: never;
+  }
 
   /**
    * A single player reference.
    *
    * @patch 1.00
    */
-  export interface player extends agent { __player: never; }
+  export interface player extends agent {
+    __player: never;
+  }
 
   /**
    * @ai-generated Fires when a unit of the registered player is attacked, as the attacker
@@ -78,7 +90,7 @@ declare module "@lib/warcraft3-api/trigger" {
     whichTrigger: trigger,
     whichPlayer: player,
     whichPlayerUnitEvent: playerunitevent,
-    filter?: boolexpr,
+    filter?: boolexpr
   ): event;
 
   /**
@@ -94,7 +106,10 @@ declare module "@lib/warcraft3-api/trigger" {
    * @note New actions added to the trigger during the execution of the actions won't be subject for execution for this run.
    * @patch 1.00
    */
-  export function TriggerAddAction(whichTrigger: trigger, actionFunc: () => void): triggeraction;
+  export function TriggerAddAction(
+    whichTrigger: trigger,
+    actionFunc: () => void
+  ): triggeraction;
 
   /**
    * Returns: unit

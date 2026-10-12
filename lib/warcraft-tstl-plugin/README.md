@@ -17,17 +17,12 @@ The corresponding TypeScript typings from `war3-types-strict` are also global, w
 This project instead exposes Warcraft APIs through scoped modules such as:
 
 ```ts
-import * as PlayerApi from "@lib/warcraft3-api/player";
-import * as UiApi from "@lib/warcraft3-api/ui";
+import * as PlayerApi from '@lib/warcraft3-api/player';
+import * as UiApi from '@lib/warcraft3-api/ui';
 
 const player = PlayerApi.Player(0);
 
-UiApi.DisplayTextToPlayer(
-  player,
-  0,
-  0,
-  "Hello",
-);
+UiApi.DisplayTextToPlayer(player, 0, 0, 'Hello');
 ```
 
 At runtime, however, there is no `PlayerApi` or `UiApi` Lua module. Warcraft still provides these functions as globals.
@@ -59,7 +54,7 @@ The plugin recognizes imports from:
 For example:
 
 ```ts
-import * as UnitApi from "@lib/warcraft3-api/unit";
+import * as UnitApi from '@lib/warcraft3-api/unit';
 ```
 
 It performs two transformations.
@@ -81,7 +76,7 @@ There is therefore no runtime module named:
 For an import such as:
 
 ```ts
-import * as UnitApi from "@lib/warcraft3-api/unit";
+import * as UnitApi from '@lib/warcraft3-api/unit';
 ```
 
 this:
@@ -96,19 +91,18 @@ is emitted as:
 KillUnit(unit)
 ```
 
-
 ## Supported import style
 
 Use namespace imports:
 
 ```ts
-import * as PlayerApi from "@lib/warcraft3-api/player";
+import * as PlayerApi from '@lib/warcraft3-api/player';
 ```
 
 Do not use named imports:
 
 ```ts
-import { Player } from "@lib/warcraft3-api/player";
+import { Player } from '@lib/warcraft3-api/player';
 ```
 
 The plugin currently relies on recognizing the namespace object and rewriting accesses such as:
@@ -126,16 +120,14 @@ TypeScript still needs declaration files describing each Warcraft API module.
 For example:
 
 ```ts
-declare module "@lib/warcraft3-api/player" {
+declare module '@lib/warcraft3-api/player' {
   export interface player extends agent {
     __player: never;
   }
 
   export function Player(index: number): player;
 
-  export function GetPlayerId(
-    whichPlayer: player,
-  ): number;
+  export function GetPlayerId(whichPlayer: player): number;
 }
 ```
 
@@ -166,13 +158,13 @@ The plugin itself must not be compiled into Warcraft Lua.
 The plugin currently assumes API usage has the form:
 
 ```ts
-Api.SomeGlobal
+Api.SomeGlobal;
 ```
 
 where `Api` comes from:
 
 ```ts
-import * as Api from "@lib/warcraft3-api/...";
+import * as Api from '@lib/warcraft3-api/...';
 ```
 
 Avoid patterns such as:

@@ -1,4 +1,4 @@
-import type { AnyBeliefsModel } from "./beliefs-model";
+import type { AnyBeliefsModel } from './beliefs-model';
 
 /**
  * A component's Scoped Beliefs and the model that maintains them.
@@ -32,7 +32,7 @@ export interface BeliefContainer<TCommonBeliefs> {
   /** Registers the component with no Beliefs yet. */
   registerScopedBeliefs(
     component: object,
-    beliefsModel: AnyBeliefsModel<TCommonBeliefs>,
+    beliefsModel: AnyBeliefsModel<TCommonBeliefs>
   ): void;
 
   setScopedBeliefs(component: object, beliefs: unknown): void;
@@ -58,7 +58,7 @@ export function createBeliefContainer<
     const entry = scoped.get(component);
 
     if (!entry) {
-      throw new Error("Beliefs: component has no Scoped Beliefs.");
+      throw new Error('Beliefs: component has no Scoped Beliefs.');
     }
 
     return entry;
@@ -69,7 +69,7 @@ export function createBeliefContainer<
 
     getCommonBeliefs() {
       if (common === null) {
-        throw new Error("Beliefs: Common Beliefs not revised yet.");
+        throw new Error('Beliefs: Common Beliefs not revised yet.');
       }
 
       return common;
@@ -85,7 +85,7 @@ export function createBeliefContainer<
 
     registerScopedBeliefs(component, beliefsModel) {
       if (scoped.has(component)) {
-        throw new Error("Beliefs: component already registered.");
+        throw new Error('Beliefs: component already registered.');
       }
 
       scoped.set(component, { beliefs: null, beliefsModel });

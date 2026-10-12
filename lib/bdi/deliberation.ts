@@ -14,6 +14,6 @@ export interface Deliberation<TBeliefs, TDesire, TIntention> {
   deliberate(
     beliefs: Readonly<TBeliefs>,
     desires: readonly TDesire[],
-    intentions: readonly TIntention[],
+    intentions: readonly TIntention[]
   ): readonly TIntention[];
 }

@@ -1,5 +1,5 @@
 # syntax=docker/sandbox-kit:3
-schemaVersion: "3"
+schemaVersion: '3'
 kind: workload
 
 capabilities:
@@ -20,7 +20,7 @@ capabilities:
           - api.individual.githubcopilot.com:443
           - copilot.github.com:443
           - github.com:443
-          - "**.githubusercontent.com:443"
+          - '**.githubusercontent.com:443'
           - raw.githubusercontent.com:443
           - codeload.github.com:443
 
@@ -42,7 +42,7 @@ capabilities:
           - registry.npmjs.org:443
 
           - opencode.ai:443
-          - "*.opencode.ai:443"
+          - '*.opencode.ai:443'
 
           - archive.ubuntu.com:80
           - security.ubuntu.com:80

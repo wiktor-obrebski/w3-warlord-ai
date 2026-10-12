@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/undead" {
+declare module '@lib/warcraft3-api/undead' {
   export const enum Unit {
     MEAT_WAGON = 1970107511, // umtw
   }

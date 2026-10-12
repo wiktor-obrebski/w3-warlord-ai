@@ -17,7 +17,7 @@ export interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
    */
   revise(
     previous: Readonly<TCommonBeliefs> | null,
-    observation: Readonly<TObservation>,
+    observation: Readonly<TObservation>
   ): TCommonBeliefs;
 }
 
@@ -47,7 +47,7 @@ export interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
   revise(
     previous: Readonly<TBeliefs> | null,
     observation: Readonly<TObservation>,
-    common: Readonly<TCommonBeliefs>,
+    common: Readonly<TCommonBeliefs>
   ): TBeliefs;
 }
 
@@ -60,6 +60,6 @@ export interface AnyBeliefsModel<TCommonBeliefs> {
   revise(
     previous: unknown,
     observation: unknown,
-    common: Readonly<TCommonBeliefs>,
+    common: Readonly<TCommonBeliefs>
   ): unknown;
 }

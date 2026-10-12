@@ -1,7 +1,4 @@
-import type {
-  ActorControlPolicy,
-  ActorControlProvider,
-} from "./actor-control";
+import type { ActorControlPolicy, ActorControlProvider } from './actor-control';
 
 // A source is the Plan or Controller instance being updated.
 interface Claim<TRequest> {
@@ -24,7 +21,7 @@ export interface ActorControlArbiter<TActor, TRequest> {
    */
   update(
     source: object,
-    run: (control: ActorControlProvider<TActor, TRequest>) => void,
+    run: (control: ActorControlProvider<TActor, TRequest>) => void
   ): void;
 
   /**
@@ -35,7 +32,7 @@ export interface ActorControlArbiter<TActor, TRequest> {
 }
 
 export function createActorControlArbiter<TActor, TRequest>(
-  policy: ActorControlPolicy<TRequest>,
+  policy: ActorControlPolicy<TRequest>
 ): ActorControlArbiter<TActor, TRequest> {
   const claims = new Map<TActor, Claim<TRequest>>();
   let updateCount = 0;
@@ -44,7 +41,7 @@ export function createActorControlArbiter<TActor, TRequest>(
     requester: object,
     updateNumber: number,
     actor: TActor,
-    request: TRequest,
+    request: TRequest
   ): boolean => {
     const currentClaim = claims.get(actor) ?? null;
 
@@ -68,7 +65,7 @@ export function createActorControlArbiter<TActor, TRequest>(
   };
 
   const releaseClaims = (
-    shouldRelease: (claim: Claim<TRequest>) => boolean,
+    shouldRelease: (claim: Claim<TRequest>) => boolean
   ) => {
     const released: TActor[] = [];
 
@@ -96,7 +93,7 @@ export function createActorControlArbiter<TActor, TRequest>(
 
       releaseClaims(
         (claim) =>
-          claim.holder === source && claim.renewedInUpdate !== updateNumber,
+          claim.holder === source && claim.renewedInUpdate !== updateNumber
       );
     },
 

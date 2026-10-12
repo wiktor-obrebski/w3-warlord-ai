@@ -1,4 +1,4 @@
-import type { AnyBeliefsModel } from "./beliefs-model";
+import type { AnyBeliefsModel } from './beliefs-model';
 
 /**
  * An Intention, Plan, or Controller as its provider function creates it:
@@ -49,7 +49,7 @@ export type ChildFactory<TValue> = () => ChildHandle<TValue>;
  */
 export function childFactory<TValue extends object, TCommonBeliefs>(
   children: Provided<object, TCommonBeliefs>[],
-  provide: () => Provided<TValue, TCommonBeliefs>,
+  provide: () => Provided<TValue, TCommonBeliefs>
 ): ChildFactory<TValue> {
   return () => {
     const provided = provide();
@@ -61,7 +61,7 @@ export function childFactory<TValue extends object, TCommonBeliefs>(
         const index = children.indexOf(provided);
 
         if (index < 0) {
-          throw new Error("Child factory: child already discarded.");
+          throw new Error('Child factory: child already discarded.');
         }
 
         children.splice(index, 1);

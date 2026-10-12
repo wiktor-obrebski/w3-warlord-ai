@@ -1,18 +1,18 @@
-import * as W3PlayerApi from "@lib/warcraft3-api/player";
-import * as W3TimerApi from "@lib/warcraft3-api/timer";
-import * as WarlordApi from "@lib/warcraft3-api/warlord";
-import { createActorControlArbiter, createBeliefsRuntime } from "@lib/bdi";
-import { debug } from "./debug";
-import { Actor, ActorControlRequest, actorControlPolicy } from "./actor";
-import { WarlordUpdateChild } from "./execution";
-import { createCommonBeliefsModel } from "./beliefs/common.beliefs";
-import { ApplyPressure } from "./desires/apply-pressure";
-import { ProtectEconomicAssets } from "./desires/protect-economic-assets";
-import { UseMilitaryAssetsEffectively } from "./desires/use-military-assets-effectively";
+import * as W3PlayerApi from '@lib/warcraft3-api/player';
+import * as W3TimerApi from '@lib/warcraft3-api/timer';
+import * as WarlordApi from '@lib/warcraft3-api/warlord';
+import { createActorControlArbiter, createBeliefsRuntime } from '@lib/bdi';
+import { debug } from './debug';
+import { Actor, ActorControlRequest, actorControlPolicy } from './actor';
+import { WarlordUpdateChild } from './execution';
+import { createCommonBeliefsModel } from './beliefs/common.beliefs';
+import { ApplyPressure } from './desires/apply-pressure';
+import { ProtectEconomicAssets } from './desires/protect-economic-assets';
+import { UseMilitaryAssetsEffectively } from './desires/use-military-assets-effectively';
 import {
   createDeliberation,
   ProvidedIntention,
-} from "./deliberation/deliberation";
+} from './deliberation/deliberation';
 
 const TICK_SECONDS = 0.1;
 // Every desire is held for the whole game for now.
@@ -38,14 +38,14 @@ export function startRuntime(bot: W3PlayerApi.player) {
   const beliefs = createBeliefsRuntime(createCommonBeliefsModel(bot));
   const deliberation = createDeliberation();
   const arbiter = createActorControlArbiter<Actor, ActorControlRequest>(
-    actorControlPolicy,
+    actorControlPolicy
   );
   const loop = W3TimerApi.CreateTimer();
   let intentions: readonly ProvidedIntention[] = [];
 
   const updateChild: WarlordUpdateChild = (child) =>
     arbiter.update(child, (control) =>
-      child.update(beliefs.beliefsOf(child), control),
+      child.update(beliefs.beliefsOf(child), control)
     );
 
   const tick = () => {
@@ -75,5 +75,5 @@ export function startRuntime(bot: W3PlayerApi.player) {
 function stopLoop(loop: W3TimerApi.timer) {
   W3TimerApi.PauseTimer(loop);
   W3TimerApi.DestroyTimer(loop);
-  debug("Game won; Warlord AI stops.");
+  debug('Game won; Warlord AI stops.');
 }

@@ -12,16 +12,16 @@ domain code
 
 ## Vocabulary
 
-| Concept | Contract | Meaning |
-| --- | --- | --- |
-| Beliefs | `CommonBeliefsModel`, `BeliefsModel`, `BeliefContainer`, `BeliefsRuntime` | What the agent knows about the world, including what it remembers across cycles. |
-| Desires | `Desire` | High-level states or principles the agent wants to achieve or maintain. No behavior. |
-| Deliberation | `Deliberation` | Decides which Intentions exist; owns their lifecycle. |
-| Intentions | `Intention` | Concrete commitments currently being pursued. Active while Deliberation retains them. |
-| Plans | `Plan`, `PlanStatus` | Finite procedural execution with an explicit `running` / `succeeded` / `failed` status. |
-| Controllers | `Controller` | Continuous reactive behavior without procedural completion. |
-| Providers | `Provided`, `childFactory` | How Intentions, Plans, and Controllers are constructed, together with what the runtime needs to manage them. |
-| Actor Control | `ActorControlProvider`, `ActorControlArbiter`, `ActorControlPolicy` | Temporary exclusive right of a Plan or Controller to order an Actor. |
+| Concept       | Contract                                                                  | Meaning                                                                                                      |
+| ------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Beliefs       | `CommonBeliefsModel`, `BeliefsModel`, `BeliefContainer`, `BeliefsRuntime` | What the agent knows about the world, including what it remembers across cycles.                             |
+| Desires       | `Desire`                                                                  | High-level states or principles the agent wants to achieve or maintain. No behavior.                         |
+| Deliberation  | `Deliberation`                                                            | Decides which Intentions exist; owns their lifecycle.                                                        |
+| Intentions    | `Intention`                                                               | Concrete commitments currently being pursued. Active while Deliberation retains them.                        |
+| Plans         | `Plan`, `PlanStatus`                                                      | Finite procedural execution with an explicit `running` / `succeeded` / `failed` status.                      |
+| Controllers   | `Controller`                                                              | Continuous reactive behavior without procedural completion.                                                  |
+| Providers     | `Provided`, `childFactory`                                                | How Intentions, Plans, and Controllers are constructed, together with what the runtime needs to manage them. |
+| Actor Control | `ActorControlProvider`, `ActorControlArbiter`, `ActorControlPolicy`       | Temporary exclusive right of a Plan or Controller to order an Actor.                                         |
 
 Beliefs are knowledge about the world ("worker 17 was attacked 0.8 s ago"). Execution state ("the current flee destination", "the current Plan step") stays private to the Intention, Plan, or Controller that owns it.
 
@@ -83,9 +83,9 @@ The component class stays private to its module, so the runtime always receives 
 A component that creates children at run time receives child factories from its provider. `childFactory(children, provide)` returns a function that calls the child's provider, records the result in the parent's `children`, and returns only a handle:
 
 ```ts
-const plan = this.createPlan();   // { value, discard }
+const plan = this.createPlan(); // { value, discard }
 updateChild(plan.value);
-plan.discard();                   // the child leaves the tree
+plan.discard(); // the child leaves the tree
 ```
 
 The records form the component tree the beliefs runtime manages; the same mechanism applies at every level.
@@ -220,7 +220,7 @@ A Controller reacts continuously and never completes. It may keep private execut
 
 ## Actor Control
 
-An **Actor** is anything in the environment the agent can give orders to; its type is the `TActor` parameter. **Actor Control** is the temporary exclusive right of one Plan or Controller — the *source* — to order an Actor. Every Actor has at most one controlling source.
+An **Actor** is anything in the environment the agent can give orders to; its type is the `TActor` parameter. **Actor Control** is the temporary exclusive right of one Plan or Controller — the _source_ — to order an Actor. Every Actor has at most one controlling source.
 
 ### `ActorControlProvider<TActor, TRequest>`
 
@@ -241,7 +241,8 @@ if (control.request(worker, NORMAL_REQUEST)) {
 ### `ActorControlPolicy<TRequest>`
 
 ```ts
-(request: TRequest, currentClaim: ActorControlClaim<TRequest> | null) => boolean
+(request: TRequest, currentClaim: ActorControlClaim<TRequest> | null) =>
+  boolean;
 ```
 
 The agent's rule for whether a request takes an Actor the requester does not already control. `currentClaim` is the claim another source holds, with the request that granted or last renewed it, or `null` for an uncontrolled Actor. The library only enforces the mechanism around it: one controller per Actor, renewal of one's own claim (always granted, never sent to the policy; the claim keeps the latest request), and leases.

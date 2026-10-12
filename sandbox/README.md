@@ -48,7 +48,6 @@ sbx run --clone ./sandbox/opencode-kit --name warlord
 
 This can take long time for the first time.
 
-
 Later use
 
 ```bash
@@ -60,9 +59,11 @@ to continue the session
 `sbx` builds the local kit and uses the current directory as the sandbox workspace.
 
 ### Troubleshooting
+
 You may need to install `docker-buildx` to use sbx spec kit.
 
 If you get error similar to:
+
 ```
 OCI exporter is not supported for the docker driver. Switch to a different driver, or turn on the containerd image store, and try again.
 ```

@@ -1,6 +1,6 @@
-import { createBeliefContainer } from "./belief-container";
-import type { CommonBeliefsModel } from "./beliefs-model";
-import type { Provided } from "./provided";
+import { createBeliefContainer } from './belief-container';
+import type { CommonBeliefsModel } from './beliefs-model';
+import type { Provided } from './provided';
 
 /**
  * The Beliefs one component reads during its update: the Common Beliefs and
@@ -46,7 +46,7 @@ export interface BeliefsRuntime<TCommonBeliefs> {
 }
 
 export function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>(
-  commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>,
+  commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>
 ): BeliefsRuntime<TCommonBeliefs> {
   const container = createBeliefContainer<TCommonBeliefs>();
   let roots: readonly Provided<object, TCommonBeliefs>[] = [];
@@ -59,7 +59,7 @@ export function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>(
 
     container.setScopedBeliefs(
       component,
-      beliefsModel.revise(previous, observation, container.getCommonBeliefs()),
+      beliefsModel.revise(previous, observation, container.getCommonBeliefs())
     );
   };
 
@@ -129,7 +129,7 @@ export function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>(
         }
 
         if (!managed.has(component)) {
-          throw new Error("Beliefs: component is not in the managed tree.");
+          throw new Error('Beliefs: component is not in the managed tree.');
         }
       }
 

@@ -1,17 +1,17 @@
-import { PlanStatus } from "@lib/bdi";
-import { Point } from "@lib/math";
-import { debug } from "../../../debug";
-import { ActorControl } from "../../../actor";
+import { PlanStatus } from '@lib/bdi';
+import { Point } from '@lib/math';
+import { debug } from '../../../debug';
+import { ActorControl } from '../../../actor';
 import {
   ProvidedComponent,
   WarlordBeliefs,
   WarlordPlan,
-} from "../../../execution";
-import { TowerRushState } from "../tower-rush.state";
-import { updateStart } from "./start";
-import { createMoveForwardState, updateMoveForward } from "./move-forward";
-import { createBuildTowersState, updateBuildTowers } from "./build-towers";
-import { updateUpgradeTowers } from "./upgrade-towers";
+} from '../../../execution';
+import { TowerRushState } from '../tower-rush.state';
+import { updateStart } from './start';
+import { createMoveForwardState, updateMoveForward } from './move-forward';
+import { createBuildTowersState, updateBuildTowers } from './build-towers';
+import { updateUpgradeTowers } from './upgrade-towers';
 
 enum Step {
   Start,
@@ -35,7 +35,7 @@ export interface EstablishTowerPositionPlan extends WarlordPlan {
 
 class EstablishTowerPosition implements EstablishTowerPositionPlan {
   private readonly rush: TowerRushState;
-  private currentStatus: PlanStatus = "running";
+  private currentStatus: PlanStatus = 'running';
   private step = Step.Start;
   private readonly moveForward = createMoveForwardState();
   private readonly buildTowers = createBuildTowersState();
@@ -55,8 +55,8 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   }
 
   public update({ common: beliefs }: WarlordBeliefs, control: ActorControl) {
-    if (this.currentStatus !== "running") {
-      throw new Error("Establish tower position: updated after it ended.");
+    if (this.currentStatus !== 'running') {
+      throw new Error('Establish tower position: updated after it ended.');
     }
 
     switch (this.step) {
@@ -76,7 +76,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
           beliefs,
           this.rush,
           this.buildTowers,
-          control,
+          control
         );
 
         if (towerPositions) {
@@ -88,9 +88,9 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
 
       case Step.UpgradeTowers:
         if (updateUpgradeTowers(beliefs, this.towerPositions, control)) {
-          this.currentStatus = "succeeded";
+          this.currentStatus = 'succeeded';
           debug(
-            `Establish tower position: ${Step[this.step]} -> ${this.currentStatus}`,
+            `Establish tower position: ${Step[this.step]} -> ${this.currentStatus}`
           );
         }
         break;
@@ -104,7 +104,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
 }
 
 export function provideEstablishTowerPositionPlan(
-  rush: TowerRushState,
+  rush: TowerRushState
 ): ProvidedComponent<EstablishTowerPositionPlan> {
   return { value: new EstablishTowerPosition(rush), children: [] };
 }

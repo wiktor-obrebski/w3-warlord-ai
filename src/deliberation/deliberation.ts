@@ -1,15 +1,15 @@
-import { Deliberation, Desire } from "@lib/bdi";
-import { CommonBeliefs } from "../beliefs/common.beliefs";
-import { ProvidedComponent, WarlordIntention } from "../execution";
-import { ApplyPressure } from "../desires/apply-pressure";
-import { ProtectEconomicAssets } from "../desires/protect-economic-assets";
-import { UseMilitaryAssetsEffectively } from "../desires/use-military-assets-effectively";
-import { provideMaintainWorkerSafetyIntention } from "../intentions/maintain-worker-safety/maintain-worker-safety.intention";
+import { Deliberation, Desire } from '@lib/bdi';
+import { CommonBeliefs } from '../beliefs/common.beliefs';
+import { ProvidedComponent, WarlordIntention } from '../execution';
+import { ApplyPressure } from '../desires/apply-pressure';
+import { ProtectEconomicAssets } from '../desires/protect-economic-assets';
+import { UseMilitaryAssetsEffectively } from '../desires/use-military-assets-effectively';
+import { provideMaintainWorkerSafetyIntention } from '../intentions/maintain-worker-safety/maintain-worker-safety.intention';
 import {
   provideTowerRushIntention,
   TowerRushIntention,
-} from "../intentions/tower-rush/tower-rush.intention";
-import { provideOperateTowersIntention } from "../intentions/operate-towers/operate-towers.intention";
+} from '../intentions/tower-rush/tower-rush.intention';
+import { provideOperateTowersIntention } from '../intentions/operate-towers/operate-towers.intention';
 
 /** An Intention as its provider created it. */
 export type ProvidedIntention = ProvidedComponent<WarlordIntention<unknown>>;

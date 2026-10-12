@@ -1,4 +1,4 @@
-import { ChildFactory, childFactory } from "@lib/bdi";
+import { ChildFactory, childFactory } from '@lib/bdi';
 import {
   ProvidedChildren,
   ProvidedComponent,
@@ -6,9 +6,9 @@ import {
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
-} from "../../execution";
-import { UpdateInterval } from "../update-interval";
-import { provideTowerTargetSelectionController } from "./tower-target-selection.ctrl";
+} from '../../execution';
+import { UpdateInterval } from '../update-interval';
+import { provideTowerTargetSelectionController } from './tower-target-selection.ctrl';
 
 const UPDATE_SECONDS = 1;
 
@@ -35,7 +35,7 @@ export function provideOperateTowersIntention(): ProvidedComponent<WarlordIntent
 
   return {
     value: new OperateTowersIntention(
-      childFactory(children, provideTowerTargetSelectionController),
+      childFactory(children, provideTowerTargetSelectionController)
     ),
     children,
   };

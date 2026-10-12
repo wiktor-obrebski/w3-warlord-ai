@@ -25,15 +25,12 @@
     "luaLibImport": "require-minimal",
     "luaBundleEntry": "src/main.ts",
     "tstlVerbose": false,
-    "luaPlugins": [{
-      "name": "./lib/warcraft-tstl-plugin/warcraft-tstl-plugin.ts"
-    }]
+    "luaPlugins": [
+      {
+        "name": "./lib/warcraft-tstl-plugin/warcraft-tstl-plugin.ts"
+      }
+    ]
   },
-  "include": [
-    "src/**/*.ts",
-    "lib/**/*.ts"
-  ],
-  "exclude": [
-    "lib/warcraft-tstl-plugin"
-  ],
+  "include": ["src/**/*.ts", "lib/**/*.ts"],
+  "exclude": ["lib/warcraft-tstl-plugin"]
 }

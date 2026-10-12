@@ -44,3 +44,4 @@ You can also override its location:
 
 ```bash
 JASSDOC_DB=/path/to/jass.db ./jassdoc.sh GroupEnumUnitsOfPlayer
+```

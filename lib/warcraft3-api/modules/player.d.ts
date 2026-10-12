@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/player" {
+declare module '@lib/warcraft3-api/player' {
   /**
    * A single player reference.
    *
@@ -108,7 +108,10 @@ declare module "@lib/warcraft3-api/player" {
    *
    * @patch 1.00
    */
-  export function IsPlayerEnemy(whichPlayer: player, otherPlayer: player): boolean;
+  export function IsPlayerEnemy(
+    whichPlayer: player,
+    otherPlayer: player
+  ): boolean;
 
   /**
    * Returns: integer
@@ -117,5 +120,8 @@ declare module "@lib/warcraft3-api/player" {
    *
    * @patch 1.00
    */
-  export function GetPlayerState(whichPlayer: player, whichPlayerState: playerstate): number;
+  export function GetPlayerState(
+    whichPlayer: player,
+    whichPlayerState: playerstate
+  ): number;
 }

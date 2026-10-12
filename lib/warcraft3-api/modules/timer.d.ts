@@ -1,10 +1,12 @@
-declare module "@lib/warcraft3-api/timer" {
+declare module '@lib/warcraft3-api/timer' {
   /**
    * @ai-generated A countdown that calls a function when it expires.
    *
    * @patch 1.00
    */
-  export interface timer extends agent { __timer: never; }
+  export interface timer extends agent {
+    __timer: never;
+  }
 
   /**
    * Returns: timer
@@ -46,7 +48,12 @@ declare module "@lib/warcraft3-api/timer" {
    *   | 0ms Timer                      |  10077 Hz |         10077 Hz |
    * @patch 1.00
    */
-  export function TimerStart(whichTimer: timer, timeout: number, periodic: boolean, handlerFunc: () => void): void;
+  export function TimerStart(
+    whichTimer: timer,
+    timeout: number,
+    periodic: boolean,
+    handlerFunc: () => void
+  ): void;
 
   /**
    * Returns: real

@@ -1,12 +1,12 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { Point, Vector } from "@lib/math";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import { Point, Vector } from '@lib/math';
 import {
   CommonBeliefs,
   OwnUnit,
   VisibleEnemy,
-} from "../../beliefs/common.beliefs";
-import { recentAttackTarget } from "../../beliefs/common.assessments";
-import { WorkerSafetyBeliefs } from "./worker-safety.beliefs";
+} from '../../beliefs/common.beliefs';
+import { recentAttackTarget } from '../../beliefs/common.assessments';
+import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
 // Not tuned in-game.
 const THREAT_RADIUS = 1000;
@@ -17,7 +17,7 @@ const THREAT_RADIUS = 1000;
  */
 export function needsAttackProtection(
   beliefs: Readonly<WorkerSafetyBeliefs>,
-  worker: W3UnitApi.unit,
+  worker: W3UnitApi.unit
 ): boolean {
   return beliefs.lastAttackedAt.has(worker);
 }
@@ -28,7 +28,7 @@ export function needsAttackProtection(
  */
 export function nearbyThreats(
   beliefs: Readonly<CommonBeliefs>,
-  position: Point,
+  position: Point
 ): VisibleEnemy[] {
   return beliefs.visibleEnemies.filter(
     (enemy) =>
@@ -36,7 +36,7 @@ export function nearbyThreats(
         (!enemy.isStructure &&
           !enemy.isWorker &&
           (enemy.isMelee || enemy.isRanged))) &&
-      new Vector(position, enemy.position).length <= THREAT_RADIUS,
+      new Vector(position, enemy.position).length <= THREAT_RADIUS
   );
 }
 
@@ -47,14 +47,14 @@ export function nearbyThreats(
  */
 export function threatCenter(
   beliefs: Readonly<CommonBeliefs>,
-  worker: OwnUnit,
+  worker: OwnUnit
 ): Point | undefined {
   const nearby = nearbyThreats(beliefs, worker.position);
   const reference =
     nearby.length > 0
       ? nearby
       : beliefs.visibleEnemies.filter(
-          (enemy) => recentAttackTarget(beliefs, enemy.unit) === worker.unit,
+          (enemy) => recentAttackTarget(beliefs, enemy.unit) === worker.unit
         );
 
   return reference.length > 0 ? averagePosition(reference) : undefined;

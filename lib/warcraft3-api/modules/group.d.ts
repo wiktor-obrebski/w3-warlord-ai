@@ -1,17 +1,21 @@
-declare module "@lib/warcraft3-api/group" {
+declare module '@lib/warcraft3-api/group' {
   /**
    * @ai-generated A collection of unit references.
    *
    * @patch 1.00
    */
-  export interface group extends agent { __group: never; }
+  export interface group extends agent {
+    __group: never;
+  }
 
   /**
    * A single unit reference.
    *
    * @patch 1.00
    */
-  export interface unit extends widget { __unit: never; }
+  export interface unit extends widget {
+    __unit: never;
+  }
 
   /**
    * Returns: group
@@ -41,7 +45,11 @@ declare module "@lib/warcraft3-api/group" {
    * @note In terms of running the filter function, units are processed in reverse order in which they were created on the map.
    * @patch 1.00
    */
-  export function GroupEnumUnitsOfPlayer(whichGroup: group, whichPlayer: player, filter: boolexpr | null): void;
+  export function GroupEnumUnitsOfPlayer(
+    whichGroup: group,
+    whichPlayer: player,
+    filter: boolexpr | null
+  ): void;
 
   /**
    * Returns: nothing
@@ -75,7 +83,13 @@ declare module "@lib/warcraft3-api/group" {
    * @note See: `GroupEnumUnitsInRect`, `GroupEnumUnitsInRangeOfLoc`.
    * @patch 1.00
    */
-  export function GroupEnumUnitsInRange(whichGroup: group, x: number, y: number, radius: number, filter?: boolexpr): void;
+  export function GroupEnumUnitsInRange(
+    whichGroup: group,
+    x: number,
+    y: number,
+    radius: number,
+    filter?: boolexpr
+  ): void;
 
   /**
    * Returns: unit

@@ -2,7 +2,7 @@
  * Warcraft APIs needed only by installation, debug-mode and test code in `src/privileged/`.
  * Normal bot gameplay must not use this module.
  */
-declare module "@lib/warcraft3-api/privileged" {
+declare module '@lib/warcraft3-api/privileged' {
   /**
    * @ai-generated State of a player slot, such as empty, playing, or left.
    *
@@ -56,7 +56,11 @@ declare module "@lib/warcraft3-api/privileged" {
    * @note See: `GetOwningPlayer`, `Player`, `SetUnitColor`, `BlzSetSpecialEffectColorByPlayer`.
    * @patch 1.00
    */
-  export function SetUnitOwner(whichUnit: unit, whichPlayer: player, changeColor: boolean): void;
+  export function SetUnitOwner(
+    whichUnit: unit,
+    whichPlayer: player,
+    changeColor: boolean
+  ): void;
 
   /**
    * Returns: nothing
@@ -65,7 +69,11 @@ declare module "@lib/warcraft3-api/privileged" {
    *
    * @patch 1.00
    */
-  export function SetPlayerState(whichPlayer: player, whichPlayerState: playerstate, value: number): void;
+  export function SetPlayerState(
+    whichPlayer: player,
+    whichPlayerState: playerstate,
+    value: number
+  ): void;
 
   /**
    * Returns: nothing
@@ -86,7 +94,10 @@ declare module "@lib/warcraft3-api/privileged" {
    *   the map for preview.
    * @patch 1.00
    */
-  export function SetPlayerStartLocation(whichPlayer: player, startLocIndex: number): void;
+  export function SetPlayerStartLocation(
+    whichPlayer: player,
+    startLocIndex: number
+  ): void;
 
   /**
    * Returns: playercolor
@@ -211,7 +222,7 @@ declare module "@lib/warcraft3-api/privileged" {
     whichState: fogstate,
     where: rect,
     useSharedVision: boolean,
-    afterUnits: boolean,
+    afterUnits: boolean
   ): fogmodifier;
 
   /**
@@ -321,7 +332,11 @@ declare module "@lib/warcraft3-api/privileged" {
    * @note See: `MultiboardSetItemStyle` for a detailed description.
    * @patch 1.07
    */
-  export function MultiboardSetItemsStyle(lb: multiboard, showValues: boolean, showIcons: boolean): void;
+  export function MultiboardSetItemsStyle(
+    lb: multiboard,
+    showValues: boolean,
+    showIcons: boolean
+  ): void;
 
   /**
    * Returns: nothing
@@ -352,7 +367,11 @@ declare module "@lib/warcraft3-api/privileged" {
    * @note The parameter order of `row` and `column` is (y,x) if you think of coordinates.
    * @patch 1.07
    */
-  export function MultiboardGetItem(lb: multiboard, row: number, column: number): multiboarditem;
+  export function MultiboardGetItem(
+    lb: multiboard,
+    row: number,
+    column: number
+  ): multiboarditem;
 
   /**
    * Returns: nothing
@@ -368,7 +387,10 @@ declare module "@lib/warcraft3-api/privileged" {
    * @note See: `MultiboardSetItemsValue`.
    * @patch 1.07
    */
-  export function MultiboardSetItemValue(mbi: multiboarditem, val: string): void;
+  export function MultiboardSetItemValue(
+    mbi: multiboarditem,
+    val: string
+  ): void;
 
   /**
    * Returns: nothing

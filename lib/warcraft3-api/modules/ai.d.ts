@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/ai" {
+declare module '@lib/warcraft3-api/ai' {
   /**
    * Returns: nothing
    *

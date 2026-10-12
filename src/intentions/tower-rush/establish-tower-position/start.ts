@@ -1,12 +1,12 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import * as W3HumanApi from "@lib/warcraft3-api/human";
-import { debug } from "../../../debug";
-import { ActorControl, NORMAL_REQUEST } from "../../../actor";
-import { Point, Vector } from "@lib/math";
-import { CommonBeliefs } from "../../../beliefs/common.beliefs";
-import { positionOf } from "../../../beliefs/common.assessments";
-import { TowerRushState } from "../tower-rush.state";
-import { trainPeasant } from "../tower-rush-economy.ctrl";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import * as W3HumanApi from '@lib/warcraft3-api/human';
+import { debug } from '../../../debug';
+import { ActorControl, NORMAL_REQUEST } from '../../../actor';
+import { Point, Vector } from '@lib/math';
+import { CommonBeliefs } from '../../../beliefs/common.beliefs';
+import { positionOf } from '../../../beliefs/common.assessments';
+import { TowerRushState } from '../tower-rush.state';
+import { trainPeasant } from '../tower-rush-economy.ctrl';
 
 const STARTING_PEASANT_COUNT = 5;
 const FORWARD_WORKER_COUNT = 3;
@@ -21,20 +21,20 @@ const CANDIDATE_SPACING = 64;
 export function updateStart(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
-  control: ActorControl,
+  control: ActorControl
 ) {
   const { townHall, enemyMainGoldMine, homeGoldMine } = beliefs;
 
   if (!townHall) {
-    throw new Error("Tower rush start: Town Hall not found.");
+    throw new Error('Tower rush start: Town Hall not found.');
   }
 
   if (!enemyMainGoldMine) {
-    throw new Error("Tower rush start: enemy main gold mine not found.");
+    throw new Error('Tower rush start: enemy main gold mine not found.');
   }
 
   if (!homeGoldMine) {
-    throw new Error("Tower rush start: home gold mine not found.");
+    throw new Error('Tower rush start: home gold mine not found.');
   }
 
   const [lumberMillBuilder, homeWorker] =
@@ -42,7 +42,7 @@ export function updateStart(
 
   if (!lumberMillBuilder || !homeWorker) {
     throw new Error(
-      `Tower rush start: expected ${STARTING_PEASANT_COUNT} Peasants, found ${beliefs.peasants.length}.`,
+      `Tower rush start: expected ${STARTING_PEASANT_COUNT} Peasants, found ${beliefs.peasants.length}.`
     );
   }
 
@@ -53,21 +53,23 @@ export function updateStart(
   // Nothing else has had a chance to claim the starting units yet.
   for (const actor of [...beliefs.peasants, townHall]) {
     if (!control.request(actor, NORMAL_REQUEST)) {
-      throw new Error("Tower rush start: a starting unit is already controlled.");
+      throw new Error(
+        'Tower rush start: a starting unit is already controlled.'
+      );
     }
   }
 
   for (const worker of rush.forwardWorkers) {
-    W3UnitApi.IssueImmediateOrder(worker, "militia");
+    W3UnitApi.IssueImmediateOrder(worker, 'militia');
   }
 
   orderLumberMill(
     lumberMillBuilder,
     positionOf(beliefs, townHall),
     homeGoldMine.position,
-    beliefs,
+    beliefs
   );
-  W3UnitApi.IssueTargetOrder(homeWorker, "harvest", homeGoldMine.unit);
+  W3UnitApi.IssueTargetOrder(homeWorker, 'harvest', homeGoldMine.unit);
   trainPeasant(townHall, beliefs, rush);
 }
 
@@ -79,7 +81,7 @@ function orderLumberMill(
   builder: W3UnitApi.unit,
   hall: Point,
   mine: Point,
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ) {
   const trees = treePositions(builder, beliefs);
   const sites = lumberMillCandidates(hall, mine)
@@ -90,7 +92,7 @@ function orderLumberMill(
     }))
     .sort(
       (a, b) =>
-        a.hallDistance + a.treeDistance - (b.hallDistance + b.treeDistance),
+        a.hallDistance + a.treeDistance - (b.hallDistance + b.treeDistance)
     );
 
   for (const site of sites) {
@@ -98,18 +100,18 @@ function orderLumberMill(
       builder,
       W3HumanApi.Building.LUMBER_MILL,
       site.position.x,
-      site.position.y,
+      site.position.y
     );
 
     if (accepted) {
       debug(
-        `Tower rush start: Lumber Mill ordered ${Math.floor(site.hallDistance)} from the Town Hall and ${Math.floor(site.treeDistance)} from a tree.`,
+        `Tower rush start: Lumber Mill ordered ${Math.floor(site.hallDistance)} from the Town Hall and ${Math.floor(site.treeDistance)} from a tree.`
       );
       return;
     }
   }
 
-  debug("Tower rush start: all Lumber Mill locations rejected.");
+  debug('Tower rush start: all Lumber Mill locations rejected.');
 }
 
 // Rings around the Town Hall, spaced about CANDIDATE_SPACING apart, on the
@@ -125,9 +127,13 @@ function lumberMillCandidates(hall: Point, mine: Point): Point[] {
   ) {
     const angleStep = CANDIDATE_SPACING / distance;
 
-    for (let offset = -Math.PI / 2; offset <= Math.PI / 2; offset += angleStep) {
+    for (
+      let offset = -Math.PI / 2;
+      offset <= Math.PI / 2;
+      offset += angleStep
+    ) {
       candidates.push(
-        hall.translate(new Vector(distance, 0).rotate(awayFromMine + offset)),
+        hall.translate(new Vector(distance, 0).rotate(awayFromMine + offset))
       );
     }
   }
@@ -140,11 +146,11 @@ function lumberMillCandidates(hall: Point, mine: Point): Point[] {
 // build order replaces these test orders.
 function treePositions(
   builder: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ): Point[] {
   return beliefs.destructablesNearHomeByDistance
     .filter(({ destructable }) =>
-      W3UnitApi.IssueTargetOrder(builder, "harvest", destructable),
+      W3UnitApi.IssueTargetOrder(builder, 'harvest', destructable)
     )
     .map((tree) => tree.position);
 }

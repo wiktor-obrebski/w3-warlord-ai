@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/unit" {
+declare module '@lib/warcraft3-api/unit' {
   export const enum Ability {
     /**
      * Present while a building is under construction.
@@ -69,7 +69,9 @@ declare module "@lib/warcraft3-api/unit" {
    *
    * @patch 1.00
    */
-  export interface unit extends widget { __unit: never; }
+  export interface unit extends widget {
+    __unit: never;
+  }
 
   /**
    * Returns: boolean
@@ -84,7 +86,12 @@ declare module "@lib/warcraft3-api/unit" {
    *   until one is accepted works as a placement search. A Peasant reverted from Militia accepts build orders normally.
    * @patch 1.00
    */
-  export function IssueBuildOrderById(whichPeon: unit, unitId: number, x: number, y: number): boolean;
+  export function IssueBuildOrderById(
+    whichPeon: unit,
+    unitId: number,
+    x: number,
+    y: number
+  ): boolean;
 
   /**
    * Returns: boolean
@@ -119,7 +126,10 @@ declare module "@lib/warcraft3-api/unit" {
    *   ```
    * @patch 1.00
    */
-  export function IssueImmediateOrderById(whichUnit: unit, order: number): boolean;
+  export function IssueImmediateOrderById(
+    whichUnit: unit,
+    order: number
+  ): boolean;
 
   /**
    * Returns: boolean
@@ -131,7 +141,12 @@ declare module "@lib/warcraft3-api/unit" {
    * @bug If the order is to build a structure, this function will return `false` even if the unit accepts the order.
    * @patch 1.00
    */
-  export function IssuePointOrder(whichUnit: unit, order: string, x: number, y: number): boolean;
+  export function IssuePointOrder(
+    whichUnit: unit,
+    order: string,
+    x: number,
+    y: number
+  ): boolean;
 
   /**
    * Returns: boolean
@@ -142,7 +157,11 @@ declare module "@lib/warcraft3-api/unit" {
    *   and repairs it during the upgrade.
    * @patch 1.00
    */
-  export function IssueTargetOrder(whichUnit: unit, order: string, targetWidget: widget): boolean;
+  export function IssueTargetOrder(
+    whichUnit: unit,
+    order: string,
+    targetWidget: widget
+  ): boolean;
 
   /**
    * Returns: integer
@@ -175,7 +194,11 @@ declare module "@lib/warcraft3-api/unit" {
    *
    * @patch 1.00
    */
-  export function IsUnitInRange(whichUnit: unit, otherUnit: unit, distance: number): boolean;
+  export function IsUnitInRange(
+    whichUnit: unit,
+    otherUnit: unit,
+    distance: number
+  ): boolean;
 
   /**
    * Returns: boolean
@@ -285,7 +308,10 @@ declare module "@lib/warcraft3-api/unit" {
    * @note See: `SetUnitState`.
    * @patch 1.00
    */
-  export function GetUnitState(whichUnit: unit, whichUnitState: unitstate): number;
+  export function GetUnitState(
+    whichUnit: unit,
+    whichUnitState: unitstate
+  ): number;
 
   /**
    * Returns: integer
@@ -303,5 +329,8 @@ declare module "@lib/warcraft3-api/unit" {
    *   to tell an upgrade from construction.
    * @patch 1.13
    */
-  export function GetUnitAbilityLevel(whichUnit: unit, abilcode: number): number;
+  export function GetUnitAbilityLevel(
+    whichUnit: unit,
+    abilcode: number
+  ): number;
 }

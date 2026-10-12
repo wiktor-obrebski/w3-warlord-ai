@@ -1,5 +1,5 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { ActorControlPolicy, ActorControlProvider } from "@lib/bdi";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import { ActorControlPolicy, ActorControlProvider } from '@lib/bdi';
 
 /**
  * A Warcraft entity the bot can order, such as a unit or a building; Warcraft
@@ -26,7 +26,7 @@ export type ActorControl = ActorControlProvider<Actor, ActorControlRequest>;
  */
 export const actorControlPolicy: ActorControlPolicy<ActorControlRequest> = (
   request,
-  currentClaim,
+  currentClaim
 ) =>
   currentClaim === null ||
   (request.preemptive && !currentClaim.request.preemptive);

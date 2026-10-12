@@ -2,6 +2,5 @@
   "name": "@lib/warcraft3-tstl-plugin",
   "private": true,
   "main": "warcraft3-tstl-plugin",
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }

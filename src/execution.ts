@@ -5,9 +5,9 @@ import {
   Plan,
   Provided,
   UpdateChild,
-} from "@lib/bdi";
-import { ActorControl } from "./actor";
-import { CommonBeliefs } from "./beliefs/common.beliefs";
+} from '@lib/bdi';
+import { ActorControl } from './actor';
+import { CommonBeliefs } from './beliefs/common.beliefs';
 
 /**
  * The Beliefs a Warlord component reads: the Common Beliefs and its own

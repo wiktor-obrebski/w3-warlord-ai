@@ -1,4 +1,4 @@
-import { ChildFactory, childFactory } from "@lib/bdi";
+import { ChildFactory, childFactory } from '@lib/bdi';
 import {
   ProvidedChildren,
   ProvidedComponent,
@@ -6,9 +6,9 @@ import {
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
-} from "../../execution";
-import { provideWorkerSafetyController } from "./worker-safety.ctrl";
-import { WorkerSafetyBeliefs } from "./worker-safety.beliefs";
+} from '../../execution';
+import { provideWorkerSafetyController } from './worker-safety.ctrl';
+import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
 /** Keeps attacked workers out of harm's way, every bot tick. */
 class MaintainWorkerSafetyIntention implements WarlordIntention {
@@ -20,7 +20,7 @@ class MaintainWorkerSafetyIntention implements WarlordIntention {
   public constructor(
     createWorkerSafetyController: ChildFactory<
       WarlordController<WorkerSafetyBeliefs>
-    >,
+    >
   ) {
     this.createWorkerSafetyController = createWorkerSafetyController;
   }
@@ -36,7 +36,7 @@ export function provideMaintainWorkerSafetyIntention(): ProvidedComponent<Warlor
 
   return {
     value: new MaintainWorkerSafetyIntention(
-      childFactory(children, provideWorkerSafetyController),
+      childFactory(children, provideWorkerSafetyController)
     ),
     children,
   };

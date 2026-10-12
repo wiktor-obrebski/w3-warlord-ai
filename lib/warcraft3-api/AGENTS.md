@@ -26,7 +26,7 @@ sync with the wrapper and document them from the wrapper; there is no Jassdoc or
 Application code should use namespace imports:
 
 ```ts
-import * as UnitApi from "@lib/warcraft3-api/unit";
+import * as UnitApi from '@lib/warcraft3-api/unit';
 
 UnitApi.KillUnit(unit);
 ```
@@ -52,7 +52,7 @@ not:
 export function CreateGroup(): group | undefined;
 ```
 
-Use `null` when a Warcraft API is documented to return JASS `null` or you have other good reason to think the `null` can be returned.. 
+Use `null` when a Warcraft API is documented to return JASS `null` or you have other good reason to think the `null` can be returned..
 When nullability is unclear, check Jassdoc and documented runtime behavior.
 
 Use `void` for functions that return nothing.

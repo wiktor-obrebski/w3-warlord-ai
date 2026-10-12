@@ -1,12 +1,12 @@
-import type { Controller } from "./controller";
-import type { Plan } from "./plan";
+import type { Controller } from './controller';
+import type { Plan } from './plan';
 
 /**
  * Updates one of an Intention's Plans or Controllers with that child's own
  * Beliefs and actor control scoped to it.
  */
 export type UpdateChild<TChildBeliefs, TControl> = (
-  child: Plan<TChildBeliefs, TControl> | Controller<TChildBeliefs, TControl>,
+  child: Plan<TChildBeliefs, TControl> | Controller<TChildBeliefs, TControl>
 ) => void;
 
 /**
@@ -25,6 +25,6 @@ export interface Intention<TBeliefs, TControl, TChildBeliefs = TBeliefs> {
    */
   update(
     beliefs: Readonly<TBeliefs>,
-    updateChild: UpdateChild<TChildBeliefs, TControl>,
+    updateChild: UpdateChild<TChildBeliefs, TControl>
   ): void;
 }

@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/location" {
+declare module '@lib/warcraft3-api/location' {
   /**
    * @ai-generated A point on the map defined by X and Y coordinates.
    *
@@ -101,5 +101,4 @@ declare module "@lib/warcraft3-api/location" {
    * @patch 1.00
    */
   export function RemoveLocation(whichLocation: location): void;
-
 }

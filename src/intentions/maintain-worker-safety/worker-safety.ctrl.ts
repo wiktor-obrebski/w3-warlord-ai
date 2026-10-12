@@ -1,32 +1,32 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import * as W3MathApi from "@lib/warcraft3-api/math";
-import * as W3TerrainApi from "@lib/warcraft3-api/terrain";
-import { Point, Vector } from "@lib/math";
-import { debug } from "../../debug";
-import { ActorControl, PREEMPTIVE_REQUEST } from "../../actor";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import * as W3MathApi from '@lib/warcraft3-api/math';
+import * as W3TerrainApi from '@lib/warcraft3-api/terrain';
+import { Point, Vector } from '@lib/math';
+import { debug } from '../../debug';
+import { ActorControl, PREEMPTIVE_REQUEST } from '../../actor';
 import {
   ProvidedComponent,
   WarlordBeliefs,
   WarlordController,
-} from "../../execution";
-import { CommonBeliefs, OwnUnit } from "../../beliefs/common.beliefs";
-import { isRecentlyAttacked } from "../../beliefs/common.assessments";
+} from '../../execution';
+import { CommonBeliefs, OwnUnit } from '../../beliefs/common.beliefs';
+import { isRecentlyAttacked } from '../../beliefs/common.assessments';
 import {
   WorkerSafetyBeliefs,
   workerSafetyBeliefsModel,
-} from "./worker-safety.beliefs";
+} from './worker-safety.beliefs';
 import {
   needsAttackProtection,
   nearbyThreats,
   threatCenter,
-} from "./worker-safety.assessments";
+} from './worker-safety.assessments';
 
 const FLEE_ROUND_DISTANCE = 300;
 const FLEE_DESTINATION_REACHED_DISTANCE = 32;
 const FLEE_ANGLE_STEP = Math.PI / 6;
 // Alternating to either side of straight away, ending straight back.
 const FLEE_ANGLE_OFFSETS = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6].map(
-  (step) => step * FLEE_ANGLE_STEP,
+  (step) => step * FLEE_ANGLE_STEP
 );
 
 interface FleeRound {
@@ -43,14 +43,12 @@ interface FleeRound {
  * releases it by no longer requesting it. While recovering, the worker is not
  * ordered at all.
  */
-class WorkerSafetyController
-  implements WarlordController<WorkerSafetyBeliefs>
-{
+class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
   private readonly fleeRounds = new Map<W3UnitApi.unit, FleeRound>();
 
   public update(
     { common: beliefs, scoped: safety }: WarlordBeliefs<WorkerSafetyBeliefs>,
-    control: ActorControl,
+    control: ActorControl
   ) {
     for (const worker of beliefs.workers) {
       const isUnsafe =
@@ -83,7 +81,7 @@ class WorkerSafetyController
       this.fleeRounds.delete(worker.unit);
 
       if (!isAttacked) {
-        debug("Worker safety: worker is no longer attacked.");
+        debug('Worker safety: worker is no longer attacked.');
       }
     }
 
@@ -140,14 +138,14 @@ function fledHalfway(worker: OwnUnit, round: FleeRound): boolean {
 // Left moving, the worker would run the rest of the way while other code
 // already treats it as no longer fleeing.
 function stopFleeing(worker: OwnUnit) {
-  if (!worker.isIdle && !W3UnitApi.IssueImmediateOrder(worker.unit, "stop")) {
-    debug("Worker safety: stop order rejected.");
+  if (!worker.isIdle && !W3UnitApi.IssueImmediateOrder(worker.unit, 'stop')) {
+    debug('Worker safety: stop order rejected.');
   }
 }
 
 function startFleeRound(
   worker: OwnUnit,
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ): FleeRound | undefined {
   const nearby = nearbyThreats(beliefs, worker.position);
   const threat = threatCenter(beliefs, worker);
@@ -155,14 +153,19 @@ function startFleeRound(
   const destination = fleeDestination(worker.position, awayAngle);
 
   if (
-    !W3UnitApi.IssuePointOrder(worker.unit, "move", destination.x, destination.y)
+    !W3UnitApi.IssuePointOrder(
+      worker.unit,
+      'move',
+      destination.x,
+      destination.y
+    )
   ) {
-    debug("Worker safety: flee order rejected.");
+    debug('Worker safety: flee order rejected.');
     return undefined;
   }
 
   debug(
-    `Worker safety: attacked worker flees from ${nearby.length} nearby enemies.`,
+    `Worker safety: attacked worker flees from ${nearby.length} nearby enemies.`
   );
 
   return { origin: worker.position, destination };
@@ -177,12 +180,16 @@ function fleeDestination(from: Point, awayAngle: number | undefined): Point {
   const preferredAngle = awayAngle ?? W3MathApi.GetRandomReal(0, Math.PI * 2);
 
   for (const offset of FLEE_ANGLE_OFFSETS) {
-    const candidate = pointAt(from, preferredAngle + offset, FLEE_ROUND_DISTANCE);
+    const candidate = pointAt(
+      from,
+      preferredAngle + offset,
+      FLEE_ROUND_DISTANCE
+    );
 
     if (isWalkable(candidate)) {
       if (offset !== 0) {
         debug(
-          `Worker safety: straight away is blocked; fleeing ${Math.floor((offset * 180) / Math.PI)} degrees off.`,
+          `Worker safety: straight away is blocked; fleeing ${Math.floor((offset * 180) / Math.PI)} degrees off.`
         );
       }
 
@@ -190,12 +197,12 @@ function fleeDestination(from: Point, awayAngle: number | undefined): Point {
     }
   }
 
-  debug("Worker safety: no walkable flee direction; fleeing at random.");
+  debug('Worker safety: no walkable flee direction; fleeing at random.');
 
   return pointAt(
     from,
     W3MathApi.GetRandomReal(0, Math.PI * 2),
-    FLEE_ROUND_DISTANCE,
+    FLEE_ROUND_DISTANCE
   );
 }
 
@@ -209,7 +216,7 @@ function isWalkable(point: Point): boolean {
   return !W3TerrainApi.IsTerrainPathable(
     point.x,
     point.y,
-    W3TerrainApi.PATHING_TYPE_WALKABILITY,
+    W3TerrainApi.PATHING_TYPE_WALKABILITY
   );
 }
 

@@ -1,22 +1,22 @@
-import * as W3PlayerApi from "@lib/warcraft3-api/player";
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import * as W3GroupApi from "@lib/warcraft3-api/group";
-import * as W3LocationApi from "@lib/warcraft3-api/location";
-import * as W3HumanApi from "@lib/warcraft3-api/human";
-import * as W3NeutralApi from "@lib/warcraft3-api/neutral";
-import * as W3NightElfApi from "@lib/warcraft3-api/nightelf";
-import * as W3UndeadApi from "@lib/warcraft3-api/undead";
-import * as W3RectApi from "@lib/warcraft3-api/rect";
-import * as W3DestructableApi from "@lib/warcraft3-api/destructable";
-import * as W3OrcApi from "@lib/warcraft3-api/orc";
-import { CommonBeliefsModel } from "@lib/bdi";
-import { Point, Vector } from "@lib/math";
+import * as W3PlayerApi from '@lib/warcraft3-api/player';
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import * as W3GroupApi from '@lib/warcraft3-api/group';
+import * as W3LocationApi from '@lib/warcraft3-api/location';
+import * as W3HumanApi from '@lib/warcraft3-api/human';
+import * as W3NeutralApi from '@lib/warcraft3-api/neutral';
+import * as W3NightElfApi from '@lib/warcraft3-api/nightelf';
+import * as W3UndeadApi from '@lib/warcraft3-api/undead';
+import * as W3RectApi from '@lib/warcraft3-api/rect';
+import * as W3DestructableApi from '@lib/warcraft3-api/destructable';
+import * as W3OrcApi from '@lib/warcraft3-api/orc';
+import { CommonBeliefsModel } from '@lib/bdi';
+import { Point, Vector } from '@lib/math';
 import {
   ObservedAttack,
   observeAttacksOn,
   takeObservedAttacks,
-} from "./attack-observer";
-import { GameClock, readGameClock, startGameClock } from "./game-clock";
+} from './attack-observer';
+import { GameClock, readGameClock, startGameClock } from './game-clock';
 
 type UnitGroup = ReturnType<typeof W3GroupApi.CreateGroup>;
 
@@ -44,7 +44,11 @@ const NO_ORDER = 0;
 // Assumed, not verified in-game: a build order's id is the rawcode of the
 // building, as with IssueBuildOrderById.
 const SCOUT_TOWER_BUILD_ORDER: number = W3HumanApi.Building.SCOUT_TOWER;
-const HARVEST_ORDER_STRINGS = ["harvest", "resumeharvesting", "returnresources"];
+const HARVEST_ORDER_STRINGS = [
+  'harvest',
+  'resumeharvesting',
+  'returnresources',
+];
 // Warcraft treats units at or below this life as dead.
 const DEAD_UNIT_LIFE = 0.405;
 
@@ -145,7 +149,7 @@ export interface CommonBeliefs extends ObservedWorld {
  * at the start of every tick.
  */
 export function createCommonBeliefsModel(
-  bot: W3PlayerApi.player,
+  bot: W3PlayerApi.player
 ): CommonBeliefsModel<CommonObservation, CommonBeliefs> {
   const clock = startGameClock();
   const attackObserver = observeAttacksOn(bot, clock);
@@ -164,7 +168,7 @@ export function createCommonBeliefsModel(
         recentAttacks: reviseRecentAttacks(
           previous?.recentAttacks ?? [],
           observation.attacksStarted,
-          observation.world.time,
+          observation.world.time
         ),
       };
     },
@@ -175,7 +179,7 @@ export function createCommonBeliefsModel(
 function reviseRecentAttacks(
   previous: readonly ObservedAttack[],
   started: readonly ObservedAttack[],
-  now: number,
+  now: number
 ): readonly ObservedAttack[] {
   const isRecent = (attack: ObservedAttack) =>
     now - attack.time <= ATTACK_MEMORY_SECONDS;
@@ -196,7 +200,7 @@ function reviseRecentAttacks(
 
 function observeWorld(
   bot: W3PlayerApi.player,
-  clock: GameClock,
+  clock: GameClock
 ): ObservedWorld {
   const ownStartPosition = startPositionOf(bot);
   const enemies = enemyPlayers(bot);
@@ -221,11 +225,11 @@ function observeWorld(
 
   // Looked up per call because OrderId returns 0 during map init.
   const harvestOrders = HARVEST_ORDER_STRINGS.map((order) =>
-    W3UnitApi.OrderId(order),
+    W3UnitApi.OrderId(order)
   );
-  const holdPositionOrder = W3UnitApi.OrderId("holdposition");
+  const holdPositionOrder = W3UnitApi.OrderId('holdposition');
   // Assumed, not verified in-game, to stay the current order while repairing.
-  const repairOrder = W3UnitApi.OrderId("repair");
+  const repairOrder = W3UnitApi.OrderId('repair');
 
   for (const unit of unitsOfPlayer(bot)) {
     if (!isUnitAlive(unit)) {
@@ -277,14 +281,16 @@ function observeWorld(
 
     // An upgrading building also has the under-construction ability.
     if (
-      W3UnitApi.GetUnitAbilityLevel(unit, W3UnitApi.Ability.BUILDING_UPGRADING) >
-      0
+      W3UnitApi.GetUnitAbilityLevel(
+        unit,
+        W3UnitApi.Ability.BUILDING_UPGRADING
+      ) > 0
     ) {
       buildingsUpgrading.push(unit);
     } else if (
       W3UnitApi.GetUnitAbilityLevel(
         unit,
-        W3UnitApi.Ability.BUILDING_UNDER_CONSTRUCTION,
+        W3UnitApi.Ability.BUILDING_UNDER_CONSTRUCTION
       ) > 0
     ) {
       buildingsUnderConstruction.push(unit);
@@ -312,10 +318,13 @@ function observeWorld(
     buildingsUnderConstruction,
     buildingsUpgrading,
     visibleEnemies: visibleEnemies(bot, enemies),
-    gold: W3PlayerApi.GetPlayerState(bot, W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD),
+    gold: W3PlayerApi.GetPlayerState(
+      bot,
+      W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD
+    ),
     lumber: W3PlayerApi.GetPlayerState(
       bot,
-      W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER,
+      W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER
     ),
     homeGoldMine: findClosestGoldMine(ownStartPosition),
     // Gold mine placement is static map knowledge, visible to any player
@@ -324,7 +333,7 @@ function observeWorld(
       enemyStartPosition && findClosestGoldMine(enemyStartPosition),
     destructablesNearHomeByDistance: destructablesByDistance(
       ownStartPosition,
-      HOME_DESTRUCTABLE_SEARCH_RADIUS,
+      HOME_DESTRUCTABLE_SEARCH_RADIUS
     ),
   };
 }
@@ -336,7 +345,7 @@ function isUnitAlive(unit: W3UnitApi.unit): boolean {
 }
 
 function isDestructableAlive(
-  destructable: W3DestructableApi.destructable,
+  destructable: W3DestructableApi.destructable
 ): boolean {
   return W3DestructableApi.GetDestructableLife(destructable) > 0;
 }
@@ -350,7 +359,7 @@ function startPositionOf(whichPlayer: W3PlayerApi.player): Point {
 
   return new Point(
     W3LocationApi.GetStartLocationX(startLocation),
-    W3LocationApi.GetStartLocationY(startLocation),
+    W3LocationApi.GetStartLocationY(startLocation)
   );
 }
 
@@ -363,7 +372,7 @@ function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
     if (
       candidate &&
       W3PlayerApi.GetPlayerSlotState(candidate) ===
-      W3PlayerApi.PLAYER_SLOT_STATE_PLAYING &&
+        W3PlayerApi.PLAYER_SLOT_STATE_PLAYING &&
       W3PlayerApi.IsPlayerEnemy(bot, candidate)
     ) {
       enemies.push(candidate);
@@ -375,7 +384,7 @@ function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
 
 function visibleEnemies(
   bot: W3PlayerApi.player,
-  enemies: W3PlayerApi.player[],
+  enemies: W3PlayerApi.player[]
 ): VisibleEnemy[] {
   const visible: VisibleEnemy[] = [];
 
@@ -387,7 +396,7 @@ function visibleEnemies(
 
       const isStructure = W3UnitApi.IsUnitType(
         unit,
-        W3UnitApi.UNIT_TYPE_STRUCTURE,
+        W3UnitApi.UNIT_TYPE_STRUCTURE
       );
 
       visible.push({
@@ -397,7 +406,7 @@ function visibleEnemies(
         isMelee: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_MELEE_ATTACKER),
         isRanged: W3UnitApi.IsUnitType(
           unit,
-          W3UnitApi.UNIT_TYPE_RANGED_ATTACKER,
+          W3UnitApi.UNIT_TYPE_RANGED_ATTACKER
         ),
         isSiege: SIEGE_UNIT_TYPES.includes(W3UnitApi.GetUnitTypeId(unit)),
         isStructure,
@@ -405,7 +414,8 @@ function visibleEnemies(
         // Assumed, not verified in-game: an Ancient loses the structure
         // classification while uprooted.
         isUprootedAncient:
-          !isStructure && W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_ANCIENT),
+          !isStructure &&
+          W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_ANCIENT),
       });
     }
   }
@@ -436,7 +446,7 @@ function findClosestGoldMine(position: Point): GoldMine | undefined {
 
 function destructablesByDistance(
   position: Point,
-  radius: number,
+  radius: number
 ): HomeDestructable[] {
   const min = position.translate(new Vector(-radius, -radius));
   const max = position.translate(new Vector(radius, radius));
@@ -449,7 +459,7 @@ function destructablesByDistance(
     if (destructable && isDestructableAlive(destructable)) {
       const destructablePosition = new Point(
         W3DestructableApi.GetDestructableX(destructable),
-        W3DestructableApi.GetDestructableY(destructable),
+        W3DestructableApi.GetDestructableY(destructable)
       );
 
       found.push({

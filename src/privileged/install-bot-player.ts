@@ -1,6 +1,6 @@
-import * as W3GroupApi from "@lib/warcraft3-api/group";
-import * as W3PlayerApi from "@lib/warcraft3-api/player";
-import * as W3PrivilegedApi from "@lib/warcraft3-api/privileged";
+import * as W3GroupApi from '@lib/warcraft3-api/group';
+import * as W3PlayerApi from '@lib/warcraft3-api/player';
+import * as W3PrivilegedApi from '@lib/warcraft3-api/privileged';
 
 interface BotInstallation {
   computerPlayer: W3PlayerApi.player;
@@ -14,7 +14,7 @@ interface BotInstallation {
 interface MapGlobals {
   GetPlayerSlotState: (
     this: void,
-    whichPlayer: W3PlayerApi.player,
+    whichPlayer: W3PlayerApi.player
   ) => W3PlayerApi.playerslotstate;
   WarlordBotInstallations?: BotInstallation[];
 }
@@ -29,17 +29,17 @@ declare const map_globals: MapGlobals;
  * slot state is playing at that moment.
  */
 export function installBotPlayer(
-  computerPlayer: W3PlayerApi.player,
+  computerPlayer: W3PlayerApi.player
 ): W3PlayerApi.player {
   const installations = setupBotInstallations();
   const botPlayer = findEmptyPlayerSlot();
 
   if (!botPlayer) {
-    throw new Error("No empty player slot available for Warlord AI.");
+    throw new Error('No empty player slot available for Warlord AI.');
   }
 
   transferPlayer(computerPlayer, botPlayer);
-  W3PrivilegedApi.SetPlayerName(botPlayer, "Warlord AI");
+  W3PrivilegedApi.SetPlayerName(botPlayer, 'Warlord AI');
 
   installations.push({ computerPlayer, botPlayer });
 
@@ -87,7 +87,7 @@ function findEmptyPlayerSlot(): W3PlayerApi.player | undefined {
     if (
       candidate &&
       W3PlayerApi.GetPlayerSlotState(candidate) ===
-      W3PrivilegedApi.PLAYER_SLOT_STATE_EMPTY
+        W3PrivilegedApi.PLAYER_SLOT_STATE_EMPTY
     ) {
       return candidate;
     }
@@ -98,7 +98,7 @@ function findEmptyPlayerSlot(): W3PlayerApi.player | undefined {
 
 function transferPlayer(
   fromPlayer: W3PlayerApi.player,
-  toPlayer: W3PlayerApi.player,
+  toPlayer: W3PlayerApi.player
 ) {
   const units = W3GroupApi.CreateGroup();
   W3GroupApi.GroupEnumUnitsOfPlayer(units, fromPlayer, null);
@@ -118,11 +118,11 @@ function transferPlayer(
 
   W3PrivilegedApi.SetPlayerStartLocation(
     toPlayer,
-    W3PlayerApi.GetPlayerStartLocation(fromPlayer),
+    W3PlayerApi.GetPlayerStartLocation(fromPlayer)
   );
   W3PrivilegedApi.SetPlayerColor(
     toPlayer,
-    W3PrivilegedApi.GetPlayerColor(fromPlayer),
+    W3PrivilegedApi.GetPlayerColor(fromPlayer)
   );
 
   for (const resource of [
@@ -133,7 +133,7 @@ function transferPlayer(
     W3PrivilegedApi.SetPlayerState(
       toPlayer,
       resource,
-      W3PlayerApi.GetPlayerState(fromPlayer, resource),
+      W3PlayerApi.GetPlayerState(fromPlayer, resource)
     );
   }
 }

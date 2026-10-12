@@ -1,7 +1,7 @@
-import * as ts from "typescript";
-import * as tstl from "typescript-to-lua";
+import * as ts from 'typescript';
+import * as tstl from 'typescript-to-lua';
 
-const API_PREFIX = "@lib/warcraft3-api";
+const API_PREFIX = '@lib/warcraft3-api';
 
 const namespaces = new Set<string>();
 
@@ -13,7 +13,7 @@ const plugin: tstl.Plugin = {
   visitors: {
     [ts.SyntaxKind.ImportDeclaration]: (
       node: ts.ImportDeclaration,
-      context: tstl.TransformationContext,
+      context: tstl.TransformationContext
     ) => {
       if (
         ts.isStringLiteral(node.moduleSpecifier) &&
@@ -33,7 +33,7 @@ const plugin: tstl.Plugin = {
 
     [ts.SyntaxKind.PropertyAccessExpression]: (
       node: ts.PropertyAccessExpression,
-      context: tstl.TransformationContext,
+      context: tstl.TransformationContext
     ) => {
       if (
         ts.isIdentifier(node.expression) &&

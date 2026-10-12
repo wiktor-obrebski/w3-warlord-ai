@@ -52,7 +52,7 @@ Points deliberately do not expose vector operations such as `normalize`, `dot`, 
 Move from point `A` in direction `(1, 2)` by distance `3`:
 
 ```ts
-import { Point, Vector } from "@lib/math";
+import { Point, Vector } from '@lib/math';
 
 const a = new Point(10, 20);
 const direction = new Vector(1, 2);
@@ -90,35 +90,35 @@ point.translate(vector)
 Construction:
 
 ```ts
-new Vector()
-new Vector(x, y)
-new Vector(startPoint, endPoint)
+new Vector();
+new Vector(x, y);
+new Vector(startPoint, endPoint);
 ```
 
 Supported API:
 
 ```ts
-vector.clone()
+vector.clone();
 
-vector.slope
-vector.length
-vector.isZeroLength()
-vector.equalTo(other)
+vector.slope;
+vector.length;
+vector.isZeroLength();
+vector.equalTo(other);
 
-vector.multiply(scalar)
-vector.add(other)
-vector.subtract(other)
-vector.invert()
+vector.multiply(scalar);
+vector.add(other);
+vector.subtract(other);
+vector.invert();
 
-vector.dot(other)
-vector.cross(other)
-vector.normalize()
-vector.angleTo(other)
-vector.projectionOn(other)
+vector.dot(other);
+vector.cross(other);
+vector.normalize();
+vector.angleTo(other);
+vector.projectionOn(other);
 
-vector.rotate(angle)
-vector.rotate90CCW()
-vector.rotate90CW()
+vector.rotate(angle);
+vector.rotate90CCW();
+vector.rotate90CW();
 ```
 
 `Vector` is immutable. Operations return new vectors rather than modifying the receiver. This follows FlattenJS's vector behavior and makes intermediate calculations easier to reason about in AI code.

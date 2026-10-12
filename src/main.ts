@@ -1,10 +1,10 @@
-import * as W3PlayerApi from "@lib/warcraft3-api/player";
-import * as W3TimerApi from "@lib/warcraft3-api/timer";
-import * as WarlordApi from "@lib/warcraft3-api/warlord";
-import { debug } from "./debug";
-import { startRuntime } from "./runtime";
-import { installBotPlayer } from "./privileged/install-bot-player";
-import { enableDebugMode, updateDebugMode } from "./privileged/debug-mode";
+import * as W3PlayerApi from '@lib/warcraft3-api/player';
+import * as W3TimerApi from '@lib/warcraft3-api/timer';
+import * as WarlordApi from '@lib/warcraft3-api/warlord';
+import { debug } from './debug';
+import { startRuntime } from './runtime';
+import { installBotPlayer } from './privileged/install-bot-player';
+import { enableDebugMode, updateDebugMode } from './privileged/debug-mode';
 
 const DEBUG_MODE = true;
 const DEBUG_MODE_UPDATE_SECONDS = 0.1;
@@ -37,7 +37,7 @@ function startDebugMode(bot: W3PlayerApi.player) {
     timer,
     DEBUG_MODE_UPDATE_SECONDS,
     true,
-    WarlordApi.guard(() => updateDebugMode(debugMode, bot)),
+    WarlordApi.guard(() => updateDebugMode(debugMode, bot))
   );
   updateDebugMode(debugMode, bot);
 }
@@ -47,7 +47,7 @@ function debugObserver(): W3PlayerApi.player {
   const observer = W3PlayerApi.Player(0);
 
   if (!observer) {
-    throw new Error("Debug mode: observer player not found.");
+    throw new Error('Debug mode: observer player not found.');
   }
 
   return observer;
@@ -56,8 +56,13 @@ function debugObserver(): W3PlayerApi.player {
 function runAfterMapInitialization(callback: (this: void) => void) {
   const timer = W3TimerApi.CreateTimer();
 
-  W3TimerApi.TimerStart(timer, 0, false, WarlordApi.guard(() => {
-    W3TimerApi.DestroyTimer(timer);
-    callback();
-  }));
+  W3TimerApi.TimerStart(
+    timer,
+    0,
+    false,
+    WarlordApi.guard(() => {
+      W3TimerApi.DestroyTimer(timer);
+      callback();
+    })
+  );
 }

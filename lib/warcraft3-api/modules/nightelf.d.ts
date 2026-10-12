@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/nightelf" {
+declare module '@lib/warcraft3-api/nightelf' {
   export const enum Unit {
     GLAIVE_THROWER = 1700946284, // ebal
   }

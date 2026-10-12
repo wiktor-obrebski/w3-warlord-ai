@@ -1,10 +1,12 @@
-declare module "@lib/warcraft3-api/rect" {
+declare module '@lib/warcraft3-api/rect' {
   /**
    * @ai-generated A rectangular area of the map.
    *
    * @patch 1.00
    */
-  export interface rect extends agent { __rect: never; }
+  export interface rect extends agent {
+    __rect: never;
+  }
 
   /**
    * Returns: rect
@@ -20,7 +22,12 @@ declare module "@lib/warcraft3-api/rect" {
    * @note See: `RectFromLoc`, `RemoveRect`, `GetWorldBounds`.
    * @patch 1.00
    */
-  export function Rect(minx: number, miny: number, maxx: number, maxy: number): rect;
+  export function Rect(
+    minx: number,
+    miny: number,
+    maxx: number,
+    maxy: number
+  ): rect;
 
   /**
    * Returns: nothing

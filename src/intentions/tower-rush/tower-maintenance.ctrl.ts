@@ -1,24 +1,24 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { debug } from "../../debug";
-import { ActorControl } from "../../actor";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import { debug } from '../../debug';
+import { ActorControl } from '../../actor';
 import {
   ProvidedComponent,
   WarlordBeliefs,
   WarlordController,
-} from "../../execution";
-import { CommonBeliefs } from "../../beliefs/common.beliefs";
+} from '../../execution';
+import { CommonBeliefs } from '../../beliefs/common.beliefs';
 import {
   lifeFractionOf,
   mostDamagedUnit,
   ownUnit,
-} from "../../beliefs/common.assessments";
-import { TowerRushState } from "./tower-rush.state";
+} from '../../beliefs/common.assessments';
+import { TowerRushState } from './tower-rush.state';
 import {
   controlForwardPeasants,
   forgetSentToSafety,
   hideBehindClosestTower,
-} from "./forward-workers";
-import { isAvailableForwardPeasant } from "./tower-rush.assessments";
+} from './forward-workers';
+import { isAvailableForwardPeasant } from './tower-rush.assessments';
 
 // A repair starts below the start fraction and is not interrupted before the
 // switch fraction; above it, a tower below the start fraction takes over,
@@ -45,7 +45,7 @@ class TowerMaintenanceController implements WarlordController {
     const enemyMain = beliefs.enemyStartPosition;
 
     if (!enemyMain) {
-      throw new Error("Tower rush: enemy start position not found.");
+      throw new Error('Tower rush: enemy start position not found.');
     }
 
     const towers = [...beliefs.scoutTowers, ...beliefs.guardTowers];
@@ -58,7 +58,7 @@ class TowerMaintenanceController implements WarlordController {
       debug(
         repairTarget
           ? `Tower rush: repairing ${describeTower(repairTarget, beliefs)}.`
-          : "Tower rush: no tower needs repair.",
+          : 'Tower rush: no tower needs repair.'
       );
     }
 
@@ -78,7 +78,7 @@ class TowerMaintenanceController implements WarlordController {
 }
 
 export function provideTowerMaintenanceController(
-  rush: TowerRushState,
+  rush: TowerRushState
 ): ProvidedComponent<WarlordController> {
   return { value: new TowerMaintenanceController(rush), children: [] };
 }
@@ -86,9 +86,10 @@ export function provideTowerMaintenanceController(
 function chooseRepairTarget(
   towers: readonly W3UnitApi.unit[],
   current: W3UnitApi.unit | undefined,
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ): W3UnitApi.unit | undefined {
-  const lifeFraction = (tower: W3UnitApi.unit) => lifeFractionOf(beliefs, tower);
+  const lifeFraction = (tower: W3UnitApi.unit) =>
+    lifeFractionOf(beliefs, tower);
   const currentStanding = current !== undefined && towers.includes(current);
 
   if (currentStanding && lifeFraction(current) < REPAIR_SWITCH_LIFE_FRACTION) {
@@ -99,8 +100,8 @@ function chooseRepairTarget(
     beliefs,
     towers.filter(
       (tower) =>
-        tower !== current && lifeFraction(tower) < REPAIR_START_LIFE_FRACTION,
-    ),
+        tower !== current && lifeFraction(tower) < REPAIR_START_LIFE_FRACTION
+    )
   );
 
   if (mostDamaged) {
@@ -114,20 +115,20 @@ function orderRepair(
   worker: W3UnitApi.unit,
   tower: W3UnitApi.unit,
   beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
+  rush: TowerRushState
 ) {
-  if (W3UnitApi.IssueTargetOrder(worker, "repair", tower)) {
+  if (W3UnitApi.IssueTargetOrder(worker, 'repair', tower)) {
     forgetSentToSafety(worker, rush);
   } else {
     debug(
-      `Tower rush: repair order rejected for ${describeTower(tower, beliefs)}.`,
+      `Tower rush: repair order rejected for ${describeTower(tower, beliefs)}.`
     );
   }
 }
 
 function describeTower(
   tower: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ): string {
   const { life, maxLife } = ownUnit(beliefs, tower);
 

@@ -1,17 +1,17 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { debug } from "../../debug";
-import { ActorControl, NORMAL_REQUEST } from "../../actor";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import { debug } from '../../debug';
+import { ActorControl, NORMAL_REQUEST } from '../../actor';
 import {
   ProvidedComponent,
   WarlordBeliefs,
   WarlordController,
-} from "../../execution";
-import { CommonBeliefs } from "../../beliefs/common.beliefs";
+} from '../../execution';
+import { CommonBeliefs } from '../../beliefs/common.beliefs';
 import {
   RankedTarget,
   rankTowerTargets,
   TargetPriority,
-} from "./operate-towers.assessments";
+} from './operate-towers.assessments';
 
 // Not verified in-game that IsUnitInRange matches the tower's own reach.
 const GUARD_TOWER_ATTACK_RANGE = 700;
@@ -34,7 +34,7 @@ class TowerTargetSelectionController implements WarlordController {
     const rankedTargets = rankTowerTargets(beliefs);
 
     this.towerTargets = this.towerTargets.filter((entry) =>
-      beliefs.guardTowers.includes(entry.tower),
+      beliefs.guardTowers.includes(entry.tower)
     );
 
     for (const tower of beliefs.guardTowers) {
@@ -50,10 +50,10 @@ class TowerTargetSelectionController implements WarlordController {
   private attackBestTargetInRange(
     tower: W3UnitApi.unit,
     rankedTargets: readonly RankedTarget[],
-    beliefs: Readonly<CommonBeliefs>,
+    beliefs: Readonly<CommonBeliefs>
   ) {
     const currentTarget = this.towerTargets.find(
-      (entry) => entry.tower === tower,
+      (entry) => entry.tower === tower
     )?.target;
     const towerBusy = !beliefs.idleUnits.includes(tower);
 
@@ -68,10 +68,10 @@ class TowerTargetSelectionController implements WarlordController {
         return;
       }
 
-      if (W3UnitApi.IssueTargetOrder(tower, "attack", enemy.unit)) {
+      if (W3UnitApi.IssueTargetOrder(tower, 'attack', enemy.unit)) {
         this.rememberTowerTarget(tower, enemy.unit);
         debug(
-          `Operate towers: Guard Tower attacks ${TargetPriority[priority]} target with ${Math.floor(enemy.life)} life.`,
+          `Operate towers: Guard Tower attacks ${TargetPriority[priority]} target with ${Math.floor(enemy.life)} life.`
         );
         return;
       }
@@ -87,7 +87,7 @@ class TowerTargetSelectionController implements WarlordController {
 
   private forgetTowerTarget(tower: W3UnitApi.unit) {
     this.towerTargets = this.towerTargets.filter(
-      (entry) => entry.tower !== tower,
+      (entry) => entry.tower !== tower
     );
   }
 }

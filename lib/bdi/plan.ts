@@ -2,7 +2,7 @@
  * Lifecycle status of a Plan. A Plan starts `"running"` and ends either
  * `"succeeded"` or `"failed"`.
  */
-export type PlanStatus = "running" | "succeeded" | "failed";
+export type PlanStatus = 'running' | 'succeeded' | 'failed';
 
 /**
  * Finite procedural execution that progresses towards eventual success or

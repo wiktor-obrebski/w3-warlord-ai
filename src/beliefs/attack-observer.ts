@@ -1,8 +1,8 @@
-import * as W3PlayerApi from "@lib/warcraft3-api/player";
-import * as W3TriggerApi from "@lib/warcraft3-api/trigger";
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import * as WarlordApi from "@lib/warcraft3-api/warlord";
-import { GameClock, readGameClock } from "./game-clock";
+import * as W3PlayerApi from '@lib/warcraft3-api/player';
+import * as W3TriggerApi from '@lib/warcraft3-api/trigger';
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import * as WarlordApi from '@lib/warcraft3-api/warlord';
+import { GameClock, readGameClock } from './game-clock';
 
 export interface ObservedAttack {
   readonly attacker: W3UnitApi.unit;
@@ -24,7 +24,7 @@ const NO_ATTACKS: readonly ObservedAttack[] = [];
  */
 export function observeAttacksOn(
   bot: W3PlayerApi.player,
-  clock: GameClock,
+  clock: GameClock
 ): AttackObserver {
   const observer: AttackObserver = { pending: [] };
   const trigger = W3TriggerApi.CreateTrigger();
@@ -32,11 +32,11 @@ export function observeAttacksOn(
   W3TriggerApi.TriggerRegisterPlayerUnitEvent(
     trigger,
     bot,
-    W3TriggerApi.EVENT_PLAYER_UNIT_ATTACKED,
+    W3TriggerApi.EVENT_PLAYER_UNIT_ATTACKED
   );
   W3TriggerApi.TriggerAddAction(
     trigger,
-    WarlordApi.guard(() => recordAttack(observer, clock)),
+    WarlordApi.guard(() => recordAttack(observer, clock))
   );
 
   return observer;
@@ -44,7 +44,7 @@ export function observeAttacksOn(
 
 /** The attacks started since they were last taken, oldest first. */
 export function takeObservedAttacks(
-  observer: AttackObserver,
+  observer: AttackObserver
 ): readonly ObservedAttack[] {
   if (observer.pending.length === 0) {
     return NO_ATTACKS;
@@ -61,7 +61,9 @@ function recordAttack(observer: AttackObserver, clock: GameClock) {
   const target = W3TriggerApi.GetTriggerUnit();
 
   if (!attacker || !target) {
-    throw new Error("Attack observer: attack event without attacker or target.");
+    throw new Error(
+      'Attack observer: attack event without attacker or target.'
+    );
   }
 
   observer.pending.push({ attacker, target, time: readGameClock(clock) });

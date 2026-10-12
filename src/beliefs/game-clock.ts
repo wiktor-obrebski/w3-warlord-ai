@@ -1,4 +1,4 @@
-import * as W3TimerApi from "@lib/warcraft3-api/timer";
+import * as W3TimerApi from '@lib/warcraft3-api/timer';
 
 // Long enough never to expire during a game.
 const CLOCK_SECONDS = 10_000_000;

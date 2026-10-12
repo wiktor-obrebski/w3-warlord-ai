@@ -1,4 +1,4 @@
-declare module "@lib/warcraft3-api/math" {
+declare module '@lib/warcraft3-api/math' {
   /**
    * Returns: real
    *

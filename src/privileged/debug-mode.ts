@@ -1,11 +1,11 @@
-import * as W3PlayerApi from "@lib/warcraft3-api/player";
-import * as W3PrivilegedApi from "@lib/warcraft3-api/privileged";
+import * as W3PlayerApi from '@lib/warcraft3-api/player';
+import * as W3PrivilegedApi from '@lib/warcraft3-api/privileged';
 
 const RESOURCE_PANEL_WIDTH = 0.12;
 // A minimized multiboard shows only its title and sizes itself to the title
 // text; there is no width setting for it, so the title is padded instead.
 // Not verified in-game that trailing spaces count towards the width.
-const RESOURCE_PANEL_TITLE = "Warlord AI" + " ".repeat(20);
+const RESOURCE_PANEL_TITLE = 'Warlord AI' + ' '.repeat(20);
 const GOLD_ROW = 0;
 const LUMBER_ROW = 1;
 
@@ -26,11 +26,11 @@ export function enableDebugMode(observer: W3PlayerApi.player): DebugMode {
 export function updateDebugMode(debugMode: DebugMode, bot: W3PlayerApi.player) {
   const gold = W3PlayerApi.GetPlayerState(
     bot,
-    W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD,
+    W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD
   );
   const lumber = W3PlayerApi.GetPlayerState(
     bot,
-    W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER,
+    W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER
   );
 
   setRowText(debugMode.resourcePanel, GOLD_ROW, `Gold: ${gold}`);
@@ -44,7 +44,7 @@ function revealMap(observer: W3PlayerApi.player) {
     W3PrivilegedApi.FOG_OF_WAR_VISIBLE,
     W3PrivilegedApi.GetWorldBounds(),
     false,
-    false,
+    false
   );
 
   W3PrivilegedApi.FogModifierStart(modifier);
@@ -68,7 +68,7 @@ function createResourcePanel(): W3PrivilegedApi.multiboard {
 function setRowText(
   panel: W3PrivilegedApi.multiboard,
   row: number,
-  text: string,
+  text: string
 ) {
   const item = W3PrivilegedApi.MultiboardGetItem(panel, row, 0);
 

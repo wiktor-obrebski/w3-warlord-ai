@@ -1,14 +1,11 @@
-import * as W3UnitApi from "@lib/warcraft3-api/unit";
-import { Point, Vector } from "@lib/math";
-import {
-  CommonBeliefs,
-  HomeDestructable,
-} from "../../beliefs/common.beliefs";
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import { Point, Vector } from '@lib/math';
+import { CommonBeliefs, HomeDestructable } from '../../beliefs/common.beliefs';
 import {
   completedLumberMill,
   lifeFractionOf,
   positionOf,
-} from "../../beliefs/common.assessments";
+} from '../../beliefs/common.assessments';
 
 export const RUSH_TOWER_COUNT = 3;
 const MILL_TREE_CANDIDATES = 4;
@@ -18,7 +15,7 @@ export function allRushTowersBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
   return (
     beliefs.scoutTowers.length >= RUSH_TOWER_COUNT &&
     beliefs.scoutTowers.every(
-      (tower) => !beliefs.buildingsUnderConstruction.includes(tower),
+      (tower) => !beliefs.buildingsUnderConstruction.includes(tower)
     )
   );
 }
@@ -29,12 +26,12 @@ export function allRushTowersBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
  */
 export function rushTowersAtLeast(
   beliefs: Readonly<CommonBeliefs>,
-  lifeFraction: number,
+  lifeFraction: number
 ): boolean {
   return (
     beliefs.scoutTowers.length >= RUSH_TOWER_COUNT &&
     beliefs.scoutTowers.every(
-      (tower) => lifeFractionOf(beliefs, tower) >= lifeFraction,
+      (tower) => lifeFractionOf(beliefs, tower) >= lifeFraction
     )
   );
 }
@@ -46,7 +43,7 @@ export function rushTowersAtLeast(
  */
 export function isAvailableForwardPeasant(
   beliefs: Readonly<CommonBeliefs>,
-  worker: W3UnitApi.unit,
+  worker: W3UnitApi.unit
 ): boolean {
   return (
     beliefs.peasants.includes(worker) &&
@@ -69,7 +66,7 @@ export function isAvailableForwardPeasant(
  */
 export function lumberDestructablesByPreference(
   beliefs: Readonly<CommonBeliefs>,
-  peasantOrigin: W3UnitApi.unit,
+  peasantOrigin: W3UnitApi.unit
 ): readonly HomeDestructable[] {
   const mill = completedLumberMill(beliefs);
 
@@ -79,11 +76,11 @@ export function lumberDestructablesByPreference(
 
   const nearestMill = sortByDistanceTo(
     beliefs.destructablesNearHomeByDistance,
-    positionOf(beliefs, mill),
+    positionOf(beliefs, mill)
   );
   const candidates = sortByDistanceTo(
     nearestMill.slice(0, MILL_TREE_CANDIDATES),
-    positionOf(beliefs, peasantOrigin),
+    positionOf(beliefs, peasantOrigin)
   );
 
   return [...candidates, ...nearestMill.slice(MILL_TREE_CANDIDATES)];
@@ -91,7 +88,7 @@ export function lumberDestructablesByPreference(
 
 function sortByDistanceTo(
   destructables: readonly HomeDestructable[],
-  origin: Point,
+  origin: Point
 ): HomeDestructable[] {
   return destructables
     .map((destructable) => ({
@@ -105,7 +102,7 @@ function sortByDistanceTo(
 // Nearest home first, with those on the far side of the Hall from the mill
 // ahead of the rest. Before the mill is placed, simply nearest home.
 function destructablesAwayFromUnfinishedMill(
-  beliefs: Readonly<CommonBeliefs>,
+  beliefs: Readonly<CommonBeliefs>
 ): readonly HomeDestructable[] {
   const mill = beliefs.lumberMills[0];
 
