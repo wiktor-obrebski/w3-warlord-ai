@@ -125,7 +125,7 @@ For now:
 
 - Run `npm run lint && npm run typecheck` after meaningful source, configuration, or runtime-wrapper changes. They lint the sources, check formatting with oxfmt, and type-check them through TSTL without emitting Lua; passing them does not prove Warcraft runtime compatibility.
 - Fix formatting with `npm run format:fix` rather than formatting by hand.
-- For changes to runtime glue or uncertain Warcraft APIs, build a new bundle with `npm run bundle`, ask the user for a focused in-game probe, and distinguish actual observations from assumptions.
+- For changes to runtime glue or uncertain Warcraft APIs, ask user to build new bundle with `npm run bundle`, do a focused in-game probe. Distinguish actual observations from assumptions.
 
 Do not introduce a testing framework or new test infrastructure unless explicitly requested.
 
