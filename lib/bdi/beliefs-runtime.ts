@@ -67,29 +67,30 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
   TCommonObservation,
   TCommonBeliefs
 >): BeliefsRuntime<TCommonBeliefs> {
-  const container = createBeliefContainer({ commonModel });
+  const beliefsContainer = createBeliefContainer({ commonModel });
   let roots: readonly Provided<object, TCommonBeliefs>[] = [];
-  let managed = new Set<object>();
+  let managedComponents = new Set<object>();
 
   // Matches the managed components to the current tree. Returns the newly
   // registered components with Scoped Beliefs, which registration has
   // already revised once.
   const refresh = (): object[] => {
-    const current = new Set<object>();
-    const registered: object[] = [];
+    const currentComponents = new Set<object>();
+    const registeredComponents: object[] = [];
 
     const visit = ({ provided }: VisitArgs<TCommonBeliefs>) => {
-      current.add(provided.value);
+      currentComponents.add(provided.value);
 
       if (
         provided.beliefsModel &&
-        container.getScopedBeliefs({ component: provided.value }) === null
+        beliefsContainer.getScopedBeliefs({ component: provided.value }) ===
+          null
       ) {
-        container.registerScopedBeliefs({
+        beliefsContainer.registerScopedBeliefs({
           component: provided.value,
           beliefsModel: provided.beliefsModel,
         });
-        registered.push(provided.value);
+        registeredComponents.push(provided.value);
       }
 
       for (const child of provided.children) {
@@ -101,50 +102,50 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
       visit({ provided: root });
     }
 
-    for (const component of container.scopedComponents()) {
-      if (!current.has(component)) {
-        container.removeScopedBeliefs({ component });
+    for (const component of beliefsContainer.scopedComponents()) {
+      if (!currentComponents.has(component)) {
+        beliefsContainer.removeScopedBeliefs({ component });
       }
     }
 
-    managed = current;
+    managedComponents = currentComponents;
 
-    return registered;
+    return registeredComponents;
   };
 
   return {
-    reviseCommon: () => container.reviseCommonBeliefs(),
+    reviseCommon: () => beliefsContainer.reviseCommonBeliefs(),
 
     sync({ roots: newRoots }) {
       roots = newRoots;
-      const registered = new Set(refresh());
+      const registeredComponents = new Set(refresh());
 
-      for (const component of container.scopedComponents()) {
-        if (!registered.has(component)) {
-          container.reviseScopedBeliefs({ component });
+      for (const component of beliefsContainer.scopedComponents()) {
+        if (!registeredComponents.has(component)) {
+          beliefsContainer.reviseScopedBeliefs({ component });
         }
       }
     },
 
     beliefsOf({ component }) {
-      if (!managed.has(component)) {
+      if (!managedComponents.has(component)) {
         refresh();
 
-        if (!managed.has(component)) {
+        if (!managedComponents.has(component)) {
           throw new Error('Beliefs: component is not in the managed tree.');
         }
       }
 
       return {
-        common: container.getCommonBeliefs(),
-        scoped: container.getScopedBeliefs({ component }),
+        common: beliefsContainer.getCommonBeliefs(),
+        scoped: beliefsContainer.getScopedBeliefs({ component }),
       };
     },
 
     prune() {
       refresh();
 
-      return managed;
+      return managedComponents;
     },
   };
 }

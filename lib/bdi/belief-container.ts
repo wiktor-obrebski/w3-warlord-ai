@@ -100,19 +100,19 @@ function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
     },
 
     reviseScopedBeliefs({ component }) {
-      const instance = scopedBeliefs.get(component);
+      const scopedBeliefsInstance = scopedBeliefs.get(component);
 
-      if (!instance) {
+      if (!scopedBeliefsInstance) {
         throw new Error('Beliefs: component has no Scoped Beliefs.');
       }
 
-      instance.beliefs = reviseScoped({
-        model: instance.model,
-        previous: instance.beliefs,
+      scopedBeliefsInstance.beliefs = reviseScoped({
+        model: scopedBeliefsInstance.model,
+        previous: scopedBeliefsInstance.beliefs,
         common: commonBeliefs.beliefs,
       });
 
-      return instance.beliefs;
+      return scopedBeliefsInstance.beliefs;
     },
 
     removeScopedBeliefs({ component }) {

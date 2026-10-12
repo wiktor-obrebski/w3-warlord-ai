@@ -26,6 +26,18 @@ Constants are fixed values, such as tuning numbers, strings, and lookup tables. 
 
 Strict casing allows no consecutive capital letters, for example `rotate90Ccw`, not `rotate90CCW`.
 
+### Specific Names
+
+A name says what it holds. Bare low-meaning words are not allowed as variable, parameter, or field names, such as `container`, `value`, `entry`, `item`, `instance`, `result`, `data`, `current`, `registered`, `temp`, or `obj`. Pair the word with the concept it holds:
+
+```ts
+const beliefsContainer = createBeliefContainer({ commonModel });
+const registeredComponents: object[] = [];
+const currentUnit = units[0];
+```
+
+Terms the project defines in its vocabulary, such as `beliefs`, `component`, `control`, and `source`, are specific enough on their own.
+
 ## Export Convention
 
 The first statement after the imports is the module's only export block. It shows at first glance what the module exports. Type-only exports use the inline `type` modifier in the same block, and re-exporting modules import what they re-export first.
