@@ -88,19 +88,22 @@ function plannedTowerAt({
   return {
     unit,
     towerStatus: unit
-      ? towerState({ tower: unit, beliefs })
+      ? calculateTowerCurrentState({ tower: unit, beliefs })
       : TOWER_STATE.MISSING,
   };
 }
 
-interface TowerStateArgs {
+interface CalculateTowerCurrentStateArgs {
   tower: W3UnitApi.unit;
   beliefs: Readonly<CommonBeliefs>;
 }
 
 // Upgrading is checked before the unit type, which may already read as the
 // Guard Tower before the upgrade finishes.
-function towerState({ tower, beliefs }: TowerStateArgs): TOWER_STATE {
+function calculateTowerCurrentState({
+  tower,
+  beliefs,
+}: CalculateTowerCurrentStateArgs): TOWER_STATE {
   if (beliefs.buildingsUnderConstruction.includes(tower)) {
     return TOWER_STATE.UNDER_CONSTRUCTION;
   }
