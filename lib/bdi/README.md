@@ -132,8 +132,9 @@ revise({ previous, observation, common }: {
 ### `BeliefContainer<TCommonBeliefs>`
 
 ```ts
+createBeliefContainer({ commonModel }): BeliefContainer<TCommonBeliefs>   // starts with the first Common Beliefs revision
 getCommonBeliefs() / setCommonBeliefs({ beliefs })
-getScopedBeliefs({ component }): { beliefs, beliefsModel }   // beliefs null before the first revision
+getScopedBeliefs({ component }): { beliefs, beliefsModel } | null   // null for an unregistered component; beliefs null before the first revision
 registerScopedBeliefs({ component, beliefsModel })
 setScopedBeliefs({ component, beliefs })
 removeScopedBeliefs({ component })

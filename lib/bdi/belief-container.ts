@@ -1,4 +1,4 @@
-import type { AnyBeliefsModel } from './beliefs-model';
+import type { AnyBeliefsModel, CommonBeliefsModel } from './beliefs-model';
 
 export { type ScopedBeliefs, type BeliefContainer, createBeliefContainer };
 
@@ -33,19 +33,14 @@ interface BeliefContainerSetScopedBeliefsArgs {
  * revised, registered, and removed.
  */
 interface BeliefContainer<TCommonBeliefs> {
-  hasCommonBeliefs(): boolean;
-
-  /** Throws before the Common Beliefs were first revised. */
   getCommonBeliefs(): Readonly<TCommonBeliefs>;
 
   setCommonBeliefs({ beliefs }: { beliefs: TCommonBeliefs }): void;
 
-  hasScopedBeliefs({ component }: { component: object }): boolean;
-
-  /** Throws for a component without registered Scoped Beliefs. */
+  /** Null for a component without registered Scoped Beliefs. */
   getScopedBeliefs({
     component,
-  }: BeliefContainerGetScopedBeliefsArgs): ScopedBeliefs<TCommonBeliefs>;
+  }: BeliefContainerGetScopedBeliefsArgs): ScopedBeliefs<TCommonBeliefs> | null;
 
   /** Registers the component with no Beliefs yet. */
   registerScopedBeliefs({
@@ -69,14 +64,28 @@ interface ScopedEntry<TCommonBeliefs> {
   readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
 }
 
-function createBeliefContainer<
-  TCommonBeliefs,
->(): BeliefContainer<TCommonBeliefs> {
-  let common: TCommonBeliefs | null = null;
-  const scoped = new Map<object, ScopedEntry<TCommonBeliefs>>();
+interface CreateBeliefContainerArgs<TCommonObservation, TCommonBeliefs> {
+  commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>;
+}
+
+/**
+ * Starts with the Common Beliefs of the first revision, so they are always
+ * available.
+ */
+function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
+  commonModel,
+}: CreateBeliefContainerArgs<
+  TCommonObservation,
+  TCommonBeliefs
+>): BeliefContainer<TCommonBeliefs> {
+  let commonBeliefs = commonModel.revise({
+    previous: null,
+    observation: commonModel.observe(),
+  });
+  const scopedBeliefs = new Map<object, ScopedEntry<TCommonBeliefs>>();
 
   const scopedEntry = ({ component }: { component: object }) => {
-    const entry = scoped.get(component);
+    const entry = scopedBeliefs.get(component);
 
     if (!entry) {
       throw new Error('Beliefs: component has no Scoped Beliefs.');
@@ -86,30 +95,20 @@ function createBeliefContainer<
   };
 
   return {
-    hasCommonBeliefs: () => common !== null,
-
-    getCommonBeliefs() {
-      if (common === null) {
-        throw new Error('Beliefs: Common Beliefs not revised yet.');
-      }
-
-      return common;
-    },
+    getCommonBeliefs: () => commonBeliefs,
 
     setCommonBeliefs({ beliefs }) {
-      common = beliefs;
+      commonBeliefs = beliefs;
     },
 
-    hasScopedBeliefs: ({ component }) => scoped.has(component),
-
-    getScopedBeliefs: ({ component }) => scopedEntry({ component }),
+    getScopedBeliefs: ({ component }) => scopedBeliefs.get(component) ?? null,
 
     registerScopedBeliefs({ component, beliefsModel }) {
-      if (scoped.has(component)) {
+      if (scopedBeliefs.has(component)) {
         throw new Error('Beliefs: component already registered.');
       }
 
-      scoped.set(component, { beliefs: null, beliefsModel });
+      scopedBeliefs.set(component, { beliefs: null, beliefsModel });
     },
 
     setScopedBeliefs({ component, beliefs }) {
@@ -117,9 +116,9 @@ function createBeliefContainer<
     },
 
     removeScopedBeliefs({ component }) {
-      scoped.delete(component);
+      scopedBeliefs.delete(component);
     },
 
-    scopedComponents: () => [...scoped.keys()],
+    scopedComponents: () => [...scopedBeliefs.keys()],
   };
 }

@@ -67,14 +67,18 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
   TCommonObservation,
   TCommonBeliefs
 >): BeliefsRuntime<TCommonBeliefs> {
-  const container = createBeliefContainer<TCommonBeliefs>();
+  const container = createBeliefContainer({ commonModel });
   let roots: readonly Provided<object, TCommonBeliefs>[] = [];
   let managed = new Set<object>();
 
   const reviseScoped = ({ component }: { component: object }) => {
-    const { beliefs: previous, beliefsModel } = container.getScopedBeliefs({
-      component,
-    });
+    const scopedBeliefs = container.getScopedBeliefs({ component });
+
+    if (!scopedBeliefs) {
+      throw new Error('Beliefs: component has no Scoped Beliefs.');
+    }
+
+    const { beliefs: previous, beliefsModel } = scopedBeliefs;
     const observation = beliefsModel.observe();
 
     container.setScopedBeliefs({
@@ -99,7 +103,7 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
 
       if (
         provided.beliefsModel &&
-        !container.hasScopedBeliefs({ component: provided.value })
+        !container.getScopedBeliefs({ component: provided.value })
       ) {
         container.registerScopedBeliefs({
           component: provided.value,
@@ -130,11 +134,8 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
 
   return {
     reviseCommon() {
-      const previous = container.hasCommonBeliefs()
-        ? container.getCommonBeliefs()
-        : null;
       const next = commonModel.revise({
-        previous,
+        previous: container.getCommonBeliefs(),
         observation: commonModel.observe(),
       });
 
@@ -165,9 +166,7 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
 
       return {
         common: container.getCommonBeliefs(),
-        scoped: container.hasScopedBeliefs({ component })
-          ? container.getScopedBeliefs({ component }).beliefs
-          : null,
+        scoped: container.getScopedBeliefs({ component })?.beliefs ?? null,
       };
     },
 
