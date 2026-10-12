@@ -242,4 +242,26 @@ src/
 └─ privileged/    installation and debug-mode code beyond normal gameplay
 ```
 
+Which modules may import which, to be enforced by an architecture linter later:
+
+| Module                                                           | May import                                                                   |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `lib/**`                                                         | nothing from `src/`                                                          |
+| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                          |
+| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                          |
+| `desires/`                                                       | `@lib/bdi`                                                                   |
+| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                      |
+| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                      |
+| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`    |
+| `runtime.ts`                                                     | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `deliberation/`, `debug.ts` |
+| `main.ts`                                                        | `@lib/**`, `runtime.ts`, `privileged/`, `debug.ts`                           |
+| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                      |
+| `debug.ts`                                                       | `@lib/warcraft3-api/**`                                                      |
+
+- Contracts are imported with `import type`.
+- From outside a component module, only its `*.api.ts` file is imported. Components never import other component modules: a reusable Plan or Controller reaches an Intention through its Capabilities.
+- Only `privileged/` imports `@lib/warcraft3-api/privileged`.
+- No import cycles other than type-only imports.
+- Temporary exceptions: component modules may still import `debug.ts`, and Intention modules `components/intentions/update-interval.ts`.
+
 Not yet implemented: canonical unit ids, inferred beliefs, provenance and uncertainty, goal evaluation, Resource Arbitration, Unit Assignment, Command Arbitration, Intention Scheduling, execution monitoring, and strategic navigation. Plans and Controllers still issue Warcraft orders directly rather than through Actions.
