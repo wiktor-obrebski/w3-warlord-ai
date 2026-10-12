@@ -28,7 +28,7 @@ interface BeliefsRuntime<TCommonBeliefs> {
   /**
    * Revises the Common Beliefs; the first step of every cycle.
    */
-  reviseCommon(): Readonly<TCommonBeliefs>;
+  reviseCommon(): { commonBeliefs: Readonly<TCommonBeliefs> };
 
   /**
    * Makes the tree under `roots` the managed component tree: registers
@@ -54,7 +54,7 @@ interface BeliefsRuntime<TCommonBeliefs> {
    * Removes components gone from the tree since the last sync, such as
    * discarded children, and returns the managed components.
    */
-  prune(): ReadonlySet<object>;
+  prune(): { managedComponents: ReadonlySet<object> };
 }
 
 interface CreateBeliefsRuntimeArgs<TCommonObservation, TCommonBeliefs> {
@@ -78,7 +78,7 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
   // Matches the managed components to the current tree. Returns the newly
   // registered components with Scoped Beliefs, which registration has
   // already revised once.
-  const refresh = (): object[] => {
+  const refresh = (): { registeredComponents: object[] } => {
     const currentComponents = new Set<object>();
     const registeredComponents: object[] = [];
 
@@ -88,7 +88,7 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
 
       if (
         assembledComponent.beliefsModel &&
-        beliefsContainer.getScopedBeliefs({ component }) === null
+        beliefsContainer.getScopedBeliefs({ component }).beliefs === null
       ) {
         beliefsContainer.registerScopedBeliefs({
           component,
@@ -114,15 +114,17 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
 
     managedComponents = currentComponents;
 
-    return registeredComponents;
+    return { registeredComponents };
   };
 
   return {
-    reviseCommon: () => beliefsContainer.reviseCommonBeliefs(),
+    reviseCommon: () => ({
+      commonBeliefs: beliefsContainer.reviseCommonBeliefs().beliefs,
+    }),
 
     sync({ roots: newRoots }) {
       roots = newRoots;
-      const registeredComponents = new Set(refresh());
+      const registeredComponents = new Set(refresh().registeredComponents);
 
       for (const component of beliefsContainer.scopedComponents()) {
         if (!registeredComponents.has(component)) {
@@ -142,14 +144,14 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
 
       return {
         commonBeliefs: beliefsContainer.getCommonBeliefs(),
-        scopedBeliefs: beliefsContainer.getScopedBeliefs({ component }),
+        scopedBeliefs: beliefsContainer.getScopedBeliefs({ component }).beliefs,
       };
     },
 
     prune() {
       refresh();
 
-      return managedComponents;
+      return { managedComponents };
     },
   };
 }

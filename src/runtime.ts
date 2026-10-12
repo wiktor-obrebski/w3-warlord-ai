@@ -58,7 +58,7 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
     });
 
   const tick = () => {
-    const commonBeliefs = beliefs.reviseCommon();
+    const { commonBeliefs } = beliefs.reviseCommon();
 
     if (commonBeliefs.enemyPlayersPlaying === 0) {
       stopLoop({ loop });
@@ -79,7 +79,9 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
       });
     }
 
-    arbiter.releaseInactive({ activeSources: beliefs.prune() });
+    const { managedComponents } = beliefs.prune();
+
+    arbiter.releaseInactive({ activeSources: managedComponents });
   };
 
   W3TimerApi.TimerStart(loop, TickSeconds, true, WarlordApi.guard(tick));

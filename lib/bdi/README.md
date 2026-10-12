@@ -133,9 +133,11 @@ revise({ previous, observation, commonBeliefs }: {
 
 ```ts
 createBeliefContainer({ commonModel }): BeliefContainer<TCommonBeliefs>   // with the first Common Beliefs revision
-getCommonBeliefs() / reviseCommonBeliefs(): Readonly<TCommonBeliefs>
+getCommonBeliefs(): Readonly<TCommonBeliefs>
+reviseCommonBeliefs(): { beliefs: Readonly<TCommonBeliefs> }
 registerScopedBeliefs({ component, beliefsModel })                       // with the first Scoped Beliefs revision
-getScopedBeliefs({ component }) / reviseScopedBeliefs({ component }): unknown   // get: null for an unregistered component
+getScopedBeliefs({ component }): { beliefs: unknown }                    // null beliefs for an unregistered component
+reviseScopedBeliefs({ component }): { beliefs: unknown }
 removeScopedBeliefs({ component })
 ```
 
@@ -145,10 +147,10 @@ Stores each Beliefs together with the model that revises them; models go in but 
 
 ```ts
 createBeliefsRuntime({ commonModel }): BeliefsRuntime<TCommonBeliefs>
-reviseCommon(): Readonly<TCommonBeliefs>
+reviseCommon(): { commonBeliefs: Readonly<TCommonBeliefs> }
 sync({ roots }: { roots: readonly AssembledComponent[] }): void
 beliefsOf({ component }): ComponentBeliefs<TCommonBeliefs, unknown>   // throws for an unmanaged component
-prune(): ReadonlySet<object>                                       // the managed components
+prune(): { managedComponents: ReadonlySet<object> }
 ```
 
 Removing a component removes its Scoped Beliefs and model association; a shared model is unaffected.

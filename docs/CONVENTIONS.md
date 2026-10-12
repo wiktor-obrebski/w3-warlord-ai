@@ -108,6 +108,20 @@ interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
 }
 ```
 
+## Return Values
+
+A function whose return value its name and type do not make obvious returns an object that names it, so call sites say what they receive. Every function returning `unknown` qualifies:
+
+```ts
+reviseScopedBeliefs({ component }: { component: object }): { beliefs: unknown };
+
+const { beliefs } = beliefsContainer.reviseScopedBeliefs({ component });
+```
+
+An obvious value of a simple type is returned as is: `getUserName({ user }): string`.
+
+`observe()` and `revise()` of a belief model keep returning their value directly; their names and type parameters say what it is.
+
 ## Dependency Injection
 
 A factory function receives its dependencies by currying: the top-level function takes the dependencies, and the function it returns takes the logic arguments.

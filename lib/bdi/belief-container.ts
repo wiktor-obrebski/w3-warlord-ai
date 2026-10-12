@@ -27,10 +27,10 @@ interface BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs> {
 interface BeliefContainer<TCommonBeliefs> {
   getCommonBeliefs(): Readonly<TCommonBeliefs>;
 
-  reviseCommonBeliefs(): Readonly<TCommonBeliefs>;
+  reviseCommonBeliefs(): { beliefs: Readonly<TCommonBeliefs> };
 
-  /** Null for a component without registered Scoped Beliefs. */
-  getScopedBeliefs({ component }: { component: object }): unknown;
+  /** Null beliefs for a component without registered Scoped Beliefs. */
+  getScopedBeliefs({ component }: { component: object }): { beliefs: unknown };
 
   /** Registers the component with the first revision of its Scoped Beliefs. */
   registerScopedBeliefs({
@@ -39,7 +39,9 @@ interface BeliefContainer<TCommonBeliefs> {
   }: BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs>): void;
 
   /** Throws for a component without registered Scoped Beliefs. */
-  reviseScopedBeliefs({ component }: { component: object }): unknown;
+  reviseScopedBeliefs({ component }: { component: object }): {
+    beliefs: unknown;
+  };
 
   removeScopedBeliefs({ component }: { component: object }): void;
 
@@ -78,11 +80,12 @@ function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
         previous: commonBeliefs.beliefs,
       });
 
-      return commonBeliefs.beliefs;
+      return { beliefs: commonBeliefs.beliefs };
     },
 
-    getScopedBeliefs: ({ component }) =>
-      scopedBeliefs.get(component)?.beliefs ?? null,
+    getScopedBeliefs: ({ component }) => ({
+      beliefs: scopedBeliefs.get(component)?.beliefs ?? null,
+    }),
 
     registerScopedBeliefs({ component, beliefsModel }) {
       if (scopedBeliefs.has(component)) {
@@ -112,7 +115,7 @@ function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
         commonBeliefs: commonBeliefs.beliefs,
       });
 
-      return scopedBeliefsInstance.beliefs;
+      return { beliefs: scopedBeliefsInstance.beliefs };
     },
 
     removeScopedBeliefs({ component }) {
