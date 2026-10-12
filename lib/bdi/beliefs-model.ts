@@ -17,10 +17,13 @@ interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
    * Must not mutate its inputs. Should return `previous` itself when nothing
    * changed, and reuse unchanged nested values otherwise.
    */
-  revise(
-    previous: Readonly<TCommonBeliefs> | null,
-    observation: Readonly<TObservation>
-  ): TCommonBeliefs;
+  revise({
+    previous,
+    observation,
+  }: {
+    previous: Readonly<TCommonBeliefs> | null;
+    observation: Readonly<TObservation>;
+  }): TCommonBeliefs;
 }
 
 /**
@@ -46,11 +49,15 @@ interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
    * Must not mutate its inputs. Should return `previous` itself when nothing
    * changed, and reuse unchanged nested values otherwise.
    */
-  revise(
-    previous: Readonly<TBeliefs> | null,
-    observation: Readonly<TObservation>,
-    common: Readonly<TCommonBeliefs>
-  ): TBeliefs;
+  revise({
+    previous,
+    observation,
+    common,
+  }: {
+    previous: Readonly<TBeliefs> | null;
+    observation: Readonly<TObservation>;
+    common: Readonly<TCommonBeliefs>;
+  }): TBeliefs;
 }
 
 /**
@@ -59,9 +66,13 @@ interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
  */
 interface AnyBeliefsModel<TCommonBeliefs> {
   observe(): unknown;
-  revise(
-    previous: unknown,
-    observation: unknown,
-    common: Readonly<TCommonBeliefs>
-  ): unknown;
+  revise({
+    previous,
+    observation,
+    common,
+  }: {
+    previous: unknown;
+    observation: unknown;
+    common: Readonly<TCommonBeliefs>;
+  }): unknown;
 }

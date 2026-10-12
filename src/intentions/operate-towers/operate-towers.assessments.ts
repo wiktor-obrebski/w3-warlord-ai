@@ -25,11 +25,15 @@ interface RankedTarget {
  * The visible enemies worth a Guard Tower's fire, best first: by priority,
  * then by lowest life.
  */
-function rankTowerTargets(beliefs: Readonly<CommonBeliefs>): RankedTarget[] {
+function rankTowerTargets({
+  beliefs,
+}: {
+  beliefs: Readonly<CommonBeliefs>;
+}): RankedTarget[] {
   const ranked: RankedTarget[] = [];
 
   for (const enemy of beliefs.visibleEnemies) {
-    const priority = targetPriority(enemy, beliefs);
+    const priority = targetPriority({ enemy, beliefs });
 
     if (priority !== undefined) {
       ranked.push({ enemy, priority });
@@ -49,21 +53,24 @@ function rankTowerTargets(beliefs: Readonly<CommonBeliefs>): RankedTarget[] {
 // rule decides. Workers rank only as workers, whatever they attack. Buildings
 // that can attack, such as Ancients, only outrank other buildings while they
 // attack a tower.
-function targetPriority(
-  enemy: VisibleEnemy,
-  beliefs: Readonly<CommonBeliefs>
-): TARGET_PRIORITY | undefined {
+function targetPriority({
+  enemy,
+  beliefs,
+}: {
+  enemy: VisibleEnemy;
+  beliefs: Readonly<CommonBeliefs>;
+}): TARGET_PRIORITY | undefined {
   if (enemy.isWorker) {
     return TARGET_PRIORITY.WORKER;
   }
 
-  const attackTarget = recentAttackTarget(beliefs, enemy.unit);
+  const attackTarget = recentAttackTarget({ beliefs, attacker: enemy.unit });
   const attacksPeasant =
     attackTarget !== undefined && beliefs.peasants.includes(attackTarget);
   const attacksTower =
     attackTarget !== undefined && beliefs.guardTowers.includes(attackTarget);
   const towerAttackPriority = attacksTower
-    ? attackingTowerPriority(enemy)
+    ? attackingTowerPriority({ enemy })
     : undefined;
 
   if (enemy.isStructure) {
@@ -92,9 +99,11 @@ function targetPriority(
   return undefined;
 }
 
-function attackingTowerPriority(
-  enemy: VisibleEnemy
-): TARGET_PRIORITY | undefined {
+function attackingTowerPriority({
+  enemy,
+}: {
+  enemy: VisibleEnemy;
+}): TARGET_PRIORITY | undefined {
   if (enemy.isSiege) {
     return TARGET_PRIORITY.SIEGE_ATTACKING_TOWER;
   }

@@ -37,7 +37,7 @@ interface TowerRushChildFactories {
  * workers.
  */
 class TowerRush implements TowerRushIntention {
-  private readonly interval = new UpdateInterval(UpdateSeconds);
+  private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
   private readonly factories: TowerRushChildFactories;
   private plan: ChildHandle<EstablishTowerPositionPlan> | null = null;
   private economy: WarlordController | null = null;
@@ -45,7 +45,7 @@ class TowerRush implements TowerRushIntention {
   private established = false;
   private updatedBefore = false;
 
-  public constructor(factories: TowerRushChildFactories) {
+  public constructor({ factories }: { factories: TowerRushChildFactories }) {
     this.factories = factories;
   }
 
@@ -66,8 +66,14 @@ class TowerRush implements TowerRushIntention {
    * released when its update ends, so the economy and maintenance take them
    * over in the same update.
    */
-  public update(beliefs: WarlordBeliefs, updateChild: WarlordUpdateChild) {
-    if (!this.interval.claim(beliefs.common.time)) {
+  public update({
+    beliefs,
+    updateChild,
+  }: {
+    beliefs: WarlordBeliefs;
+    updateChild: WarlordUpdateChild;
+  }) {
+    if (!this.interval.claim({ now: beliefs.common.time })) {
       return;
     }
 
@@ -83,22 +89,26 @@ class TowerRush implements TowerRushIntention {
     }
 
     if (this.plan) {
-      updateChild(this.plan.value);
-      this.discardEndedPlan(this.plan);
+      updateChild({ child: this.plan.value });
+      this.discardEndedPlan({ plan: this.plan });
     }
 
     if (this.economy) {
-      updateChild(this.economy);
+      updateChild({ child: this.economy });
     }
 
     if (this.towerMaintenance) {
-      updateChild(this.towerMaintenance);
+      updateChild({ child: this.towerMaintenance });
     }
 
     this.updatedBefore = true;
   }
 
-  private discardEndedPlan(plan: ChildHandle<EstablishTowerPositionPlan>) {
+  private discardEndedPlan({
+    plan,
+  }: {
+    plan: ChildHandle<EstablishTowerPositionPlan>;
+  }) {
     const { status } = plan.value;
 
     if (status === 'running') {
@@ -121,15 +131,20 @@ function provideTowerRushIntention(): ProvidedComponent<TowerRushIntention> {
 
   return {
     value: new TowerRush({
-      createEstablishTowerPositionPlan: childFactory(children, () =>
-        provideEstablishTowerPositionPlan(rush)
-      ),
-      createEconomyController: childFactory(children, () =>
-        provideTowerRushEconomyController(rush)
-      ),
-      createTowerMaintenanceController: childFactory(children, () =>
-        provideTowerMaintenanceController(rush)
-      ),
+      factories: {
+        createEstablishTowerPositionPlan: childFactory({
+          children,
+          provide: () => provideEstablishTowerPositionPlan({ rush }),
+        }),
+        createEconomyController: childFactory({
+          children,
+          provide: () => provideTowerRushEconomyController({ rush }),
+        }),
+        createTowerMaintenanceController: childFactory({
+          children,
+          provide: () => provideTowerMaintenanceController({ rush }),
+        }),
+      },
     }),
     children,
   };

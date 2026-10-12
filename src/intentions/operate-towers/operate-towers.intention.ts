@@ -16,18 +16,28 @@ const UpdateSeconds = 1;
 
 /** Directs the fire of the bot's Guard Towers. */
 class OperateTowersIntention implements WarlordIntention {
-  private readonly interval = new UpdateInterval(UpdateSeconds);
+  private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
   private readonly createTargetSelection: ChildFactory<WarlordController>;
   private targetSelection: WarlordController | null = null;
 
-  public constructor(createTargetSelection: ChildFactory<WarlordController>) {
+  public constructor({
+    createTargetSelection,
+  }: {
+    createTargetSelection: ChildFactory<WarlordController>;
+  }) {
     this.createTargetSelection = createTargetSelection;
   }
 
-  public update(beliefs: WarlordBeliefs, updateChild: WarlordUpdateChild) {
-    if (this.interval.claim(beliefs.common.time)) {
+  public update({
+    beliefs,
+    updateChild,
+  }: {
+    beliefs: WarlordBeliefs;
+    updateChild: WarlordUpdateChild;
+  }) {
+    if (this.interval.claim({ now: beliefs.common.time })) {
       this.targetSelection ??= this.createTargetSelection().value;
-      updateChild(this.targetSelection);
+      updateChild({ child: this.targetSelection });
     }
   }
 }
@@ -36,9 +46,12 @@ function provideOperateTowersIntention(): ProvidedComponent<WarlordIntention> {
   const children: ProvidedChildren = [];
 
   return {
-    value: new OperateTowersIntention(
-      childFactory(children, provideTowerTargetSelectionController)
-    ),
+    value: new OperateTowersIntention({
+      createTargetSelection: childFactory({
+        children,
+        provide: () => provideTowerTargetSelectionController(),
+      }),
+    }),
     children,
   };
 }

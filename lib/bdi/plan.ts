@@ -25,5 +25,11 @@ interface Plan<TBeliefs, TControl> {
    * Advances the Plan while it is running. It may order only the Actors
    * `control` grants it.
    */
-  update(beliefs: Readonly<TBeliefs>, control: TControl): void;
+  update({
+    beliefs,
+    control,
+  }: {
+    beliefs: Readonly<TBeliefs>;
+    control: TControl;
+  }): void;
 }

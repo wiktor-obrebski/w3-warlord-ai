@@ -13,9 +13,13 @@ interface Deliberation<TBeliefs, TDesire, TIntention> {
    * out; it is created by returning a new instance. Retained Intentions must
    * not be recreated.
    */
-  deliberate(
-    beliefs: Readonly<TBeliefs>,
-    desires: readonly TDesire[],
-    intentions: readonly TIntention[]
-  ): readonly TIntention[];
+  deliberate({
+    beliefs,
+    desires,
+    intentions,
+  }: {
+    beliefs: Readonly<TBeliefs>;
+    desires: readonly TDesire[];
+    intentions: readonly TIntention[];
+  }): readonly TIntention[];
 }

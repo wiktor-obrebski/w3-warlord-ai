@@ -44,7 +44,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   // Where the rush towers stood when BuildTowers ended.
   private towerPositions: Point[] = [];
 
-  public constructor(rush: TowerRushState) {
+  public constructor({ rush }: { rush: TowerRushState }) {
     this.rush = rush;
   }
 
@@ -56,57 +56,80 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
     return this.step === STEP.UPGRADE_TOWERS;
   }
 
-  public update({ common: beliefs }: WarlordBeliefs, control: ActorControl) {
+  public update({
+    beliefs: { common: beliefs },
+    control,
+  }: {
+    beliefs: WarlordBeliefs;
+    control: ActorControl;
+  }) {
     if (this.currentStatus !== 'running') {
       throw new Error('Establish tower position: updated after it ended.');
     }
 
     switch (this.step) {
       case STEP.START:
-        updateStart(beliefs, this.rush, control);
-        this.advanceTo(STEP.MOVE_FORWARD);
+        updateStart({ beliefs, rush: this.rush, control });
+        this.advanceTo({ next: STEP.MOVE_FORWARD });
         break;
 
       case STEP.MOVE_FORWARD:
-        if (updateMoveForward(beliefs, this.rush, this.moveForward, control)) {
-          this.advanceTo(STEP.BUILD_TOWERS);
+        if (
+          updateMoveForward({
+            beliefs,
+            rush: this.rush,
+            state: this.moveForward,
+            control,
+          })
+        ) {
+          this.advanceTo({ next: STEP.BUILD_TOWERS });
         }
         break;
 
       case STEP.BUILD_TOWERS: {
-        const towerPositions = updateBuildTowers(
+        const towerPositions = updateBuildTowers({
           beliefs,
-          this.rush,
-          this.buildTowers,
-          control
-        );
+          rush: this.rush,
+          state: this.buildTowers,
+          control,
+        });
 
         if (towerPositions) {
           this.towerPositions = towerPositions;
-          this.advanceTo(STEP.UPGRADE_TOWERS);
+          this.advanceTo({ next: STEP.UPGRADE_TOWERS });
         }
         break;
       }
 
       case STEP.UPGRADE_TOWERS:
-        if (updateUpgradeTowers(beliefs, this.towerPositions, control)) {
+        if (
+          updateUpgradeTowers({
+            beliefs,
+            towerPositions: this.towerPositions,
+            control,
+          })
+        ) {
           this.currentStatus = 'succeeded';
-          debug(
-            `Establish tower position: ${STEP[this.step]} -> ${this.currentStatus}`
-          );
+          debug({
+            message: `Establish tower position: ${STEP[this.step]} -> ${this.currentStatus}`,
+          });
         }
         break;
     }
   }
 
-  private advanceTo(next: STEP) {
-    debug(`Establish tower position: ${STEP[this.step]} -> ${STEP[next]}`);
+  private advanceTo({ next }: { next: STEP }) {
+    debug({
+      message: `Establish tower position: ${STEP[this.step]} -> ${STEP[next]}`,
+    });
     this.step = next;
   }
 }
 
-function provideEstablishTowerPositionPlan(
-  rush: TowerRushState
-): ProvidedComponent<EstablishTowerPositionPlan> {
-  return { value: new EstablishTowerPosition(rush), children: [] };
+function provideEstablishTowerPositionPlan({
+  rush,
+}: {
+  rush: TowerRushState;
+}): ProvidedComponent<EstablishTowerPositionPlan> {
+  return { value: new EstablishTowerPosition({ rush }), children: [] };
 }

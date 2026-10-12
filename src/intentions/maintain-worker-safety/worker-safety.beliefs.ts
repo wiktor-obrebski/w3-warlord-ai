@@ -31,13 +31,13 @@ const workerSafetyBeliefsModel: BeliefsModel<
 
   // Copied only when an attack is recorded or forgotten, so the beliefs stay
   // the same object while no worker is under attack.
-  revise(previous, _observation, common) {
+  revise({ previous, common }) {
     const known = previous?.lastAttackedAt ?? NoAttacks;
     let revised: Map<W3UnitApi.unit, number> | undefined;
 
     for (const worker of common.workers) {
       if (
-        isRecentlyAttacked(common, worker.unit) &&
+        isRecentlyAttacked({ beliefs: common, target: worker.unit }) &&
         known.get(worker.unit) !== common.time
       ) {
         revised ??= new Map(known);

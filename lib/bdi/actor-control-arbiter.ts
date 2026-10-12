@@ -21,30 +21,48 @@ interface ActorControlArbiter<TActor, TRequest> {
    * Runs one update of the source with control scoped to it. The source's
    * claims not renewed during the update expire when it ends.
    */
-  update(
-    source: object,
-    run: (control: ActorControlProvider<TActor, TRequest>) => void
-  ): void;
+  update({
+    source,
+    run,
+  }: {
+    source: object;
+    run: ({
+      control,
+    }: {
+      control: ActorControlProvider<TActor, TRequest>;
+    }) => void;
+  }): void;
 
   /**
    * Releases the claims of sources no longer active, which will not update
    * again to let them expire.
    */
-  releaseInactive(activeSources: ReadonlySet<object>): void;
+  releaseInactive({
+    activeSources,
+  }: {
+    activeSources: ReadonlySet<object>;
+  }): void;
 }
 
-function createActorControlArbiter<TActor, TRequest>(
-  policy: ActorControlPolicy<TRequest>
-): ActorControlArbiter<TActor, TRequest> {
+function createActorControlArbiter<TActor, TRequest>({
+  policy,
+}: {
+  policy: ActorControlPolicy<TRequest>;
+}): ActorControlArbiter<TActor, TRequest> {
   const claims = new Map<TActor, Claim<TRequest>>();
   let updateCount = 0;
 
-  const requestControl = (
-    requester: object,
-    updateNumber: number,
-    actor: TActor,
-    request: TRequest
-  ): boolean => {
+  const requestControl = ({
+    requester,
+    updateNumber,
+    actor,
+    request,
+  }: {
+    requester: object;
+    updateNumber: number;
+    actor: TActor;
+    request: TRequest;
+  }): boolean => {
     const currentClaim = claims.get(actor) ?? null;
 
     if (currentClaim !== null && currentClaim.holder === requester) {
@@ -53,7 +71,7 @@ function createActorControlArbiter<TActor, TRequest>(
       return true;
     }
 
-    if (!policy(request, currentClaim)) {
+    if (!policy({ request, currentClaim })) {
       return false;
     }
 
@@ -66,13 +84,15 @@ function createActorControlArbiter<TActor, TRequest>(
     return true;
   };
 
-  const releaseClaims = (
-    shouldRelease: (claim: Claim<TRequest>) => boolean
-  ) => {
+  const releaseClaims = ({
+    shouldRelease,
+  }: {
+    shouldRelease: ({ claim }: { claim: Claim<TRequest> }) => boolean;
+  }) => {
     const released: TActor[] = [];
 
     for (const [actor, claim] of claims) {
-      if (shouldRelease(claim)) {
+      if (shouldRelease({ claim })) {
         released.push(actor);
       }
     }
@@ -83,24 +103,33 @@ function createActorControlArbiter<TActor, TRequest>(
   };
 
   return {
-    update(source, run) {
+    update({ source, run }) {
       updateCount += 1;
       const updateNumber = updateCount;
 
       run({
-        request(actor, request) {
-          return requestControl(source, updateNumber, actor, request);
+        control: {
+          request({ actor, request }) {
+            return requestControl({
+              requester: source,
+              updateNumber,
+              actor,
+              request,
+            });
+          },
         },
       });
 
-      releaseClaims(
-        (claim) =>
-          claim.holder === source && claim.renewedInUpdate !== updateNumber
-      );
+      releaseClaims({
+        shouldRelease: ({ claim }) =>
+          claim.holder === source && claim.renewedInUpdate !== updateNumber,
+      });
     },
 
-    releaseInactive(activeSources) {
-      releaseClaims((claim) => !activeSources.has(claim.holder));
+    releaseInactive({ activeSources }) {
+      releaseClaims({
+        shouldRelease: ({ claim }) => !activeSources.has(claim.holder),
+      });
     },
   };
 }

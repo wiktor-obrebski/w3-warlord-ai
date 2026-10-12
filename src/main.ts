@@ -16,32 +16,32 @@ const DebugModeUpdateSeconds = 0.1;
  * once per computer player handed over to Warlord AI.
  */
 function main(computerPlayer: W3PlayerApi.player) {
-  const bot = installBotPlayer(computerPlayer);
+  const bot = installBotPlayer({ computerPlayer });
 
-  runAfterMapInitialization(() => play(bot));
+  runAfterMapInitialization({ callback: () => play({ bot }) });
 }
 
-function play(bot: W3PlayerApi.player) {
-  debug(`Bot player id: ${W3PlayerApi.GetPlayerId(bot)}`);
+function play({ bot }: { bot: W3PlayerApi.player }) {
+  debug({ message: `Bot player id: ${W3PlayerApi.GetPlayerId(bot)}` });
 
   if (DebugModeEnabled) {
-    startDebugMode(bot);
+    startDebugMode({ bot });
   }
 
-  startRuntime(bot);
+  startRuntime({ bot });
 }
 
-function startDebugMode(bot: W3PlayerApi.player) {
-  const debugMode = enableDebugMode(debugObserver());
+function startDebugMode({ bot }: { bot: W3PlayerApi.player }) {
+  const debugMode = enableDebugMode({ observer: debugObserver() });
   const timer = W3TimerApi.CreateTimer();
 
   W3TimerApi.TimerStart(
     timer,
     DebugModeUpdateSeconds,
     true,
-    WarlordApi.guard(() => updateDebugMode(debugMode, bot))
+    WarlordApi.guard(() => updateDebugMode({ debugMode, bot }))
   );
-  updateDebugMode(debugMode, bot);
+  updateDebugMode({ debugMode, bot });
 }
 
 // The same player `debug` messages are shown to.
@@ -55,7 +55,11 @@ function debugObserver(): W3PlayerApi.player {
   return observer;
 }
 
-function runAfterMapInitialization(callback: (this: void) => void) {
+function runAfterMapInitialization({
+  callback,
+}: {
+  callback: (this: void) => void;
+}) {
   const timer = W3TimerApi.CreateTimer();
 
   W3TimerApi.TimerStart(

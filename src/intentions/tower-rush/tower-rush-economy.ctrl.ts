@@ -46,33 +46,64 @@ const WorkerTargetStages: WorkerTargets[] = [
 class TowerRushEconomyController implements WarlordController {
   private readonly rush: TowerRushState;
 
-  public constructor(rush: TowerRushState) {
+  public constructor({ rush }: { rush: TowerRushState }) {
     this.rush = rush;
   }
 
-  public update({ common: beliefs }: WarlordBeliefs, control: ActorControl) {
+  public update({
+    beliefs: { common: beliefs },
+    control,
+  }: {
+    beliefs: WarlordBeliefs;
+    control: ActorControl;
+  }) {
     const townHall =
-      beliefs.townHall && control.request(beliefs.townHall, NORMAL_REQUEST)
+      beliefs.townHall &&
+      control.request({
+        actor: beliefs.townHall,
+        request: NORMAL_REQUEST,
+      })
         ? beliefs.townHall
         : undefined;
 
-    forgetDeadWorkers(beliefs, this.rush);
-    assignNewHomeWorkers(beliefs, this.rush, townHall, control);
-    returnIdleWorkersToTheirResource(beliefs, this.rush, control);
-    maintainPeasantProduction(beliefs, this.rush, townHall);
+    forgetDeadWorkers({ beliefs, rush: this.rush });
+    assignNewHomeWorkers({
+      beliefs,
+      rush: this.rush,
+      townHall,
+      control,
+    });
+    returnIdleWorkersToTheirResource({
+      beliefs,
+      rush: this.rush,
+      control,
+    });
+    maintainPeasantProduction({
+      beliefs,
+      rush: this.rush,
+      townHall,
+    });
   }
 }
 
-function provideTowerRushEconomyController(
-  rush: TowerRushState
-): ProvidedComponent<WarlordController> {
-  return { value: new TowerRushEconomyController(rush), children: [] };
+function provideTowerRushEconomyController({
+  rush,
+}: {
+  rush: TowerRushState;
+}): ProvidedComponent<WarlordController> {
+  return {
+    value: new TowerRushEconomyController({ rush }),
+    children: [],
+  };
 }
 
-function forgetDeadWorkers(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState
-) {
+function forgetDeadWorkers({
+  beliefs,
+  rush,
+}: {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+}) {
   rush.goldWorkers = rush.goldWorkers.filter((worker) =>
     beliefs.peasants.includes(worker)
   );
@@ -84,20 +115,25 @@ function forgetDeadWorkers(
 // A trained Peasant leaves the Town Hall already harvesting the resource it
 // was rallied to. It is only ordered when the rally did not start it
 // harvesting, e.g. when the rallied destructable is not a tree.
-function assignNewHomeWorkers(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
-  townHall: W3UnitApi.unit | undefined,
-  control: ActorControl
-) {
+function assignNewHomeWorkers({
+  beliefs,
+  rush,
+  townHall,
+  control,
+}: {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  townHall: W3UnitApi.unit | undefined;
+  control: ActorControl;
+}) {
   for (const peasant of beliefs.peasants) {
-    if (isAssignedWorker(peasant, rush)) {
+    if (isAssignedWorker({ peasant, rush })) {
       continue;
     }
 
     const resource =
-      finishPeasantTraining(beliefs, rush, townHall) ??
-      nextWorkerResource(rush);
+      finishPeasantTraining({ beliefs, rush, townHall }) ??
+      nextWorkerResource({ rush });
 
     if (resource === HOME_RESOURCE.GOLD) {
       rush.goldWorkers.push(peasant);
@@ -105,16 +141,18 @@ function assignNewHomeWorkers(
       rush.lumberWorkers.push(peasant);
     }
 
-    debug(
-      `Tower rush: new Peasant joins ${HOME_RESOURCE[resource]} (${describeWorkers(rush)}).`
-    );
+    debug({
+      message: `Tower rush: new Peasant joins ${HOME_RESOURCE[resource]} (${describeWorkers({ rush })}).`,
+    });
 
     if (
       !beliefs.harvestingUnits.includes(peasant) &&
-      control.request(peasant, NORMAL_REQUEST) &&
-      !orderHarvest(peasant, resource, beliefs)
+      control.request({ actor: peasant, request: NORMAL_REQUEST }) &&
+      !orderHarvest({ worker: peasant, resource, beliefs })
     ) {
-      debug(`Tower rush: ${HOME_RESOURCE[resource]} harvest order rejected.`);
+      debug({
+        message: `Tower rush: ${HOME_RESOURCE[resource]} harvest order rejected.`,
+      });
     }
   }
 }
@@ -122,11 +160,15 @@ function assignNewHomeWorkers(
 // The Town Hall has a single rally point, which a Peasant follows when it
 // leaves training. It is pointed at the next Peasant's resource only once
 // the previous one has left, so queueing does not redirect that one.
-function finishPeasantTraining(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
-  townHall: W3UnitApi.unit | undefined
-): HOME_RESOURCE | undefined {
+function finishPeasantTraining({
+  beliefs,
+  rush,
+  townHall,
+}: {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  townHall: W3UnitApi.unit | undefined;
+}): HOME_RESOURCE | undefined {
   const finished = rush.peasantsInTraining.shift();
   const next = rush.peasantsInTraining[0];
 
@@ -134,24 +176,28 @@ function finishPeasantTraining(
     rush.peasantTrainingStartedAt += PeasantTrainingSeconds;
 
     if (townHall) {
-      setRally(townHall, next, beliefs);
+      setRally({ townHall, resource: next, beliefs });
     }
   }
 
   return finished;
 }
 
-function nextWorkerResource(rush: TowerRushState): HOME_RESOURCE {
-  const targets = currentWorkerTargets(rush);
+function nextWorkerResource({ rush }: { rush: TowerRushState }): HOME_RESOURCE {
+  const targets = currentWorkerTargets({ rush });
 
-  return targets && plannedWorkers(rush).gold < targets.gold
+  return targets && plannedWorkers({ rush }).gold < targets.gold
     ? HOME_RESOURCE.GOLD
     : HOME_RESOURCE.LUMBER;
 }
 
 // The first stage not yet reached; undefined once all are.
-function currentWorkerTargets(rush: TowerRushState): WorkerTargets | undefined {
-  const planned = plannedWorkers(rush);
+function currentWorkerTargets({
+  rush,
+}: {
+  rush: TowerRushState;
+}): WorkerTargets | undefined {
+  const planned = plannedWorkers({ rush });
 
   return WorkerTargetStages.find(
     (targets) => planned.gold < targets.gold || planned.lumber < targets.lumber
@@ -159,59 +205,70 @@ function currentWorkerTargets(rush: TowerRushState): WorkerTargets | undefined {
 }
 
 // Assigned workers together with the Peasants still in training.
-function plannedWorkers(rush: TowerRushState): WorkerTargets {
-  const inTraining = (resource: HOME_RESOURCE) =>
+function plannedWorkers({ rush }: { rush: TowerRushState }): WorkerTargets {
+  const inTraining = ({ resource }: { resource: HOME_RESOURCE }) =>
     rush.peasantsInTraining.filter((planned) => planned === resource).length;
 
   return {
-    gold: rush.goldWorkers.length + inTraining(HOME_RESOURCE.GOLD),
-    lumber: rush.lumberWorkers.length + inTraining(HOME_RESOURCE.LUMBER),
+    gold:
+      rush.goldWorkers.length + inTraining({ resource: HOME_RESOURCE.GOLD }),
+    lumber:
+      rush.lumberWorkers.length +
+      inTraining({ resource: HOME_RESOURCE.LUMBER }),
   };
 }
 
-function describeWorkers(rush: TowerRushState): string {
+function describeWorkers({ rush }: { rush: TowerRushState }): string {
   return `${rush.goldWorkers.length} gold, ${rush.lumberWorkers.length} lumber`;
 }
 
-function returnIdleWorkersToTheirResource(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
-  control: ActorControl
-) {
+function returnIdleWorkersToTheirResource({
+  beliefs,
+  rush,
+  control,
+}: {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  control: ActorControl;
+}) {
   // Requested before checking idleness, so busy workers stay controlled too.
-  const isReturning = (worker: W3UnitApi.unit) =>
-    control.request(worker, NORMAL_REQUEST) &&
+  const isReturning = ({ worker }: { worker: W3UnitApi.unit }) =>
+    control.request({ actor: worker, request: NORMAL_REQUEST }) &&
     beliefs.idleUnits.includes(worker);
 
   for (const worker of rush.goldWorkers) {
-    if (isReturning(worker)) {
-      orderHarvestGold(worker, beliefs);
+    if (isReturning({ worker })) {
+      orderHarvestGold({ worker, beliefs });
     }
   }
 
   for (const worker of rush.lumberWorkers) {
-    if (isReturning(worker)) {
-      orderHarvestPreferredTree(worker, beliefs);
+    if (isReturning({ worker })) {
+      orderHarvestPreferredTree({ worker, beliefs });
     }
   }
 }
 
 // A training Town Hall still reports no current order, so production tracks
 // its own Peasants in training to avoid queueing more than are needed.
-function maintainPeasantProduction(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState,
-  townHall: W3UnitApi.unit | undefined
-) {
-  const homeWorkersMissing = currentWorkerTargets(rush) !== undefined;
+function maintainPeasantProduction({
+  beliefs,
+  rush,
+  townHall,
+}: {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+  townHall: W3UnitApi.unit | undefined;
+}) {
+  const homeWorkersMissing = currentWorkerTargets({ rush }) !== undefined;
 
   if (
     homeWorkersMissing &&
-    canQueuePeasant(beliefs, rush) &&
+    canQueuePeasant({ beliefs, rush }) &&
     townHall &&
-    beliefs.gold - goldReservedForUpgrades(beliefs, rush) >= PeasantGoldCost
+    beliefs.gold - goldReservedForUpgrades({ beliefs, rush }) >= PeasantGoldCost
   ) {
-    trainPeasant(townHall, beliefs, rush);
+    trainPeasant({ townHall, beliefs, rush });
   }
 }
 
@@ -219,10 +276,13 @@ function maintainPeasantProduction(
 // Town Hall does not stand idle until the next update notices, while the
 // gold is not tied up in the queue for long. Warcraft exposes no training
 // progress, so it is estimated from the fixed training time.
-function canQueuePeasant(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState
-): boolean {
+function canQueuePeasant({
+  beliefs,
+  rush,
+}: {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+}): boolean {
   const queued = rush.peasantsInTraining.length;
   const currentProgress =
     (beliefs.time - rush.peasantTrainingStartedAt) / PeasantTrainingSeconds;
@@ -235,10 +295,13 @@ function canQueuePeasant(
 
 // A Guard Tower upgrade is paid when it starts, so an upgrading tower no
 // longer needs reserved gold.
-function goldReservedForUpgrades(
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState
-): number {
+function goldReservedForUpgrades({
+  beliefs,
+  rush,
+}: {
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+}): number {
   if (!rush.reservingGoldForUpgrades) {
     return 0;
   }
@@ -250,16 +313,20 @@ function goldReservedForUpgrades(
   return towersAwaitingUpgrade.length * GUARD_TOWER_UPGRADE_GOLD_COST;
 }
 
-function trainPeasant(
-  townHall: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>,
-  rush: TowerRushState
-) {
-  const resource = nextWorkerResource(rush);
+function trainPeasant({
+  townHall,
+  beliefs,
+  rush,
+}: {
+  townHall: W3UnitApi.unit;
+  beliefs: Readonly<CommonBeliefs>;
+  rush: TowerRushState;
+}) {
+  const resource = nextWorkerResource({ rush });
   const startsNow = rush.peasantsInTraining.length === 0;
 
   if (startsNow) {
-    setRally(townHall, resource, beliefs);
+    setRally({ townHall, resource, beliefs });
   }
 
   if (W3UnitApi.IssueImmediateOrderById(townHall, W3HumanApi.Unit.PEASANT)) {
@@ -268,23 +335,29 @@ function trainPeasant(
     }
 
     rush.peasantsInTraining.push(resource);
-    debug(
-      `Tower rush: Peasant training ${startsNow ? 'ordered' : 'queued'} for ${HOME_RESOURCE[resource]}.`
-    );
+    debug({
+      message: `Tower rush: Peasant training ${startsNow ? 'ordered' : 'queued'} for ${HOME_RESOURCE[resource]}.`,
+    });
   } else {
-    debug('Tower rush: Peasant training order rejected.');
+    debug({ message: 'Tower rush: Peasant training order rejected.' });
   }
 }
 
-function setRally(
-  townHall: W3UnitApi.unit,
-  resource: HOME_RESOURCE,
-  beliefs: Readonly<CommonBeliefs>
-) {
-  const target = rallyTarget(townHall, resource, beliefs);
+function setRally({
+  townHall,
+  resource,
+  beliefs,
+}: {
+  townHall: W3UnitApi.unit;
+  resource: HOME_RESOURCE;
+  beliefs: Readonly<CommonBeliefs>;
+}) {
+  const target = rallyTarget({ townHall, resource, beliefs });
 
   if (!W3UnitApi.IssueTargetOrder(townHall, 'setrally', target)) {
-    debug(`Tower rush: rally to ${HOME_RESOURCE[resource]} rejected.`);
+    debug({
+      message: `Tower rush: rally to ${HOME_RESOURCE[resource]} rejected.`,
+    });
   }
 }
 
@@ -292,11 +365,15 @@ function setRally(
 // anything else does not start harvesting and is then ordered to a real tree.
 // A rallied Peasant leaves from the Town Hall, so the tree is chosen as seen
 // from there.
-function rallyTarget(
-  townHall: W3UnitApi.unit,
-  resource: HOME_RESOURCE,
-  beliefs: Readonly<CommonBeliefs>
-): W3UnitApi.unit | W3DestructableApi.destructable {
+function rallyTarget({
+  townHall,
+  resource,
+  beliefs,
+}: {
+  townHall: W3UnitApi.unit;
+  resource: HOME_RESOURCE;
+  beliefs: Readonly<CommonBeliefs>;
+}): W3UnitApi.unit | W3DestructableApi.destructable {
   if (resource === HOME_RESOURCE.GOLD) {
     if (!beliefs.homeGoldMine) {
       throw new Error('Tower rush: home gold mine not found.');
@@ -305,7 +382,10 @@ function rallyTarget(
     return beliefs.homeGoldMine.unit;
   }
 
-  const nearest = lumberDestructablesByPreference(beliefs, townHall)[0];
+  const nearest = lumberDestructablesByPreference({
+    beliefs,
+    peasantOrigin: townHall,
+  })[0];
 
   if (!nearest) {
     throw new Error('Tower rush: no destructable near home to rally to.');
@@ -314,10 +394,13 @@ function rallyTarget(
   return nearest.destructable;
 }
 
-function isAssignedWorker(
-  peasant: W3UnitApi.unit,
-  rush: TowerRushState
-): boolean {
+function isAssignedWorker({
+  peasant,
+  rush,
+}: {
+  peasant: W3UnitApi.unit;
+  rush: TowerRushState;
+}): boolean {
   return (
     rush.forwardWorkers.includes(peasant) ||
     rush.goldWorkers.includes(peasant) ||
@@ -325,20 +408,27 @@ function isAssignedWorker(
   );
 }
 
-function orderHarvest(
-  worker: W3UnitApi.unit,
-  resource: HOME_RESOURCE,
-  beliefs: Readonly<CommonBeliefs>
-): boolean {
+function orderHarvest({
+  worker,
+  resource,
+  beliefs,
+}: {
+  worker: W3UnitApi.unit;
+  resource: HOME_RESOURCE;
+  beliefs: Readonly<CommonBeliefs>;
+}): boolean {
   return resource === HOME_RESOURCE.GOLD
-    ? orderHarvestGold(worker, beliefs)
-    : orderHarvestPreferredTree(worker, beliefs);
+    ? orderHarvestGold({ worker, beliefs })
+    : orderHarvestPreferredTree({ worker, beliefs });
 }
 
-function orderHarvestGold(
-  worker: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>
-): boolean {
+function orderHarvestGold({
+  worker,
+  beliefs,
+}: {
+  worker: W3UnitApi.unit;
+  beliefs: Readonly<CommonBeliefs>;
+}): boolean {
   if (!beliefs.homeGoldMine) {
     throw new Error('Tower rush: home gold mine not found.');
   }
@@ -352,20 +442,23 @@ function orderHarvestGold(
 
 // Beliefs cannot tell trees apart from other destructables, so the harvest
 // order itself is used as the test: Warcraft rejects it for non-trees.
-function orderHarvestPreferredTree(
-  worker: W3UnitApi.unit,
-  beliefs: Readonly<CommonBeliefs>
-): boolean {
-  for (const { destructable } of lumberDestructablesByPreference(
+function orderHarvestPreferredTree({
+  worker,
+  beliefs,
+}: {
+  worker: W3UnitApi.unit;
+  beliefs: Readonly<CommonBeliefs>;
+}): boolean {
+  for (const { destructable } of lumberDestructablesByPreference({
     beliefs,
-    worker
-  )) {
+    peasantOrigin: worker,
+  })) {
     if (W3UnitApi.IssueTargetOrder(worker, 'harvest', destructable)) {
       return true;
     }
   }
 
-  debug('Tower rush: no nearby tree accepted a harvest order.');
+  debug({ message: 'Tower rush: no nearby tree accepted a harvest order.' });
 
   return false;
 }

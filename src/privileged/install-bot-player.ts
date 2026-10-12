@@ -30,9 +30,11 @@ declare const map_globals: MapGlobals;
  * Must run before `MeleeInitVictoryDefeat`, which only tracks players whose
  * slot state is playing at that moment.
  */
-function installBotPlayer(
-  computerPlayer: W3PlayerApi.player
-): W3PlayerApi.player {
+function installBotPlayer({
+  computerPlayer,
+}: {
+  computerPlayer: W3PlayerApi.player;
+}): W3PlayerApi.player {
   const installations = setupBotInstallations();
   const botPlayer = findEmptyPlayerSlot();
 
@@ -40,7 +42,7 @@ function installBotPlayer(
     throw new Error('No empty player slot available for Warlord AI.');
   }
 
-  transferPlayer(computerPlayer, botPlayer);
+  transferPlayer({ fromPlayer: computerPlayer, toPlayer: botPlayer });
   W3PrivilegedApi.SetPlayerName(botPlayer, 'Warlord AI');
 
   installations.push({ computerPlayer, botPlayer });
@@ -98,10 +100,13 @@ function findEmptyPlayerSlot(): W3PlayerApi.player | undefined {
   return undefined;
 }
 
-function transferPlayer(
-  fromPlayer: W3PlayerApi.player,
-  toPlayer: W3PlayerApi.player
-) {
+function transferPlayer({
+  fromPlayer,
+  toPlayer,
+}: {
+  fromPlayer: W3PlayerApi.player;
+  toPlayer: W3PlayerApi.player;
+}) {
   const units = W3GroupApi.CreateGroup();
   W3GroupApi.GroupEnumUnitsOfPlayer(units, fromPlayer, null);
 

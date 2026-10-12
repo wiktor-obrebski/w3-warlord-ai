@@ -33,9 +33,9 @@ type ActorControl = ActorControlProvider<Actor, ActorControlRequest>;
  * An uncontrolled Actor is granted to any request; one controlled normally
  * only to a preemptive request; one controlled preemptively to none.
  */
-const actorControlPolicy: ActorControlPolicy<ActorControlRequest> = (
+const actorControlPolicy: ActorControlPolicy<ActorControlRequest> = ({
   request,
-  currentClaim
-) =>
+  currentClaim,
+}) =>
   currentClaim === null ||
   (request.preemptive && !currentClaim.request.preemptive);

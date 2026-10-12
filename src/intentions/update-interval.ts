@@ -11,7 +11,7 @@ class UpdateInterval {
   private readonly seconds: number;
   private nextUpdateAt: number | undefined;
 
-  public constructor(seconds: number) {
+  public constructor({ seconds }: { seconds: number }) {
     this.seconds = seconds;
   }
 
@@ -19,7 +19,7 @@ class UpdateInterval {
    * Whether an update is due now. A due update starts the next interval, so
    * call this once per tick and update when it returns true.
    */
-  public claim(now: number): boolean {
+  public claim({ now }: { now: number }): boolean {
     if (
       this.nextUpdateAt !== undefined &&
       now + ClockToleranceSeconds < this.nextUpdateAt

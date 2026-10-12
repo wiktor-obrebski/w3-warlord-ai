@@ -14,7 +14,7 @@ class Point {
   /**
    * Creates a point with the given x and y coordinates.
    */
-  public constructor(x: number, y: number) {
+  public constructor({ x, y }: { x: number; y: number }) {
     this.x = x;
     this.y = y;
   }
@@ -23,28 +23,31 @@ class Point {
    * Returns a copy of this point.
    */
   public clone(): Point {
-    return new Point(this.x, this.y);
+    return new Point({ x: this.x, y: this.y });
   }
 
   /**
    * Returns whether this point is equal to another point within the configured tolerance.
    */
-  public equalTo(point: Point): boolean {
-    return equalNumber(this.x, point.x) && equalNumber(this.y, point.y);
+  public equalTo({ point }: { point: Point }): boolean {
+    return (
+      equalNumber({ a: this.x, b: point.x }) &&
+      equalNumber({ a: this.y, b: point.y })
+    );
   }
 
   /**
    * Returns a new point translated by the given vector.
    */
-  public translate(vector: Vector): Point {
-    return new Point(this.x + vector.x, this.y + vector.y);
+  public translate({ vector }: { vector: Vector }): Point {
+    return new Point({ x: this.x + vector.x, y: this.y + vector.y });
   }
 }
 
 /**
  * Returns whether two numbers are equal within the configured tolerance.
  */
-function equalNumber(a: number, b: number): boolean {
+function equalNumber({ a, b }: { a: number; b: number }): boolean {
   const difference = a - b;
   return difference < Tolerance && difference > -Tolerance;
 }

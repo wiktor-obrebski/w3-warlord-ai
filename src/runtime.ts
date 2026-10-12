@@ -36,36 +36,50 @@ const Desires = [
  * which scopes its control to it; at the end of the tick, components gone
  * from the tree lose their Scoped Beliefs and control.
  */
-function startRuntime(bot: W3PlayerApi.player) {
-  const beliefs = createBeliefsRuntime(createCommonBeliefsModel(bot));
+function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
+  const beliefs = createBeliefsRuntime({
+    commonModel: createCommonBeliefsModel({ bot }),
+  });
   const deliberation = createDeliberation();
-  const arbiter = createActorControlArbiter<Actor, ActorControlRequest>(
-    actorControlPolicy
-  );
+  const arbiter = createActorControlArbiter<Actor, ActorControlRequest>({
+    policy: actorControlPolicy,
+  });
   const loop = W3TimerApi.CreateTimer();
   let intentions: readonly ProvidedIntention[] = [];
 
-  const updateChild: WarlordUpdateChild = (child) =>
-    arbiter.update(child, (control) =>
-      child.update(beliefs.beliefsOf(child), control)
-    );
+  const updateChild: WarlordUpdateChild = ({ child }) =>
+    arbiter.update({
+      source: child,
+      run: ({ control }) =>
+        child.update({
+          beliefs: beliefs.beliefsOf({ component: child }),
+          control,
+        }),
+    });
 
   const tick = () => {
     const common = beliefs.reviseCommon();
 
     if (common.enemyPlayersPlaying === 0) {
-      stopLoop(loop);
+      stopLoop({ loop });
       return;
     }
 
-    intentions = deliberation.deliberate(common, Desires, intentions);
-    beliefs.sync(intentions);
+    intentions = deliberation.deliberate({
+      beliefs: common,
+      desires: Desires,
+      intentions,
+    });
+    beliefs.sync({ roots: intentions });
 
     for (const intention of intentions) {
-      intention.value.update(beliefs.beliefsOf(intention.value), updateChild);
+      intention.value.update({
+        beliefs: beliefs.beliefsOf({ component: intention.value }),
+        updateChild,
+      });
     }
 
-    arbiter.releaseInactive(beliefs.prune());
+    arbiter.releaseInactive({ activeSources: beliefs.prune() });
   };
 
   W3TimerApi.TimerStart(loop, TickSeconds, true, WarlordApi.guard(tick));
@@ -74,8 +88,8 @@ function startRuntime(bot: W3PlayerApi.player) {
 
 // With every enemy defeated there is nothing left to play for, and the
 // tower rush cannot run without an enemy.
-function stopLoop(loop: W3TimerApi.timer) {
+function stopLoop({ loop }: { loop: W3TimerApi.timer }) {
   W3TimerApi.PauseTimer(loop);
   W3TimerApi.DestroyTimer(loop);
-  debug('Game won; Warlord AI stops.');
+  debug({ message: 'Game won; Warlord AI stops.' });
 }

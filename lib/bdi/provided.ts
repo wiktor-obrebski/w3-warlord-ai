@@ -49,10 +49,13 @@ type ChildFactory<TValue> = () => ChildHandle<TValue>;
  * exposing their metadata: each call provides a child, records it in
  * `children`, and hands the component only the child's value.
  */
-function childFactory<TValue extends object, TCommonBeliefs>(
-  children: Provided<object, TCommonBeliefs>[],
-  provide: () => Provided<TValue, TCommonBeliefs>
-): ChildFactory<TValue> {
+function childFactory<TValue extends object, TCommonBeliefs>({
+  children,
+  provide,
+}: {
+  children: Provided<object, TCommonBeliefs>[];
+  provide: () => Provided<TValue, TCommonBeliefs>;
+}): ChildFactory<TValue> {
   return () => {
     const provided = provide();
     children.push(provided);

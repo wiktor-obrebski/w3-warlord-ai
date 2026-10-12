@@ -13,5 +13,11 @@ interface Controller<TBeliefs, TControl> {
    * Reacts to the current Beliefs. It may order only the Actors `control`
    * grants it.
    */
-  update(beliefs: Readonly<TBeliefs>, control: TControl): void;
+  update({
+    beliefs,
+    control,
+  }: {
+    beliefs: Readonly<TBeliefs>;
+    control: TControl;
+  }): void;
 }

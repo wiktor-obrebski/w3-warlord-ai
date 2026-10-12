@@ -8,7 +8,7 @@ const ApiPrefix = '@lib/warcraft3-api';
 const namespaces = new Set<string>();
 let deferredExports: tstl.Statement[] = [];
 
-function isWarcraftApiModule(name: string): boolean {
+function isWarcraftApiModule({ name }: { name: string }): boolean {
   return name === ApiPrefix || name.startsWith(`${ApiPrefix}/`);
 }
 
@@ -62,7 +62,7 @@ const plugin: tstl.Plugin = {
     ) => {
       if (
         ts.isStringLiteral(node.moduleSpecifier) &&
-        isWarcraftApiModule(node.moduleSpecifier.text)
+        isWarcraftApiModule({ name: node.moduleSpecifier.text })
       ) {
         const bindings = node.importClause?.namedBindings;
 

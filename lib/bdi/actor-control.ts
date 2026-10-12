@@ -20,7 +20,7 @@ interface ActorControlProvider<TActor, TRequest> {
    * Claims or renews control of the Actor. Returns whether the source now
    * controls it and so may order it.
    */
-  request(actor: TActor, request: TRequest): boolean;
+  request({ actor, request }: { actor: TActor; request: TRequest }): boolean;
 }
 
 /**
@@ -37,7 +37,10 @@ interface ActorControlClaim<TRequest> {
  * none (`currentClaim` is null). A source renewing its own claim is always
  * granted and never asks the policy.
  */
-type ActorControlPolicy<TRequest> = (
-  request: TRequest,
-  currentClaim: ActorControlClaim<TRequest> | null
-) => boolean;
+type ActorControlPolicy<TRequest> = ({
+  request,
+  currentClaim,
+}: {
+  request: TRequest;
+  currentClaim: ActorControlClaim<TRequest> | null;
+}) => boolean;

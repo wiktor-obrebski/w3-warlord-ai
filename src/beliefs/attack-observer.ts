@@ -29,10 +29,13 @@ const NoAttacks: readonly ObservedAttack[] = [];
  * player sees these on their own units, so reporting them is fair; whether
  * the attacker itself may be reasoned about depends on its visibility.
  */
-function observeAttacksOn(
-  bot: W3PlayerApi.player,
-  clock: GameClock
-): AttackObserver {
+function observeAttacksOn({
+  bot,
+  clock,
+}: {
+  bot: W3PlayerApi.player;
+  clock: GameClock;
+}): AttackObserver {
   const observer: AttackObserver = { pending: [] };
   const trigger = W3TriggerApi.CreateTrigger();
 
@@ -43,16 +46,18 @@ function observeAttacksOn(
   );
   W3TriggerApi.TriggerAddAction(
     trigger,
-    WarlordApi.guard(() => recordAttack(observer, clock))
+    WarlordApi.guard(() => recordAttack({ observer, clock }))
   );
 
   return observer;
 }
 
 /** The attacks started since they were last taken, oldest first. */
-function takeObservedAttacks(
-  observer: AttackObserver
-): readonly ObservedAttack[] {
+function takeObservedAttacks({
+  observer,
+}: {
+  observer: AttackObserver;
+}): readonly ObservedAttack[] {
   if (observer.pending.length === 0) {
     return NoAttacks;
   }
@@ -63,7 +68,13 @@ function takeObservedAttacks(
   return attacks;
 }
 
-function recordAttack(observer: AttackObserver, clock: GameClock) {
+function recordAttack({
+  observer,
+  clock,
+}: {
+  observer: AttackObserver;
+  clock: GameClock;
+}) {
   const attacker = W3TriggerApi.GetAttacker();
   const target = W3TriggerApi.GetTriggerUnit();
 
@@ -73,5 +84,9 @@ function recordAttack(observer: AttackObserver, clock: GameClock) {
     );
   }
 
-  observer.pending.push({ attacker, target, time: readGameClock(clock) });
+  observer.pending.push({
+    attacker,
+    target,
+    time: readGameClock({ clock }),
+  });
 }

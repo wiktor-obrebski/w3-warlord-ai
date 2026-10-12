@@ -40,19 +40,24 @@ function createDeliberation(): Deliberation<
   let operateTowers: ProvidedIntention | null = null;
 
   return {
-    deliberate(_beliefs, desires, intentions) {
-      const retained = <T extends ProvidedIntention>(intention: T | null) =>
+    deliberate({ beliefs: _beliefs, desires, intentions }) {
+      const retained = <T extends ProvidedIntention>({
+        intention,
+      }: {
+        intention: T | null;
+      }) =>
         intention !== null && intentions.includes(intention) ? intention : null;
       const active: ProvidedIntention[] = [];
 
       workerSafety = desires.includes(PROTECT_ECONOMIC_ASSETS)
-        ? (retained(workerSafety) ?? provideMaintainWorkerSafetyIntention())
+        ? (retained({ intention: workerSafety }) ??
+          provideMaintainWorkerSafetyIntention())
         : null;
       towerRush = desires.includes(APPLY_PRESSURE)
-        ? (retained(towerRush) ?? provideTowerRushIntention())
+        ? (retained({ intention: towerRush }) ?? provideTowerRushIntention())
         : null;
       operateTowers = desires.includes(USE_MILITARY_ASSETS_EFFECTIVELY)
-        ? (retained(operateTowers) ??
+        ? (retained({ intention: operateTowers }) ??
           (towerRush?.value.positionEstablished
             ? provideOperateTowersIntention()
             : null))

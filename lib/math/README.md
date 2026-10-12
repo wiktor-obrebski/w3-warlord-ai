@@ -36,13 +36,13 @@ Vector * scalar = Vector
 `Point - Point` is represented by constructing a vector from two points:
 
 ```ts
-const direction = new Vector(start, target);
+const direction = new Vector({ start, end: target });
 ```
 
 `Point + Vector` is represented by translation:
 
 ```ts
-const target = start.translate(displacement);
+const target = start.translate({ vector: displacement });
 ```
 
 Points deliberately do not expose vector operations such as `normalize`, `dot`, `add`, or `multiply`.
@@ -54,20 +54,20 @@ Move from point `A` in direction `(1, 2)` by distance `3`:
 ```ts
 import { Point, Vector } from '@lib/math';
 
-const a = new Point(10, 20);
-const direction = new Vector(1, 2);
+const a = new Point({ x: 10, y: 20 });
+const direction = new Vector({ x: 1, y: 2 });
 
-const displacement = direction.normalize().multiply(3);
-const target = a.translate(displacement);
+const displacement = direction.normalize().multiply({ scalar: 3 });
+const target = a.translate({ vector: displacement });
 ```
 
 To calculate the direction from one position to another:
 
 ```ts
-const unitPosition = new Point(10, 20);
-const enemyPosition = new Point(30, 50);
+const unitPosition = new Point({ x: 10, y: 20 });
+const enemyPosition = new Point({ x: 30, y: 50 });
 
-const toEnemy = new Vector(unitPosition, enemyPosition);
+const toEnemy = new Vector({ start: unitPosition, end: enemyPosition });
 const direction = toEnemy.normalize();
 const distance = toEnemy.length;
 ```
@@ -77,10 +77,10 @@ const distance = toEnemy.length;
 Supported API:
 
 ```ts
-new Point(x?, y?)
-point.clone()
-point.equalTo(other)
-point.translate(vector)
+new Point({ x, y });
+point.clone();
+point.equalTo({ point });
+point.translate({ vector });
 ```
 
 `Point` is immutable. Operations return new objects.
@@ -90,9 +90,8 @@ point.translate(vector)
 Construction:
 
 ```ts
-new Vector();
-new Vector(x, y);
-new Vector(startPoint, endPoint);
+new Vector({ x, y });
+new Vector({ start, end });
 ```
 
 Supported API:
@@ -103,20 +102,20 @@ vector.clone();
 vector.slope;
 vector.length;
 vector.isZeroLength();
-vector.equalTo(other);
+vector.equalTo({ vector });
 
-vector.multiply(scalar);
-vector.add(other);
-vector.subtract(other);
+vector.multiply({ scalar });
+vector.add({ vector });
+vector.subtract({ vector });
 vector.invert();
 
-vector.dot(other);
-vector.cross(other);
+vector.dot({ vector });
+vector.cross({ vector });
 vector.normalize();
-vector.angleTo(other);
-vector.projectionOn(other);
+vector.angleTo({ vector });
+vector.projectionOn({ vector });
 
-vector.rotate(angle);
+vector.rotate({ angle });
 vector.rotate90Ccw();
 vector.rotate90Cw();
 ```

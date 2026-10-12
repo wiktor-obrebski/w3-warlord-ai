@@ -155,47 +155,56 @@ interface CommonBeliefs extends ObservedWorld {
  * Maintains the Common Beliefs every component reads, revised by the runtime
  * at the start of every tick.
  */
-function createCommonBeliefsModel(
-  bot: W3PlayerApi.player
-): CommonBeliefsModel<CommonObservation, CommonBeliefs> {
+function createCommonBeliefsModel({
+  bot,
+}: {
+  bot: W3PlayerApi.player;
+}): CommonBeliefsModel<CommonObservation, CommonBeliefs> {
   const clock = startGameClock();
-  const attackObserver = observeAttacksOn(bot, clock);
+  const attackObserver = observeAttacksOn({ bot, clock });
 
   return {
     observe() {
       return {
-        world: observeWorld(bot, clock),
-        attacksStarted: takeObservedAttacks(attackObserver),
+        world: observeWorld({ bot, clock }),
+        attacksStarted: takeObservedAttacks({ observer: attackObserver }),
       };
     },
 
-    revise(previous, observation) {
+    revise({ previous, observation }) {
       return {
         ...observation.world,
-        recentAttacks: reviseRecentAttacks(
-          previous?.recentAttacks ?? [],
-          observation.attacksStarted,
-          observation.world.time
-        ),
+        recentAttacks: reviseRecentAttacks({
+          previous: previous?.recentAttacks ?? [],
+          started: observation.attacksStarted,
+          now: observation.world.time,
+        }),
       };
     },
   };
 }
 
 // Unchanged memory is returned as it is, so it is not copied every tick.
-function reviseRecentAttacks(
-  previous: readonly ObservedAttack[],
-  started: readonly ObservedAttack[],
-  now: number
-): readonly ObservedAttack[] {
-  const isRecent = (attack: ObservedAttack) =>
+function reviseRecentAttacks({
+  previous,
+  started,
+  now,
+}: {
+  previous: readonly ObservedAttack[];
+  started: readonly ObservedAttack[];
+  now: number;
+}): readonly ObservedAttack[] {
+  const isRecent = ({ attack }: { attack: ObservedAttack }) =>
     now - attack.time <= AttackMemorySeconds;
 
-  if (started.length === 0 && previous.every((attack) => isRecent(attack))) {
+  if (
+    started.length === 0 &&
+    previous.every((attack) => isRecent({ attack }))
+  ) {
     return previous;
   }
 
-  let attacks = previous.filter((attack) => isRecent(attack));
+  let attacks = previous.filter((attack) => isRecent({ attack }));
 
   for (const attack of started) {
     attacks = attacks.filter((known) => known.attacker !== attack.attacker);
@@ -205,14 +214,17 @@ function reviseRecentAttacks(
   return attacks;
 }
 
-function observeWorld(
-  bot: W3PlayerApi.player,
-  clock: GameClock
-): ObservedWorld {
-  const ownStartPosition = startPositionOf(bot);
-  const enemies = enemyPlayers(bot);
+function observeWorld({
+  bot,
+  clock,
+}: {
+  bot: W3PlayerApi.player;
+  clock: GameClock;
+}): ObservedWorld {
+  const ownStartPosition = startPositionOf({ whichPlayer: bot });
+  const enemies = enemyPlayers({ bot });
   const enemy = enemies[0];
-  const enemyStartPosition = enemy && startPositionOf(enemy);
+  const enemyStartPosition = enemy && startPositionOf({ whichPlayer: enemy });
 
   const ownUnits = new Map<W3UnitApi.unit, OwnUnit>();
   const workers: OwnUnit[] = [];
@@ -238,15 +250,15 @@ function observeWorld(
   // Assumed, not verified in-game, to stay the current order while repairing.
   const repairOrder = W3UnitApi.OrderId('repair');
 
-  for (const unit of unitsOfPlayer(bot)) {
-    if (!isUnitAlive(unit)) {
+  for (const unit of unitsOfPlayer({ whichPlayer: bot })) {
+    if (!isUnitAlive({ unit })) {
       continue;
     }
 
     const order = W3UnitApi.GetUnitCurrentOrder(unit);
     const observed: OwnUnit = {
       unit,
-      position: unitPosition(unit),
+      position: unitPosition({ unit }),
       life: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE),
       maxLife: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_MAX_LIFE),
       isIdle: order === NoOrder,
@@ -305,7 +317,7 @@ function observeWorld(
   }
 
   return {
-    time: readGameClock(clock),
+    time: readGameClock({ clock }),
     ownStartPosition,
     enemyStartPosition,
     enemyPlayersPlaying: enemies.length,
@@ -324,7 +336,7 @@ function observeWorld(
     lumberMills,
     buildingsUnderConstruction,
     buildingsUpgrading,
-    visibleEnemies: visibleEnemies(bot, enemies),
+    visibleEnemies: visibleEnemies({ bot, enemies }),
     gold: W3PlayerApi.GetPlayerState(
       bot,
       W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD
@@ -333,42 +345,56 @@ function observeWorld(
       bot,
       W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER
     ),
-    homeGoldMine: findClosestGoldMine(ownStartPosition),
+    homeGoldMine: findClosestGoldMine({ position: ownStartPosition }),
     // Gold mine placement is static map knowledge, visible to any player
     // before scouting, so reading it under fog is fair.
     enemyMainGoldMine:
-      enemyStartPosition && findClosestGoldMine(enemyStartPosition),
-    destructablesNearHomeByDistance: destructablesByDistance(
-      ownStartPosition,
-      HomeDestructableSearchRadius
-    ),
+      enemyStartPosition &&
+      findClosestGoldMine({ position: enemyStartPosition }),
+    destructablesNearHomeByDistance: destructablesByDistance({
+      position: ownStartPosition,
+      radius: HomeDestructableSearchRadius,
+    }),
   };
 }
 
-function isUnitAlive(unit: W3UnitApi.unit): boolean {
+function isUnitAlive({ unit }: { unit: W3UnitApi.unit }): boolean {
   return W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE) > DeadUnitLife;
 }
 
-function isDestructableAlive(
-  destructable: W3DestructableApi.destructable
-): boolean {
+function isDestructableAlive({
+  destructable,
+}: {
+  destructable: W3DestructableApi.destructable;
+}): boolean {
   return W3DestructableApi.GetDestructableLife(destructable) > 0;
 }
 
-function unitPosition(unit: W3UnitApi.unit): Point {
-  return new Point(W3UnitApi.GetUnitX(unit), W3UnitApi.GetUnitY(unit));
+function unitPosition({ unit }: { unit: W3UnitApi.unit }): Point {
+  return new Point({
+    x: W3UnitApi.GetUnitX(unit),
+    y: W3UnitApi.GetUnitY(unit),
+  });
 }
 
-function startPositionOf(whichPlayer: W3PlayerApi.player): Point {
+function startPositionOf({
+  whichPlayer,
+}: {
+  whichPlayer: W3PlayerApi.player;
+}): Point {
   const startLocation = W3PlayerApi.GetPlayerStartLocation(whichPlayer);
 
-  return new Point(
-    W3LocationApi.GetStartLocationX(startLocation),
-    W3LocationApi.GetStartLocationY(startLocation)
-  );
+  return new Point({
+    x: W3LocationApi.GetStartLocationX(startLocation),
+    y: W3LocationApi.GetStartLocationY(startLocation),
+  });
 }
 
-function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
+function enemyPlayers({
+  bot,
+}: {
+  bot: W3PlayerApi.player;
+}): W3PlayerApi.player[] {
   const enemies: W3PlayerApi.player[] = [];
 
   for (let id = 0; id < W3PlayerApi.bj_MAX_PLAYERS; id++) {
@@ -387,15 +413,18 @@ function enemyPlayers(bot: W3PlayerApi.player): W3PlayerApi.player[] {
   return enemies;
 }
 
-function visibleEnemies(
-  bot: W3PlayerApi.player,
-  enemies: W3PlayerApi.player[]
-): VisibleEnemy[] {
+function visibleEnemies({
+  bot,
+  enemies,
+}: {
+  bot: W3PlayerApi.player;
+  enemies: W3PlayerApi.player[];
+}): VisibleEnemy[] {
   const visible: VisibleEnemy[] = [];
 
   for (const enemy of enemies) {
-    for (const unit of unitsOfPlayer(enemy)) {
-      if (!isUnitAlive(unit) || !W3UnitApi.IsUnitVisible(unit, bot)) {
+    for (const unit of unitsOfPlayer({ whichPlayer: enemy })) {
+      if (!isUnitAlive({ unit }) || !W3UnitApi.IsUnitVisible(unit, bot)) {
         continue;
       }
 
@@ -406,7 +435,7 @@ function visibleEnemies(
 
       visible.push({
         unit,
-        position: unitPosition(unit),
+        position: unitPosition({ unit }),
         life: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE),
         isMelee: W3UnitApi.IsUnitType(unit, W3UnitApi.UNIT_TYPE_MELEE_ATTACKER),
         isRanged: W3UnitApi.IsUnitType(
@@ -428,17 +457,24 @@ function visibleEnemies(
   return visible;
 }
 
-function findClosestGoldMine(position: Point): GoldMine | undefined {
+function findClosestGoldMine({
+  position,
+}: {
+  position: Point;
+}): GoldMine | undefined {
   let closest: GoldMine | undefined;
   let closestDistance = Infinity;
 
-  for (const unit of unitsInRange(position, MainGoldMineSearchRadius)) {
+  for (const unit of unitsInRange({
+    position,
+    radius: MainGoldMineSearchRadius,
+  })) {
     if (!GoldMineTypes.includes(W3UnitApi.GetUnitTypeId(unit))) {
       continue;
     }
 
-    const minePosition = unitPosition(unit);
-    const distance = new Vector(position, minePosition).length;
+    const minePosition = unitPosition({ unit });
+    const distance = new Vector({ start: position, end: minePosition }).length;
 
     if (distance < closestDistance) {
       closest = { unit, position: minePosition };
@@ -449,27 +485,35 @@ function findClosestGoldMine(position: Point): GoldMine | undefined {
   return closest;
 }
 
-function destructablesByDistance(
-  position: Point,
-  radius: number
-): HomeDestructable[] {
-  const min = position.translate(new Vector(-radius, -radius));
-  const max = position.translate(new Vector(radius, radius));
+function destructablesByDistance({
+  position,
+  radius,
+}: {
+  position: Point;
+  radius: number;
+}): HomeDestructable[] {
+  const min = position.translate({
+    vector: new Vector({ x: -radius, y: -radius }),
+  });
+  const max = position.translate({
+    vector: new Vector({ x: radius, y: radius }),
+  });
   const area = W3RectApi.Rect(min.x, min.y, max.x, max.y);
   const found: { destructable: HomeDestructable; distance: number }[] = [];
 
   W3DestructableApi.EnumDestructablesInRect(area, undefined, () => {
     const destructable = W3DestructableApi.GetEnumDestructable();
 
-    if (destructable && isDestructableAlive(destructable)) {
-      const destructablePosition = new Point(
-        W3DestructableApi.GetDestructableX(destructable),
-        W3DestructableApi.GetDestructableY(destructable)
-      );
+    if (destructable && isDestructableAlive({ destructable })) {
+      const destructablePosition = new Point({
+        x: W3DestructableApi.GetDestructableX(destructable),
+        y: W3DestructableApi.GetDestructableY(destructable),
+      });
 
       found.push({
         destructable: { destructable, position: destructablePosition },
-        distance: new Vector(position, destructablePosition).length,
+        distance: new Vector({ start: position, end: destructablePosition })
+          .length,
       });
     }
   });
@@ -480,20 +524,34 @@ function destructablesByDistance(
   return found.map((entry) => entry.destructable);
 }
 
-function unitsOfPlayer(whichPlayer: W3PlayerApi.player): W3UnitApi.unit[] {
+function unitsOfPlayer({
+  whichPlayer,
+}: {
+  whichPlayer: W3PlayerApi.player;
+}): W3UnitApi.unit[] {
   const group = W3GroupApi.CreateGroup();
   W3GroupApi.GroupEnumUnitsOfPlayer(group, whichPlayer, null);
-  return drainGroup(group);
+  return drainGroup({ whichGroup: group });
 }
 
-function unitsInRange(position: Point, radius: number): W3UnitApi.unit[] {
+function unitsInRange({
+  position,
+  radius,
+}: {
+  position: Point;
+  radius: number;
+}): W3UnitApi.unit[] {
   const group = W3GroupApi.CreateGroup();
 
   W3GroupApi.GroupEnumUnitsInRange(group, position.x, position.y, radius, null);
-  return drainGroup(group);
+  return drainGroup({ whichGroup: group });
 }
 
-function drainGroup(whichGroup: UnitGroup): W3UnitApi.unit[] {
+function drainGroup({
+  whichGroup,
+}: {
+  whichGroup: UnitGroup;
+}): W3UnitApi.unit[] {
   const units: W3UnitApi.unit[] = [];
 
   while (true) {

@@ -19,13 +19,23 @@ interface DebugMode {
  * Reveals the whole map to the human observer and shows the bot's resources.
  * Must run after map initialization, where multiboards cannot be shown.
  */
-function enableDebugMode(observer: W3PlayerApi.player): DebugMode {
-  revealMap(observer);
+function enableDebugMode({
+  observer,
+}: {
+  observer: W3PlayerApi.player;
+}): DebugMode {
+  revealMap({ observer });
 
   return { resourcePanel: createResourcePanel() };
 }
 
-function updateDebugMode(debugMode: DebugMode, bot: W3PlayerApi.player) {
+function updateDebugMode({
+  debugMode,
+  bot,
+}: {
+  debugMode: DebugMode;
+  bot: W3PlayerApi.player;
+}) {
   const gold = W3PlayerApi.GetPlayerState(
     bot,
     W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD
@@ -35,12 +45,20 @@ function updateDebugMode(debugMode: DebugMode, bot: W3PlayerApi.player) {
     W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER
   );
 
-  setRowText(debugMode.resourcePanel, GoldRow, `Gold: ${gold}`);
-  setRowText(debugMode.resourcePanel, LumberRow, `Lumber: ${lumber}`);
+  setRowText({
+    panel: debugMode.resourcePanel,
+    row: GoldRow,
+    text: `Gold: ${gold}`,
+  });
+  setRowText({
+    panel: debugMode.resourcePanel,
+    row: LumberRow,
+    text: `Lumber: ${lumber}`,
+  });
 }
 
 // Applies to the observer only, so the bot's own vision is unaffected.
-function revealMap(observer: W3PlayerApi.player) {
+function revealMap({ observer }: { observer: W3PlayerApi.player }) {
   const modifier = W3PrivilegedApi.CreateFogModifierRect(
     observer,
     W3PrivilegedApi.FOG_OF_WAR_VISIBLE,
@@ -67,11 +85,15 @@ function createResourcePanel(): W3PrivilegedApi.multiboard {
   return panel;
 }
 
-function setRowText(
-  panel: W3PrivilegedApi.multiboard,
-  row: number,
-  text: string
-) {
+function setRowText({
+  panel,
+  row,
+  text,
+}: {
+  panel: W3PrivilegedApi.multiboard;
+  row: number;
+  text: string;
+}) {
   const item = W3PrivilegedApi.MultiboardGetItem(panel, row, 0);
 
   W3PrivilegedApi.MultiboardSetItemValue(item, text);

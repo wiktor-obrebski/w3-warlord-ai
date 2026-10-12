@@ -15,6 +15,6 @@ function startGameClock(): GameClock {
 }
 
 /** Game seconds since the clock was started. */
-function readGameClock(clock: GameClock): number {
+function readGameClock({ clock }: { clock: GameClock }): number {
   return W3TimerApi.TimerGetElapsed(clock);
 }

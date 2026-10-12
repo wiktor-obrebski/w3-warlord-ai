@@ -24,22 +24,35 @@ interface BeliefContainer<TCommonBeliefs> {
   /** Throws before the Common Beliefs were first revised. */
   getCommonBeliefs(): Readonly<TCommonBeliefs>;
 
-  setCommonBeliefs(beliefs: TCommonBeliefs): void;
+  setCommonBeliefs({ beliefs }: { beliefs: TCommonBeliefs }): void;
 
-  hasScopedBeliefs(component: object): boolean;
+  hasScopedBeliefs({ component }: { component: object }): boolean;
 
   /** Throws for a component without registered Scoped Beliefs. */
-  getScopedBeliefs(component: object): ScopedBeliefs<TCommonBeliefs>;
+  getScopedBeliefs({
+    component,
+  }: {
+    component: object;
+  }): ScopedBeliefs<TCommonBeliefs>;
 
   /** Registers the component with no Beliefs yet. */
-  registerScopedBeliefs(
-    component: object,
-    beliefsModel: AnyBeliefsModel<TCommonBeliefs>
-  ): void;
+  registerScopedBeliefs({
+    component,
+    beliefsModel,
+  }: {
+    component: object;
+    beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
+  }): void;
 
-  setScopedBeliefs(component: object, beliefs: unknown): void;
+  setScopedBeliefs({
+    component,
+    beliefs,
+  }: {
+    component: object;
+    beliefs: unknown;
+  }): void;
 
-  removeScopedBeliefs(component: object): void;
+  removeScopedBeliefs({ component }: { component: object }): void;
 
   /** The components with registered Scoped Beliefs, as a new list. */
   scopedComponents(): object[];
@@ -56,7 +69,7 @@ function createBeliefContainer<
   let common: TCommonBeliefs | null = null;
   const scoped = new Map<object, ScopedEntry<TCommonBeliefs>>();
 
-  const scopedEntry = (component: object) => {
+  const scopedEntry = ({ component }: { component: object }) => {
     const entry = scoped.get(component);
 
     if (!entry) {
@@ -77,15 +90,15 @@ function createBeliefContainer<
       return common;
     },
 
-    setCommonBeliefs(beliefs) {
+    setCommonBeliefs({ beliefs }) {
       common = beliefs;
     },
 
-    hasScopedBeliefs: (component) => scoped.has(component),
+    hasScopedBeliefs: ({ component }) => scoped.has(component),
 
-    getScopedBeliefs: (component) => scopedEntry(component),
+    getScopedBeliefs: ({ component }) => scopedEntry({ component }),
 
-    registerScopedBeliefs(component, beliefsModel) {
+    registerScopedBeliefs({ component, beliefsModel }) {
       if (scoped.has(component)) {
         throw new Error('Beliefs: component already registered.');
       }
@@ -93,11 +106,11 @@ function createBeliefContainer<
       scoped.set(component, { beliefs: null, beliefsModel });
     },
 
-    setScopedBeliefs(component, beliefs) {
-      scopedEntry(component).beliefs = beliefs;
+    setScopedBeliefs({ component, beliefs }) {
+      scopedEntry({ component }).beliefs = beliefs;
     },
 
-    removeScopedBeliefs(component) {
+    removeScopedBeliefs({ component }) {
       scoped.delete(component);
     },
 
