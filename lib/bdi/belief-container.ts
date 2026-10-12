@@ -49,19 +49,19 @@ interface BeliefContainer<TCommonBeliefs> {
   scopedComponents(): object[];
 }
 
-interface CreateBeliefContainerArgs<TCommonObservation, TCommonBeliefs> {
-  commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>;
+interface CreateBeliefContainerArgs<TCommonBeliefs, TCommonObservation> {
+  commonModel: CommonBeliefsModel<TCommonBeliefs, TCommonObservation>;
 }
 
-function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
+function createBeliefContainer<TCommonBeliefs, TCommonObservation>({
   commonModel,
 }: CreateBeliefContainerArgs<
-  TCommonObservation,
-  TCommonBeliefs
+  TCommonBeliefs,
+  TCommonObservation
 >): BeliefContainer<TCommonBeliefs> {
   const commonBeliefs: BeliefsInstance<
     TCommonBeliefs,
-    CommonBeliefsModel<TCommonObservation, TCommonBeliefs>
+    CommonBeliefsModel<TCommonBeliefs, TCommonObservation>
   > = {
     beliefs: reviseCommon({ model: commonModel, previous: null }),
     model: commonModel,
@@ -126,15 +126,15 @@ function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
   };
 }
 
-interface ReviseCommonArgs<TCommonObservation, TCommonBeliefs> {
-  model: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>;
+interface ReviseCommonArgs<TCommonBeliefs, TCommonObservation> {
+  model: CommonBeliefsModel<TCommonBeliefs, TCommonObservation>;
   previous: TCommonBeliefs | null;
 }
 
-function reviseCommon<TCommonObservation, TCommonBeliefs>({
+function reviseCommon<TCommonBeliefs, TCommonObservation>({
   model,
   previous,
-}: ReviseCommonArgs<TCommonObservation, TCommonBeliefs>) {
+}: ReviseCommonArgs<TCommonBeliefs, TCommonObservation>) {
   return model.revise({ previous, observation: model.observe() });
 }
 

@@ -1,6 +1,6 @@
 export { type CommonBeliefsModel, type BeliefsModel };
 
-interface CommonBeliefsModelReviseArgs<TObservation, TCommonBeliefs> {
+interface CommonBeliefsModelReviseArgs<TCommonBeliefs, TObservation> {
   previous: Readonly<TCommonBeliefs> | null;
   observation: Readonly<TObservation>;
 }
@@ -9,7 +9,7 @@ interface CommonBeliefsModelReviseArgs<TObservation, TCommonBeliefs> {
  * Maintains the agent's Common Beliefs: knowledge shared by every
  * Intention, Plan, and Controller.
  */
-interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
+interface CommonBeliefsModel<TCommonBeliefs, TObservation = unknown> {
   /**
    * Reads what the agent can currently observe of the external environment.
    */
@@ -26,8 +26,8 @@ interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
     previous,
     observation,
   }: CommonBeliefsModelReviseArgs<
-    TObservation,
-    TCommonBeliefs
+    TCommonBeliefs,
+    TObservation
   >): TCommonBeliefs;
 }
 

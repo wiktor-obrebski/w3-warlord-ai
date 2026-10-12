@@ -106,7 +106,7 @@ A component created during step 4 is registered, and its Scoped Beliefs first re
 
 ## Contracts
 
-### `CommonBeliefsModel<TObservation, TCommonBeliefs>`
+### `CommonBeliefsModel<TCommonBeliefs, TObservation = unknown>`
 
 ```ts
 observe(): TObservation

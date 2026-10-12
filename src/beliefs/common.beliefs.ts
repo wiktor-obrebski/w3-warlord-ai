@@ -162,8 +162,8 @@ interface CreateCommonBeliefsModelArgs {
 function createCommonBeliefsModel({
   bot,
 }: CreateCommonBeliefsModelArgs): CommonBeliefsModel<
-  CommonObservation,
-  CommonBeliefs
+  CommonBeliefs,
+  CommonObservation
 > {
   const clock = startGameClock();
   const attackObserver = observeAttacksOn({ bot, clock });

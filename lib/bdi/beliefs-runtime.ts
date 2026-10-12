@@ -57,19 +57,19 @@ interface BeliefsRuntime<TCommonBeliefs> {
   prune(): { managedComponents: ReadonlySet<object> };
 }
 
-interface CreateBeliefsRuntimeArgs<TCommonObservation, TCommonBeliefs> {
-  commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>;
+interface CreateBeliefsRuntimeArgs<TCommonBeliefs, TCommonObservation> {
+  commonModel: CommonBeliefsModel<TCommonBeliefs, TCommonObservation>;
 }
 
 interface VisitArgs<TCommonBeliefs> {
   assembledComponent: AssembledComponent<object, TCommonBeliefs>;
 }
 
-function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
+function createBeliefsRuntime<TCommonBeliefs, TCommonObservation>({
   commonModel,
 }: CreateBeliefsRuntimeArgs<
-  TCommonObservation,
-  TCommonBeliefs
+  TCommonBeliefs,
+  TCommonObservation
 >): BeliefsRuntime<TCommonBeliefs> {
   const beliefsContainer = createBeliefContainer({ commonModel });
   let roots: readonly AssembledComponent<object, TCommonBeliefs>[] = [];
