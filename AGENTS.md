@@ -83,6 +83,10 @@ Before introducing a new architectural concept, verify that an existing concept 
 
 Do not create overlapping abstractions with subtly different meanings.
 
+## Code Conventions
+
+Follow [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) for naming, exports, and dependency injection in TypeScript sources.
+
 ## Working With Existing Code
 
 Inspect relevant code and documentation before designing a solution.
