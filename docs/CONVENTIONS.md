@@ -62,7 +62,7 @@ TSTL assigns an export block's bindings where the block appears, so exported con
 
 ## Named Parameters
 
-A function takes its parameters as a single destructured object, so every argument is named where the function is called.
+Functions, methods, constructors, and function types take their parameters as one destructured object, so every argument is named at the call site:
 
 ```ts
 function nextWorkerResource({ rush }: { rush: TowerRushState }) {
@@ -70,24 +70,33 @@ function nextWorkerResource({ rush }: { rush: TowerRushState }) {
 }
 
 nextWorkerResource({ rush });
-isWithinRange({ unit, target: tower, range: TowerRange });
 ```
 
-The convention applies to function declarations, arrow functions, methods, constructors, and the function types and method signatures the project declares. A function without parameters keeps an empty parameter list.
+Calls explain themselves, arguments of the same type cannot be swapped, and parameters can be added or made optional without touching the other arguments.
 
-Named parameters have these advantages:
+Signatures dictated by an external API keep their parameter list: array method callbacks, TSTL plugin visitors, Warcraft natives and runtime globals, and the bundle's `main`, called by `runtime/runtime-template.lua`.
 
-- A call site explains itself: `isWithinRange({ unit, target: tower, range: TowerRange })` says what `isWithinRange(unit, tower, TowerRange)` leaves to the declaration.
-- Arguments cannot be passed in the wrong order. Swapping two parameters of the same type, such as two units, two points, or two coordinates, is a silent bug with positional parameters and impossible with named ones.
-- Adding, removing, or making a parameter optional does not shift the other arguments, and an optional parameter needs no `undefined` placeholders before it.
-- The shorthand `{ rush }` keeps calls short when the argument's variable has the parameter's name, which rewards naming the same concept the same way across modules.
-- Functions share one shape with the dependency injection convention below, which passes dependencies and logic arguments as objects.
+TSTL gives function-typed properties a Lua `self` parameter, so a function declared elsewhere is passed as a callback wrapped in an arrow function: `provide: () => provideController()`.
 
-Each call builds a Lua table for its arguments. That cost is accepted for clarity; do not depart from the convention for performance without evidence that a specific path needs it.
+## Parameter Types
 
-TSTL gives a function-typed property a Lua `self` parameter even under `noImplicitSelf`, so a callback parameter such as `provide: () => Provided` takes one. Pass a function declared elsewhere wrapped in an arrow function, `provide: () => provideController()`; TSTL reports a missing wrapper at compile time.
+When a signature does not fit on one line, its parameter type moves to a local interface named after the function with an `Args` suffix, declared before the function or the interface or class that owns it. A method's interface is prefixed with its owner's name.
 
-Signatures that an external API dictates keep its parameter list: callbacks for array methods such as `map`, `filter`, and `sort`, visitors of the TSTL plugin API, the Warcraft natives and runtime globals named above, and the bundle's `main`, which `runtime/runtime-template.lua` calls.
+```ts
+interface BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs> {
+  previous: Readonly<TBeliefs> | null;
+  observation: Readonly<TObservation>;
+  common: Readonly<TCommonBeliefs>;
+}
+
+interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
+  revise({
+    previous,
+    observation,
+    common,
+  }: BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs>): TBeliefs;
+}
+```
 
 ## Dependency Injection
 
