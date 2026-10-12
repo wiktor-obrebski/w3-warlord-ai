@@ -72,7 +72,7 @@ TSTL assigns an export block's bindings where the block appears, so exported con
 
 ### Component Public API
 
-Every Intention module, and every reusable Plan or Controller module, has one public entry point, `<component-name>.api.ts`. It declares nothing itself; it only re-exports what other modules need to use or compose the component, such as its assemble function, its Capabilities, and types read by its owner. Other modules import the component only through this file; the rest of the module is internal. Plans and Controllers private to an Intention are part of its module and have no API file of their own.
+Every Intention module, and every reusable Plan or Controller module, has one public entry point, `<component-name>.api.ts`. It declares nothing itself; it only re-exports what other modules need to use or compose the component, such as its assemble function, its Capabilities, the Common Beliefs it needs, and types read by its owner. Other modules import the component only through this file; the rest of the module is internal. Plans and Controllers private to an Intention are part of its module and have no API file of their own.
 
 ```ts
 // tower-rush.api.ts

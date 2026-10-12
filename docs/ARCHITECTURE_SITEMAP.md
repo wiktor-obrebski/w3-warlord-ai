@@ -163,7 +163,7 @@ Mind architecture
 - **Observation** — Project-defined representation of information legitimately available at the current moment.
 - **World Model** — Central representation of what the bot currently believes about the match.
 - **Belief** — Current, remembered, or inferred claim about the game state.
-- **Common Beliefs** — Beliefs shared by the whole bot and read by every component.
+- **Common Beliefs** — Beliefs shared by the whole bot and read by every component, each through its own declaration of the part it needs.
 - **Scoped Beliefs** — Private belief state of one Intention, Plan, or Controller instance, maintained by a BeliefsModel shared by any number of instances.
 - **Current belief** — Belief directly supported by present observation.
 - **Retained belief** — Previously observed information preserved after visibility is lost.
