@@ -21,9 +21,9 @@ interface WorkerSafetyBeliefs {
  * observes nothing itself: attacks come from the Common Beliefs.
  */
 const workerSafetyBeliefsModel: BeliefsModel<
-  null,
   WorkerSafetyBeliefs,
-  CommonBeliefs
+  CommonBeliefs,
+  null
 > = {
   observe() {
     return null;

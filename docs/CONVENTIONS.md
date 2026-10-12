@@ -93,18 +93,18 @@ TSTL gives function-typed properties a Lua `self` parameter, so a function decla
 When a signature does not fit on one line, its parameter type moves to a local interface named after the function with an `Args` suffix, declared before the function or the interface or class that owns it. A method's interface is prefixed with its owner's name.
 
 ```ts
-interface BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs> {
+interface BeliefsModelReviseArgs<TBeliefs, TCommonBeliefs, TObservation> {
   previous: Readonly<TBeliefs> | null;
   observation: Readonly<TObservation>;
   commonBeliefs: Readonly<TCommonBeliefs>;
 }
 
-interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
+interface BeliefsModel<TBeliefs, TCommonBeliefs, TObservation> {
   revise({
     previous,
     observation,
     commonBeliefs,
-  }: BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs>): TBeliefs;
+  }: BeliefsModelReviseArgs<TBeliefs, TCommonBeliefs, TObservation>): TBeliefs;
 }
 ```
 

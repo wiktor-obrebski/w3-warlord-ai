@@ -1,4 +1,4 @@
-export { type CommonBeliefsModel, type BeliefsModel, type AnyBeliefsModel };
+export { type CommonBeliefsModel, type BeliefsModel };
 
 interface CommonBeliefsModelReviseArgs<TObservation, TCommonBeliefs> {
   previous: Readonly<TCommonBeliefs> | null;
@@ -31,9 +31,19 @@ interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
   >): TCommonBeliefs;
 }
 
-interface BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs> {
-  previous: Readonly<TBeliefs> | null;
-  observation: Readonly<TObservation>;
+/**
+ * `Readonly<T>`, except that `unknown` stays `unknown`.
+ *
+ * `Readonly` maps over the properties of `T`, which turns `unknown` into
+ * `{}`. The beliefs runtime handles every model as
+ * `BeliefsModel<unknown, TCommonBeliefs>` and so passes `unknown` Beliefs and
+ * Observations, which `{}` would reject.
+ */
+type Immutable<T> = unknown extends T ? T : Readonly<T>;
+
+interface BeliefsModelReviseArgs<TBeliefs, TCommonBeliefs, TObservation> {
+  previous: Immutable<TBeliefs> | null;
+  observation: Immutable<TObservation>;
   commonBeliefs: Readonly<TCommonBeliefs>;
 }
 
@@ -44,8 +54,15 @@ interface BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs> {
  * A model is behavior without state, so one model may serve any number of
  * component instances; each instance still has its own Scoped Beliefs,
  * revised from its own previous ones.
+ *
+ * The beliefs runtime handles models of every Scoped Beliefs type alike, as
+ * `BeliefsModel<unknown, TCommonBeliefs>`.
  */
-interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
+interface BeliefsModel<
+  TBeliefs,
+  TCommonBeliefs = unknown,
+  TObservation = unknown,
+> {
   /**
    * Reads what the model needs to observe of the external environment.
    */
@@ -64,24 +81,5 @@ interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
     previous,
     observation,
     commonBeliefs,
-  }: BeliefsModelReviseArgs<TObservation, TBeliefs, TCommonBeliefs>): TBeliefs;
-}
-
-interface AnyBeliefsModelReviseArgs<TCommonBeliefs> {
-  previous: unknown;
-  observation: unknown;
-  commonBeliefs: Readonly<TCommonBeliefs>;
-}
-
-/**
- * A BeliefsModel whatever it observes or produces, as the beliefs runtime
- * handles it.
- */
-interface AnyBeliefsModel<TCommonBeliefs> {
-  observe(): unknown;
-  revise({
-    previous,
-    observation,
-    commonBeliefs,
-  }: AnyBeliefsModelReviseArgs<TCommonBeliefs>): unknown;
+  }: BeliefsModelReviseArgs<TBeliefs, TCommonBeliefs, TObservation>): TBeliefs;
 }

@@ -9,11 +9,7 @@ import type {
 } from './actor-control';
 import type { ActorControlArbiter } from './actor-control-arbiter';
 import type { BeliefContainer } from './belief-container';
-import type {
-  AnyBeliefsModel,
-  BeliefsModel,
-  CommonBeliefsModel,
-} from './beliefs-model';
+import type { BeliefsModel, CommonBeliefsModel } from './beliefs-model';
 import type { BeliefsRuntime, ComponentBeliefs } from './beliefs-runtime';
 import type { Controller } from './controller';
 import type { Deliberation } from './deliberation';
@@ -36,7 +32,6 @@ export {
   type ActorControlProvider,
   type ActorControlArbiter,
   type BeliefContainer,
-  type AnyBeliefsModel,
   type BeliefsModel,
   type CommonBeliefsModel,
   type BeliefsRuntime,

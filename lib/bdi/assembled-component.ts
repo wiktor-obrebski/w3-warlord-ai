@@ -31,7 +31,7 @@ interface AssembledComponent<
    * Maintains the component's Scoped Beliefs. Omitted for a component with
    * only Common Beliefs.
    */
-  readonly beliefsModel?: BeliefsModel<unknown, TScopedBeliefs, TCommonBeliefs>;
+  readonly beliefsModel?: BeliefsModel<TScopedBeliefs, TCommonBeliefs>;
 
   /**
    * The children the component currently has, as their assemble functions

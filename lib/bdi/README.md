@@ -116,7 +116,7 @@ revise({ previous, observation }: {
 }): TCommonBeliefs
 ```
 
-### `BeliefsModel<TObservation, TBeliefs, TCommonBeliefs>`
+### `BeliefsModel<TBeliefs, TCommonBeliefs = unknown, TObservation = unknown>`
 
 ```ts
 observe(): TObservation
@@ -127,7 +127,7 @@ revise({ previous, observation, commonBeliefs }: {
 }): TBeliefs   // never null
 ```
 
-`observe()` takes no parameters and reads the external environment only. `AnyBeliefsModel` is any model, as the runtime handles it.
+`observe()` takes no parameters and reads the external environment only. The runtime handles every model as `BeliefsModel<unknown, TCommonBeliefs>`.
 
 ### `BeliefContainer<TCommonBeliefs>`
 
@@ -168,7 +168,7 @@ The Beliefs a component receives in `update()`. It cannot read any other compone
 
 ```ts
 readonly component: TComponent
-readonly beliefsModel?: BeliefsModel<unknown, TScopedBeliefs, TCommonBeliefs>
+readonly beliefsModel?: BeliefsModel<TScopedBeliefs, TCommonBeliefs>
 readonly children: readonly AssembledComponent<object, TCommonBeliefs>[]
 
 childFactory({ children, assemble }): ChildFactory<TComponent>   // () => ChildHandle<TComponent>

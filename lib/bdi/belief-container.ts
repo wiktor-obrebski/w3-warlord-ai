@@ -1,4 +1,4 @@
-import type { AnyBeliefsModel, CommonBeliefsModel } from './beliefs-model';
+import type { BeliefsModel, CommonBeliefsModel } from './beliefs-model';
 
 export { type BeliefContainer, createBeliefContainer };
 
@@ -13,7 +13,7 @@ interface BeliefsInstance<TBeliefs, TModel> {
 
 interface BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs> {
   component: object;
-  beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
+  beliefsModel: BeliefsModel<unknown, TCommonBeliefs>;
 }
 
 /**
@@ -68,7 +68,7 @@ function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
   };
   const scopedBeliefs = new Map<
     object,
-    BeliefsInstance<unknown, AnyBeliefsModel<TCommonBeliefs>>
+    BeliefsInstance<unknown, BeliefsModel<unknown, TCommonBeliefs>>
   >();
 
   return {
@@ -139,7 +139,7 @@ function reviseCommon<TCommonObservation, TCommonBeliefs>({
 }
 
 interface ReviseScopedArgs<TCommonBeliefs> {
-  model: AnyBeliefsModel<TCommonBeliefs>;
+  model: BeliefsModel<unknown, TCommonBeliefs>;
   previous: unknown;
   commonBeliefs: Readonly<TCommonBeliefs>;
 }
