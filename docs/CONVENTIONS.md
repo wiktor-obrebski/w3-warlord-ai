@@ -28,15 +28,13 @@ Strict casing allows no consecutive capital letters, for example `rotate90Ccw`, 
 
 ### Specific Names
 
-A name says what it holds. Bare low-meaning words are not allowed as variable, parameter, or field names, such as `container`, `value`, `entry`, `item`, `instance`, `result`, `data`, `current`, `registered`, `temp`, or `obj`. Pair the word with the concept it holds:
+A name says what it holds. General words that could name almost anything are not allowed as variable, parameter, or field names, such as `value`, `state`, `control`, `source`, `target`, `next`, `current`, `helper`, `entry`, `item`, `container`, `instance`, `result`, `data`, `registered`, `context`, `node`, or `args`. Pair the word with the concept it holds:
 
 ```ts
 const beliefsContainer = createBeliefContainer({ commonModel });
 const registeredComponents: object[] = [];
 const currentUnit = units[0];
 ```
-
-Terms the project defines in its vocabulary, such as `beliefs`, `component`, `control`, and `source`, are specific enough on their own.
 
 ## Export Convention
 
