@@ -1,27 +1,29 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "model": "claude-code/claude-opus-5-5[1m]",
-  "autoupdate": false,
+  "update": "disable",
+  "default_agent": "everyday",
   "agents": {
+    "simple": {
+      "mode": "subagent",
+      "description": "Default coding agent for straightforward implementation, debugging, and coordinating specialized agents.",
+      "model": "claude-code/claude-sonnet-5-5",
+      "system": "Assess each task's complexity before acting. Handle straightforward implementation and ordinary debugging yourself. Delegate mechanical edits, renames, formatting, and boilerplate to @refactor. Delegate moderately difficult work requiring substantial reasoning to @everyday. Delegate only the hardest architectural changes, cross-cutting design, or unresolved bugs after failed attempts to @expert. Prefer the least expensive agent capable of completing the task reliably. For delegated work, provide precise requirements and review the results."
+    },
+    "refactor": {
+      "mode": "subagent",
+      "description": "Use for mechanical refactors, renames, formatting, boilerplate, and repetitive straightforward edits.",
+      "model": "claude-code/claude-haiku-5-5"
+    },
     "everyday": {
-      "mode": "all",
-      "description": "Use for everyday implementation, debugging, and changes requiring moderate reasoning.",
+      "mode": "primary",
+      "description": "Use for implementation, debugging, and changes requiring moderate to substantial reasoning beyond straightforward tasks.",
       "model": "claude-code/claude-opus-5-5[1m]"
     },
     "expert": {
-      "mode": "all",
-      "description": "Use only for the most complicated changes, especially architectural pivots, cross-cutting design, and unclear bugs after failed attempts.",
+      "mode": "subagent",
+      "description": "Use only for exceptionally complicated changes, architectural pivots, cross-cutting design, and difficult bugs after failed attempts.",
       "model": "claude-code/claude-opus-5-5[1m]#xhigh"
-    },
-    "simple": {
-      "mode": "all",
-      "description": "Use for tasks that are quite obvious to do, such as the simplest features and straightforward edits.",
-      "model": "claude-code/claude-sonnet-5-5"
-    },
-    "refactor": {
-      "mode": "all",
-      "description": "Use for refactors and other simplest technical changes: renames, formatting, boilerplate, and mechanical edits.",
-      "model": "claude-code/claude-haiku-5-5"
     }
   }
 }
