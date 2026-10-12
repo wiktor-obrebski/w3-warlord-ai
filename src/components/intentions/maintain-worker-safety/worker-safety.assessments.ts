@@ -2,10 +2,14 @@ import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
 import type { OwnUnit, VisibleEnemy } from '../../../contracts/world';
 import { CommonBeliefs } from '../../../beliefs/common.beliefs';
-import { recentAttackTarget } from '../../../beliefs/common.assessments';
-import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
+import type { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
-export { needsAttackProtection, nearbyThreats, threatCenter };
+export {
+  needsAttackProtection,
+  nearbyThreats,
+  threatCenter,
+  isRecentlyAttacked,
+};
 
 // Not tuned in-game.
 const ThreatRadius = 1000;
@@ -96,4 +100,33 @@ function averagePosition({ enemies }: AveragePositionArgs): Point {
   return origin.translate({
     vector: sum.multiply({ scalar: 1 / enemies.length }),
   });
+}
+
+interface IsRecentlyAttackedArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  attackedUnit: W3UnitApi.unit;
+}
+
+/** Whether any attacker recently started an attack on the bot's unit. */
+function isRecentlyAttacked({
+  beliefs,
+  attackedUnit,
+}: IsRecentlyAttackedArgs): boolean {
+  return beliefs.recentAttacks.some(
+    (attack) => attack.attackedUnit === attackedUnit
+  );
+}
+
+interface RecentAttackTargetArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  attacker: W3UnitApi.unit;
+}
+
+/** The bot's unit the attacker recently started an attack on, if any. */
+function recentAttackTarget({
+  beliefs,
+  attacker,
+}: RecentAttackTargetArgs): W3UnitApi.unit | undefined {
+  return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
+    ?.attackedUnit;
 }

@@ -7,18 +7,18 @@ import {
   WarlordController,
 } from '../../../execution';
 import { CommonBeliefs } from '../../../beliefs/common.beliefs';
-import {
-  lifeFractionOf,
-  mostDamagedUnit,
-  ownUnit,
-} from '../../../beliefs/common.assessments';
 import { TowerRushState } from './tower-rush.state';
 import {
   controlForwardPeasants,
   forgetSentToSafety,
   hideBehindClosestTower,
 } from './forward-workers';
-import { isAvailableForwardPeasant } from './tower-rush.assessments';
+import {
+  isAvailableForwardPeasant,
+  lifeFractionOf,
+  mostDamagedUnit,
+  ownUnit,
+} from './tower-rush.assessments';
 
 export { assembleTowerMaintenanceController };
 

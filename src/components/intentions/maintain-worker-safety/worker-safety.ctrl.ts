@@ -11,12 +11,12 @@ import {
   WarlordController,
 } from '../../../execution';
 import { CommonBeliefs } from '../../../beliefs/common.beliefs';
-import { isRecentlyAttacked } from '../../../beliefs/common.assessments';
 import {
   WorkerSafetyBeliefs,
   workerSafetyBeliefsModel,
 } from './worker-safety.beliefs';
 import {
+  isRecentlyAttacked,
   needsAttackProtection,
   nearbyThreats,
   threatCenter,

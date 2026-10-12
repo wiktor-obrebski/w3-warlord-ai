@@ -3,8 +3,8 @@ import { debug } from '../../../debug';
 import { Point, Vector } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
 import { CommonBeliefs } from '../../../beliefs/common.beliefs';
-import { closestUnit, positionOf } from '../../../beliefs/common.assessments';
 import { TowerRushState } from './tower-rush.state';
+import { closestUnit, positionOf } from './tower-rush.assessments';
 
 export { hideBehindClosestTower, forgetSentToSafety, controlForwardPeasants };
 

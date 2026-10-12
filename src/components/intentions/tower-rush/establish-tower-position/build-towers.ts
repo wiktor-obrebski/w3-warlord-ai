@@ -5,11 +5,6 @@ import { debug } from '../../../../debug';
 import { Point, Vector } from '@lib/math';
 import type { ActorControl } from '../../../../contracts/actor-control';
 import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
-import {
-  closestUnit,
-  constructionProgress,
-  positionOf,
-} from '../../../../beliefs/common.assessments';
 import { TowerRushState } from '../tower-rush.state';
 import {
   controlForwardPeasants,
@@ -18,7 +13,10 @@ import {
 } from '../forward-workers';
 import {
   allRushTowersBuilt,
+  closestUnit,
+  constructionProgress,
   isAvailableForwardPeasant,
+  positionOf,
   RUSH_TOWER_COUNT,
   rushTowersAtLeast,
 } from '../tower-rush.assessments';

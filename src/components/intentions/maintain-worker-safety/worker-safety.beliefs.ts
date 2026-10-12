@@ -1,7 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { BeliefsModel } from '@lib/bdi';
 import { CommonBeliefs } from '../../../beliefs/common.beliefs';
-import { isRecentlyAttacked } from '../../../beliefs/common.assessments';
+import { isRecentlyAttacked } from './worker-safety.assessments';
 
 export { type WorkerSafetyBeliefs, workerSafetyBeliefsModel };
 

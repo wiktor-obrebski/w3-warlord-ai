@@ -4,10 +4,7 @@ import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
 import { Point, Vector } from '@lib/math';
 import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
-import {
-  completedLumberMill,
-  positionOf,
-} from '../../../../beliefs/common.assessments';
+import { completedLumberMill, positionOf } from '../tower-rush.assessments';
 
 export { GUARD_TOWER_UPGRADE_GOLD_COST, updateUpgradeTowers };
 

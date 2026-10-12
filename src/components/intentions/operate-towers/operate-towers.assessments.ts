@@ -1,6 +1,6 @@
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import type { VisibleEnemy } from '../../../contracts/world';
 import { CommonBeliefs } from '../../../beliefs/common.beliefs';
-import { recentAttackTarget } from '../../../beliefs/common.assessments';
 
 export { TARGET_PRIORITY, type RankedTarget, rankTowerTargets };
 
@@ -120,4 +120,18 @@ function attackingTowerPriority({
   }
 
   return undefined;
+}
+
+interface RecentAttackTargetArgs {
+  beliefs: Readonly<CommonBeliefs>;
+  attacker: W3UnitApi.unit;
+}
+
+/** The bot's unit the attacker recently started an attack on, if any. */
+function recentAttackTarget({
+  beliefs,
+  attacker,
+}: RecentAttackTargetArgs): W3UnitApi.unit | undefined {
+  return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
+    ?.attackedUnit;
 }

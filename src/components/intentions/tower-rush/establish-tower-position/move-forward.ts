@@ -4,8 +4,8 @@ import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
 import type { GoldMine } from '../../../../contracts/world';
 import { CommonBeliefs } from '../../../../beliefs/common.beliefs';
-import { positionOf } from '../../../../beliefs/common.assessments';
 import { TowerRushState } from '../tower-rush.state';
+import { positionOf } from '../tower-rush.assessments';
 
 export { type MoveForwardState, createMoveForwardState, updateMoveForward };
 

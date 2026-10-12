@@ -215,7 +215,7 @@ Beliefs come in two categories. Common Beliefs (`src/beliefs/common.beliefs.ts`)
 
 Every component is constructed through its `assemble...()` function (`src/execution.ts` holds the Warlord component types). Intentions create their Plans and Controllers through child factories injected by their assemble functions, and discard them when done, e.g. the tower rush discards its plan once the tower position is established. Actor control is the one capability so far: the runtime hands the arbiter's actor control to Deliberation, whose capabilities providers pass it to each Intention, and each Intention passes it on to its children.
 
-Assessments are pure functions in `*.assessments.ts`: no state, no Warcraft API access, read-only Beliefs. Broadly useful ones live in `src/beliefs/common.assessments.ts`, feature-specific ones next to their feature. `*.beliefs.ts` keeps only Belief types and revision; Plans and Controllers call assessments instead of interpreting Beliefs themselves.
+Assessments are pure functions in `*.assessments.ts`: no state, no Warcraft API access, read-only Beliefs. They are private to the component module interpreting the Beliefs and live next to it; there are no shared assessments, since components may legitimately read the same facts differently, and some duplication between modules is accepted. `*.beliefs.ts` keeps only Belief types and revision; Plans and Controllers call assessments instead of interpreting Beliefs themselves.
 
 The Desires are held for the whole game, and Deliberation maps them to Intentions with a fixed policy:
 
@@ -233,7 +233,7 @@ src/
 ├─ runtime.ts     the bot loop
 ├─ execution.ts   Warlord component, Beliefs, and assembled component types
 ├─ contracts/     type-only domain vocabulary shared across layers: Actor and actor control requests, observed world records
-├─ beliefs/       common belief model, observing Warcraft state for decisions, and common assessments
+├─ beliefs/       common belief model, observing Warcraft state for decisions
 ├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
 ├─ deliberation/  creates, retains, and drops Intentions
 ├─ components/
