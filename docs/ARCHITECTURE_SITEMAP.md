@@ -236,7 +236,7 @@ src/
 ├─ desires/       ApplyPressure, ProtectEconomicAssets, UseMilitaryAssetsEffectively
 ├─ deliberation/  creates, retains, and drops Intentions
 ├─ components/
-│  ├─ intentions/   one module per Intention: *.intention.ts, its private *.plan.ts and *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
+│  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, scoped *.beliefs.ts, and *.assessments.ts
 │  ├─ plans/        Plans assembled by several Intentions
 │  └─ controllers/  Controllers assembled by several Intentions
 └─ privileged/    installation and debug-mode code beyond normal gameplay
