@@ -1,6 +1,6 @@
 import { createBeliefContainer } from './belief-container';
 import type { CommonBeliefsModel } from './beliefs-model';
-import type { Provided } from './provided';
+import type { AssembledComponent } from './assembled-component';
 
 export { type ComponentBeliefs, type BeliefsRuntime, createBeliefsRuntime };
 
@@ -20,7 +20,7 @@ interface BeliefsRuntimeBeliefsOfArgs {
 
 /**
  * Owns the agent's belief state and its lifecycle. It manages the component
- * tree formed by the provided Intentions and their children: every component
+ * tree formed by the assembled Intentions and their children: every component
  * with a BeliefsModel gets Scoped Beliefs, revised each cycle, and loses them
  * when it leaves the tree.
  */
@@ -35,7 +35,11 @@ interface BeliefsRuntime<TCommonBeliefs> {
    * components new to it, removes the Scoped Beliefs of components gone from
    * it, and revises the Scoped Beliefs of every registered component.
    */
-  sync({ roots }: { roots: readonly Provided<object, TCommonBeliefs>[] }): void;
+  sync({
+    roots,
+  }: {
+    roots: readonly AssembledComponent<object, TCommonBeliefs>[];
+  }): void;
 
   /**
    * The Beliefs of a managed component for this cycle. A component created
@@ -58,7 +62,7 @@ interface CreateBeliefsRuntimeArgs<TCommonObservation, TCommonBeliefs> {
 }
 
 interface VisitArgs<TCommonBeliefs> {
-  provided: Provided<object, TCommonBeliefs>;
+  assembledComponent: AssembledComponent<object, TCommonBeliefs>;
 }
 
 function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
@@ -68,7 +72,7 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
   TCommonBeliefs
 >): BeliefsRuntime<TCommonBeliefs> {
   const beliefsContainer = createBeliefContainer({ commonModel });
-  let roots: readonly Provided<object, TCommonBeliefs>[] = [];
+  let roots: readonly AssembledComponent<object, TCommonBeliefs>[] = [];
   let managedComponents = new Set<object>();
 
   // Matches the managed components to the current tree. Returns the newly
@@ -78,28 +82,28 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
     const currentComponents = new Set<object>();
     const registeredComponents: object[] = [];
 
-    const visit = ({ provided }: VisitArgs<TCommonBeliefs>) => {
-      const { component } = provided;
+    const visit = ({ assembledComponent }: VisitArgs<TCommonBeliefs>) => {
+      const { component } = assembledComponent;
       currentComponents.add(component);
 
       if (
-        provided.beliefsModel &&
+        assembledComponent.beliefsModel &&
         beliefsContainer.getScopedBeliefs({ component }) === null
       ) {
         beliefsContainer.registerScopedBeliefs({
           component,
-          beliefsModel: provided.beliefsModel,
+          beliefsModel: assembledComponent.beliefsModel,
         });
         registeredComponents.push(component);
       }
 
-      for (const child of provided.children) {
-        visit({ provided: child });
+      for (const child of assembledComponent.children) {
+        visit({ assembledComponent: child });
       }
     };
 
     for (const root of roots) {
-      visit({ provided: root });
+      visit({ assembledComponent: root });
     }
 
     for (const component of beliefsContainer.scopedComponents()) {

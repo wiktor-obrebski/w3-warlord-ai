@@ -1,9 +1,9 @@
 import {
+  AssembledComponent,
   ComponentBeliefs,
   Controller,
   Intention,
   Plan,
-  Provided,
   UpdateChild,
 } from '@lib/bdi';
 import { ActorControl } from './actor';
@@ -15,8 +15,8 @@ export {
   type WarlordController,
   type WarlordIntention,
   type WarlordUpdateChild,
-  type ProvidedComponent,
-  type ProvidedChildren,
+  type AssembledWarlordComponent,
+  type AssembledChildren,
 };
 
 /**
@@ -47,8 +47,8 @@ type WarlordIntention<TScopedBeliefs = null> = Intention<
 type WarlordUpdateChild = UpdateChild<WarlordBeliefs<unknown>, ActorControl>;
 
 /**
- * The Scoped Beliefs type a component's `update` reads, so its provider can
- * only attach a model producing exactly that.
+ * The Scoped Beliefs type a component's `update` reads, so its assemble
+ * function can only attach a model producing exactly that.
  */
 type ScopedBeliefsOf<TComponent> = TComponent extends {
   update(args: {
@@ -58,12 +58,12 @@ type ScopedBeliefsOf<TComponent> = TComponent extends {
   ? TScopedBeliefs
   : never;
 
-/** A component as its `provide...` function returns it. */
-type ProvidedComponent<TComponent extends object> = Provided<
+/** A component as its `assemble...` function returns it. */
+type AssembledWarlordComponent<TComponent extends object> = AssembledComponent<
   TComponent,
   CommonBeliefs,
   ScopedBeliefsOf<TComponent>
 >;
 
-/** The children list a provider keeps for its component. */
-type ProvidedChildren = Provided<object, CommonBeliefs>[];
+/** The children list an assemble function keeps for its component. */
+type AssembledChildren = AssembledComponent<object, CommonBeliefs>[];

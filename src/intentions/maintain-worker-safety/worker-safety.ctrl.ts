@@ -5,7 +5,7 @@ import { Point, Vector } from '@lib/math';
 import { debug } from '../../debug';
 import { ActorControl, PREEMPTIVE_REQUEST } from '../../actor';
 import {
-  ProvidedComponent,
+  AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
 } from '../../execution';
@@ -21,7 +21,7 @@ import {
   threatCenter,
 } from './worker-safety.assessments';
 
-export { provideWorkerSafetyController };
+export { assembleWorkerSafetyController };
 
 const FleeRoundDistance = 300;
 const FleeDestinationReachedDistance = 32;
@@ -141,7 +141,7 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
   }
 }
 
-function provideWorkerSafetyController(): ProvidedComponent<
+function assembleWorkerSafetyController(): AssembledWarlordComponent<
   WarlordController<WorkerSafetyBeliefs>
 > {
   return {

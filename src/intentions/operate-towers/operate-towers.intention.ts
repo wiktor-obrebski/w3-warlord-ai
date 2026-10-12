@@ -1,16 +1,16 @@
 import { ChildFactory, childFactory } from '@lib/bdi';
 import {
-  ProvidedChildren,
-  ProvidedComponent,
+  AssembledChildren,
+  AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
 } from '../../execution';
 import { UpdateInterval } from '../update-interval';
-import { provideTowerTargetSelectionController } from './tower-target-selection.ctrl';
+import { assembleTowerTargetSelectionController } from './tower-target-selection.ctrl';
 
-export { provideOperateTowersIntention };
+export { assembleOperateTowersIntention };
 
 const UpdateSeconds = 1;
 
@@ -43,14 +43,14 @@ class OperateTowersIntention implements WarlordIntention {
   }
 }
 
-function provideOperateTowersIntention(): ProvidedComponent<WarlordIntention> {
-  const children: ProvidedChildren = [];
+function assembleOperateTowersIntention(): AssembledWarlordComponent<WarlordIntention> {
+  const children: AssembledChildren = [];
 
   return {
     component: new OperateTowersIntention({
       createTargetSelection: childFactory({
         children,
-        provide: () => provideTowerTargetSelectionController(),
+        assemble: () => assembleTowerTargetSelectionController(),
       }),
     }),
     children,

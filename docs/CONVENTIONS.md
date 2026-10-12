@@ -86,7 +86,7 @@ Calls explain themselves, arguments of the same type cannot be swapped, and para
 
 Signatures dictated by an external API keep their parameter list: array method callbacks, TSTL plugin visitors, Warcraft natives and runtime globals, and the bundle's `main`, called by `runtime/runtime-template.lua`.
 
-TSTL gives function-typed properties a Lua `self` parameter, so a function declared elsewhere is passed as a callback wrapped in an arrow function: `provide: () => provideController()`.
+TSTL gives function-typed properties a Lua `self` parameter, so a function declared elsewhere is passed as a callback wrapped in an arrow function: `assemble: () => assembleController()`.
 
 ## Parameter Types
 

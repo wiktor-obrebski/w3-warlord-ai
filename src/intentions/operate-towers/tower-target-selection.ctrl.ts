@@ -2,7 +2,7 @@ import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { debug } from '../../debug';
 import { ActorControl, NORMAL_REQUEST } from '../../actor';
 import {
-  ProvidedComponent,
+  AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
 } from '../../execution';
@@ -13,7 +13,7 @@ import {
   TARGET_PRIORITY,
 } from './operate-towers.assessments';
 
-export { provideTowerTargetSelectionController };
+export { assembleTowerTargetSelectionController };
 
 // Not verified in-game that IsUnitInRange matches the tower's own reach.
 const GuardTowerAttackRange = 700;
@@ -114,6 +114,6 @@ class TowerTargetSelectionController implements WarlordController {
   }
 }
 
-function provideTowerTargetSelectionController(): ProvidedComponent<WarlordController> {
+function assembleTowerTargetSelectionController(): AssembledWarlordComponent<WarlordController> {
   return { component: new TowerTargetSelectionController(), children: [] };
 }

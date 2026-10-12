@@ -4,7 +4,7 @@ import * as W3DestructableApi from '@lib/warcraft3-api/destructable';
 import { debug } from '../../debug';
 import { ActorControl, NORMAL_REQUEST } from '../../actor';
 import {
-  ProvidedComponent,
+  AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
 } from '../../execution';
@@ -13,7 +13,7 @@ import { HOME_RESOURCE, TowerRushState } from './tower-rush.state';
 import { lumberDestructablesByPreference } from './tower-rush.assessments';
 import { GUARD_TOWER_UPGRADE_GOLD_COST } from './establish-tower-position/upgrade-towers';
 
-export { provideTowerRushEconomyController, trainPeasant };
+export { assembleTowerRushEconomyController, trainPeasant };
 
 const PeasantGoldCost = 75;
 // Warcraft's listed Peasant training time; not verified in-game.
@@ -88,13 +88,13 @@ class TowerRushEconomyController implements WarlordController {
   }
 }
 
-interface ProvideTowerRushEconomyControllerArgs {
+interface AssembleTowerRushEconomyControllerArgs {
   rush: TowerRushState;
 }
 
-function provideTowerRushEconomyController({
+function assembleTowerRushEconomyController({
   rush,
-}: ProvideTowerRushEconomyControllerArgs): ProvidedComponent<WarlordController> {
+}: AssembleTowerRushEconomyControllerArgs): AssembledWarlordComponent<WarlordController> {
   return {
     component: new TowerRushEconomyController({ rush }),
     children: [],

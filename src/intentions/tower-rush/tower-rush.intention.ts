@@ -1,7 +1,7 @@
 import { ChildFactory, ChildHandle, childFactory } from '@lib/bdi';
 import {
-  ProvidedChildren,
-  ProvidedComponent,
+  AssembledChildren,
+  AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
   WarlordIntention,
@@ -11,12 +11,12 @@ import { UpdateInterval } from '../update-interval';
 import { createTowerRushState } from './tower-rush.state';
 import {
   EstablishTowerPositionPlan,
-  provideEstablishTowerPositionPlan,
+  assembleEstablishTowerPositionPlan,
 } from './establish-tower-position/establish-tower-position.plan';
-import { provideTowerRushEconomyController } from './tower-rush-economy.ctrl';
-import { provideTowerMaintenanceController } from './tower-maintenance.ctrl';
+import { assembleTowerRushEconomyController } from './tower-rush-economy.ctrl';
+import { assembleTowerMaintenanceController } from './tower-maintenance.ctrl';
 
-export { type TowerRushIntention, provideTowerRushIntention };
+export { type TowerRushIntention, assembleTowerRushIntention };
 
 const UpdateSeconds = 1;
 
@@ -124,24 +124,24 @@ class TowerRush implements TowerRushIntention {
   }
 }
 
-function provideTowerRushIntention(): ProvidedComponent<TowerRushIntention> {
+function assembleTowerRushIntention(): AssembledWarlordComponent<TowerRushIntention> {
   const rush = createTowerRushState();
-  const children: ProvidedChildren = [];
+  const children: AssembledChildren = [];
 
   return {
     component: new TowerRush({
       factories: {
         createEstablishTowerPositionPlan: childFactory({
           children,
-          provide: () => provideEstablishTowerPositionPlan({ rush }),
+          assemble: () => assembleEstablishTowerPositionPlan({ rush }),
         }),
         createEconomyController: childFactory({
           children,
-          provide: () => provideTowerRushEconomyController({ rush }),
+          assemble: () => assembleTowerRushEconomyController({ rush }),
         }),
         createTowerMaintenanceController: childFactory({
           children,
-          provide: () => provideTowerMaintenanceController({ rush }),
+          assemble: () => assembleTowerMaintenanceController({ rush }),
         }),
       },
     }),

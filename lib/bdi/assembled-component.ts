@@ -1,20 +1,26 @@
 import type { BeliefsModel } from './beliefs-model';
 
-export { type Provided, type ChildHandle, type ChildFactory, childFactory };
+export {
+  type AssembledComponent,
+  type ChildHandle,
+  type ChildFactory,
+  childFactory,
+};
 
 /**
- * An Intention, Plan, or Controller as its provider function creates it:
- * the component, together with what the runtime needs to manage it.
+ * An Intention, Plan, or Controller as its assemble function builds it: the
+ * component, together with what the runtime needs to manage it.
  *
- * Providers are the only way components are constructed, so the runtime
- * always receives this metadata, while the component itself never sees it.
+ * Assemble functions are the only way components are constructed, so the
+ * runtime always receives this metadata, while the component itself never
+ * sees it.
  *
- * A provider names the Scoped Beliefs type its component reads as
+ * An assemble function names the Scoped Beliefs type its component reads as
  * `TScopedBeliefs`, so the compiler checks that the model produces it. The
  * runtime handles components of every Scoped Beliefs type alike, so the
  * default `unknown` is what it receives.
  */
-interface Provided<
+interface AssembledComponent<
   TComponent extends object,
   TCommonBeliefs,
   TScopedBeliefs = unknown,
@@ -28,10 +34,11 @@ interface Provided<
   readonly beliefsModel?: BeliefsModel<unknown, TScopedBeliefs, TCommonBeliefs>;
 
   /**
-   * The children the component currently has, as their providers created
-   * them. The provider keeps this list up to date through child factories.
+   * The children the component currently has, as their assemble functions
+   * built them. The assemble function keeps this list up to date through
+   * child factories.
    */
-  readonly children: readonly Provided<object, TCommonBeliefs>[];
+  readonly children: readonly AssembledComponent<object, TCommonBeliefs>[];
 }
 
 /**
@@ -54,27 +61,27 @@ interface ChildHandle<TComponent> {
 type ChildFactory<TComponent> = () => ChildHandle<TComponent>;
 
 interface ChildFactoryArgs<TComponent extends object, TCommonBeliefs> {
-  children: Provided<object, TCommonBeliefs>[];
-  provide: () => Provided<TComponent, TCommonBeliefs>;
+  children: AssembledComponent<object, TCommonBeliefs>[];
+  assemble: () => AssembledComponent<TComponent, TCommonBeliefs>;
 }
 
 /**
- * Lets a provider give its component a way to create children without
- * exposing their metadata: each call provides a child, records it in
+ * Lets an assemble function give its component a way to create children
+ * without exposing their metadata: each call assembles a child, records it in
  * `children`, and hands the component only a handle to the child.
  */
 function childFactory<TComponent extends object, TCommonBeliefs>({
   children,
-  provide,
+  assemble,
 }: ChildFactoryArgs<TComponent, TCommonBeliefs>): ChildFactory<TComponent> {
   return () => {
-    const provided = provide();
-    children.push(provided);
+    const assembledChild = assemble();
+    children.push(assembledChild);
 
     return {
-      component: provided.component,
+      component: assembledChild.component,
       discard() {
-        const index = children.indexOf(provided);
+        const index = children.indexOf(assembledChild);
 
         if (index < 0) {
           throw new Error('Child factory: child already discarded.');

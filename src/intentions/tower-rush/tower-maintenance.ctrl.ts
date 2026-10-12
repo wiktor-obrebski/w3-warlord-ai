@@ -2,7 +2,7 @@ import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { debug } from '../../debug';
 import { ActorControl } from '../../actor';
 import {
-  ProvidedComponent,
+  AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
 } from '../../execution';
@@ -20,7 +20,7 @@ import {
 } from './forward-workers';
 import { isAvailableForwardPeasant } from './tower-rush.assessments';
 
-export { provideTowerMaintenanceController };
+export { assembleTowerMaintenanceController };
 
 // A repair starts below the start fraction and is not interrupted before the
 // switch fraction; above it, a tower below the start fraction takes over,
@@ -106,13 +106,13 @@ class TowerMaintenanceController implements WarlordController {
   }
 }
 
-interface ProvideTowerMaintenanceControllerArgs {
+interface AssembleTowerMaintenanceControllerArgs {
   rush: TowerRushState;
 }
 
-function provideTowerMaintenanceController({
+function assembleTowerMaintenanceController({
   rush,
-}: ProvideTowerMaintenanceControllerArgs): ProvidedComponent<WarlordController> {
+}: AssembleTowerMaintenanceControllerArgs): AssembledWarlordComponent<WarlordController> {
   return {
     component: new TowerMaintenanceController({ rush }),
     children: [],

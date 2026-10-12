@@ -1,6 +1,6 @@
 import { createBeliefContainer } from './belief-container';
 import { createBeliefsRuntime } from './beliefs-runtime';
-import { childFactory } from './provided';
+import { childFactory } from './assembled-component';
 import { createActorControlArbiter } from './actor-control-arbiter';
 import type {
   ActorControlClaim,
@@ -20,7 +20,11 @@ import type { Deliberation } from './deliberation';
 import type { Desire } from './desire';
 import type { Intention, UpdateChild } from './intention';
 import type { Plan, PlanStatus } from './plan';
-import type { ChildFactory, ChildHandle, Provided } from './provided';
+import type {
+  AssembledComponent,
+  ChildFactory,
+  ChildHandle,
+} from './assembled-component';
 
 export {
   createBeliefContainer,
@@ -46,5 +50,5 @@ export {
   type PlanStatus,
   type ChildFactory,
   type ChildHandle,
-  type Provided,
+  type AssembledComponent,
 };

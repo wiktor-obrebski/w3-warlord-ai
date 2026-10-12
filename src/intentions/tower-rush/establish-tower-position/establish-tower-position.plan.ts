@@ -3,7 +3,7 @@ import { Point } from '@lib/math';
 import { debug } from '../../../debug';
 import { ActorControl } from '../../../actor';
 import {
-  ProvidedComponent,
+  AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordPlan,
 } from '../../../execution';
@@ -13,7 +13,7 @@ import { createMoveForwardState, updateMoveForward } from './move-forward';
 import { createBuildTowersState, updateBuildTowers } from './build-towers';
 import { updateUpgradeTowers } from './upgrade-towers';
 
-export { type EstablishTowerPositionPlan, provideEstablishTowerPositionPlan };
+export { type EstablishTowerPositionPlan, assembleEstablishTowerPositionPlan };
 
 enum STEP {
   START,
@@ -128,12 +128,12 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   }
 }
 
-interface ProvideEstablishTowerPositionPlanArgs {
+interface AssembleEstablishTowerPositionPlanArgs {
   rush: TowerRushState;
 }
 
-function provideEstablishTowerPositionPlan({
+function assembleEstablishTowerPositionPlan({
   rush,
-}: ProvideEstablishTowerPositionPlanArgs): ProvidedComponent<EstablishTowerPositionPlan> {
+}: AssembleEstablishTowerPositionPlanArgs): AssembledWarlordComponent<EstablishTowerPositionPlan> {
   return { component: new EstablishTowerPosition({ rush }), children: [] };
 }

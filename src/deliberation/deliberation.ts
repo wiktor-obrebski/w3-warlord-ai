@@ -1,22 +1,22 @@
 import { Deliberation, Desire } from '@lib/bdi';
 import { CommonBeliefs } from '../beliefs/common.beliefs';
-import { ProvidedComponent, WarlordIntention } from '../execution';
+import { AssembledWarlordComponent, WarlordIntention } from '../execution';
 import { APPLY_PRESSURE } from '../desires/apply-pressure';
 import { PROTECT_ECONOMIC_ASSETS } from '../desires/protect-economic-assets';
 import { USE_MILITARY_ASSETS_EFFECTIVELY } from '../desires/use-military-assets-effectively';
-import { provideMaintainWorkerSafetyIntention } from '../intentions/maintain-worker-safety/maintain-worker-safety.intention';
+import { assembleMaintainWorkerSafetyIntention } from '../intentions/maintain-worker-safety/maintain-worker-safety.intention';
 import {
-  provideTowerRushIntention,
+  assembleTowerRushIntention,
   TowerRushIntention,
 } from '../intentions/tower-rush/tower-rush.intention';
-import { provideOperateTowersIntention } from '../intentions/operate-towers/operate-towers.intention';
+import { assembleOperateTowersIntention } from '../intentions/operate-towers/operate-towers.intention';
 
-export { type ProvidedIntention, createDeliberation };
+export { type AssembledIntention, createDeliberation };
 
-/** An Intention as its provider created it. */
-type ProvidedIntention = ProvidedComponent<WarlordIntention<unknown>>;
+/** An Intention as its assemble function builds it. */
+type AssembledIntention = AssembledWarlordComponent<WarlordIntention<unknown>>;
 
-interface RetainedArgs<T extends ProvidedIntention> {
+interface RetainedArgs<T extends AssembledIntention> {
   intention: T | null;
 }
 
@@ -31,37 +31,37 @@ interface RetainedArgs<T extends ProvidedIntention> {
  * Intentions are returned in update order. Worker safety comes first so it
  * takes attacked workers over before the others order them on the same tick.
  *
- * Deliberation remembers the Intentions it provided, so it can tell them
+ * Deliberation remembers the Intentions it assembled, so it can tell them
  * apart and read their state; one is retained while it is still active.
  */
 function createDeliberation(): Deliberation<
   CommonBeliefs,
   Desire,
-  ProvidedIntention
+  AssembledIntention
 > {
-  let workerSafety: ProvidedIntention | null = null;
-  let towerRush: ProvidedComponent<TowerRushIntention> | null = null;
-  let operateTowers: ProvidedIntention | null = null;
+  let workerSafety: AssembledIntention | null = null;
+  let towerRush: AssembledWarlordComponent<TowerRushIntention> | null = null;
+  let operateTowers: AssembledIntention | null = null;
 
   return {
     deliberate({ beliefs: _beliefs, desires, intentions }) {
-      const retained = <T extends ProvidedIntention>({
+      const retained = <T extends AssembledIntention>({
         intention,
       }: RetainedArgs<T>) =>
         intention !== null && intentions.includes(intention) ? intention : null;
-      const active: ProvidedIntention[] = [];
+      const active: AssembledIntention[] = [];
 
       workerSafety = desires.includes(PROTECT_ECONOMIC_ASSETS)
         ? (retained({ intention: workerSafety }) ??
-          provideMaintainWorkerSafetyIntention())
+          assembleMaintainWorkerSafetyIntention())
         : null;
       towerRush = desires.includes(APPLY_PRESSURE)
-        ? (retained({ intention: towerRush }) ?? provideTowerRushIntention())
+        ? (retained({ intention: towerRush }) ?? assembleTowerRushIntention())
         : null;
       operateTowers = desires.includes(USE_MILITARY_ASSETS_EFFECTIVELY)
         ? (retained({ intention: operateTowers }) ??
           (towerRush?.component.positionEstablished
-            ? provideOperateTowersIntention()
+            ? assembleOperateTowersIntention()
             : null))
         : null;
 

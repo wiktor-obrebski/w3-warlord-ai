@@ -11,7 +11,7 @@ import { PROTECT_ECONOMIC_ASSETS } from './desires/protect-economic-assets';
 import { USE_MILITARY_ASSETS_EFFECTIVELY } from './desires/use-military-assets-effectively';
 import {
   createDeliberation,
-  ProvidedIntention,
+  AssembledIntention,
 } from './deliberation/deliberation';
 
 export { startRuntime };
@@ -29,7 +29,7 @@ const Desires = [
  * is won.
  *
  * Each tick revises the Common Beliefs, deliberates on them, then makes the
- * provided Intentions and their children the managed component tree, whose
+ * assembled Intentions and their children the managed component tree, whose
  * Scoped Beliefs the beliefs runtime revises before any component updates.
  *
  * Every Plan and Controller update runs through the actor control arbiter,
@@ -45,7 +45,7 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
     policy: actorControlPolicy,
   });
   const loop = W3TimerApi.CreateTimer();
-  let intentions: readonly ProvidedIntention[] = [];
+  let intentions: readonly AssembledIntention[] = [];
 
   const updateChild: WarlordUpdateChild = ({ child }) =>
     arbiter.update({

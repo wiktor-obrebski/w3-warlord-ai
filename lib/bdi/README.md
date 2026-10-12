@@ -20,7 +20,7 @@ domain code
 | Intentions    | `Intention`                                                               | Concrete commitments currently being pursued. Active while Deliberation retains them.                        |
 | Plans         | `Plan`, `PlanStatus`                                                      | Finite procedural execution with an explicit `running` / `succeeded` / `failed` status.                      |
 | Controllers   | `Controller`                                                              | Continuous reactive behavior without procedural completion.                                                  |
-| Providers     | `Provided`, `childFactory`                                                | How Intentions, Plans, and Controllers are constructed, together with what the runtime needs to manage them. |
+| Assembly      | `AssembledComponent`, `childFactory`                                      | How Intentions, Plans, and Controllers are constructed, together with what the runtime needs to manage them. |
 | Actor Control | `ActorControlProvider`, `ActorControlArbiter`, `ActorControlPolicy`       | Temporary exclusive right of a Plan or Controller to order an Actor.                                         |
 
 Beliefs are knowledge about the world ("worker 17 was attacked 0.8 s ago"). Execution state ("the current flee destination", "the current Plan step") stays private to the Intention, Plan, or Controller that owns it.
@@ -56,7 +56,7 @@ WorkerSafetyController #A ─┐                       ┌─ Beliefs A
 WorkerSafetyController #B ─┘                       └─ Beliefs B
 ```
 
-Configuration, such as which mine a Plan targets, is given to the component by its provider and is not Belief state; the Beliefs describe what is currently known about that target.
+Configuration, such as which mine a Plan targets, is given to the component by its assemble function and is not Belief state; the Beliefs describe what is currently known about that target.
 
 ### Stored versus derived
 
@@ -66,21 +66,21 @@ Store what must persist across cycles or is expensive to derive, such as when so
 
 `revise()` treats its inputs as immutable and returns the Beliefs that become current. `previous` is `null` on the first revision, which creates the initial Beliefs. It should return `previous` itself when nothing changed and reuse unchanged nested values, so that unchanged Beliefs cost no allocation. It must never mutate `previous` to save one.
 
-## Providers and the component tree
+## Assembly and the component tree
 
-Every Intention, Plan, and Controller is constructed by a provider function, which returns a `Provided` record:
+Every Intention, Plan, and Controller is constructed by an assemble function, which returns an `AssembledComponent`:
 
 ```ts
 {
   component,      // the component itself
   beliefsModel?,  // maintains its Scoped Beliefs; omitted when it has none
-  children,       // the records of its children
+  children,       // the assembled components of its children
 }
 ```
 
 The component class stays private to its module, so the runtime always receives a component together with its metadata, and the component never sees it.
 
-A component that creates children at run time receives child factories from its provider. `childFactory({ children, provide })` returns a function that calls the child's provider, records the result in the parent's `children`, and returns only a handle:
+A component that creates children at run time receives child factories from its assemble function. `childFactory({ children, assemble })` returns a function that calls the child's assemble function, records the result in the parent's `children`, and returns only a handle:
 
 ```ts
 const plan = this.createPlan(); // { component, discard }
@@ -88,13 +88,13 @@ updateChild({ child: plan.component });
 plan.discard(); // the child leaves the tree
 ```
 
-The records form the component tree the beliefs runtime manages; the same mechanism applies at every level.
+The assembled components form the component tree the beliefs runtime manages; the same mechanism applies at every level.
 
 ## Cycle
 
 ```text
 1. commonBeliefs = beliefs.reviseCommon()
-2. intentions     = deliberation.deliberate({ beliefs: commonBeliefs, desires, intentions })   // Provided records
+2. intentions     = deliberation.deliberate({ beliefs: commonBeliefs, desires, intentions })   // assembled components
 3. beliefs.sync({ roots: intentions })
      register new components, remove gone ones, revise every Scoped Beliefs
 4. intention.component.update({ beliefs: beliefs.beliefsOf({ component: intention.component }), updateChild }) for every Intention
@@ -146,7 +146,7 @@ Stores each Beliefs together with the model that revises them; models go in but 
 ```ts
 createBeliefsRuntime({ commonModel }): BeliefsRuntime<TCommonBeliefs>
 reviseCommon(): Readonly<TCommonBeliefs>
-sync({ roots }: { roots: readonly Provided[] }): void
+sync({ roots }: { roots: readonly AssembledComponent[] }): void
 beliefsOf({ component }): ComponentBeliefs<TCommonBeliefs, unknown>   // throws for an unmanaged component
 prune(): ReadonlySet<object>                                       // the managed components
 ```
@@ -162,18 +162,18 @@ readonly scopedBeliefs: TScopedBeliefs   // null for a component without a Belie
 
 The Beliefs a component receives in `update()`. It cannot read any other component's Scoped Beliefs.
 
-### `Provided<TComponent, TCommonBeliefs, TScopedBeliefs = unknown>`, `childFactory`
+### `AssembledComponent<TComponent, TCommonBeliefs, TScopedBeliefs = unknown>`, `childFactory`
 
 ```ts
 readonly component: TComponent
 readonly beliefsModel?: BeliefsModel<unknown, TScopedBeliefs, TCommonBeliefs>
-readonly children: readonly Provided<object, TCommonBeliefs>[]
+readonly children: readonly AssembledComponent<object, TCommonBeliefs>[]
 
-childFactory({ children, provide }): ChildFactory<TComponent>   // () => ChildHandle<TComponent>
+childFactory({ children, assemble }): ChildFactory<TComponent>   // () => ChildHandle<TComponent>
 ChildHandle<TComponent>: { component, discard() }
 ```
 
-A provider names the Scoped Beliefs type its component reads as `TScopedBeliefs`, so the compiler checks that the model produces it. The runtime handles every component alike, so it receives the default `unknown`.
+An assemble function names the Scoped Beliefs type its component reads as `TScopedBeliefs`, so the compiler checks that the model produces it. The runtime handles every component alike, so it receives the default `unknown`.
 
 `discard()` removes the child's record; discarding twice throws.
 
@@ -196,7 +196,7 @@ The returned set defines which commitments remain active:
 - leaving an instance out drops it;
 - returning a new instance creates an Intention.
 
-Retained Intentions must not be recreated. One Desire may lead to any number of Intentions, including none. An agent may use provided records as `TIntention`, so the runtime receives each Intention's metadata.
+Retained Intentions must not be recreated. One Desire may lead to any number of Intentions, including none. An agent may use assembled components as `TIntention`, so the runtime receives each Intention's metadata.
 
 ### `Intention<TBeliefs, TActorControl, TChildBeliefs = TBeliefs>`
 

@@ -1,16 +1,16 @@
 import { ChildFactory, childFactory } from '@lib/bdi';
 import {
-  ProvidedChildren,
-  ProvidedComponent,
+  AssembledChildren,
+  AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
 } from '../../execution';
-import { provideWorkerSafetyController } from './worker-safety.ctrl';
+import { assembleWorkerSafetyController } from './worker-safety.ctrl';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
-export { provideMaintainWorkerSafetyIntention };
+export { assembleMaintainWorkerSafetyIntention };
 
 interface MaintainWorkerSafetyIntentionConstructorArgs {
   createWorkerSafetyController: ChildFactory<
@@ -42,14 +42,14 @@ class MaintainWorkerSafetyIntention implements WarlordIntention {
   }
 }
 
-function provideMaintainWorkerSafetyIntention(): ProvidedComponent<WarlordIntention> {
-  const children: ProvidedChildren = [];
+function assembleMaintainWorkerSafetyIntention(): AssembledWarlordComponent<WarlordIntention> {
+  const children: AssembledChildren = [];
 
   return {
     component: new MaintainWorkerSafetyIntention({
       createWorkerSafetyController: childFactory({
         children,
-        provide: () => provideWorkerSafetyController(),
+        assemble: () => assembleWorkerSafetyController(),
       }),
     }),
     children,
