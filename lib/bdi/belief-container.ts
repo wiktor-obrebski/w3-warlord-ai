@@ -1,18 +1,14 @@
 import type { AnyBeliefsModel, CommonBeliefsModel } from './beliefs-model';
 
-export { type ScopedBeliefs, type BeliefContainer, createBeliefContainer };
+export { type BeliefContainer, createBeliefContainer };
 
 /**
- * A component's Scoped Beliefs and the model that maintains them.
+ * Beliefs and the model that revises them. An instance is created with its
+ * first revision, so its Beliefs are never null.
  */
-interface ScopedBeliefs<TCommonBeliefs> {
-  /** Null until the component's first revision. */
-  readonly beliefs: unknown;
-  readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
-}
-
-interface BeliefContainerGetScopedBeliefsArgs {
-  component: object;
+interface BeliefsInstance<TBeliefs, TModel> {
+  beliefs: TBeliefs;
+  readonly model: TModel;
 }
 
 interface BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs> {
@@ -20,38 +16,30 @@ interface BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs> {
   beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
 }
 
-interface BeliefContainerSetScopedBeliefsArgs {
-  component: object;
-  beliefs: unknown;
-}
-
 /**
  * The agent's belief state: the Common Beliefs, and the Scoped Beliefs of
- * every component that has them, indexed by the component instance.
+ * every component that has them, indexed by the component instance. Both are
+ * revised by their models, which never leave the container.
  *
- * The container only stores state; the beliefs runtime decides when it is
- * revised, registered, and removed.
+ * The beliefs runtime decides when Beliefs are revised, registered, and
+ * removed.
  */
 interface BeliefContainer<TCommonBeliefs> {
   getCommonBeliefs(): Readonly<TCommonBeliefs>;
 
-  setCommonBeliefs({ beliefs }: { beliefs: TCommonBeliefs }): void;
+  reviseCommonBeliefs(): Readonly<TCommonBeliefs>;
 
   /** Null for a component without registered Scoped Beliefs. */
-  getScopedBeliefs({
-    component,
-  }: BeliefContainerGetScopedBeliefsArgs): ScopedBeliefs<TCommonBeliefs> | null;
+  getScopedBeliefs({ component }: { component: object }): unknown;
 
-  /** Registers the component with no Beliefs yet. */
+  /** Registers the component with the first revision of its Scoped Beliefs. */
   registerScopedBeliefs({
     component,
     beliefsModel,
   }: BeliefContainerRegisterScopedBeliefsArgs<TCommonBeliefs>): void;
 
-  setScopedBeliefs({
-    component,
-    beliefs,
-  }: BeliefContainerSetScopedBeliefsArgs): void;
+  /** Throws for a component without registered Scoped Beliefs. */
+  reviseScopedBeliefs({ component }: { component: object }): unknown;
 
   removeScopedBeliefs({ component }: { component: object }): void;
 
@@ -59,60 +47,72 @@ interface BeliefContainer<TCommonBeliefs> {
   scopedComponents(): object[];
 }
 
-interface ScopedEntry<TCommonBeliefs> {
-  beliefs: unknown;
-  readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
-}
-
 interface CreateBeliefContainerArgs<TCommonObservation, TCommonBeliefs> {
   commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>;
 }
 
-/**
- * Starts with the Common Beliefs of the first revision, so they are always
- * available.
- */
 function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
   commonModel,
 }: CreateBeliefContainerArgs<
   TCommonObservation,
   TCommonBeliefs
 >): BeliefContainer<TCommonBeliefs> {
-  let commonBeliefs = commonModel.revise({
-    previous: null,
-    observation: commonModel.observe(),
-  });
-  const scopedBeliefs = new Map<object, ScopedEntry<TCommonBeliefs>>();
-
-  const scopedEntry = ({ component }: { component: object }) => {
-    const entry = scopedBeliefs.get(component);
-
-    if (!entry) {
-      throw new Error('Beliefs: component has no Scoped Beliefs.');
-    }
-
-    return entry;
+  const commonBeliefs: BeliefsInstance<
+    TCommonBeliefs,
+    CommonBeliefsModel<TCommonObservation, TCommonBeliefs>
+  > = {
+    beliefs: reviseCommon({ model: commonModel, previous: null }),
+    model: commonModel,
   };
+  const scopedBeliefs = new Map<
+    object,
+    BeliefsInstance<unknown, AnyBeliefsModel<TCommonBeliefs>>
+  >();
 
   return {
-    getCommonBeliefs: () => commonBeliefs,
+    getCommonBeliefs: () => commonBeliefs.beliefs,
 
-    setCommonBeliefs({ beliefs }) {
-      commonBeliefs = beliefs;
+    reviseCommonBeliefs() {
+      commonBeliefs.beliefs = reviseCommon({
+        model: commonBeliefs.model,
+        previous: commonBeliefs.beliefs,
+      });
+
+      return commonBeliefs.beliefs;
     },
 
-    getScopedBeliefs: ({ component }) => scopedBeliefs.get(component) ?? null,
+    getScopedBeliefs: ({ component }) =>
+      scopedBeliefs.get(component)?.beliefs ?? null,
 
     registerScopedBeliefs({ component, beliefsModel }) {
       if (scopedBeliefs.has(component)) {
         throw new Error('Beliefs: component already registered.');
       }
 
-      scopedBeliefs.set(component, { beliefs: null, beliefsModel });
+      scopedBeliefs.set(component, {
+        beliefs: reviseScoped({
+          model: beliefsModel,
+          previous: null,
+          common: commonBeliefs.beliefs,
+        }),
+        model: beliefsModel,
+      });
     },
 
-    setScopedBeliefs({ component, beliefs }) {
-      scopedEntry({ component }).beliefs = beliefs;
+    reviseScopedBeliefs({ component }) {
+      const instance = scopedBeliefs.get(component);
+
+      if (!instance) {
+        throw new Error('Beliefs: component has no Scoped Beliefs.');
+      }
+
+      instance.beliefs = reviseScoped({
+        model: instance.model,
+        previous: instance.beliefs,
+        common: commonBeliefs.beliefs,
+      });
+
+      return instance.beliefs;
     },
 
     removeScopedBeliefs({ component }) {
@@ -121,4 +121,30 @@ function createBeliefContainer<TCommonObservation, TCommonBeliefs>({
 
     scopedComponents: () => [...scopedBeliefs.keys()],
   };
+}
+
+interface ReviseCommonArgs<TCommonObservation, TCommonBeliefs> {
+  model: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>;
+  previous: TCommonBeliefs | null;
+}
+
+function reviseCommon<TCommonObservation, TCommonBeliefs>({
+  model,
+  previous,
+}: ReviseCommonArgs<TCommonObservation, TCommonBeliefs>) {
+  return model.revise({ previous, observation: model.observe() });
+}
+
+interface ReviseScopedArgs<TCommonBeliefs> {
+  model: AnyBeliefsModel<TCommonBeliefs>;
+  previous: unknown;
+  common: Readonly<TCommonBeliefs>;
+}
+
+function reviseScoped<TCommonBeliefs>({
+  model,
+  previous,
+  common,
+}: ReviseScopedArgs<TCommonBeliefs>) {
+  return model.revise({ previous, observation: model.observe(), common });
 }

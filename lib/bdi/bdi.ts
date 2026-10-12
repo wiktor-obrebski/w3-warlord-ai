@@ -8,7 +8,7 @@ import type {
   ActorControlProvider,
 } from './actor-control';
 import type { ActorControlArbiter } from './actor-control-arbiter';
-import type { BeliefContainer, ScopedBeliefs } from './belief-container';
+import type { BeliefContainer } from './belief-container';
 import type {
   AnyBeliefsModel,
   BeliefsModel,
@@ -32,7 +32,6 @@ export {
   type ActorControlProvider,
   type ActorControlArbiter,
   type BeliefContainer,
-  type ScopedBeliefs,
   type AnyBeliefsModel,
   type BeliefsModel,
   type CommonBeliefsModel,

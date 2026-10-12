@@ -71,29 +71,9 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
   let roots: readonly Provided<object, TCommonBeliefs>[] = [];
   let managed = new Set<object>();
 
-  const reviseScoped = ({ component }: { component: object }) => {
-    const scopedBeliefs = container.getScopedBeliefs({ component });
-
-    if (!scopedBeliefs) {
-      throw new Error('Beliefs: component has no Scoped Beliefs.');
-    }
-
-    const { beliefs: previous, beliefsModel } = scopedBeliefs;
-    const observation = beliefsModel.observe();
-
-    container.setScopedBeliefs({
-      component,
-      beliefs: beliefsModel.revise({
-        previous,
-        observation,
-        common: container.getCommonBeliefs(),
-      }),
-    });
-  };
-
-  // Matches the managed components to the current tree, registering new
-  // components without revising them. Returns the newly registered ones that
-  // have Scoped Beliefs.
+  // Matches the managed components to the current tree. Returns the newly
+  // registered components with Scoped Beliefs, which registration has
+  // already revised once.
   const refresh = (): object[] => {
     const current = new Set<object>();
     const registered: object[] = [];
@@ -103,7 +83,7 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
 
       if (
         provided.beliefsModel &&
-        !container.getScopedBeliefs({ component: provided.value })
+        container.getScopedBeliefs({ component: provided.value }) === null
       ) {
         container.registerScopedBeliefs({
           component: provided.value,
@@ -133,31 +113,22 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
   };
 
   return {
-    reviseCommon() {
-      const next = commonModel.revise({
-        previous: container.getCommonBeliefs(),
-        observation: commonModel.observe(),
-      });
-
-      container.setCommonBeliefs({ beliefs: next });
-
-      return next;
-    },
+    reviseCommon: () => container.reviseCommonBeliefs(),
 
     sync({ roots: newRoots }) {
       roots = newRoots;
-      refresh();
+      const registered = new Set(refresh());
 
       for (const component of container.scopedComponents()) {
-        reviseScoped({ component });
+        if (!registered.has(component)) {
+          container.reviseScopedBeliefs({ component });
+        }
       }
     },
 
     beliefsOf({ component }) {
       if (!managed.has(component)) {
-        for (const registered of refresh()) {
-          reviseScoped({ component: registered });
-        }
+        refresh();
 
         if (!managed.has(component)) {
           throw new Error('Beliefs: component is not in the managed tree.');
@@ -166,7 +137,7 @@ function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>({
 
       return {
         common: container.getCommonBeliefs(),
-        scoped: container.getScopedBeliefs({ component })?.beliefs ?? null,
+        scoped: container.getScopedBeliefs({ component }),
       };
     },
 

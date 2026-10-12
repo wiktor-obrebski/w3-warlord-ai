@@ -132,15 +132,14 @@ revise({ previous, observation, common }: {
 ### `BeliefContainer<TCommonBeliefs>`
 
 ```ts
-createBeliefContainer({ commonModel }): BeliefContainer<TCommonBeliefs>   // starts with the first Common Beliefs revision
-getCommonBeliefs() / setCommonBeliefs({ beliefs })
-getScopedBeliefs({ component }): { beliefs, beliefsModel } | null   // null for an unregistered component; beliefs null before the first revision
-registerScopedBeliefs({ component, beliefsModel })
-setScopedBeliefs({ component, beliefs })
+createBeliefContainer({ commonModel }): BeliefContainer<TCommonBeliefs>   // with the first Common Beliefs revision
+getCommonBeliefs() / reviseCommonBeliefs(): Readonly<TCommonBeliefs>
+registerScopedBeliefs({ component, beliefsModel })                       // with the first Scoped Beliefs revision
+getScopedBeliefs({ component }) / reviseScopedBeliefs({ component }): unknown   // get: null for an unregistered component
 removeScopedBeliefs({ component })
 ```
 
-Stores belief state only; owned by the beliefs runtime.
+Stores each Beliefs together with the model that revises them; models go in but never come out. Common and Scoped Beliefs differ only in where they are kept and in that Scoped revisions also read the Common Beliefs. Owned by the beliefs runtime, which decides when Beliefs are revised.
 
 ### `BeliefsRuntime<TCommonBeliefs>`
 
