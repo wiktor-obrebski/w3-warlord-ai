@@ -2,12 +2,14 @@ import { createBeliefContainer } from './belief-container';
 import type { CommonBeliefsModel } from './beliefs-model';
 import type { Provided } from './provided';
 
+export { type ComponentBeliefs, type BeliefsRuntime, createBeliefsRuntime };
+
 /**
  * The Beliefs one component reads during its update: the Common Beliefs and
  * its own Scoped Beliefs, which are null for a component without a
  * BeliefsModel. Scoped Beliefs types should have read-only properties.
  */
-export interface ComponentBeliefs<TCommonBeliefs, TScopedBeliefs> {
+interface ComponentBeliefs<TCommonBeliefs, TScopedBeliefs> {
   readonly common: Readonly<TCommonBeliefs>;
   readonly scoped: TScopedBeliefs;
 }
@@ -18,7 +20,7 @@ export interface ComponentBeliefs<TCommonBeliefs, TScopedBeliefs> {
  * with a BeliefsModel gets Scoped Beliefs, revised each cycle, and loses them
  * when it leaves the tree.
  */
-export interface BeliefsRuntime<TCommonBeliefs> {
+interface BeliefsRuntime<TCommonBeliefs> {
   /**
    * Revises the Common Beliefs; the first step of every cycle.
    */
@@ -45,7 +47,7 @@ export interface BeliefsRuntime<TCommonBeliefs> {
   prune(): ReadonlySet<object>;
 }
 
-export function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>(
+function createBeliefsRuntime<TCommonObservation, TCommonBeliefs>(
   commonModel: CommonBeliefsModel<TCommonObservation, TCommonBeliefs>
 ): BeliefsRuntime<TCommonBeliefs> {
   const container = createBeliefContainer<TCommonBeliefs>();

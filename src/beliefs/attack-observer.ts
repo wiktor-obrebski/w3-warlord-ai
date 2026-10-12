@@ -4,25 +4,32 @@ import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
 import { GameClock, readGameClock } from './game-clock';
 
-export interface ObservedAttack {
+export {
+  type ObservedAttack,
+  type AttackObserver,
+  observeAttacksOn,
+  takeObservedAttacks,
+};
+
+interface ObservedAttack {
   readonly attacker: W3UnitApi.unit;
   readonly target: W3UnitApi.unit;
   // Game seconds at which the attack started.
   readonly time: number;
 }
 
-export interface AttackObserver {
+interface AttackObserver {
   pending: ObservedAttack[];
 }
 
-const NO_ATTACKS: readonly ObservedAttack[] = [];
+const NoAttacks: readonly ObservedAttack[] = [];
 
 /**
  * Queues attacks started on the bot's own units until they are taken. A
  * player sees these on their own units, so reporting them is fair; whether
  * the attacker itself may be reasoned about depends on its visibility.
  */
-export function observeAttacksOn(
+function observeAttacksOn(
   bot: W3PlayerApi.player,
   clock: GameClock
 ): AttackObserver {
@@ -43,11 +50,11 @@ export function observeAttacksOn(
 }
 
 /** The attacks started since they were last taken, oldest first. */
-export function takeObservedAttacks(
+function takeObservedAttacks(
   observer: AttackObserver
 ): readonly ObservedAttack[] {
   if (observer.pending.length === 0) {
-    return NO_ATTACKS;
+    return NoAttacks;
   }
 
   const attacks = observer.pending;

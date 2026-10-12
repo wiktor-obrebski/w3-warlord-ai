@@ -1,8 +1,10 @@
+export { type PlanStatus, type Plan };
+
 /**
  * Lifecycle status of a Plan. A Plan starts `"running"` and ends either
  * `"succeeded"` or `"failed"`.
  */
-export type PlanStatus = 'running' | 'succeeded' | 'failed';
+type PlanStatus = 'running' | 'succeeded' | 'failed';
 
 /**
  * Finite procedural execution that progresses towards eventual success or
@@ -12,7 +14,7 @@ export type PlanStatus = 'running' | 'succeeded' | 'failed';
  * reads, normally `ComponentBeliefs`; `TControl` is the agent's actor control
  * capability, normally an `ActorControlProvider`.
  */
-export interface Plan<TBeliefs, TControl> {
+interface Plan<TBeliefs, TControl> {
   /**
    * Current lifecycle status. It changes only during `update()`; reading it
    * inspects state and does not re-evaluate the Plan.

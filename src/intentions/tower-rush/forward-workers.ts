@@ -6,10 +6,12 @@ import { CommonBeliefs } from '../../beliefs/common.beliefs';
 import { closestUnit, positionOf } from '../../beliefs/common.assessments';
 import { TowerRushState } from './tower-rush.state';
 
-// Clears the tower's 128x128 footprint with room for the Peasant.
-const HIDING_DISTANCE_BEHIND_TOWER = 160;
+export { hideBehindClosestTower, forgetSentToSafety, controlForwardPeasants };
 
-export function hideBehindClosestTower(
+// Clears the tower's 128x128 footprint with room for the Peasant.
+const HidingDistanceBehindTower = 160;
+
+function hideBehindClosestTower(
   worker: W3UnitApi.unit,
   towers: readonly W3UnitApi.unit[],
   enemyMain: Point,
@@ -32,10 +34,7 @@ export function hideBehindClosestTower(
   }
 }
 
-export function forgetSentToSafety(
-  worker: W3UnitApi.unit,
-  rush: TowerRushState
-) {
+function forgetSentToSafety(worker: W3UnitApi.unit, rush: TowerRushState) {
   rush.forwardWorkersSentToSafety = rush.forwardWorkersSentToSafety.filter(
     (sent) => sent !== worker
   );
@@ -49,7 +48,7 @@ export function forgetSentToSafety(
  * Peasant for longer than the time between two tower rush updates, so a
  * takeover is always seen here.
  */
-export function controlForwardPeasants(
+function controlForwardPeasants(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   control: ActorControl
@@ -75,7 +74,5 @@ export function controlForwardPeasants(
 function spotBehind(tower: Point, enemyMain: Point): Point {
   const awayFromEnemyMain = new Vector(enemyMain, tower).normalize();
 
-  return tower.translate(
-    awayFromEnemyMain.multiply(HIDING_DISTANCE_BEHIND_TOWER)
-  );
+  return tower.translate(awayFromEnemyMain.multiply(HidingDistanceBehindTower));
 }

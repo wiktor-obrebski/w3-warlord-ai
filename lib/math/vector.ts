@@ -1,9 +1,11 @@
 import type { Point } from './point';
 
-const TOLERANCE = 0.000001;
-const TWO_PI = Math.PI * 2;
+export { Vector };
 
-export class Vector {
+const Tolerance = 0.000001;
+const TwoPi = Math.PI * 2;
+
+class Vector {
   public readonly x: number;
   public readonly y: number;
 
@@ -44,7 +46,7 @@ export class Vector {
    */
   public get slope(): number {
     const angle = Math.atan2(this.y, this.x);
-    return angle < 0 ? angle + TWO_PI : angle;
+    return angle < 0 ? angle + TwoPi : angle;
   }
 
   /**
@@ -58,7 +60,7 @@ export class Vector {
    * Returns whether this vector has effectively zero length.
    */
   public isZeroLength(): boolean {
-    return this.length < TOLERANCE;
+    return this.length < Tolerance;
   }
 
   /**
@@ -99,7 +101,7 @@ export class Vector {
   public normalize(): Vector {
     const length = this.length;
 
-    if (length < TOLERANCE) {
+    if (length < Tolerance) {
       throw new Error('Cannot normalize a zero-length vector');
     }
 
@@ -119,14 +121,14 @@ export class Vector {
   /**
    * Returns this vector rotated 90 degrees counterclockwise.
    */
-  public rotate90CCW(): Vector {
+  public rotate90Ccw(): Vector {
     return new Vector(-this.y, this.x);
   }
 
   /**
    * Returns this vector rotated 90 degrees clockwise.
    */
-  public rotate90CW(): Vector {
+  public rotate90Cw(): Vector {
     return new Vector(this.y, -this.x);
   }
 
@@ -164,7 +166,7 @@ export class Vector {
     let angle = Math.atan2(first.cross(second), first.dot(second));
 
     if (angle < 0) {
-      angle += TWO_PI;
+      angle += TwoPi;
     }
 
     return angle;
@@ -186,5 +188,5 @@ export class Vector {
  */
 function equalNumber(a: number, b: number): boolean {
   const difference = a - b;
-  return difference < TOLERANCE && difference > -TOLERANCE;
+  return difference < Tolerance && difference > -Tolerance;
 }

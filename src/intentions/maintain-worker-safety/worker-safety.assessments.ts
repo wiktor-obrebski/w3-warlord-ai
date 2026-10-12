@@ -8,14 +8,16 @@ import {
 import { recentAttackTarget } from '../../beliefs/common.assessments';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
+export { needsAttackProtection, nearbyThreats, threatCenter };
+
 // Not tuned in-game.
-const THREAT_RADIUS = 1000;
+const ThreatRadius = 1000;
 
 /**
  * Whether the worker is attacked, or was attacked too recently to be safe
  * again.
  */
-export function needsAttackProtection(
+function needsAttackProtection(
   beliefs: Readonly<WorkerSafetyBeliefs>,
   worker: W3UnitApi.unit
 ): boolean {
@@ -26,7 +28,7 @@ export function needsAttackProtection(
  * The enemy force fighting near the position: combat units and the Ancients
  * that walk into the fight.
  */
-export function nearbyThreats(
+function nearbyThreats(
   beliefs: Readonly<CommonBeliefs>,
   position: Point
 ): VisibleEnemy[] {
@@ -36,7 +38,7 @@ export function nearbyThreats(
         (!enemy.isStructure &&
           !enemy.isWorker &&
           (enemy.isMelee || enemy.isRanged))) &&
-      new Vector(position, enemy.position).length <= THREAT_RADIUS
+      new Vector(position, enemy.position).length <= ThreatRadius
   );
 }
 
@@ -45,7 +47,7 @@ export function nearbyThreats(
  * force, or of its visible attackers when no force is near. Undefined when
  * neither is visible.
  */
-export function threatCenter(
+function threatCenter(
   beliefs: Readonly<CommonBeliefs>,
   worker: OwnUnit
 ): Point | undefined {

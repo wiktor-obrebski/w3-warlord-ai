@@ -9,23 +9,25 @@ import {
   positionOf,
 } from '../../../beliefs/common.assessments';
 
-export const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
-const GUARD_TOWER_UPGRADE_LUMBER_COST = 50;
+export { GUARD_TOWER_UPGRADE_GOLD_COST, updateUpgradeTowers };
+
+const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
+const GuardTowerUpgradeLumberCost = 50;
 // Towers do not move, so their stored position matches closely; rush towers
 // stand at least 160 apart.
-const TOWER_MATCH_DISTANCE = 32;
+const TowerMatchDistance = 32;
 
-enum TowerState {
-  Missing,
-  UnderConstruction,
-  ScoutTower,
-  Upgrading,
-  GuardTower,
+enum TOWER_STATE {
+  MISSING,
+  UNDER_CONSTRUCTION,
+  SCOUT_TOWER,
+  UPGRADING,
+  GUARD_TOWER,
 }
 
 interface PlannedTower {
   unit?: W3UnitApi.unit;
-  state: TowerState;
+  state: TOWER_STATE;
 }
 
 /**
@@ -35,7 +37,7 @@ interface PlannedTower {
  * in the order the towers are stored, so a short budget upgrades them one by
  * one without waiting for the others to finish.
  */
-export function updateUpgradeTowers(
+function updateUpgradeTowers(
   beliefs: Readonly<CommonBeliefs>,
   towerPositions: readonly Point[],
   control: ActorControl
@@ -48,7 +50,7 @@ export function updateUpgradeTowers(
   for (const tower of towers) {
     if (
       tower.unit &&
-      tower.state === TowerState.ScoutTower &&
+      tower.state === TOWER_STATE.SCOUT_TOWER &&
       completedLumberMill(beliefs) !== undefined &&
       canAffordGuardTower(budget) &&
       control.request(tower.unit, NORMAL_REQUEST)
@@ -57,7 +59,7 @@ export function updateUpgradeTowers(
     }
   }
 
-  return towers.every((tower) => tower.state === TowerState.GuardTower);
+  return towers.every((tower) => tower.state === TOWER_STATE.GUARD_TOWER);
 }
 
 function plannedTowerAt(
@@ -67,10 +69,13 @@ function plannedTowerAt(
   const unit = [...beliefs.scoutTowers, ...beliefs.guardTowers].find(
     (tower) =>
       new Vector(position, positionOf(beliefs, tower)).length <=
-      TOWER_MATCH_DISTANCE
+      TowerMatchDistance
   );
 
-  return { unit, state: unit ? towerState(unit, beliefs) : TowerState.Missing };
+  return {
+    unit,
+    state: unit ? towerState(unit, beliefs) : TOWER_STATE.MISSING,
+  };
 }
 
 // Upgrading is checked before the unit type, which may already read as the
@@ -78,24 +83,24 @@ function plannedTowerAt(
 function towerState(
   tower: W3UnitApi.unit,
   beliefs: Readonly<CommonBeliefs>
-): TowerState {
+): TOWER_STATE {
   if (beliefs.buildingsUnderConstruction.includes(tower)) {
-    return TowerState.UnderConstruction;
+    return TOWER_STATE.UNDER_CONSTRUCTION;
   }
 
   if (beliefs.buildingsUpgrading.includes(tower)) {
-    return TowerState.Upgrading;
+    return TOWER_STATE.UPGRADING;
   }
 
   return beliefs.guardTowers.includes(tower)
-    ? TowerState.GuardTower
-    : TowerState.ScoutTower;
+    ? TOWER_STATE.GUARD_TOWER
+    : TOWER_STATE.SCOUT_TOWER;
 }
 
 function canAffordGuardTower(budget: { gold: number; lumber: number }) {
   return (
     budget.gold >= GUARD_TOWER_UPGRADE_GOLD_COST &&
-    budget.lumber >= GUARD_TOWER_UPGRADE_LUMBER_COST
+    budget.lumber >= GuardTowerUpgradeLumberCost
   );
 }
 
@@ -112,7 +117,7 @@ function orderGuardTower(
       `Tower rush: Guard Tower upgrade ordered (gold ${budget.gold}, lumber ${budget.lumber}).`
     );
     budget.gold -= GUARD_TOWER_UPGRADE_GOLD_COST;
-    budget.lumber -= GUARD_TOWER_UPGRADE_LUMBER_COST;
+    budget.lumber -= GuardTowerUpgradeLumberCost;
   } else {
     debug('Tower rush: Guard Tower upgrade order rejected.');
   }

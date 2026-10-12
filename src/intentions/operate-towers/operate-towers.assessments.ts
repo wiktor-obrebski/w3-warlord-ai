@@ -1,31 +1,31 @@
 import { CommonBeliefs, VisibleEnemy } from '../../beliefs/common.beliefs';
 import { recentAttackTarget } from '../../beliefs/common.assessments';
 
-export enum TargetPriority {
-  MeleeAttackingPeasant = 1,
-  RangedAttackingPeasant,
-  SiegeAttackingTower,
-  MeleeAttackingTower,
-  RangedAttackingTower,
-  Siege,
-  Ranged,
-  Melee,
-  Worker,
-  Building,
+export { TARGET_PRIORITY, type RankedTarget, rankTowerTargets };
+
+enum TARGET_PRIORITY {
+  MELEE_ATTACKING_PEASANT = 1,
+  RANGED_ATTACKING_PEASANT,
+  SIEGE_ATTACKING_TOWER,
+  MELEE_ATTACKING_TOWER,
+  RANGED_ATTACKING_TOWER,
+  SIEGE,
+  RANGED,
+  MELEE,
+  WORKER,
+  BUILDING,
 }
 
-export interface RankedTarget {
+interface RankedTarget {
   readonly enemy: VisibleEnemy;
-  readonly priority: TargetPriority;
+  readonly priority: TARGET_PRIORITY;
 }
 
 /**
  * The visible enemies worth a Guard Tower's fire, best first: by priority,
  * then by lowest life.
  */
-export function rankTowerTargets(
-  beliefs: Readonly<CommonBeliefs>
-): RankedTarget[] {
+function rankTowerTargets(beliefs: Readonly<CommonBeliefs>): RankedTarget[] {
   const ranked: RankedTarget[] = [];
 
   for (const enemy of beliefs.visibleEnemies) {
@@ -52,9 +52,9 @@ export function rankTowerTargets(
 function targetPriority(
   enemy: VisibleEnemy,
   beliefs: Readonly<CommonBeliefs>
-): TargetPriority | undefined {
+): TARGET_PRIORITY | undefined {
   if (enemy.isWorker) {
-    return TargetPriority.Worker;
+    return TARGET_PRIORITY.WORKER;
   }
 
   const attackTarget = recentAttackTarget(beliefs, enemy.unit);
@@ -67,26 +67,26 @@ function targetPriority(
     : undefined;
 
   if (enemy.isStructure) {
-    return towerAttackPriority ?? TargetPriority.Building;
+    return towerAttackPriority ?? TARGET_PRIORITY.BUILDING;
   }
 
   if (enemy.isMelee && attacksPeasant) {
-    return TargetPriority.MeleeAttackingPeasant;
+    return TARGET_PRIORITY.MELEE_ATTACKING_PEASANT;
   }
   if (enemy.isRanged && attacksPeasant) {
-    return TargetPriority.RangedAttackingPeasant;
+    return TARGET_PRIORITY.RANGED_ATTACKING_PEASANT;
   }
   if (towerAttackPriority !== undefined) {
     return towerAttackPriority;
   }
   if (enemy.isSiege) {
-    return TargetPriority.Siege;
+    return TARGET_PRIORITY.SIEGE;
   }
   if (enemy.isRanged) {
-    return TargetPriority.Ranged;
+    return TARGET_PRIORITY.RANGED;
   }
   if (enemy.isMelee) {
-    return TargetPriority.Melee;
+    return TARGET_PRIORITY.MELEE;
   }
 
   return undefined;
@@ -94,15 +94,15 @@ function targetPriority(
 
 function attackingTowerPriority(
   enemy: VisibleEnemy
-): TargetPriority | undefined {
+): TARGET_PRIORITY | undefined {
   if (enemy.isSiege) {
-    return TargetPriority.SiegeAttackingTower;
+    return TARGET_PRIORITY.SIEGE_ATTACKING_TOWER;
   }
   if (enemy.isMelee) {
-    return TargetPriority.MeleeAttackingTower;
+    return TARGET_PRIORITY.MELEE_ATTACKING_TOWER;
   }
   if (enemy.isRanged) {
-    return TargetPriority.RangedAttackingTower;
+    return TARGET_PRIORITY.RANGED_ATTACKING_TOWER;
   }
 
   return undefined;

@@ -1,8 +1,10 @@
+export { type CommonBeliefsModel, type BeliefsModel, type AnyBeliefsModel };
+
 /**
  * Maintains the agent's Common Beliefs: knowledge shared by every
  * Intention, Plan, and Controller.
  */
-export interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
+interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
   /**
    * Reads what the agent can currently observe of the external environment.
    */
@@ -29,7 +31,7 @@ export interface CommonBeliefsModel<TObservation, TCommonBeliefs> {
  * component instances; each instance still has its own Scoped Beliefs,
  * revised from its own previous ones.
  */
-export interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
+interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
   /**
    * Reads what the model needs to observe of the external environment.
    */
@@ -55,7 +57,7 @@ export interface BeliefsModel<TObservation, TBeliefs, TCommonBeliefs> {
  * A BeliefsModel whatever it observes or produces, as the beliefs runtime
  * handles it.
  */
-export interface AnyBeliefsModel<TCommonBeliefs> {
+interface AnyBeliefsModel<TCommonBeliefs> {
   observe(): unknown;
   revise(
     previous: unknown,

@@ -8,17 +8,19 @@ import { positionOf } from '../../../beliefs/common.assessments';
 import { TowerRushState } from '../tower-rush.state';
 import { trainPeasant } from '../tower-rush-economy.ctrl';
 
-const STARTING_PEASANT_COUNT = 5;
-const FORWARD_WORKER_COUNT = 3;
+export { updateStart };
+
+const StartingPeasantCount = 5;
+const ForwardWorkerCount = 3;
 // Town Hall and Lumber Mill footprints are assumed, not verified, to be about
 // 512 and 384 wide, so the closest non-overlapping centers are about 450
 // apart along an axis; the search starts a little closer to cover diagonals
 // of the build grid.
-const MIN_LUMBER_MILL_DISTANCE = 384;
-const MAX_LUMBER_MILL_DISTANCE = 1200;
-const CANDIDATE_SPACING = 64;
+const MinLumberMillDistance = 384;
+const MaxLumberMillDistance = 1200;
+const CandidateSpacing = 64;
 
-export function updateStart(
+function updateStart(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   control: ActorControl
@@ -38,15 +40,15 @@ export function updateStart(
   }
 
   const [lumberMillBuilder, homeWorker] =
-    beliefs.peasants.slice(FORWARD_WORKER_COUNT);
+    beliefs.peasants.slice(ForwardWorkerCount);
 
   if (!lumberMillBuilder || !homeWorker) {
     throw new Error(
-      `Tower rush start: expected ${STARTING_PEASANT_COUNT} Peasants, found ${beliefs.peasants.length}.`
+      `Tower rush start: expected ${StartingPeasantCount} Peasants, found ${beliefs.peasants.length}.`
     );
   }
 
-  rush.forwardWorkers = beliefs.peasants.slice(0, FORWARD_WORKER_COUNT);
+  rush.forwardWorkers = beliefs.peasants.slice(0, ForwardWorkerCount);
   rush.goldWorkers = [homeWorker];
   rush.lumberWorkers = [lumberMillBuilder];
 
@@ -114,18 +116,18 @@ function orderLumberMill(
   debug('Tower rush start: all Lumber Mill locations rejected.');
 }
 
-// Rings around the Town Hall, spaced about CANDIDATE_SPACING apart, on the
+// Rings around the Town Hall, spaced about CandidateSpacing apart, on the
 // half facing away from the gold mine.
 function lumberMillCandidates(hall: Point, mine: Point): Point[] {
   const awayFromMine = new Vector(mine, hall).slope;
   const candidates: Point[] = [];
 
   for (
-    let distance = MIN_LUMBER_MILL_DISTANCE;
-    distance <= MAX_LUMBER_MILL_DISTANCE;
-    distance += CANDIDATE_SPACING
+    let distance = MinLumberMillDistance;
+    distance <= MaxLumberMillDistance;
+    distance += CandidateSpacing
   ) {
-    const angleStep = CANDIDATE_SPACING / distance;
+    const angleStep = CandidateSpacing / distance;
 
     for (
       let offset = -Math.PI / 2;

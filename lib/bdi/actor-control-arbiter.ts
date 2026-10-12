@@ -1,5 +1,7 @@
 import type { ActorControlPolicy, ActorControlProvider } from './actor-control';
 
+export { createActorControlArbiter, type ActorControlArbiter };
+
 // A source is the Plan or Controller instance being updated.
 interface Claim<TRequest> {
   holder: object;
@@ -14,7 +16,7 @@ interface Claim<TRequest> {
  * leases. Whether a request takes an Actor held by another source, or by
  * none, is left to the policy the arbiter was created with.
  */
-export interface ActorControlArbiter<TActor, TRequest> {
+interface ActorControlArbiter<TActor, TRequest> {
   /**
    * Runs one update of the source with control scoped to it. The source's
    * claims not renewed during the update expire when it ends.
@@ -31,7 +33,7 @@ export interface ActorControlArbiter<TActor, TRequest> {
   releaseInactive(activeSources: ReadonlySet<object>): void;
 }
 
-export function createActorControlArbiter<TActor, TRequest>(
+function createActorControlArbiter<TActor, TRequest>(
   policy: ActorControlPolicy<TRequest>
 ): ActorControlArbiter<TActor, TRequest> {
   const claims = new Map<TActor, Claim<TRequest>>();

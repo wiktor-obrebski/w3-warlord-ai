@@ -16,9 +16,11 @@ import {
 import { provideTowerRushEconomyController } from './tower-rush-economy.ctrl';
 import { provideTowerMaintenanceController } from './tower-maintenance.ctrl';
 
-const UPDATE_SECONDS = 1;
+export { type TowerRushIntention, provideTowerRushIntention };
 
-export interface TowerRushIntention extends WarlordIntention {
+const UpdateSeconds = 1;
+
+interface TowerRushIntention extends WarlordIntention {
   /** Whether every rush tower stands as a Guard Tower. */
   readonly positionEstablished: boolean;
 }
@@ -35,7 +37,7 @@ interface TowerRushChildFactories {
  * workers.
  */
 class TowerRush implements TowerRushIntention {
-  private readonly interval = new UpdateInterval(UPDATE_SECONDS);
+  private readonly interval = new UpdateInterval(UpdateSeconds);
   private readonly factories: TowerRushChildFactories;
   private plan: ChildHandle<EstablishTowerPositionPlan> | null = null;
   private economy: WarlordController | null = null;
@@ -113,7 +115,7 @@ class TowerRush implements TowerRushIntention {
   }
 }
 
-export function provideTowerRushIntention(): ProvidedComponent<TowerRushIntention> {
+function provideTowerRushIntention(): ProvidedComponent<TowerRushIntention> {
   const rush = createTowerRushState();
   const children: ProvidedChildren = [];
 

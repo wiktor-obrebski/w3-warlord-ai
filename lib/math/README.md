@@ -117,8 +117,8 @@ vector.angleTo(other);
 vector.projectionOn(other);
 
 vector.rotate(angle);
-vector.rotate90CCW();
-vector.rotate90CW();
+vector.rotate90Ccw();
+vector.rotate90Cw();
 ```
 
 `Vector` is immutable. Operations return new vectors rather than modifying the receiver. This follows FlattenJS's vector behavior and makes intermediate calculations easier to reason about in AI code.

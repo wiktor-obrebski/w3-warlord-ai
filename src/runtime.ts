@@ -6,20 +6,22 @@ import { debug } from './debug';
 import { Actor, ActorControlRequest, actorControlPolicy } from './actor';
 import { WarlordUpdateChild } from './execution';
 import { createCommonBeliefsModel } from './beliefs/common.beliefs';
-import { ApplyPressure } from './desires/apply-pressure';
-import { ProtectEconomicAssets } from './desires/protect-economic-assets';
-import { UseMilitaryAssetsEffectively } from './desires/use-military-assets-effectively';
+import { APPLY_PRESSURE } from './desires/apply-pressure';
+import { PROTECT_ECONOMIC_ASSETS } from './desires/protect-economic-assets';
+import { USE_MILITARY_ASSETS_EFFECTIVELY } from './desires/use-military-assets-effectively';
 import {
   createDeliberation,
   ProvidedIntention,
 } from './deliberation/deliberation';
 
-const TICK_SECONDS = 0.1;
+export { startRuntime };
+
+const TickSeconds = 0.1;
 // Every desire is held for the whole game for now.
-const DESIRES = [
-  ApplyPressure,
-  ProtectEconomicAssets,
-  UseMilitaryAssetsEffectively,
+const Desires = [
+  APPLY_PRESSURE,
+  PROTECT_ECONOMIC_ASSETS,
+  USE_MILITARY_ASSETS_EFFECTIVELY,
 ];
 
 /**
@@ -34,7 +36,7 @@ const DESIRES = [
  * which scopes its control to it; at the end of the tick, components gone
  * from the tree lose their Scoped Beliefs and control.
  */
-export function startRuntime(bot: W3PlayerApi.player) {
+function startRuntime(bot: W3PlayerApi.player) {
   const beliefs = createBeliefsRuntime(createCommonBeliefsModel(bot));
   const deliberation = createDeliberation();
   const arbiter = createActorControlArbiter<Actor, ActorControlRequest>(
@@ -56,7 +58,7 @@ export function startRuntime(bot: W3PlayerApi.player) {
       return;
     }
 
-    intentions = deliberation.deliberate(common, DESIRES, intentions);
+    intentions = deliberation.deliberate(common, Desires, intentions);
     beliefs.sync(intentions);
 
     for (const intention of intentions) {
@@ -66,7 +68,7 @@ export function startRuntime(bot: W3PlayerApi.player) {
     arbiter.releaseInactive(beliefs.prune());
   };
 
-  W3TimerApi.TimerStart(loop, TICK_SECONDS, true, WarlordApi.guard(tick));
+  W3TimerApi.TimerStart(loop, TickSeconds, true, WarlordApi.guard(tick));
   tick();
 }
 

@@ -20,11 +20,13 @@ import {
 } from './forward-workers';
 import { isAvailableForwardPeasant } from './tower-rush.assessments';
 
+export { provideTowerMaintenanceController };
+
 // A repair starts below the start fraction and is not interrupted before the
 // switch fraction; above it, a tower below the start fraction takes over,
 // otherwise the repair goes on to full life.
-const REPAIR_START_LIFE_FRACTION = 0.6;
-const REPAIR_SWITCH_LIFE_FRACTION = 0.8;
+const RepairStartLifeFraction = 0.6;
+const RepairSwitchLifeFraction = 0.8;
 
 /**
  * The forward Peasants it controls repair the most damaged tower, and hide
@@ -77,7 +79,7 @@ class TowerMaintenanceController implements WarlordController {
   }
 }
 
-export function provideTowerMaintenanceController(
+function provideTowerMaintenanceController(
   rush: TowerRushState
 ): ProvidedComponent<WarlordController> {
   return { value: new TowerMaintenanceController(rush), children: [] };
@@ -92,7 +94,7 @@ function chooseRepairTarget(
     lifeFractionOf(beliefs, tower);
   const currentStanding = current !== undefined && towers.includes(current);
 
-  if (currentStanding && lifeFraction(current) < REPAIR_SWITCH_LIFE_FRACTION) {
+  if (currentStanding && lifeFraction(current) < RepairSwitchLifeFraction) {
     return current;
   }
 
@@ -100,7 +102,7 @@ function chooseRepairTarget(
     beliefs,
     towers.filter(
       (tower) =>
-        tower !== current && lifeFraction(tower) < REPAIR_START_LIFE_FRACTION
+        tower !== current && lifeFraction(tower) < RepairStartLifeFraction
     )
   );
 

@@ -1,11 +1,13 @@
+export { UpdateInterval };
+
 // Game clock readings on bot ticks can land just short of a whole interval;
 // without the tolerance such an update would slip to the next tick.
-const CLOCK_TOLERANCE_SECONDS = 0.01;
+const ClockToleranceSeconds = 0.01;
 
 /**
  * Lets an intention progress less often than every bot tick.
  */
-export class UpdateInterval {
+class UpdateInterval {
   private readonly seconds: number;
   private nextUpdateAt: number | undefined;
 
@@ -20,7 +22,7 @@ export class UpdateInterval {
   public claim(now: number): boolean {
     if (
       this.nextUpdateAt !== undefined &&
-      now + CLOCK_TOLERANCE_SECONDS < this.nextUpdateAt
+      now + ClockToleranceSeconds < this.nextUpdateAt
     ) {
       return false;
     }

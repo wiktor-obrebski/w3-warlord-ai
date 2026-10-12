@@ -1,11 +1,13 @@
 import type { Vector } from './vector';
 
-const TOLERANCE = 0.000001;
+export { Point };
+
+const Tolerance = 0.000001;
 
 /**
  * Represents a point in two-dimensional space.
  */
-export class Point {
+class Point {
   public readonly x: number;
   public readonly y: number;
 
@@ -44,5 +46,5 @@ export class Point {
  */
 function equalNumber(a: number, b: number): boolean {
   const difference = a - b;
-  return difference < TOLERANCE && difference > -TOLERANCE;
+  return difference < Tolerance && difference > -Tolerance;
 }

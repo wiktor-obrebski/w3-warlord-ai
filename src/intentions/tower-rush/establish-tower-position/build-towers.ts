@@ -23,28 +23,30 @@ import {
   rushTowersAtLeast,
 } from '../tower-rush.assessments';
 
+export { type BuildTowersState, createBuildTowersState, updateBuildTowers };
+
 // Center distance at which a target still counts as within reach of the
 // upgraded tower (Guard Tower range is 700). Not verified in-game.
-const TOWER_REACH = 700;
+const TowerReach = 700;
 // The exact gold mine and Scout Tower footprints are not known here, so the
 // search starts at the smallest plausible non-colliding distance and widens
 // on rejection. The accepted distances are logged to tune these values.
-const MIN_DISTANCE_FROM_MINE = 64;
-const DISTANCE_INCREASE = 16;
-const REJECTIONS_PER_DISTANCE_INCREASE = 10;
+const MinDistanceFromMine = 64;
+const DistanceIncrease = 16;
+const RejectionsPerDistanceIncrease = 10;
 // Observed: a rooted Tree of Life attacks. It killed Peasants and towers
 // placed about 450 from the enemy start location where it stands, and still
 // occasionally reached towers at 560.
-const MIN_DISTANCE_FROM_ENEMY_MAIN = 620;
+const MinDistanceFromEnemyMain = 620;
 // A Scout Tower occupies a 128x128 square; the margin allows for Warcraft
 // shifting the placement onto its build grid. Pending sites must be checked
 // here because Warcraft only sees a tower once its construction has started.
-const MIN_TOWER_CENTER_OFFSET = 160;
+const MinTowerCenterOffset = 160;
 // How far Warcraft's grid snapping may move a tower from its ordered spot.
-const STARTED_TOWER_MATCH_DISTANCE = 64;
-const ATTEMPTS_NEXT_TO_FIRST_TOWER = 10;
-const MAX_BUILD_PROGRESS_WORTH_HELPING = 0.5;
-const RESERVE_UPGRADE_GOLD_LIFE_FRACTION = 0.5;
+const StartedTowerMatchDistance = 64;
+const AttemptsNextToFirstTower = 10;
+const MaxBuildProgressWorthHelping = 0.5;
+const ReserveUpgradeGoldLifeFraction = 0.5;
 
 interface TowerSite {
   builder: W3UnitApi.unit;
@@ -56,14 +58,14 @@ interface TowerHelper {
   tower: W3UnitApi.unit;
 }
 
-export interface BuildTowersState {
+interface BuildTowersState {
   // Build orders whose builder is still busy with them.
   pendingTowerSites: TowerSite[];
   // Repair orders on unfinished towers whose helper is still busy with them.
   towerHelpers: TowerHelper[];
 }
 
-export function createBuildTowersState(): BuildTowersState {
+function createBuildTowersState(): BuildTowersState {
   return { pendingTowerSites: [], towerHelpers: [] };
 }
 
@@ -84,7 +86,7 @@ interface PlacementRules {
  * towers; only when all towers are built do they hide behind them, and
  * building ends once all of them are sent to hide.
  */
-export function updateBuildTowers(
+function updateBuildTowers(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: BuildTowersState,
@@ -175,7 +177,7 @@ export function updateBuildTowers(
   // already be at hand, or the last upgrade waits for income.
   if (
     !rush.reservingGoldForUpgrades &&
-    rushTowersAtLeast(beliefs, RESERVE_UPGRADE_GOLD_LIFE_FRACTION)
+    rushTowersAtLeast(beliefs, ReserveUpgradeGoldLifeFraction)
   ) {
     rush.reservingGoldForUpgrades = true;
     debug('Tower rush: reserving gold for the Guard Tower upgrades.');
@@ -227,8 +229,7 @@ function helpUnfinishedTower(
       beliefs,
       unfinished.filter(
         (tower) =>
-          constructionProgress(beliefs, tower) <
-          MAX_BUILD_PROGRESS_WORTH_HELPING
+          constructionProgress(beliefs, tower) < MaxBuildProgressWorthHelping
       ),
       worker
     );
@@ -260,7 +261,7 @@ function hasLivingBuilder(
     state.pendingTowerSites.some(
       (site) =>
         new Vector(site.position, towerPosition).length <=
-        STARTED_TOWER_MATCH_DISTANCE
+        StartedTowerMatchDistance
     ) || state.towerHelpers.some((help) => help.tower === tower)
   );
 }
@@ -331,7 +332,7 @@ function forgetAbandonedTowerSites(
 function hasStartedTower(site: TowerSite, towerPositions: Point[]): boolean {
   return towerPositions.some(
     (tower) =>
-      new Vector(tower, site.position).length <= STARTED_TOWER_MATCH_DISTANCE
+      new Vector(tower, site.position).length <= StartedTowerMatchDistance
   );
 }
 
@@ -419,10 +420,10 @@ function orderScoutTowerNextToFirstTower(
     return false;
   }
 
-  for (let attempt = 0; attempt < ATTEMPTS_NEXT_TO_FIRST_TOWER; attempt++) {
+  for (let attempt = 0; attempt < AttemptsNextToFirstTower; attempt++) {
     const position = randomPointOnSquareAround(
       firstTower,
-      MIN_TOWER_CENTER_OFFSET
+      MinTowerCenterOffset
     );
 
     if (tryOrderScoutTower(worker, position, rules, state)) {
@@ -439,10 +440,10 @@ function orderScoutTowerNearMine(
   rules: PlacementRules,
   state: BuildTowersState
 ): number | undefined {
-  let distance = MIN_DISTANCE_FROM_MINE;
+  let distance = MinDistanceFromMine;
   let rejections = 0;
 
-  while (distance <= TOWER_REACH) {
+  while (distance <= TowerReach) {
     const position = randomPointAround(rules.mine, distance);
 
     if (tryOrderScoutTower(worker, position, rules, state)) {
@@ -451,8 +452,8 @@ function orderScoutTowerNearMine(
 
     rejections++;
 
-    if (rejections % REJECTIONS_PER_DISTANCE_INCREASE === 0) {
-      distance += DISTANCE_INCREASE;
+    if (rejections % RejectionsPerDistanceIncrease === 0) {
+      distance += DistanceIncrease;
     }
   }
 
@@ -472,23 +473,23 @@ function tryOrderScoutTower(
   const distanceToMine = new Vector(rules.mine, position).length;
 
   // PROBE (temporary): tally the first failing rule.
-  if (distanceToEnemyMain < MIN_DISTANCE_FROM_ENEMY_MAIN) {
+  if (distanceToEnemyMain < MinDistanceFromEnemyMain) {
     probeRejections.enemyMainTooClose++;
   } else if (
     rules.requireEnemyMainInReach &&
-    distanceToEnemyMain > TOWER_REACH
+    distanceToEnemyMain > TowerReach
   ) {
     probeRejections.enemyMainOutOfReach++;
-  } else if (distanceToMine > TOWER_REACH) {
+  } else if (distanceToMine > TowerReach) {
     probeRejections.mineOutOfReach++;
   } else if (overlapsTower(position, rules.occupied)) {
     probeRejections.overlaps++;
   }
 
   const passesRules =
-    distanceToEnemyMain >= MIN_DISTANCE_FROM_ENEMY_MAIN &&
-    (!rules.requireEnemyMainInReach || distanceToEnemyMain <= TOWER_REACH) &&
-    distanceToMine <= TOWER_REACH &&
+    distanceToEnemyMain >= MinDistanceFromEnemyMain &&
+    (!rules.requireEnemyMainInReach || distanceToEnemyMain <= TowerReach) &&
+    distanceToMine <= TowerReach &&
     !overlapsTower(position, rules.occupied);
   const accepted =
     passesRules &&
@@ -532,8 +533,8 @@ function overlapsTower(position: Point, towers: Point[]): boolean {
     const offset = new Vector(tower, position);
 
     return (
-      Math.abs(offset.x) < MIN_TOWER_CENTER_OFFSET &&
-      Math.abs(offset.y) < MIN_TOWER_CENTER_OFFSET
+      Math.abs(offset.x) < MinTowerCenterOffset &&
+      Math.abs(offset.y) < MinTowerCenterOffset
     );
   });
 }

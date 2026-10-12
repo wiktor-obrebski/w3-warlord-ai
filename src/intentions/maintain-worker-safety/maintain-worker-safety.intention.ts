@@ -10,6 +10,8 @@ import {
 import { provideWorkerSafetyController } from './worker-safety.ctrl';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
+export { provideMaintainWorkerSafetyIntention };
+
 /** Keeps attacked workers out of harm's way, every bot tick. */
 class MaintainWorkerSafetyIntention implements WarlordIntention {
   private readonly createWorkerSafetyController: ChildFactory<
@@ -31,7 +33,7 @@ class MaintainWorkerSafetyIntention implements WarlordIntention {
   }
 }
 
-export function provideMaintainWorkerSafetyIntention(): ProvidedComponent<WarlordIntention> {
+function provideMaintainWorkerSafetyIntention(): ProvidedComponent<WarlordIntention> {
   const children: ProvidedChildren = [];
 
   return {

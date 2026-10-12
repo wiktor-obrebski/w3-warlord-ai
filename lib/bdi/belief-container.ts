@@ -1,9 +1,11 @@
 import type { AnyBeliefsModel } from './beliefs-model';
 
+export { type ScopedBeliefs, type BeliefContainer, createBeliefContainer };
+
 /**
  * A component's Scoped Beliefs and the model that maintains them.
  */
-export interface ScopedBeliefs<TCommonBeliefs> {
+interface ScopedBeliefs<TCommonBeliefs> {
   /** Null until the component's first revision. */
   readonly beliefs: unknown;
   readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
@@ -16,7 +18,7 @@ export interface ScopedBeliefs<TCommonBeliefs> {
  * The container only stores state; the beliefs runtime decides when it is
  * revised, registered, and removed.
  */
-export interface BeliefContainer<TCommonBeliefs> {
+interface BeliefContainer<TCommonBeliefs> {
   hasCommonBeliefs(): boolean;
 
   /** Throws before the Common Beliefs were first revised. */
@@ -48,7 +50,7 @@ interface ScopedEntry<TCommonBeliefs> {
   readonly beliefsModel: AnyBeliefsModel<TCommonBeliefs>;
 }
 
-export function createBeliefContainer<
+function createBeliefContainer<
   TCommonBeliefs,
 >(): BeliefContainer<TCommonBeliefs> {
   let common: TCommonBeliefs | null = null;

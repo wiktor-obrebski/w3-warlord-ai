@@ -1,10 +1,12 @@
+export { type Desire };
+
 /**
  * A high-level state or principle the agent wants to achieve or maintain.
  *
  * A Desire carries no execution behavior; Deliberation decides which
  * Intentions, if any, pursue it.
  */
-export interface Desire {
+interface Desire {
   /**
    * Stable identifier, unique among the agent's Desires.
    */

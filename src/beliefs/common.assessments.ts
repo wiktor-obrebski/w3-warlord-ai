@@ -2,11 +2,23 @@ import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
 import { CommonBeliefs, OwnUnit } from './common.beliefs';
 
+export {
+  isRecentlyAttacked,
+  recentAttackTarget,
+  ownUnit,
+  positionOf,
+  lifeFractionOf,
+  mostDamagedUnit,
+  constructionProgress,
+  completedLumberMill,
+  closestUnit,
+};
+
 // Assumed, not verified in-game.
-const CONSTRUCTION_START_LIFE_FRACTION = 0.1;
+const ConstructionStartLifeFraction = 0.1;
 
 /** Whether any attacker recently started an attack on the bot's unit. */
-export function isRecentlyAttacked(
+function isRecentlyAttacked(
   beliefs: Readonly<CommonBeliefs>,
   target: W3UnitApi.unit
 ): boolean {
@@ -14,7 +26,7 @@ export function isRecentlyAttacked(
 }
 
 /** The bot's unit the attacker recently started an attack on, if any. */
-export function recentAttackTarget(
+function recentAttackTarget(
   beliefs: Readonly<CommonBeliefs>,
   attacker: W3UnitApi.unit
 ): W3UnitApi.unit | undefined {
@@ -23,7 +35,7 @@ export function recentAttackTarget(
 }
 
 /** Throws for a unit not believed to be a living unit of the bot. */
-export function ownUnit(
+function ownUnit(
   beliefs: Readonly<CommonBeliefs>,
   unit: W3UnitApi.unit
 ): OwnUnit {
@@ -36,14 +48,14 @@ export function ownUnit(
   return believed;
 }
 
-export function positionOf(
+function positionOf(
   beliefs: Readonly<CommonBeliefs>,
   unit: W3UnitApi.unit
 ): Point {
   return ownUnit(beliefs, unit).position;
 }
 
-export function lifeFractionOf(
+function lifeFractionOf(
   beliefs: Readonly<CommonBeliefs>,
   unit: W3UnitApi.unit
 ): number {
@@ -53,7 +65,7 @@ export function lifeFractionOf(
 }
 
 /** Of the bot's units, the one with the lowest life fraction. */
-export function mostDamagedUnit(
+function mostDamagedUnit(
   beliefs: Readonly<CommonBeliefs>,
   units: readonly W3UnitApi.unit[]
 ): W3UnitApi.unit | undefined {
@@ -76,17 +88,17 @@ export function mostDamagedUnit(
  * linearly from a fraction of its maximum while it is built. A damaged
  * finished building reads as low progress too.
  */
-export function constructionProgress(
+function constructionProgress(
   beliefs: Readonly<CommonBeliefs>,
   building: W3UnitApi.unit
 ): number {
   return (
-    (lifeFractionOf(beliefs, building) - CONSTRUCTION_START_LIFE_FRACTION) /
-    (1 - CONSTRUCTION_START_LIFE_FRACTION)
+    (lifeFractionOf(beliefs, building) - ConstructionStartLifeFraction) /
+    (1 - ConstructionStartLifeFraction)
   );
 }
 
-export function completedLumberMill(
+function completedLumberMill(
   beliefs: Readonly<CommonBeliefs>
 ): W3UnitApi.unit | undefined {
   return beliefs.lumberMills.find(
@@ -95,7 +107,7 @@ export function completedLumberMill(
 }
 
 /** Of the bot's units, the one closest to `to`. */
-export function closestUnit(
+function closestUnit(
   beliefs: Readonly<CommonBeliefs>,
   units: readonly W3UnitApi.unit[],
   to: W3UnitApi.unit

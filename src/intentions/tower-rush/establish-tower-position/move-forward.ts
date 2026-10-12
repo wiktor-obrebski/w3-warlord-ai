@@ -6,20 +6,22 @@ import { CommonBeliefs, GoldMine } from '../../../beliefs/common.beliefs';
 import { positionOf } from '../../../beliefs/common.assessments';
 import { TowerRushState } from '../tower-rush.state';
 
-// A move order to a gold mine ends at the mine's edge, not its center.
-const ARRIVAL_RADIUS = 400;
+export { type MoveForwardState, createMoveForwardState, updateMoveForward };
 
-export interface MoveForwardState {
+// A move order to a gold mine ends at the mine's edge, not its center.
+const ArrivalRadius = 400;
+
+interface MoveForwardState {
   forwardWorkersSentToEnemy: W3UnitApi.unit[];
   forwardWorkersHoldingPosition: W3UnitApi.unit[];
 }
 
-export function createMoveForwardState(): MoveForwardState {
+function createMoveForwardState(): MoveForwardState {
   return { forwardWorkersSentToEnemy: [], forwardWorkersHoldingPosition: [] };
 }
 
 /** Returns whether the forward workers have arrived as Peasants again. */
-export function updateMoveForward(
+function updateMoveForward(
   beliefs: Readonly<CommonBeliefs>,
   rush: TowerRushState,
   state: MoveForwardState,
@@ -81,7 +83,7 @@ function holdArrivedMilitia(
       beliefs.militia.includes(worker) &&
       !state.forwardWorkersHoldingPosition.includes(worker) &&
       new Vector(positionOf(beliefs, worker), destination.position).length <=
-        ARRIVAL_RADIUS
+        ArrivalRadius
     ) {
       if (W3UnitApi.IssueImmediateOrder(worker, 'holdposition')) {
         state.forwardWorkersHoldingPosition.push(worker);

@@ -10,11 +10,13 @@ import {
 import { UpdateInterval } from '../update-interval';
 import { provideTowerTargetSelectionController } from './tower-target-selection.ctrl';
 
-const UPDATE_SECONDS = 1;
+export { provideOperateTowersIntention };
+
+const UpdateSeconds = 1;
 
 /** Directs the fire of the bot's Guard Towers. */
 class OperateTowersIntention implements WarlordIntention {
-  private readonly interval = new UpdateInterval(UPDATE_SECONDS);
+  private readonly interval = new UpdateInterval(UpdateSeconds);
   private readonly createTargetSelection: ChildFactory<WarlordController>;
   private targetSelection: WarlordController | null = null;
 
@@ -30,7 +32,7 @@ class OperateTowersIntention implements WarlordIntention {
   }
 }
 
-export function provideOperateTowersIntention(): ProvidedComponent<WarlordIntention> {
+function provideOperateTowersIntention(): ProvidedComponent<WarlordIntention> {
   const children: ProvidedChildren = [];
 
   return {

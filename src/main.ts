@@ -6,14 +6,16 @@ import { startRuntime } from './runtime';
 import { installBotPlayer } from './privileged/install-bot-player';
 import { enableDebugMode, updateDebugMode } from './privileged/debug-mode';
 
-const DEBUG_MODE = true;
-const DEBUG_MODE_UPDATE_SECONDS = 0.1;
+export { main };
+
+const DebugModeEnabled = true;
+const DebugModeUpdateSeconds = 0.1;
 
 /**
  * Entry point called by the runtime wrapper during melee initialization,
  * once per computer player handed over to Warlord AI.
  */
-export function main(computerPlayer: W3PlayerApi.player) {
+function main(computerPlayer: W3PlayerApi.player) {
   const bot = installBotPlayer(computerPlayer);
 
   runAfterMapInitialization(() => play(bot));
@@ -22,7 +24,7 @@ export function main(computerPlayer: W3PlayerApi.player) {
 function play(bot: W3PlayerApi.player) {
   debug(`Bot player id: ${W3PlayerApi.GetPlayerId(bot)}`);
 
-  if (DEBUG_MODE) {
+  if (DebugModeEnabled) {
     startDebugMode(bot);
   }
 
@@ -35,7 +37,7 @@ function startDebugMode(bot: W3PlayerApi.player) {
 
   W3TimerApi.TimerStart(
     timer,
-    DEBUG_MODE_UPDATE_SECONDS,
+    DebugModeUpdateSeconds,
     true,
     WarlordApi.guard(() => updateDebugMode(debugMode, bot))
   );

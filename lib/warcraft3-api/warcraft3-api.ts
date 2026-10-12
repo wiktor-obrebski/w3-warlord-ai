@@ -1,1 +1,3 @@
-export { UnexpectedWarcraftApiResponseError } from './errors';
+import { UnexpectedWarcraftApiResponseError } from './errors';
+
+export { UnexpectedWarcraftApiResponseError };

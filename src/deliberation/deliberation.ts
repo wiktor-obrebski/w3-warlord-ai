@@ -1,9 +1,9 @@
 import { Deliberation, Desire } from '@lib/bdi';
 import { CommonBeliefs } from '../beliefs/common.beliefs';
 import { ProvidedComponent, WarlordIntention } from '../execution';
-import { ApplyPressure } from '../desires/apply-pressure';
-import { ProtectEconomicAssets } from '../desires/protect-economic-assets';
-import { UseMilitaryAssetsEffectively } from '../desires/use-military-assets-effectively';
+import { APPLY_PRESSURE } from '../desires/apply-pressure';
+import { PROTECT_ECONOMIC_ASSETS } from '../desires/protect-economic-assets';
+import { USE_MILITARY_ASSETS_EFFECTIVELY } from '../desires/use-military-assets-effectively';
 import { provideMaintainWorkerSafetyIntention } from '../intentions/maintain-worker-safety/maintain-worker-safety.intention';
 import {
   provideTowerRushIntention,
@@ -11,8 +11,10 @@ import {
 } from '../intentions/tower-rush/tower-rush.intention';
 import { provideOperateTowersIntention } from '../intentions/operate-towers/operate-towers.intention';
 
+export { type ProvidedIntention, createDeliberation };
+
 /** An Intention as its provider created it. */
-export type ProvidedIntention = ProvidedComponent<WarlordIntention<unknown>>;
+type ProvidedIntention = ProvidedComponent<WarlordIntention<unknown>>;
 
 /**
  * A fixed policy for now:
@@ -28,7 +30,7 @@ export type ProvidedIntention = ProvidedComponent<WarlordIntention<unknown>>;
  * Deliberation remembers the Intentions it provided, so it can tell them
  * apart and read their state; one is retained while it is still active.
  */
-export function createDeliberation(): Deliberation<
+function createDeliberation(): Deliberation<
   CommonBeliefs,
   Desire,
   ProvidedIntention
@@ -43,13 +45,13 @@ export function createDeliberation(): Deliberation<
         intention !== null && intentions.includes(intention) ? intention : null;
       const active: ProvidedIntention[] = [];
 
-      workerSafety = desires.includes(ProtectEconomicAssets)
+      workerSafety = desires.includes(PROTECT_ECONOMIC_ASSETS)
         ? (retained(workerSafety) ?? provideMaintainWorkerSafetyIntention())
         : null;
-      towerRush = desires.includes(ApplyPressure)
+      towerRush = desires.includes(APPLY_PRESSURE)
         ? (retained(towerRush) ?? provideTowerRushIntention())
         : null;
-      operateTowers = desires.includes(UseMilitaryAssetsEffectively)
+      operateTowers = desires.includes(USE_MILITARY_ASSETS_EFFECTIVELY)
         ? (retained(operateTowers) ??
           (towerRush?.value.positionEstablished
             ? provideOperateTowersIntention()

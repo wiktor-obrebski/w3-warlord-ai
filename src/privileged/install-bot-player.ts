@@ -2,6 +2,8 @@ import * as W3GroupApi from '@lib/warcraft3-api/group';
 import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3PrivilegedApi from '@lib/warcraft3-api/privileged';
 
+export { installBotPlayer };
+
 interface BotInstallation {
   computerPlayer: W3PlayerApi.player;
   botPlayer: W3PlayerApi.player;
@@ -28,7 +30,7 @@ declare const map_globals: MapGlobals;
  * Must run before `MeleeInitVictoryDefeat`, which only tracks players whose
  * slot state is playing at that moment.
  */
-export function installBotPlayer(
+function installBotPlayer(
   computerPlayer: W3PlayerApi.player
 ): W3PlayerApi.player {
   const installations = setupBotInstallations();

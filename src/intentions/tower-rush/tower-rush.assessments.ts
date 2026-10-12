@@ -7,11 +7,19 @@ import {
   positionOf,
 } from '../../beliefs/common.assessments';
 
-export const RUSH_TOWER_COUNT = 3;
-const MILL_TREE_CANDIDATES = 4;
+export {
+  RUSH_TOWER_COUNT,
+  allRushTowersBuilt,
+  rushTowersAtLeast,
+  isAvailableForwardPeasant,
+  lumberDestructablesByPreference,
+};
+
+const RUSH_TOWER_COUNT = 3;
+const MillTreeCandidates = 4;
 
 /** Whether every rush tower has been placed and finished construction. */
-export function allRushTowersBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
+function allRushTowersBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
   return (
     beliefs.scoutTowers.length >= RUSH_TOWER_COUNT &&
     beliefs.scoutTowers.every(
@@ -24,7 +32,7 @@ export function allRushTowersBuilt(beliefs: Readonly<CommonBeliefs>): boolean {
  * Whether every rush tower has been placed and stands at or above the life
  * fraction; during construction this tracks build progress.
  */
-export function rushTowersAtLeast(
+function rushTowersAtLeast(
   beliefs: Readonly<CommonBeliefs>,
   lifeFraction: number
 ): boolean {
@@ -41,7 +49,7 @@ export function rushTowersAtLeast(
  * sent back to harvesting. Anything else means it is busy with an order of
  * its own, such as building or repairing.
  */
-export function isAvailableForwardPeasant(
+function isAvailableForwardPeasant(
   beliefs: Readonly<CommonBeliefs>,
   worker: W3UnitApi.unit
 ): boolean {
@@ -64,7 +72,7 @@ export function isAvailableForwardPeasant(
  * orders share this order so a new Peasant ordered to harvest is not turned
  * away from the tree it was rallied to.
  */
-export function lumberDestructablesByPreference(
+function lumberDestructablesByPreference(
   beliefs: Readonly<CommonBeliefs>,
   peasantOrigin: W3UnitApi.unit
 ): readonly HomeDestructable[] {
@@ -79,11 +87,11 @@ export function lumberDestructablesByPreference(
     positionOf(beliefs, mill)
   );
   const candidates = sortByDistanceTo(
-    nearestMill.slice(0, MILL_TREE_CANDIDATES),
+    nearestMill.slice(0, MillTreeCandidates),
     positionOf(beliefs, peasantOrigin)
   );
 
-  return [...candidates, ...nearestMill.slice(MILL_TREE_CANDIDATES)];
+  return [...candidates, ...nearestMill.slice(MillTreeCandidates)];
 }
 
 function sortByDistanceTo(

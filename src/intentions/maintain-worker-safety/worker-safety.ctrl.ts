@@ -21,12 +21,14 @@ import {
   threatCenter,
 } from './worker-safety.assessments';
 
-const FLEE_ROUND_DISTANCE = 300;
-const FLEE_DESTINATION_REACHED_DISTANCE = 32;
-const FLEE_ANGLE_STEP = Math.PI / 6;
+export { provideWorkerSafetyController };
+
+const FleeRoundDistance = 300;
+const FleeDestinationReachedDistance = 32;
+const FleeAngleStep = Math.PI / 6;
 // Alternating to either side of straight away, ending straight back.
-const FLEE_ANGLE_OFFSETS = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6].map(
-  (step) => step * FLEE_ANGLE_STEP
+const FleeAngleOffsets = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6].map(
+  (step) => step * FleeAngleStep
 );
 
 interface FleeRound {
@@ -109,7 +111,7 @@ class WorkerSafetyController implements WarlordController<WorkerSafetyBeliefs> {
   }
 }
 
-export function provideWorkerSafetyController(): ProvidedComponent<
+function provideWorkerSafetyController(): ProvidedComponent<
   WarlordController<WorkerSafetyBeliefs>
 > {
   return {
@@ -125,13 +127,13 @@ function fleeRoundFinished(worker: OwnUnit, round: FleeRound): boolean {
   return (
     worker.isIdle ||
     new Vector(worker.position, round.destination).length <=
-      FLEE_DESTINATION_REACHED_DISTANCE
+      FleeDestinationReachedDistance
   );
 }
 
 function fledHalfway(worker: OwnUnit, round: FleeRound): boolean {
   return (
-    new Vector(round.origin, worker.position).length >= FLEE_ROUND_DISTANCE / 2
+    new Vector(round.origin, worker.position).length >= FleeRoundDistance / 2
   );
 }
 
@@ -179,12 +181,8 @@ function startFleeRound(
 function fleeDestination(from: Point, awayAngle: number | undefined): Point {
   const preferredAngle = awayAngle ?? W3MathApi.GetRandomReal(0, Math.PI * 2);
 
-  for (const offset of FLEE_ANGLE_OFFSETS) {
-    const candidate = pointAt(
-      from,
-      preferredAngle + offset,
-      FLEE_ROUND_DISTANCE
-    );
+  for (const offset of FleeAngleOffsets) {
+    const candidate = pointAt(from, preferredAngle + offset, FleeRoundDistance);
 
     if (isWalkable(candidate)) {
       if (offset !== 0) {
@@ -202,7 +200,7 @@ function fleeDestination(from: Point, awayAngle: number | undefined): Point {
   return pointAt(
     from,
     W3MathApi.GetRandomReal(0, Math.PI * 2),
-    FLEE_ROUND_DISTANCE
+    FleeRoundDistance
   );
 }
 

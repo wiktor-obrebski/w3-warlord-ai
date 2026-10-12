@@ -3,13 +3,15 @@ import { BeliefsModel } from '@lib/bdi';
 import { CommonBeliefs } from '../../beliefs/common.beliefs';
 import { isRecentlyAttacked } from '../../beliefs/common.assessments';
 
+export { type WorkerSafetyBeliefs, workerSafetyBeliefsModel };
+
 // A worker unattacked for this long is safe again.
-const SAFE_AFTER_ATTACK_SECONDS = 1;
+const SafeAfterAttackSeconds = 1;
 
-const NO_ATTACKS: ReadonlyMap<W3UnitApi.unit, number> = new Map();
+const NoAttacks: ReadonlyMap<W3UnitApi.unit, number> = new Map();
 
-export interface WorkerSafetyBeliefs {
-  // When each worker attacked within the last SAFE_AFTER_ATTACK_SECONDS was
+interface WorkerSafetyBeliefs {
+  // When each worker attacked within the last SafeAfterAttackSeconds was
   // last attacked.
   readonly lastAttackedAt: ReadonlyMap<W3UnitApi.unit, number>;
 }
@@ -18,7 +20,7 @@ export interface WorkerSafetyBeliefs {
  * Which workers were attacked recently enough not to be safe yet. It
  * observes nothing itself: attacks come from the Common Beliefs.
  */
-export const workerSafetyBeliefsModel: BeliefsModel<
+const workerSafetyBeliefsModel: BeliefsModel<
   null,
   WorkerSafetyBeliefs,
   CommonBeliefs
@@ -30,7 +32,7 @@ export const workerSafetyBeliefsModel: BeliefsModel<
   // Copied only when an attack is recorded or forgotten, so the beliefs stay
   // the same object while no worker is under attack.
   revise(previous, _observation, common) {
-    const known = previous?.lastAttackedAt ?? NO_ATTACKS;
+    const known = previous?.lastAttackedAt ?? NoAttacks;
     let revised: Map<W3UnitApi.unit, number> | undefined;
 
     for (const worker of common.workers) {
@@ -46,7 +48,7 @@ export const workerSafetyBeliefsModel: BeliefsModel<
     for (const [worker, attackedAt] of known) {
       const isWorker = common.workers.some((alive) => alive.unit === worker);
 
-      if (!isWorker || common.time - attackedAt >= SAFE_AFTER_ATTACK_SECONDS) {
+      if (!isWorker || common.time - attackedAt >= SafeAfterAttackSeconds) {
         revised ??= new Map(known);
         revised.delete(worker);
       }
@@ -56,6 +58,6 @@ export const workerSafetyBeliefsModel: BeliefsModel<
       return { lastAttackedAt: revised };
     }
 
-    return previous ?? { lastAttackedAt: NO_ATTACKS };
+    return previous ?? { lastAttackedAt: NoAttacks };
   },
 };

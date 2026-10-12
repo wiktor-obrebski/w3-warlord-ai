@@ -10,11 +10,13 @@ import { CommonBeliefs } from '../../beliefs/common.beliefs';
 import {
   RankedTarget,
   rankTowerTargets,
-  TargetPriority,
+  TARGET_PRIORITY,
 } from './operate-towers.assessments';
 
+export { provideTowerTargetSelectionController };
+
 // Not verified in-game that IsUnitInRange matches the tower's own reach.
-const GUARD_TOWER_ATTACK_RANGE = 700;
+const GuardTowerAttackRange = 700;
 
 interface TowerTarget {
   tower: W3UnitApi.unit;
@@ -58,9 +60,7 @@ class TowerTargetSelectionController implements WarlordController {
     const towerBusy = !beliefs.idleUnits.includes(tower);
 
     for (const { enemy, priority } of rankedTargets) {
-      if (
-        !W3UnitApi.IsUnitInRange(tower, enemy.unit, GUARD_TOWER_ATTACK_RANGE)
-      ) {
+      if (!W3UnitApi.IsUnitInRange(tower, enemy.unit, GuardTowerAttackRange)) {
         continue;
       }
 
@@ -71,7 +71,7 @@ class TowerTargetSelectionController implements WarlordController {
       if (W3UnitApi.IssueTargetOrder(tower, 'attack', enemy.unit)) {
         this.rememberTowerTarget(tower, enemy.unit);
         debug(
-          `Operate towers: Guard Tower attacks ${TargetPriority[priority]} target with ${Math.floor(enemy.life)} life.`
+          `Operate towers: Guard Tower attacks ${TARGET_PRIORITY[priority]} target with ${Math.floor(enemy.life)} life.`
         );
         return;
       }
@@ -92,6 +92,6 @@ class TowerTargetSelectionController implements WarlordController {
   }
 }
 
-export function provideTowerTargetSelectionController(): ProvidedComponent<WarlordController> {
+function provideTowerTargetSelectionController(): ProvidedComponent<WarlordController> {
   return { value: new TowerTargetSelectionController(), children: [] };
 }

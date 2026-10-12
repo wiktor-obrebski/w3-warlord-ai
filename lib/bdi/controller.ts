@@ -1,3 +1,5 @@
+export { type Controller };
+
 /**
  * Continuous reactive behavior with no procedural completion.
  *
@@ -6,7 +8,7 @@
  * `ComponentBeliefs`; `TControl` is the agent's actor control capability,
  * normally an `ActorControlProvider`.
  */
-export interface Controller<TBeliefs, TControl> {
+interface Controller<TBeliefs, TControl> {
   /**
    * Reacts to the current Beliefs. It may order only the Actors `control`
    * grants it.
