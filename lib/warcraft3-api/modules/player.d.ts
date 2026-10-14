@@ -18,6 +18,15 @@ declare module '@lib/warcraft3-api/player' {
   }
 
   /**
+   * @ai-generated A playable race, such as Human or Night Elf.
+   *
+   * @patch 1.00
+   */
+  export interface race extends handle {
+    __race: never;
+  }
+
+  /**
    * Stores the maximum number of playable player slots regardless of map options.
    *
    * @note See: `GetBJMaxPlayers`, `GetBJMaxPlayerSlots`
@@ -45,6 +54,34 @@ declare module '@lib/warcraft3-api/player' {
    * @patch 1.00
    */
   export const PLAYER_STATE_RESOURCE_LUMBER: playerstate;
+
+  /**
+   * @ai-generated The Human race.
+   *
+   * @patch 1.00
+   */
+  export const RACE_HUMAN: race;
+
+  /**
+   * @ai-generated The Orc race.
+   *
+   * @patch 1.00
+   */
+  export const RACE_ORC: race;
+
+  /**
+   * @ai-generated The Undead race.
+   *
+   * @patch 1.00
+   */
+  export const RACE_UNDEAD: race;
+
+  /**
+   * @ai-generated The Night Elf race.
+   *
+   * @patch 1.00
+   */
+  export const RACE_NIGHTELF: race;
 
   /**
    * Returns: player
@@ -124,4 +161,15 @@ declare module '@lib/warcraft3-api/player' {
     whichPlayer: player,
     whichPlayerState: playerstate
   ): number;
+
+  /**
+   * Returns: race
+   *
+   * Returns race of the player.
+   *
+   * The handle is constant and does not change between invocations. (Lua, v1.32.10)
+   *
+   * @patch 1.00
+   */
+  export function GetPlayerRace(whichPlayer: player): race;
 }

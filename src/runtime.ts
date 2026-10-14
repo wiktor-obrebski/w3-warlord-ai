@@ -5,6 +5,7 @@ import { createBeliefsRuntime } from '@lib/bdi';
 import { debug } from './debug';
 import type { WarlordUpdateChild } from './contracts/component';
 import type { WarlordDesire } from './contracts/desires';
+import type { Strategy } from './contracts/strategy';
 import { createActorControl } from './capabilities/actor-control/actor-control.api';
 import {
   CommonBeliefs,
@@ -27,7 +28,8 @@ const TickSeconds = 0.1;
  * Each tick revises the Common Beliefs, generates the current Desires,
  * deliberates on them, then makes the assembled Intentions and their
  * children the managed component tree, whose Scoped Beliefs the beliefs
- * runtime revises before any component updates.
+ * runtime revises before any component updates. The strategy Deliberation
+ * commits to enters the Common Beliefs on the next tick.
  *
  * Every Intention update runs through Option Generation, whose desire
  * expression then acts for it; Desires it expresses appear on the next
@@ -38,8 +40,12 @@ const TickSeconds = 0.1;
  * lose their Scoped Beliefs, control, and desire supports.
  */
 function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
+  let currentStrategy: Strategy | null = null;
   const beliefs = createBeliefsRuntime({
-    commonModel: createCommonBeliefsModel({ bot }),
+    commonModel: createCommonBeliefsModel({
+      bot,
+      readCurrentStrategy: () => currentStrategy,
+    }),
   });
   const optionGeneration = createDesires();
   const arbiter = createActorControl();
@@ -76,6 +82,7 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
       desires,
       intentions,
     }));
+    currentStrategy = deliberation.currentStrategy();
     beliefs.sync({ roots: intentions });
 
     for (const { component } of intentions) {

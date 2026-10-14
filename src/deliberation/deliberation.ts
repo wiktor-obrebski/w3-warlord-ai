@@ -6,6 +6,7 @@ import type {
 } from '../contracts/component';
 import type { WarlordDesire, WarlordDesireOutcome } from '../contracts/desires';
 import type { ActorControl } from '../contracts/actor-control';
+import type { Strategy } from '../contracts/strategy';
 import {
   assembleMaintainWorkerSafetyIntention,
   MaintainWorkerSafetyCapabilities,
@@ -27,6 +28,15 @@ type AssembledIntention = AssembledWarlordComponent<
   WarlordIntention<CommonBeliefs, unknown>,
   CommonBeliefs
 >;
+
+interface WarlordDeliberation extends Deliberation<
+  CommonBeliefs,
+  WarlordDesire,
+  AssembledIntention
+> {
+  /** The strategy the latest deliberation committed to, if any. */
+  currentStrategy(): Strategy | null;
+}
 
 interface CreateDeliberationArgs {
   actorControl: ActorControl;
@@ -51,11 +61,7 @@ interface CreateDeliberationArgs {
  */
 function createDeliberation({
   actorControl,
-}: CreateDeliberationArgs): Deliberation<
-  CommonBeliefs,
-  WarlordDesire,
-  AssembledIntention
-> {
+}: CreateDeliberationArgs): WarlordDeliberation {
   const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
     actorControl,
   };
@@ -138,6 +144,10 @@ function createDeliberation({
       }
 
       return { intentions: active };
+    },
+
+    currentStrategy() {
+      return towerRush !== null ? 'TowerRush' : null;
     },
   };
 }

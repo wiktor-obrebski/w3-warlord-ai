@@ -3,12 +3,15 @@ import type * as W3DestructableApi from '@lib/warcraft3-api/destructable';
 import type { Point } from '@lib/math';
 
 export {
+  type Race,
   type OwnUnit,
   type VisibleEnemy,
   type GoldMine,
   type HomeDestructable,
   type ObservedAttack,
 };
+
+type Race = 'Human' | 'Orc' | 'Undead' | 'NightElf';
 
 interface OwnUnit {
   readonly unit: W3UnitApi.unit;

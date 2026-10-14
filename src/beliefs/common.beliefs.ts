@@ -16,8 +16,10 @@ import type {
   HomeDestructable,
   ObservedAttack,
   OwnUnit,
+  Race,
   VisibleEnemy,
 } from '../contracts/world';
+import type { Strategy } from '../contracts/strategy';
 import { observeAttacksOn, takeObservedAttacks } from './attack-observer';
 import { GameClock, readGameClock, startGameClock } from './game-clock';
 
@@ -31,6 +33,7 @@ export {
 interface ObservedWorld {
   // Game seconds since the bot started playing.
   readonly time: number;
+  readonly ownRace: Race;
   readonly ownStartPosition: Point;
   readonly enemyStartPosition?: Point;
   // Enemy players still in the game; a defeated player is no longer counted.
@@ -69,19 +72,26 @@ interface ObservedWorld {
 interface CommonObservation {
   readonly world: ObservedWorld;
   readonly attacksStarted: readonly ObservedAttack[];
+  readonly currentStrategy: Strategy | null;
 }
 
 /**
  * Game knowledge broadly useful to the bot: the currently observed world,
- * and the attacks on the bot's units it still remembers.
+ * the attacks on the bot's units it still remembers, and the strategy it has
+ * committed to.
  */
 interface CommonBeliefs extends ObservedWorld {
   // The latest attack of each attacker, while still recent; oldest first.
   readonly recentAttacks: readonly ObservedAttack[];
+  // The strategy Deliberation committed to on the previous tick, if any; not
+  // the strategy the bot would currently prefer.
+  readonly currentStrategy: Strategy | null;
 }
 
 interface CreateCommonBeliefsModelArgs {
   bot: W3PlayerApi.player;
+  // The bot's own strategy commitment, observed like the world.
+  readCurrentStrategy: () => Strategy | null;
 }
 
 /**
@@ -90,6 +100,7 @@ interface CreateCommonBeliefsModelArgs {
  */
 function createCommonBeliefsModel({
   bot,
+  readCurrentStrategy,
 }: CreateCommonBeliefsModelArgs): CommonBeliefsModel<
   CommonBeliefs,
   CommonObservation
@@ -102,12 +113,14 @@ function createCommonBeliefsModel({
       return {
         world: observeWorld({ bot, clock }),
         attacksStarted: takeObservedAttacks({ observer: attackObserver }),
+        currentStrategy: readCurrentStrategy(),
       };
     },
 
     revise({ previous, observation }) {
       return {
         ...observation.world,
+        currentStrategy: observation.currentStrategy,
         recentAttacks: reviseRecentAttacks({
           previous: previous?.recentAttacks ?? [],
           started: observation.attacksStarted,
@@ -290,6 +303,7 @@ function observeWorld({ bot, clock }: ObserveWorldArgs): ObservedWorld {
 
   return {
     time: readGameClock({ clock }),
+    ownRace: raceOf({ whichPlayer: bot }),
     ownStartPosition,
     enemyStartPosition,
     enemyPlayersPlaying: enemies.length,
@@ -362,6 +376,29 @@ function startPositionOf({ whichPlayer }: StartPositionOfArgs): Point {
     x: W3LocationApi.GetStartLocationX(startLocation),
     y: W3LocationApi.GetStartLocationY(startLocation),
   });
+}
+
+// Race handles are constant, so they compare by identity.
+function raceOf({ whichPlayer }: { whichPlayer: W3PlayerApi.player }): Race {
+  const race = W3PlayerApi.GetPlayerRace(whichPlayer);
+
+  if (race === W3PlayerApi.RACE_HUMAN) {
+    return 'Human';
+  }
+
+  if (race === W3PlayerApi.RACE_ORC) {
+    return 'Orc';
+  }
+
+  if (race === W3PlayerApi.RACE_UNDEAD) {
+    return 'Undead';
+  }
+
+  if (race === W3PlayerApi.RACE_NIGHTELF) {
+    return 'NightElf';
+  }
+
+  throw new Error('Common beliefs: the player plays no melee race.');
 }
 
 interface EnemyPlayersArgs {
