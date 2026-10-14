@@ -20,18 +20,22 @@ interface CreateOptionGenerationArgs {
   identify: ({ outcome }: { outcome: WarlordDesireOutcome }) => string;
   /** Outcomes desirable for the whole game, whoever else supports them. */
   permanentDesires: readonly WarlordDesireOutcome[];
+  /** How often, in game seconds, the runtime updates Intentions. */
+  tickSeconds: number;
 }
 
 /**
  * Creates the bot's Option Generation.
  *
- * A support stays fresh for its `refreshSeconds` after each refresh. Once
- * stale, its importance decays linearly to zero over `DecayIntervals` more
- * of its intervals, and then it expires. Permanent supports never go stale.
+ * A support stays fresh for its `refreshSeconds`, plus a tick, after each
+ * refresh. Once stale, its importance decays linearly to zero over
+ * `DecayIntervals` more of its intervals, and then it expires. Permanent
+ * supports never go stale.
  */
 function createOptionGeneration({
   identify,
   permanentDesires,
+  tickSeconds,
 }: CreateOptionGenerationArgs): OptionGeneration<WarlordDesireOutcome> {
   const supports = new Map<DesireSupportId, SupportRecord>();
   const desires = new Map<DesireId, GeneratedDesire>();
@@ -111,8 +115,11 @@ function createOptionGeneration({
     }
   };
 
+  // A source refreshing every `refreshSeconds` does so on the first tick
+  // that interval allows, up to a tick after it ends; that delay does not
+  // make the support stale.
   const staleSecondsOf = ({ support, now }: SupportAtArgs) =>
-    now - support.lastRefreshedAt - support.refreshSeconds;
+    now - support.lastRefreshedAt - support.refreshSeconds - tickSeconds;
 
   const isExpired = ({ support, now }: SupportAtArgs) =>
     !support.permanent &&

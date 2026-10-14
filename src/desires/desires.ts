@@ -4,15 +4,23 @@ import { createOptionGeneration } from './option-generation/option-generation.ap
 
 export { createDesires };
 
+interface CreateDesiresArgs {
+  /** How often, in game seconds, the runtime updates Intentions. */
+  tickSeconds: number;
+}
+
 /**
  * Creates the bot's Option Generation, which keeps its permanent Desires and
  * the Desires its Intentions express.
  */
-function createDesires(): OptionGeneration<WarlordDesireOutcome> {
+function createDesires({
+  tickSeconds,
+}: CreateDesiresArgs): OptionGeneration<WarlordDesireOutcome> {
   return createOptionGeneration({
     // No outcome has parameters yet, so its kind is its whole identity.
     identify: ({ outcome }) => outcome.kind,
     permanentDesires: PermanentDesires,
+    tickSeconds,
   });
 }
 

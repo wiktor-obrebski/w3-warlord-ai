@@ -47,7 +47,7 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
       readCurrentStrategy: () => currentStrategy,
     }),
   });
-  const optionGeneration = createDesires();
+  const optionGeneration = createDesires({ tickSeconds: TickSeconds });
   const arbiter = createActorControl();
   const deliberation = createDeliberation({
     actorControl: arbiter.actorControl,
