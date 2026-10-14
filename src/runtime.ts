@@ -6,7 +6,7 @@ import { debug } from './debug';
 import type { WarlordUpdateChild } from './contracts/component';
 import type { WarlordDesire } from './contracts/desires';
 import type { Strategy } from './contracts/strategy';
-import { createActorControl } from './capabilities/actor-control/actor-control.api';
+import { createActorControl } from './capabilities/actor-control/actor-control';
 import {
   CommonBeliefs,
   createCommonBeliefsModel,

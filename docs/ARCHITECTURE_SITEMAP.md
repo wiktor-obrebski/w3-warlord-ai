@@ -94,7 +94,7 @@ revise Common Beliefs → Option Generation → current Desires → Deliberation
 
 A component created during the tick is registered and has its Scoped Beliefs first revised before its first update. Desires expressed during the tick appear on the next one, so expression cannot adopt Intentions recursively within a tick.
 
-Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), component assembly (`AssembledComponent`, `childFactory`), the Option Generation contract (`OptionGeneration`, `DesireExpressionProvider`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The bot's Option Generation is implemented in `src/desires/option-generation/`, including how stale supports decay and expire, and created with the bot's permanent Desires by `createDesires` in `src/desires/`, over the outcomes in `src/contracts/desires.ts`. A support stays fresh for its `refreshSeconds` plus one tick, since its Intention can refresh it only on a tick, then decays linearly over two more intervals and expires. The bot's actor control, the arbiter together with the policy deciding which requests are granted, is created by `createActorControl` in `src/capabilities/actor-control/`, over the request type in `src/contracts/actor-control.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
+Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), component assembly (`AssembledComponent`, `childFactory`), the Option Generation contract (`OptionGeneration`, `DesireExpressionProvider`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The bot's Option Generation is implemented in `src/desires/option-generation.ts`, including how stale supports decay and expire, and created with the bot's permanent Desires by `createDesires` in `src/desires/`, over the outcomes in `src/contracts/desires.ts`. A support stays fresh for its `refreshSeconds` plus one tick, since its Intention can refresh it only on a tick, then decays linearly over two more intervals and expires. The bot's actor control, the arbiter together with the policy deciding which requests are granted, is created by `createActorControl` in `src/capabilities/actor-control/`, over the request type in `src/contracts/actor-control.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
 
 Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, diagnostic artifacts, and automated tests.
 
@@ -251,7 +251,7 @@ src/
 ├─ runtime.ts     the bot loop
 ├─ contracts/     type-only domain vocabulary shared across layers: Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
 ├─ beliefs/       common belief model, observing Warcraft state for decisions
-├─ desires/       the bot's permanent Desires and outcome identity; option-generation/ implements its Option Generation
+├─ desires/       the bot's Option Generation, its permanent Desires, and outcome identity
 ├─ deliberation/  creates, retains, and drops Intentions
 ├─ components/
 │  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, *.common-beliefs.ts, scoped *.beliefs.ts, and *.assessments.ts
@@ -263,23 +263,23 @@ src/
 
 Which modules may import which, to be enforced by an architecture linter later:
 
-| Module                                                           | May import                                                                                               |
-| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `lib/**`                                                         | nothing from `src/`                                                                                      |
-| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                                      |
-| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                                                      |
-| `desires/`                                                       | `@lib/bdi`, `contracts/`                                                                                 |
-| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                                  |
-| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                                  |
-| `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                                  |
-| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`                                |
-| `runtime.ts`                                                     | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/**/*.api.ts`, `debug.ts` |
-| `main.ts`                                                        | `@lib/**`, `runtime.ts`, `privileged/`, `debug.ts`                                                       |
-| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                                  |
-| `debug.ts`                                                       | `@lib/warcraft3-api/**`                                                                                  |
+| Module                                                           | May import                                                                                    |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `lib/**`                                                         | nothing from `src/`                                                                           |
+| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                           |
+| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                                           |
+| `desires/`                                                       | `@lib/bdi`, `contracts/`                                                                      |
+| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                       |
+| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                       |
+| `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                       |
+| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`                     |
+| `runtime.ts`                                                     | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/`, `debug.ts` |
+| `main.ts`                                                        | `@lib/**`, `runtime.ts`, `privileged/`, `debug.ts`                                            |
+| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                       |
+| `debug.ts`                                                       | `@lib/warcraft3-api/**`                                                                       |
 
 - Contracts are imported with `import type`.
-- From outside a component or capability module, only its `*.api.ts` file is imported. Components never import other component modules or `capabilities/`: a reusable Plan or Controller, like any capability, reaches an Intention through its Capabilities.
+- From outside a component module, only its `*.api.ts` file is imported. Components never import other component modules or `capabilities/`: a reusable Plan or Controller, like any capability, reaches an Intention through its Capabilities.
 - Only `privileged/` imports `@lib/warcraft3-api/privileged`.
 - No import cycles other than type-only imports.
 - Temporary exceptions: component modules may still import `debug.ts`, and Intention modules `components/intentions/update-interval.ts`.

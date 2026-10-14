@@ -1,6 +1,6 @@
 import type { OptionGeneration } from '@lib/bdi';
 import type { WarlordDesireOutcome } from '../contracts/desires';
-import { createOptionGeneration } from './option-generation/option-generation.api';
+import { createOptionGeneration } from './option-generation';
 
 export { createDesires };
 

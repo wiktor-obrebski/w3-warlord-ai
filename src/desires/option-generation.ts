@@ -5,10 +5,7 @@ import type {
   DesireSupportId,
   OptionGeneration,
 } from '@lib/bdi';
-import type {
-  WarlordDesire,
-  WarlordDesireOutcome,
-} from '../../contracts/desires';
+import type { WarlordDesire, WarlordDesireOutcome } from '../contracts/desires';
 
 export { createOptionGeneration };
 
