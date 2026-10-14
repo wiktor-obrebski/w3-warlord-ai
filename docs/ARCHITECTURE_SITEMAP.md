@@ -228,17 +228,20 @@ Beliefs + Desires → Deliberation → Intentions → Plans & Controllers
 
 Beliefs come in two categories. Common Beliefs (`src/beliefs/common.beliefs.ts`) hold broadly useful game knowledge and are read by every component. Components do not know the global `CommonBeliefs` type: each Intention module declares the part it needs as its own interface (`*.common-beliefs.ts`), shared by its private Plans and Controllers and exported through its API file. Its assemble function is generic over the bot's Common Beliefs type and constrained by that interface, so Deliberation, assembling it with `CommonBeliefs`, fails to compile when the global Common Beliefs stop providing what the module needs; the same object is passed at runtime, without projection or copying. Scoped Beliefs are private to one component instance: a component's assemble function may return a shared, stateless BeliefsModel (`*.beliefs.ts`), and the runtime keeps that component's own Beliefs in the BeliefContainer, indexed by the component instance. Each component receives `{ commonBeliefs, scopedBeliefs }` in `update()`, with `scopedBeliefs` null when it has no model; it never sees its model. Intentions, Plans, and Controllers keep only execution state. Perception is not a separate layer: each model's `observe()` reads Warcraft state. Retained beliefs are limited to short attack memory (Common Beliefs) and when workers were last attacked (the worker safety controller's Scoped Beliefs, the current example of the mechanism). The Common Beliefs also hold the bot's own race and `currentStrategy`, the strategy Deliberation committed to on the previous tick; the runtime passes it to the Common Beliefs model, which observes it like the world.
 
-Every component is constructed through its `assemble...()` function (`src/contracts/component.ts` holds the Warlord component types). Intentions create their Plans and Controllers through child factories injected by their assemble functions, and discard them when done, e.g. the tower rush discards its plan once the tower position is established. The runtime hands the arbiter's actor control to Deliberation, whose capabilities providers pass it to each Intention, and each Intention passes it on to its children. Desire expression, the other capability, comes from Option Generation and is meant for Intentions only.
+Every component is constructed through its `assemble...()` function (`src/contracts/component.ts` holds the Warlord component types). Intentions create their Plans and Controllers through child factories injected by their assemble functions, and discard them when done, e.g. the tower rush discards its plan once the tower position is established. The runtime hands the arbiter's actor control and Option Generation's desire expression to Deliberation, whose capabilities providers pass them to the Intentions declaring them. Each Intention passes actor control on to its children; desire expression is meant for Intentions only.
 
 Assessments are pure functions in `*.assessments.ts`: no state, no Warcraft API access, read-only Beliefs. They are private to the component module interpreting the Beliefs and live next to it; there are no shared assessments, since components may legitimately read the same facts differently, and some duplication between modules is accepted. `*.beliefs.ts` keeps only Belief types and revision; Plans and Controllers call assessments instead of interpreting Beliefs themselves.
 
-Every Desire is permanent for now. Deliberation adopts one Intention for each with a fixed policy, and on every tick asks each retained Intention to assess its commitment, dropping it when the assessment fails; every current Intention remains committed while its Desire exists:
+Deliberation adopts one Intention for each Desire with a fixed policy, and on every tick asks each retained Intention to assess its commitment, dropping it when the assessment fails; every current Intention remains committed while its Desire exists:
 
 ```text
-ProtectEconomicAssets        → MaintainWorkerSafety → WorkerSafetyController
-ApplyPressure                → TowerRush            → EstablishTowerPositionPlan, TowerRushEconomyController, TowerMaintenanceController
-UseMilitaryAssetsEffectively → OperateTowers        → TowerTargetSelectionController (once the tower position is established)
+ProtectEconomicAssets (permanent)        → MaintainWorkerSafety → WorkerSafetyController
+MaintainEffectiveStrategy (permanent)    → AdaptStrategy        → expresses ExecuteTowerRushStrategy when playing Human
+ExecuteTowerRushStrategy                 → TowerRush            → EstablishTowerPositionPlan, TowerRushEconomyController, TowerMaintenanceController
+UseMilitaryAssetsEffectively (permanent) → OperateTowers        → TowerTargetSelectionController (once the tower position is established)
 ```
+
+AdaptStrategy reassesses every 10 game seconds which strategy it prefers, a private assessment distinct from the adopted `currentStrategy` in the Common Beliefs, and keeps supporting the Desire to execute it; it replaces its support when its preference changes and withdraws it when it prefers none. It never adopts a strategy itself: the tower rush is the strategy commitment Deliberation makes for that Desire, a tick after it is first expressed. The bot keeps one strategy commitment alongside its other concurrent Desires. Switching costs and commitment stability will matter once there is more than one strategy.
 
 Before ordering an Actor, every Plan and Controller requests Actor Control for it and orders it only when granted. Normal sources request each update the Actors they need; worker safety requests attacked workers preemptively until they are safe again, then lets control expire so their previous controller can request them back. Control decides only who may order an Actor now, not which Intention the Actor belongs to.
 
@@ -246,7 +249,7 @@ Before ordering an Actor, every Plan and Controller requests Actor Control for i
 src/
 ├─ main.ts        startup: installs the bot player, debug mode, starts the runtime
 ├─ runtime.ts     the bot loop
-├─ contracts/     type-only domain vocabulary shared across layers: Warlord component types, Actor and actor control requests, observed world records
+├─ contracts/     type-only domain vocabulary shared across layers: Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
 ├─ beliefs/       common belief model, observing Warcraft state for decisions
 ├─ desires/       the bot's Option Generation and its permanent Desires
 ├─ deliberation/  creates, retains, and drops Intentions

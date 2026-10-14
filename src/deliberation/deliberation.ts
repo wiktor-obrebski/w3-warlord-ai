@@ -4,9 +4,17 @@ import type {
   AssembledWarlordComponent,
   WarlordIntention,
 } from '../contracts/component';
-import type { WarlordDesire, WarlordDesireOutcome } from '../contracts/desires';
+import type {
+  WarlordDesire,
+  WarlordDesireExpression,
+  WarlordDesireOutcome,
+} from '../contracts/desires';
 import type { ActorControl } from '../contracts/actor-control';
 import type { Strategy } from '../contracts/strategy';
+import {
+  assembleAdaptStrategyIntention,
+  AdaptStrategyCapabilities,
+} from '../components/intentions/adapt-strategy/adapt-strategy.api';
 import {
   assembleMaintainWorkerSafetyIntention,
   MaintainWorkerSafetyCapabilities,
@@ -40,13 +48,15 @@ interface WarlordDeliberation extends Deliberation<
 
 interface CreateDeliberationArgs {
   actorControl: ActorControl;
+  desireExpression: WarlordDesireExpression;
 }
 
 /**
  * A fixed policy for now, adopting one Intention for each Desire:
  *
  * - ProtectEconomicAssets → MaintainWorkerSafety
- * - ApplyPressure → TowerRush
+ * - MaintainEffectiveStrategy → AdaptStrategy
+ * - ExecuteTowerRushStrategy → TowerRush, the bot's strategy commitment
  * - UseMilitaryAssetsEffectively → OperateTowers, once the tower rush has
  *   established its Guard Tower position
  *
@@ -61,9 +71,13 @@ interface CreateDeliberationArgs {
  */
 function createDeliberation({
   actorControl,
+  desireExpression,
 }: CreateDeliberationArgs): WarlordDeliberation {
   const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
     actorControl,
+  };
+  const adaptStrategyCapabilitiesProvider: AdaptStrategyCapabilities = {
+    desireExpression,
   };
   const towerRushCapabilitiesProvider: TowerRushCapabilities = {
     actorControl,
@@ -72,6 +86,7 @@ function createDeliberation({
     actorControl,
   };
   let workerSafety: AssembledIntention | null = null;
+  let adaptStrategy: AssembledIntention | null = null;
   let towerRush: AssembledWarlordComponent<
     TowerRushIntention<CommonBeliefs>,
     CommonBeliefs
@@ -110,9 +125,17 @@ function createDeliberation({
             capabilities: workerSafetyCapabilitiesProvider,
           }),
       });
+      adaptStrategy = commit({
+        intention: adaptStrategy,
+        desireKind: 'MaintainEffectiveStrategy',
+        adopt: () =>
+          assembleAdaptStrategyIntention<CommonBeliefs>({
+            capabilities: adaptStrategyCapabilitiesProvider,
+          }),
+      });
       towerRush = commit({
         intention: towerRush,
-        desireKind: 'ApplyPressure',
+        desireKind: 'ExecuteTowerRushStrategy',
         adopt: () =>
           assembleTowerRushIntention<CommonBeliefs>({
             capabilities: towerRushCapabilitiesProvider,
@@ -133,6 +156,10 @@ function createDeliberation({
       // holes that end iteration early.
       if (workerSafety) {
         active.push(workerSafety);
+      }
+
+      if (adaptStrategy) {
+        active.push(adaptStrategy);
       }
 
       if (towerRush) {

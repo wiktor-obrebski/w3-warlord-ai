@@ -6,9 +6,14 @@ export {
   type WarlordDesireExpression,
 };
 
-/** Keep the enemy under pressure. */
-interface ApplyPressure {
-  readonly kind: 'ApplyPressure';
+/** Keep executing a strategy that suits the situation. */
+interface MaintainEffectiveStrategy {
+  readonly kind: 'MaintainEffectiveStrategy';
+}
+
+/** Execute a Human tower rush. */
+interface ExecuteTowerRushStrategy {
+  readonly kind: 'ExecuteTowerRushStrategy';
 }
 
 /** Keep workers and other economic assets alive. */
@@ -23,7 +28,8 @@ interface UseMilitaryAssetsEffectively {
 
 /** Every outcome the bot can desire. */
 type WarlordDesireOutcome =
-  | ApplyPressure
+  | MaintainEffectiveStrategy
+  | ExecuteTowerRushStrategy
   | ProtectEconomicAssets
   | UseMilitaryAssetsEffectively;
 

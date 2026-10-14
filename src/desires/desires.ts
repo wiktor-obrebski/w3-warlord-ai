@@ -17,8 +17,8 @@ function createDesires(): OptionGeneration<WarlordDesireOutcome> {
 }
 
 const PermanentDesires: readonly WarlordDesireOutcome[] = [
+  { kind: 'MaintainEffectiveStrategy' },
   { kind: 'ProtectEconomicAssets' },
-  { kind: 'ApplyPressure' },
   { kind: 'UseMilitaryAssetsEffectively' },
 ];
 

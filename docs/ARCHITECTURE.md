@@ -357,6 +357,8 @@ For example:
 
 Different goals may also have different importance depending on playstyle and current circumstances.
 
+The bot does commit to one overall strategy at a time, such as a tower rush, but that commitment is just one Intention among many concurrent ones. It is chosen through the permanent `MaintainEffectiveStrategy` Desire: its `AdaptStrategy` intention periodically assesses which strategy suits the situation and supports the Desire to execute it, and Deliberation adopts the corresponding strategy intention, which can express further Desires of its own. When `AdaptStrategy` comes to prefer another strategy, it replaces its support; the current strategy intention is reconsidered rather than ended automatically, so switching costs and stability can prevent oscillation. The adopted strategy is part of the Common Beliefs, while the preferred one stays private to `AdaptStrategy`.
+
 ### Why this matters
 
 Short-lived events should not automatically destroy long-term direction.
