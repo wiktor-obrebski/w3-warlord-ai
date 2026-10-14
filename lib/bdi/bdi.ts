@@ -2,6 +2,7 @@ import { createBeliefContainer } from './belief-container';
 import { createBeliefsRuntime } from './beliefs-runtime';
 import { childFactory } from './assembled-component';
 import { createActorControlArbiter } from './actor-control-arbiter';
+import { createOptionGeneration } from './option-generation';
 import type {
   ActorControlClaim,
   ActorControlPolicy,
@@ -13,7 +14,16 @@ import type { BeliefsModel, CommonBeliefsModel } from './beliefs-model';
 import type { BeliefsRuntime, ComponentBeliefs } from './beliefs-runtime';
 import type { Controller } from './controller';
 import type { Deliberation } from './deliberation';
-import type { Desire } from './desire';
+import type {
+  Desire,
+  DesireExpression,
+  DesireExpressionProvider,
+  DesireId,
+  DesireOutcome,
+  DesireSupport,
+  DesireSupportId,
+} from './desire';
+import type { OptionGeneration } from './option-generation';
 import type { Intention, UpdateChild } from './intention';
 import type { Plan, PlanStatus } from './plan';
 import type {
@@ -27,6 +37,7 @@ export {
   createBeliefsRuntime,
   childFactory,
   createActorControlArbiter,
+  createOptionGeneration,
   type ActorControlClaim,
   type ActorControlPolicy,
   type ActorControlProvider,
@@ -39,6 +50,13 @@ export {
   type Controller,
   type Deliberation,
   type Desire,
+  type DesireExpression,
+  type DesireExpressionProvider,
+  type DesireId,
+  type DesireOutcome,
+  type DesireSupport,
+  type DesireSupportId,
+  type OptionGeneration,
   type Intention,
   type UpdateChild,
   type Plan,

@@ -1,6 +1,6 @@
 # `@lib/bdi`
 
-Minimal, domain-independent contracts for a Belief–Desire–Intention (BDI) agent, the beliefs runtime that keeps its Beliefs revised, and the arbiter that decides which Plan or Controller may order each Actor.
+Minimal, domain-independent contracts for a Belief–Desire–Intention (BDI) agent, the beliefs runtime that keeps its Beliefs revised, the Option Generation that keeps its Desires, and the arbiter that decides which Plan or Controller may order each Actor.
 
 The library knows nothing about Warcraft III or any particular strategy; domain code implements these contracts and depends on this library, never the other way round:
 
@@ -12,16 +12,18 @@ domain code
 
 ## Vocabulary
 
-| Concept       | Contract                                                                  | Meaning                                                                                                      |
-| ------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Beliefs       | `CommonBeliefsModel`, `BeliefsModel`, `BeliefContainer`, `BeliefsRuntime` | What the agent knows about the world, including what it remembers across cycles.                             |
-| Desires       | `Desire`                                                                  | High-level states or principles the agent wants to achieve or maintain. No behavior.                         |
-| Deliberation  | `Deliberation`                                                            | Decides which Intentions exist; owns their lifecycle.                                                        |
-| Intentions    | `Intention`                                                               | Concrete commitments currently being pursued. Active while Deliberation retains them.                        |
-| Plans         | `Plan`, `PlanStatus`                                                      | Finite procedural execution with an explicit `running` / `succeeded` / `failed` status.                      |
-| Controllers   | `Controller`                                                              | Continuous reactive behavior without procedural completion.                                                  |
-| Assembly      | `AssembledComponent`, `childFactory`                                      | How Intentions, Plans, and Controllers are constructed, together with what the runtime needs to manage them. |
-| Actor Control | `ActorControlProvider`, `ActorControlArbiter`, `ActorControlPolicy`       | Temporary exclusive right of a Plan or Controller to order an Actor.                                         |
+| Concept           | Contract                                                                  | Meaning                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Beliefs           | `CommonBeliefsModel`, `BeliefsModel`, `BeliefContainer`, `BeliefsRuntime` | What the agent knows about the world, including what it remembers across cycles.                             |
+| Desires           | `Desire`, `DesireOutcome`, `DesireSupport`                                | Outcomes the agent currently considers desirable, each with the supports that make it so. No behavior.       |
+| Desire expression | `DesireExpressionProvider`, `DesireExpression`                            | How an Intention adds, refreshes, withdraws, or replaces its support for an outcome.                         |
+| Option Generation | `OptionGeneration`                                                        | Determines the current Desires from expressed supports and permanent Desires.                                |
+| Deliberation      | `Deliberation`                                                            | Decides which Intentions exist; owns their lifecycle.                                                        |
+| Intentions        | `Intention`                                                               | Concrete commitments currently being pursued. Active while Deliberation retains them.                        |
+| Plans             | `Plan`, `PlanStatus`                                                      | Finite procedural execution with an explicit `running` / `succeeded` / `failed` status.                      |
+| Controllers       | `Controller`                                                              | Continuous reactive behavior without procedural completion.                                                  |
+| Assembly          | `AssembledComponent`, `childFactory`                                      | How Intentions, Plans, and Controllers are constructed, together with what the runtime needs to manage them. |
+| Actor Control     | `ActorControlProvider`, `ActorControlArbiter`, `ActorControlPolicy`       | Temporary exclusive right of a Plan or Controller to order an Actor.                                         |
 
 Beliefs are knowledge about the world ("worker 17 was attacked 0.8 s ago"). Execution state ("the current flee destination", "the current Plan step") stays private to the Intention, Plan, or Controller that owns it.
 
@@ -94,15 +96,24 @@ The assembled components form the component tree the beliefs runtime manages; th
 
 ```text
 1. commonBeliefs = beliefs.reviseCommon()
-2. { intentions } = deliberation.deliberate({ beliefs: commonBeliefs, desires, intentions })   // assembled components
-3. beliefs.sync({ roots: intentions })
+2. { desires } = optionGeneration.generate({ now })
+3. { intentions } = deliberation.deliberate({ beliefs: commonBeliefs, desires, intentions })   // assembled components
+4. beliefs.sync({ roots: intentions })
      register new components, remove gone ones, revise every Scoped Beliefs
-4. intention.component.update({ beliefs: beliefs.beliefsOf({ component: intention.component }), updateChild }) for every Intention
+5. optionGeneration.update({ source: intention.component, now, run: () => intention.component.update({ beliefs: beliefs.beliefsOf({ component: intention.component }), updateChild }) }) for every Intention
      → updateChild({ child }): arbiter.update({ source: child, run: () => child.update({ beliefs: beliefs.beliefsOf({ component: child }) }) })
-5. arbiter.releaseInactive({ activeSources: beliefs.prune() })
+6. { managedComponents } = beliefs.prune()
+   arbiter.releaseInactive({ activeSources: managedComponents })
+   optionGeneration.releaseInactive({ activeSources: managedComponents })
 ```
 
-A component created during step 4 is registered, and its Scoped Beliefs first revised, by `beliefsOf()` before its first update. A component discarded during step 4 is removed by `prune()`, which also releases its actor control. Revising a new component adds Beliefs but changes no other component's.
+A component created during step 5 is registered, and its Scoped Beliefs first revised, by `beliefsOf()` before its first update. A component discarded during step 5 is removed by `prune()`, which also releases its actor control, and an Intention dropped in step 3 loses its desire supports. Revising a new component adds Beliefs but changes no other component's.
+
+Desires expressed during step 5 appear in the next cycle's step 2. Intentions adopted for them can express further Desires in turn, but each round takes a cycle, so expression never adopts Intentions recursively within one cycle:
+
+```text
+Intention ──expresses──→ Option Generation ──Desires──→ Deliberation ──adopts──→ Intention
+```
 
 ## Contracts
 
@@ -179,12 +190,74 @@ An assemble function names the Scoped Beliefs type its component reads as `TScop
 
 `discard()` removes the child's record; discarding twice throws.
 
-### `Desire`
+### `Desire<TOutcome extends DesireOutcome>`, `DesireOutcome`
 
 ```ts
-readonly id: string
-readonly description: string
+readonly id: DesireId                               // canonical identity of the outcome
+readonly outcome: TOutcome                          // { kind, ...identity parameters }
+readonly supports: readonly Readonly<DesireSupport>[]
 ```
+
+A Desire describes an outcome, not the steps to reach it. Each distinct outcome has one canonical identity, computed by the agent's `identify` function: equivalent outcomes, such as the same item for the same hero, resolve to the same Desire whoever expresses them, while a different hero or item gives a different one. Option Generation owns Desire objects and keeps the same object for as long as the Desire has supports.
+
+### `DesireSupport`
+
+```ts
+readonly id: DesireSupportId
+readonly desireId: DesireId
+readonly source: object        // the expressing Intention instance, or the agent itself
+readonly permanent: boolean
+importance: number             // as expressed
+currentImportance: number      // after staleness decay
+refreshSeconds: number
+lastRefreshedAt: number        // game seconds
+```
+
+One source's interest in one Desire. A Desire may have any number of supports, and one source may support any number of Desires; each support has its own importance and freshness, and withdrawing one leaves the others.
+
+Supports disappear in two distinct ways. A deliberate change of preference withdraws or replaces the support, which takes effect at once. A support whose source stops refreshing it goes stale instead: it is fresh for `refreshSeconds` after each refresh, then its importance decays linearly over `decayIntervals` further intervals of `refreshSeconds`, then it expires. Freshness is measured in game time and relative to each support's own `refreshSeconds`, so a source evaluating every 10 game seconds keeps its supports fresh between evaluations. Permanent supports never go stale.
+
+How the supports of a Desire combine into its importance is deliberately left open: individual supports are kept, so an aggregation policy can be chosen once behavior needs one. Summing them would let several weak supports outweigh one critical support.
+
+### `DesireExpressionProvider<TOutcome>`
+
+```ts
+express({ outcome, importance, refreshSeconds }): DesireSupportId
+support({ supportId, importance? }): void
+withdraw({ supportId }): void
+replace({ supportId, outcome, importance, refreshSeconds }): DesireSupportId
+```
+
+Given to Intentions as a capability. Like actor control, one provider serves every Intention: it acts for the Intention whose update is running, so operations need not name their source, and it throws outside an Intention update. An Intention can only refresh, withdraw, or replace supports it owns; a foreign, withdrawn, or expired support id throws.
+
+An Intention keeps the ids of its supports in its private state. On each regular evaluation it calls `support()` rather than expressing the outcome again; `replace()` changes its preference, possibly to a different outcome, in one step:
+
+```ts
+supportId = desireExpression.replace({
+  supportId,
+  outcome: { kind: 'ExecuteChimeraStrategy' },
+  importance: 0.9,
+  refreshSeconds: 10,
+});
+```
+
+Other Intentions' supports for the old outcome remain.
+
+### `OptionGeneration<TOutcome>`
+
+```ts
+createOptionGeneration<TOutcome>({ identify, permanentDesires, decayIntervals }): OptionGeneration<TOutcome>
+readonly desireExpression: DesireExpressionProvider<TOutcome>
+update({ source, now, run }: { source: object; now: number; run: () => void }): void
+releaseInactive({ activeSources }: { activeSources: ReadonlySet<object> }): void
+generate({ now }: { now: number }): { desires: readonly Desire<TOutcome>[] }
+```
+
+Owned by the agent's runtime. Option Generation determines what is currently worth pursuing; Deliberation determines what the agent commits to. It may therefore keep incompatible Desires side by side, and leaves competition for actors and resources to Deliberation and arbitration.
+
+`permanentDesires` are supported by the agent itself, with importance 1, for the whole game. `update` runs one Intention update, during which `desireExpression` acts for that Intention. `releaseInactive` withdraws every support of Intentions no longer in the managed component tree. `generate` decays and expires stale supports, retires Desires left without supports, and returns the current Desires.
+
+Not yet implemented: retiring Desires that Beliefs show to be irrelevant or already satisfied, such as an item the hero already holds, and generating Desires directly from Beliefs.
 
 ### `Deliberation<TBeliefs, TDesire, TIntention>`
 
@@ -200,16 +273,24 @@ The returned set defines which commitments remain active:
 
 Retained Intentions must not be recreated. One Desire may lead to any number of Intentions, including none. An agent may use assembled components as `TIntention`, so the runtime receives each Intention's metadata.
 
-### `Intention<TBeliefs, TChildBeliefs = TBeliefs>`
+### `Intention<TBeliefs, TChildBeliefs = TBeliefs, TCommonBeliefs = TBeliefs, TDesire = unknown>`
 
 ```ts
 update({ beliefs, updateChild }: {
   beliefs: Readonly<TBeliefs>;
   updateChild: UpdateChild<TChildBeliefs>;
 }): void
+assessCommitment({ commonBeliefs, desire }: {
+  commonBeliefs: Readonly<TCommonBeliefs>;
+  desire: TDesire | null;
+}): boolean
 ```
 
 An Intention has no success or failure status of its own; it is active exactly while Deliberation retains it. It may own Plans, Controllers, and internal execution state, and decides when to create, update, and discard them. It updates a child only through `updateChild({ child })`, which runs the child's `update()` with the child's own Beliefs and its actor control acting for it.
+
+`assessCommitment` answers whether maintaining the commitment remains worthwhile, from the Intention's own point of view: its objective, progress, remaining work, and circumstances, and whether the Desire it was adopted for still exists (`desire`, null once gone) and how strongly it is supported. It does not compare itself with competing Intentions; that is Deliberation's job, which weighs the answer and may still drop an Intention that wants to continue. A Desire disappearing therefore leads to reconsideration rather than automatic termination: an Intention close to completing its objective may recommend finishing it.
+
+The assessment has no side effects: it does not end the Intention, release what it holds, express Desires, or order Actors. Deliberation calls it outside any update, where desire expression and actor control throw.
 
 ### `Plan<TBeliefs>`
 
@@ -232,7 +313,7 @@ A Controller reacts continuously and never completes. It may keep private execut
 
 ### Capabilities
 
-`update()` receives only the Beliefs, which the runtime prepares for every update. Anything else a component needs from outside, such as actor control, it receives once, when it is assembled: its assemble function takes the capabilities the component declares, and the component keeps them.
+`update()` receives only the Beliefs, which the runtime prepares for every update. Anything else a component needs from outside, such as actor control or desire expression, it receives once, when it is assembled: its assemble function takes the capabilities the component declares, and the component keeps them.
 
 ## Actor Control
 

@@ -8,6 +8,7 @@ import type {
   WarlordIntention,
   WarlordUpdateChild,
 } from '../../../contracts/component';
+import type { WarlordDesire } from '../../../contracts/desires';
 import { UpdateInterval } from '../update-interval';
 import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { createTowerRushState } from './tower-rush.state';
@@ -171,6 +172,10 @@ class TowerRush implements TowerRushIntention {
     }
 
     this.updatedBefore = true;
+  }
+
+  public assessCommitment({ desire }: { desire: WarlordDesire | null }) {
+    return desire !== null;
   }
 
   private discardEndedPlan({ plan }: TowerRushDiscardEndedPlanArgs) {

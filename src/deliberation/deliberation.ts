@@ -1,12 +1,10 @@
-import { Deliberation, Desire } from '@lib/bdi';
+import { Deliberation } from '@lib/bdi';
 import { CommonBeliefs } from '../beliefs/common.beliefs';
 import type {
   AssembledWarlordComponent,
   WarlordIntention,
 } from '../contracts/component';
-import { APPLY_PRESSURE } from '../desires/apply-pressure';
-import { PROTECT_ECONOMIC_ASSETS } from '../desires/protect-economic-assets';
-import { USE_MILITARY_ASSETS_EFFECTIVELY } from '../desires/use-military-assets-effectively';
+import type { WarlordDesire, WarlordDesireOutcome } from '../contracts/desires';
 import type { ActorControl } from '../contracts/actor-control';
 import {
   assembleMaintainWorkerSafetyIntention,
@@ -30,33 +28,32 @@ type AssembledIntention = AssembledWarlordComponent<
   CommonBeliefs
 >;
 
-interface RetainedArgs<T extends AssembledIntention> {
-  intention: T | null;
-}
-
 interface CreateDeliberationArgs {
   actorControl: ActorControl;
 }
 
 /**
- * A fixed policy for now:
+ * A fixed policy for now, adopting one Intention for each Desire:
  *
  * - ProtectEconomicAssets → MaintainWorkerSafety
  * - ApplyPressure → TowerRush
  * - UseMilitaryAssetsEffectively → OperateTowers, once the tower rush has
  *   established its Guard Tower position
  *
+ * A retained Intention is kept for as long as it assesses its commitment as
+ * still worthwhile, even if its Desire is gone, and dropped otherwise.
+ *
  * Intentions are returned in update order. Worker safety comes first so it
  * takes attacked workers over before the others order them on the same tick.
  *
  * Deliberation remembers the Intentions it assembled, so it can tell them
- * apart and read their state; one is retained while it is still active.
+ * apart and read their state.
  */
 function createDeliberation({
   actorControl,
 }: CreateDeliberationArgs): Deliberation<
   CommonBeliefs,
-  Desire,
+  WarlordDesire,
   AssembledIntention
 > {
   const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
@@ -76,33 +73,55 @@ function createDeliberation({
   let operateTowers: AssembledIntention | null = null;
 
   return {
-    deliberate({ beliefs: _beliefs, desires, intentions }) {
-      const retained = <T extends AssembledIntention>({
+    deliberate({ beliefs, desires, intentions }) {
+      const commit = <T extends AssembledIntention>({
         intention,
-      }: RetainedArgs<T>) =>
-        intention !== null && intentions.includes(intention) ? intention : null;
+        desireKind,
+        adopt,
+      }: CommitArgs<T>): T | null => {
+        const desire =
+          desires.find((candidate) => candidate.outcome.kind === desireKind) ??
+          null;
+
+        if (intention !== null && intentions.includes(intention)) {
+          return intention.component.assessCommitment({
+            commonBeliefs: beliefs,
+            desire,
+          })
+            ? intention
+            : null;
+        }
+
+        return desire !== null ? adopt() : null;
+      };
       const active: AssembledIntention[] = [];
 
-      workerSafety = desires.includes(PROTECT_ECONOMIC_ASSETS)
-        ? (retained({ intention: workerSafety }) ??
+      workerSafety = commit({
+        intention: workerSafety,
+        desireKind: 'ProtectEconomicAssets',
+        adopt: () =>
           assembleMaintainWorkerSafetyIntention<CommonBeliefs>({
             capabilities: workerSafetyCapabilitiesProvider,
-          }))
-        : null;
-      towerRush = desires.includes(APPLY_PRESSURE)
-        ? (retained({ intention: towerRush }) ??
+          }),
+      });
+      towerRush = commit({
+        intention: towerRush,
+        desireKind: 'ApplyPressure',
+        adopt: () =>
           assembleTowerRushIntention<CommonBeliefs>({
             capabilities: towerRushCapabilitiesProvider,
-          }))
-        : null;
-      operateTowers = desires.includes(USE_MILITARY_ASSETS_EFFECTIVELY)
-        ? (retained({ intention: operateTowers }) ??
-          (towerRush?.component.positionEstablished
+          }),
+      });
+      operateTowers = commit({
+        intention: operateTowers,
+        desireKind: 'UseMilitaryAssetsEffectively',
+        adopt: () =>
+          towerRush?.component.positionEstablished
             ? assembleOperateTowersIntention<CommonBeliefs>({
                 capabilities: operateTowersCapabilitiesProvider,
               })
-            : null))
-        : null;
+            : null,
+      });
 
       // Pushed one by one: in Lua, null elements of an array literal leave
       // holes that end iteration early.
@@ -121,4 +140,10 @@ function createDeliberation({
       return { intentions: active };
     },
   };
+}
+
+interface CommitArgs<T extends AssembledIntention> {
+  intention: T | null;
+  desireKind: WarlordDesireOutcome['kind'];
+  adopt: () => T | null;
 }

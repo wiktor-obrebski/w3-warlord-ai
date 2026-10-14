@@ -6,6 +6,7 @@ import type {
   Plan,
   UpdateChild,
 } from '@lib/bdi';
+import type { WarlordDesire } from './desires';
 
 export {
   type WarlordBeliefs,
@@ -40,7 +41,9 @@ type WarlordController<TCommonBeliefs, TScopedBeliefs = null> = Controller<
 
 type WarlordIntention<TCommonBeliefs, TScopedBeliefs = null> = Intention<
   WarlordBeliefs<TCommonBeliefs, TScopedBeliefs>,
-  WarlordBeliefs<TCommonBeliefs, unknown>
+  WarlordBeliefs<TCommonBeliefs, unknown>,
+  TCommonBeliefs,
+  WarlordDesire
 >;
 
 type WarlordUpdateChild<TCommonBeliefs> = UpdateChild<

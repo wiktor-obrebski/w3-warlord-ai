@@ -8,6 +8,7 @@ import type {
   WarlordIntention,
   WarlordUpdateChild,
 } from '../../../contracts/component';
+import type { WarlordDesire } from '../../../contracts/desires';
 import { UpdateInterval } from '../update-interval';
 import type { OperateTowersCommonBeliefs } from './operate-towers.common-beliefs';
 import { assembleTowerTargetSelectionController } from './tower-target-selection.ctrl';
@@ -81,5 +82,9 @@ class OperateTowersIntention implements WarlordIntention<OperateTowersCommonBeli
       this.targetSelection ??= this.createTargetSelection().component;
       updateChild({ child: this.targetSelection });
     }
+  }
+
+  public assessCommitment({ desire }: { desire: WarlordDesire | null }) {
+    return desire !== null;
   }
 }

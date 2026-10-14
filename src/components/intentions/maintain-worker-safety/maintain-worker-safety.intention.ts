@@ -8,6 +8,7 @@ import type {
   WarlordIntention,
   WarlordUpdateChild,
 } from '../../../contracts/component';
+import type { WarlordDesire } from '../../../contracts/desires';
 import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import { assembleWorkerSafetyController } from './worker-safety.ctrl';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
@@ -81,5 +82,9 @@ class MaintainWorkerSafetyIntention implements WarlordIntention<MaintainWorkerSa
   public update({ updateChild }: MaintainWorkerSafetyIntentionUpdateArgs) {
     this.workerSafety ??= this.createWorkerSafetyController().component;
     updateChild({ child: this.workerSafety });
+  }
+
+  public assessCommitment({ desire }: { desire: WarlordDesire | null }) {
+    return desire !== null;
   }
 }

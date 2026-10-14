@@ -26,7 +26,7 @@ The architecture combines several complementary ideas:
 - an explicit [World Model and Beliefs](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#world-model-and-beliefs) representation for partial information;
 - [Assessment](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#assessment) that interprets known information;
 - long-lived [Strategic Goals](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#strategic-goals), including achievement and maintenance goals;
-- utility-based [Goal Evaluation](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#goal-generation-and-evaluation);
+- [Desires](#desires-and-option-generation) expressed by Intentions and consolidated by Option Generation, weighed by utility-based Deliberation;
 - BDI/PRS-style concurrent [Intentions](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#intentions) with explicit intention scheduling;
 - explicit, continually adaptable [Plans](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#plans) and [Execution Monitoring](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#execution-monitoring);
 - RTS-specific [Resource Arbitration](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#resource-arbitration) with explicit unit assignment and command authority;
@@ -99,15 +99,15 @@ At a high level, the bot operates as a continuous feedback system:
 
 ↓
 
-**Goals and Immediate Needs**
+**Desires and Option Generation**
 
 ↓
 
-**Goal Evaluation and Deliberation**
+**Deliberation and Commitment Assessment**
 
 ↓
 
-**Concurrent Intentions**
+**Concurrent Intentions**, which may express further Desires
 
 ↓
 
@@ -371,7 +371,7 @@ It also lets different playstyles use the same architecture by assigning differe
 
 ---
 
-## Goal Generation and Evaluation
+## Desires and Option Generation
 
 At any moment, many things could be beneficial.
 
@@ -386,11 +386,31 @@ Examples include:
 - save resources for Tier 3;
 - establish an expansion.
 
-These possibilities are **candidate goals**.
+These possibilities are **Desires**: outcomes the bot considers desirable, not yet things it has committed to doing.
 
-A candidate goal is not yet something the bot has committed to doing.
+Desires exist at every level, from `MaintainEffectiveStrategy` or `ExecuteChimeraStrategy` down to `EstablishExpansion` or `AcquireItem(hero, item)`. An objective is worth representing as a Desire when it benefits from independent deliberation, scheduling, or resource coordination. A Desire describes the outcome, not the steps to reach it, and has a canonical identity: the same item for the same hero is one Desire, whoever wants it.
 
-Goal evaluation determines how valuable or urgent each candidate currently is, using information from [Beliefs](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#world-model-and-beliefs) and [Assessment](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#assessment).
+### Decentralized expression, centralized generation
+
+Desires mostly come from Intentions. An Intention expresses its interest in an outcome as a **Desire Support**, with its own importance. Several Intentions may support the same Desire independently:
+
+```text
+HarassEnemy ─── support ──┐
+                          ├── AcquireItem(Demon Hunter, Staff of Teleportation)
+ProtectHero ─── support ──┘
+```
+
+Each Intention can refresh, withdraw, or replace only its own supports, and loses them all when it ends. Withdrawing or replacing a support is a deliberate change of preference and takes effect at once. A support its Intention simply stops refreshing goes stale instead: its importance decays over game time, relative to how often that Intention evaluates, until it expires.
+
+Some Desires are **permanent**: the bot supports them itself for the whole game, independently of any Intention.
+
+**Option Generation** turns supports and permanent Desires into the current set of Desires. It consolidates equivalent outcomes, keeps each Desire across ticks, and retires Desires that lost their support. Later it should also use [Beliefs](#world-model-and-beliefs) to retire Desires that are irrelevant or already satisfied, and to generate Desires directly.
+
+Option Generation decides what is worth pursuing, not what the bot commits to. It therefore keeps incompatible Desires side by side and does not resolve competition for actors or resources: an `AcquireItem` Desire may remain while the gold for it is missing.
+
+A Desire's importance derives from its supports. The aggregation policy is left open; several weak supports should not automatically outweigh one critical support.
+
+**Deliberation** then compares Desires using value, urgency, risk, opportunity cost, resources, and existing commitments, using information from [Beliefs](#world-model-and-beliefs) and [Assessment](#assessment).
 
 This can use utility or priority values.
 
@@ -399,6 +419,16 @@ For example, defending the main base may suddenly become far more valuable than:
 - continuing to creep;
 - buying an item;
 - maintaining harassment.
+
+Intentions adopted for one Desire may express further Desires, which lead to further Intentions without those Intentions depending on each other:
+
+```text
+MaintainEffectiveStrategy (permanent) → AdaptStrategy
+  → supports ExecuteTowerRushStrategy → TowerRush
+    → may support AcquireItem, EstablishExpansion, …
+```
+
+Each round of this feedback loop takes a cycle, so it cannot adopt Intentions recursively within one.
 
 ### Why this matters
 
@@ -412,7 +442,9 @@ from:
 
 Without that distinction, every attractive opportunity becomes immediate behavior and the bot constantly changes direction.
 
-Goal evaluation gives us context-sensitive choices while [Intentions](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#intentions) provide persistence once a choice has been made.
+Decentralized expression lets each Intention say what it needs, such as an item for its hero, without coordinating with whoever will obtain it. Centralized Option Generation and Deliberation keep one view of what is desirable and one place where commitments are made.
+
+Deliberation gives us context-sensitive choices while [Intentions](https://chatgpt.com/g/g-p-6aa515bc270081918a265886dbc55774/c/6aa0f651-5a2c-83ed-ab28-e3e8b9bfb85a#intentions) provide persistence once a choice has been made.
 
 ---
 
@@ -501,6 +533,28 @@ For example:
 **harass → suspend for emergency defense → defend → reconsider and resume harassment**
 
 A blocked intention remains valid but currently cannot make useful progress, for example because a required resource or safe route is unavailable.
+
+### Commitment assessment
+
+Desire generation and commitment are separate processes. An intention may remain active after the Desire it was adopted for disappears: the disappearance calls for reconsideration, not automatic termination.
+
+Each intention therefore assesses whether maintaining its own commitment remains worthwhile (`assessCommitment`). It may consider whether its objective is still useful and achievable, how close it is to completion, its remaining work, changed circumstances, and whether its Desire still exists and how strongly it is supported. It does not compare itself with competing intentions.
+
+For example, a hero standing next to the shop with gold reserved may finish buying an item even after every supporter of the acquisition Desire withdrew.
+
+| Decision                                          | Responsibility                       |
+| ------------------------------------------------- | ------------------------------------ |
+| Is this outcome desirable?                        | Option Generation                    |
+| Should an intention be adopted?                   | Deliberation                         |
+| Is maintaining my commitment worthwhile?          | The intention's `assessCommitment()` |
+| Should it continue against competing commitments? | Deliberation                         |
+| Who may control a particular actor?               | Actor control arbiter                |
+| Can resources be allocated?                       | Resource Arbitration                 |
+| How should the objective be executed?             | Intention, plans, and controllers    |
+
+The assessment is advice: Deliberation weighs it and may still end a commitment that wants to continue. The assessment itself has no side effects; it neither ends the intention nor releases its units or resources. Domain-specific judgments, such as the distance to a shop, stay in the intention rather than in Deliberation.
+
+Successful completion and abandonment are different lifecycle outcomes and must stay distinguishable; a completion signal is added with the first intention that can complete.
 
 ### Why this matters
 
@@ -1103,7 +1157,7 @@ Examples include:
 - enemy expansion discovered;
 - enemy hero lost from vision;
 - threat changed from low to critical;
-- candidate goal became highly valuable;
+- Desire appeared, became highly valuable, or disappeared;
 - intention activated;
 - intention blocked or unblocked;
 - intention suspended or resumed;
@@ -1126,7 +1180,7 @@ For an important decision, we should be able to reconstruct:
 - what it remembered;
 - what it inferred;
 - how it assessed the situation;
-- which goals were considered;
+- which Desires were considered, and who supported them;
 - which intentions were active;
 - why one intention progressed while another waited or was suspended;
 - which intention received contested resources;
@@ -1135,7 +1189,7 @@ For an important decision, we should be able to reconstruct:
 
 This gives a reasoning chain similar to:
 
-**Observation → Belief → Assessment → Goal → Intention → Scheduling / Plan → Controller → Action**
+**Observation → Belief → Assessment → Desire → Intention → Scheduling / Plan → Controller → Action**
 
 This also allows test failures to report semantic reasoning state rather than only raw game data.
 
@@ -1187,7 +1241,7 @@ Tests can construct:
 - observations;
 - beliefs;
 - assessments;
-- candidate goals;
+- Desires and their supports;
 - active intentions;
 - resource constraints;
 - sequences of events over simulated time.
@@ -1331,11 +1385,11 @@ Beliefs represent the bot's model of reality.
 
 Assessment interprets that model in decision-oriented terms.
 
-### Goal is not intention
+### Desire is not intention
 
-A goal may be desirable.
+A Desire is an outcome the bot considers worth pursuing.
 
-An intention means the bot has committed to pursuing it.
+An intention means the bot has committed to pursuing it, and may outlive the Desire it was adopted for.
 
 ### Intention is not plan
 
@@ -1482,7 +1536,7 @@ It is a structured autonomous-agent system built from:
 - memory and uncertainty-aware beliefs;
 - shared situation assessment;
 - persistent achievement and maintenance goals;
-- utility-based goal evaluation;
+- decentralized desire expression with centralized Option Generation and Deliberation;
 - BDI/PRS-style concurrent intentions;
 - explicit intention scheduling;
 - continual, adaptable plans;
