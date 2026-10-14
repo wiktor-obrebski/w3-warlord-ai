@@ -38,7 +38,7 @@ interface IntentionAssessCommitmentArgs<TCommonBeliefs, TDesire> {
 interface Intention<
   TBeliefs,
   TChildBeliefs = TBeliefs,
-  TCommonBeliefs = TBeliefs,
+  TCommonBeliefs = unknown,
   TDesire = unknown,
 > {
   /**

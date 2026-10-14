@@ -273,7 +273,7 @@ The returned set defines which commitments remain active:
 
 Retained Intentions must not be recreated. One Desire may lead to any number of Intentions, including none. An agent may use assembled components as `TIntention`, so the runtime receives each Intention's metadata.
 
-### `Intention<TBeliefs, TChildBeliefs = TBeliefs, TCommonBeliefs = TBeliefs, TDesire = unknown>`
+### `Intention<TBeliefs, TChildBeliefs = TBeliefs, TCommonBeliefs = unknown, TDesire = unknown>`
 
 ```ts
 update({ beliefs, updateChild }: {
