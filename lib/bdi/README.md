@@ -1,6 +1,6 @@
 # `@lib/bdi`
 
-Minimal, domain-independent contracts for a Belief–Desire–Intention (BDI) agent, the beliefs runtime that keeps its Beliefs revised, the Option Generation that keeps its Desires, and the arbiter that decides which Plan or Controller may order each Actor.
+Minimal, domain-independent contracts for a Belief–Desire–Intention (BDI) agent, including the Option Generation that keeps its Desires, the beliefs runtime that keeps its Beliefs revised, and the arbiter that decides which Plan or Controller may order each Actor.
 
 The library knows nothing about Warcraft III or any particular strategy; domain code implements these contracts and depends on this library, never the other way round:
 
@@ -195,10 +195,10 @@ An assemble function names the Scoped Beliefs type its component reads as `TScop
 ```ts
 readonly id: DesireId                               // canonical identity of the outcome
 readonly outcome: TOutcome                          // { kind, ...identity parameters }
-readonly supports: readonly Readonly<DesireSupport>[]
+readonly supports: readonly DesireSupport[]
 ```
 
-A Desire describes an outcome, not the steps to reach it. Each distinct outcome has one canonical identity, computed by the agent's `identify` function: equivalent outcomes, such as the same item for the same hero, resolve to the same Desire whoever expresses them, while a different hero or item gives a different one. Option Generation owns Desire objects and keeps the same object for as long as the Desire has supports.
+A Desire describes an outcome, not the steps to reach it. Each distinct outcome has one canonical identity, defined by the agent: equivalent outcomes, such as the same item for the same hero, resolve to the same Desire whoever expresses them, while a different hero or item gives a different one. Option Generation owns Desire objects and keeps the same object for as long as the Desire has supports.
 
 ### `DesireSupport`
 
@@ -206,16 +206,12 @@ A Desire describes an outcome, not the steps to reach it. Each distinct outcome 
 readonly id: DesireSupportId
 readonly desireId: DesireId
 readonly source: object        // the expressing Intention instance, or the agent itself
-readonly permanent: boolean
-importance: number             // as expressed
-currentImportance: number      // after staleness decay
-refreshSeconds: number
-lastRefreshedAt: number        // game seconds
+readonly importance: number    // the importance it currently contributes
 ```
 
 One source's interest in one Desire. A Desire may have any number of supports, and one source may support any number of Desires; each support has its own importance and freshness, and withdrawing one leaves the others.
 
-Supports disappear in two distinct ways. A deliberate change of preference withdraws or replaces the support, which takes effect at once. A support whose source stops refreshing it goes stale instead: it is fresh for `refreshSeconds` after each refresh, then its importance decays linearly over `decayIntervals` further intervals of `refreshSeconds`, then it expires. Freshness is measured in game time and relative to each support's own `refreshSeconds`, so a source evaluating every 10 game seconds keeps its supports fresh between evaluations. Permanent supports never go stale.
+Supports disappear in two distinct ways. A deliberate change of preference withdraws or replaces the support, which takes effect at once. A support whose source stops refreshing it goes stale instead: it loses importance over game time and eventually expires. Staleness is relative to each support's own `refreshSeconds`, so a source evaluating every 10 game seconds keeps its supports at full importance between evaluations. How fast stale supports decay and expire is up to the implementation.
 
 How the supports of a Desire combine into its importance is deliberately left open: individual supports are kept, so an aggregation policy can be chosen once behavior needs one. Summing them would let several weak supports outweigh one critical support.
 
@@ -246,16 +242,15 @@ Other Intentions' supports for the old outcome remain.
 ### `OptionGeneration<TOutcome>`
 
 ```ts
-createOptionGeneration<TOutcome>({ identify, permanentDesires, decayIntervals }): OptionGeneration<TOutcome>
 readonly desireExpression: DesireExpressionProvider<TOutcome>
 update({ source, now, run }: { source: object; now: number; run: () => void }): void
 releaseInactive({ activeSources }: { activeSources: ReadonlySet<object> }): void
 generate({ now }: { now: number }): { desires: readonly Desire<TOutcome>[] }
 ```
 
-Owned by the agent's runtime. Option Generation determines what is currently worth pursuing; Deliberation determines what the agent commits to. It may therefore keep incompatible Desires side by side, and leaves competition for actors and resources to Deliberation and arbitration.
+Implemented by the agent and owned by its runtime; the library defines only the contract. Option Generation determines what is currently worth pursuing; Deliberation determines what the agent commits to. It may therefore keep incompatible Desires side by side, and leaves competition for actors and resources to Deliberation and arbitration.
 
-`permanentDesires` are supported by the agent itself, with importance 1, for the whole game. `update` runs one Intention update, during which `desireExpression` acts for that Intention. `releaseInactive` withdraws every support of Intentions no longer in the managed component tree. `generate` decays and expires stale supports, retires Desires left without supports, and returns the current Desires.
+Besides the Desires its Intentions express, it keeps permanent Desires, supported by the agent itself for the whole game. `update` runs one Intention update, during which `desireExpression` acts for that Intention. `releaseInactive` withdraws every support of Intentions no longer in the managed component tree. `generate` returns the current Desires, retiring those left without supports.
 
 Not yet implemented: retiring Desires that Beliefs show to be irrelevant or already satisfied, such as an item the hero already holds, and generating Desires directly from Beliefs.
 

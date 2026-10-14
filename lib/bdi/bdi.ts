@@ -2,7 +2,6 @@ import { createBeliefContainer } from './belief-container';
 import { createBeliefsRuntime } from './beliefs-runtime';
 import { childFactory } from './assembled-component';
 import { createActorControlArbiter } from './actor-control-arbiter';
-import { createOptionGeneration } from './option-generation';
 import type {
   ActorControlClaim,
   ActorControlPolicy,
@@ -37,7 +36,6 @@ export {
   createBeliefsRuntime,
   childFactory,
   createActorControlArbiter,
-  createOptionGeneration,
   type ActorControlClaim,
   type ActorControlPolicy,
   type ActorControlProvider,

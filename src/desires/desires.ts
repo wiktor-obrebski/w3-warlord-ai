@@ -1,5 +1,6 @@
-import { createOptionGeneration, OptionGeneration } from '@lib/bdi';
+import type { OptionGeneration } from '@lib/bdi';
 import type { WarlordDesireOutcome } from '../contracts/desires';
+import { createOptionGeneration } from './option-generation/option-generation.api';
 
 export { createDesires };
 
@@ -8,11 +9,10 @@ export { createDesires };
  * the Desires its Intentions express.
  */
 function createDesires(): OptionGeneration<WarlordDesireOutcome> {
-  return createOptionGeneration<WarlordDesireOutcome>({
+  return createOptionGeneration({
     // No outcome has parameters yet, so its kind is its whole identity.
     identify: ({ outcome }) => outcome.kind,
     permanentDesires: PermanentDesires,
-    decayIntervals: DecayIntervals,
   });
 }
 
@@ -21,5 +21,3 @@ const PermanentDesires: readonly WarlordDesireOutcome[] = [
   { kind: 'ProtectEconomicAssets' },
   { kind: 'UseMilitaryAssetsEffectively' },
 ];
-
-const DecayIntervals = 2;

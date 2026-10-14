@@ -94,7 +94,7 @@ revise Common Beliefs → Option Generation → current Desires → Deliberation
 
 A component created during the tick is registered and has its Scoped Beliefs first revised before its first update. Desires expressed during the tick appear on the next one, so expression cannot adopt Intentions recursively within a tick.
 
-Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), component assembly (`AssembledComponent`, `childFactory`), Option Generation (`createOptionGeneration`, `DesireExpressionProvider`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The bot's Option Generation, with its permanent Desires, is created by `createDesires` in `src/desires/`, over the outcomes in `src/contracts/desires.ts`. The bot's actor control, the arbiter together with the policy deciding which requests are granted, is created by `createActorControl` in `src/capabilities/actor-control/`, over the request type in `src/contracts/actor-control.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
+Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), component assembly (`AssembledComponent`, `childFactory`), the Option Generation contract (`OptionGeneration`, `DesireExpressionProvider`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The bot's Option Generation is implemented in `src/desires/option-generation/`, including how stale supports decay and expire, and created with the bot's permanent Desires by `createDesires` in `src/desires/`, over the outcomes in `src/contracts/desires.ts`. A support stays fresh for its `refreshSeconds`, then decays linearly over two more intervals and expires. The bot's actor control, the arbiter together with the policy deciding which requests are granted, is created by `createActorControl` in `src/capabilities/actor-control/`, over the request type in `src/contracts/actor-control.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
 
 Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, diagnostic artifacts, and automated tests.
 
@@ -251,7 +251,7 @@ src/
 ├─ runtime.ts     the bot loop
 ├─ contracts/     type-only domain vocabulary shared across layers: Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
 ├─ beliefs/       common belief model, observing Warcraft state for decisions
-├─ desires/       the bot's Option Generation and its permanent Desires
+├─ desires/       the bot's permanent Desires and outcome identity; option-generation/ implements its Option Generation
 ├─ deliberation/  creates, retains, and drops Intentions
 ├─ components/
 │  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, *.common-beliefs.ts, scoped *.beliefs.ts, and *.assessments.ts

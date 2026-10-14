@@ -37,8 +37,8 @@ interface DesireOutcome {
 interface Desire<TOutcome extends DesireOutcome> {
   readonly id: DesireId;
   readonly outcome: TOutcome;
-  /** Every current support, each with its own importance and freshness. */
-  readonly supports: readonly Readonly<DesireSupport>[];
+  /** Every current support, each with its own importance. */
+  readonly supports: readonly DesireSupport[];
 }
 
 /**
@@ -49,16 +49,11 @@ interface DesireSupport {
   readonly id: DesireSupportId;
   readonly desireId: DesireId;
   readonly source: object;
-  /** Permanent supports never go stale and are never withdrawn. */
-  readonly permanent: boolean;
-  /** The importance the source expressed. */
-  importance: number;
-  /** The importance after staleness decay, as of the latest generation. */
-  currentImportance: number;
-  /** How long after a refresh the support stays fresh, in game seconds. */
-  refreshSeconds: number;
-  /** Game seconds at which the source last expressed or refreshed it. */
-  lastRefreshedAt: number;
+  /**
+   * The importance the support currently contributes, which may fall below
+   * the expressed one when its source stops refreshing it.
+   */
+  readonly importance: number;
 }
 
 /**
@@ -69,9 +64,8 @@ interface DesireExpression<TOutcome extends DesireOutcome> {
   outcome: TOutcome;
   importance: number;
   /**
-   * The interval at which the source calls `support()`. The support stays
-   * fresh for that long after each refresh, so it does not go stale between
-   * the source's regular evaluations.
+   * The interval, in game seconds, at which the source calls `support()`.
+   * A support refreshed at this pace keeps its full importance.
    */
   refreshSeconds: number;
 }
@@ -93,9 +87,9 @@ interface DesireExpressionProviderReplaceArgs<
  * and an Intention can touch only the supports it owns. Using it outside an
  * Intention update, or with a support id the Intention does not own, throws.
  *
- * A support not refreshed within its `refreshSeconds` goes stale: its
- * importance decays until it expires. An Intention leaving the component
- * tree loses all its supports at once.
+ * A support its source stops refreshing loses importance and eventually
+ * expires, at a pace the implementation decides. An Intention leaving the
+ * component tree loses all its supports at once.
  */
 interface DesireExpressionProvider<TOutcome extends DesireOutcome> {
   /**
