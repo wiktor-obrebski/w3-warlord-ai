@@ -47,6 +47,10 @@ interface MapGlobals {
     this: void,
     whichPlayer: W3PlayerApi.player
   ) => W3PlayerApi.playerslotstate;
+  GetPlayerRace: (
+    this: void,
+    whichPlayer: W3PlayerApi.player
+  ) => W3PlayerApi.race;
   WarlordBotInstallations?: BotInstallation[];
 }
 
@@ -57,6 +61,11 @@ declare const map_globals: MapGlobals;
  * bot slot as playing and every abandoned computer player as gone. Later
  * installations only register themselves, which also keeps them from picking
  * a slot already taken by an earlier bot.
+ *
+ * It also replaces `GetPlayerRace`: a player's race cannot be changed after
+ * the lobby, so a bot slot keeps the default race of an empty slot, while its
+ * starting units were created for the computer player's race. Every bot slot
+ * therefore reports the race of the computer player it replaced.
  */
 function setupBotInstallations(): BotInstallation[] {
   const existing = map_globals.WarlordBotInstallations;
@@ -67,8 +76,18 @@ function setupBotInstallations(): BotInstallation[] {
 
   const installations: BotInstallation[] = [];
   const realGetPlayerSlotState = map_globals.GetPlayerSlotState;
+  const realGetPlayerRace = map_globals.GetPlayerRace;
 
   map_globals.WarlordBotInstallations = installations;
+  map_globals.GetPlayerRace = (whichPlayer) => {
+    for (const installation of installations) {
+      if (installation.botPlayer === whichPlayer) {
+        return realGetPlayerRace(installation.computerPlayer);
+      }
+    }
+
+    return realGetPlayerRace(whichPlayer);
+  };
   map_globals.GetPlayerSlotState = (whichPlayer) => {
     for (const installation of installations) {
       if (installation.botPlayer === whichPlayer) {
