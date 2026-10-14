@@ -20,6 +20,10 @@ interface OptionGenerationReleaseInactiveArgs {
   activeSources: ReadonlySet<object>;
 }
 
+interface OptionGenerationGenerateArgs {
+  now: number;
+}
+
 /**
  * Determines which outcomes the agent currently considers desirable: it
  * resolves the supports Intentions express into canonical Desires, together
@@ -53,7 +57,7 @@ interface OptionGeneration<TOutcome extends DesireOutcome> {
    * current Desires. A Desire keeps its object for as long as it has
    * supports; Desires expressed since the previous call appear now.
    */
-  generate({ now }: { now: number }): {
+  generate({ now }: OptionGenerationGenerateArgs): {
     desires: readonly Desire<TOutcome>[];
   };
 }
@@ -124,9 +128,7 @@ function createOptionGeneration<TOutcome extends DesireOutcome>({
 
   const expressAs = ({
     expression,
-  }: {
-    expression: DesireExpression<TOutcome>;
-  }): DesireSupportId => {
+  }: ExpressAsArgs<TOutcome>): DesireSupportId => {
     const { source, now } = sourceUpdate();
 
     if (expression.refreshSeconds <= 0) {
@@ -138,9 +140,7 @@ function createOptionGeneration<TOutcome extends DesireOutcome>({
 
   const ownedSupport = ({
     supportId,
-  }: {
-    supportId: DesireSupportId;
-  }): { support: SupportRecord<TOutcome>; now: number } => {
+  }: OwnedSupportArgs): OwnedSupport<TOutcome> => {
     const { source, now } = sourceUpdate();
     const support = supports.get(supportId);
 
@@ -311,6 +311,19 @@ interface AddSupportArgs<
 > extends DesireExpression<TOutcome> {
   source: object;
   permanent: boolean;
+  now: number;
+}
+
+interface ExpressAsArgs<TOutcome extends DesireOutcome> {
+  expression: DesireExpression<TOutcome>;
+}
+
+interface OwnedSupportArgs {
+  supportId: DesireSupportId;
+}
+
+interface OwnedSupport<TOutcome> {
+  support: SupportRecord<TOutcome>;
   now: number;
 }
 
