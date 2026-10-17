@@ -1,6 +1,6 @@
 # Research: Architecture for Full RTS Gameplay
 
-Status: research proposal for discussion. It is not the adopted architecture; that remains [`ARCHITECTURE.md`](../ARCHITECTURE.md), summarized together with the current implementation in [`ARCHITECTURE_SITEMAP.md`](../ARCHITECTURE_SITEMAP.md).
+Status: research proposal for discussion, first iteration; [section 12](#12-next-iteration) lists what the next one re-examines. It is not the adopted architecture; that remains [`ARCHITECTURE.md`](../ARCHITECTURE.md), summarized together with the current implementation in [`ARCHITECTURE_SITEMAP.md`](../ARCHITECTURE_SITEMAP.md).
 
 The proposal starts from a set of Night Elf versus Human scenarios: the default game plan (Demon Hunter and Archers into fast Bears), the Demon Hunter's harassment, the second hero, independent and joint creeping, and the Bear timing attack, each with many deviations. The scenarios are examples of decisions a player makes, not a split of the code. The aim is an architecture in which they, and the hundreds of behaviors they do not list, fit readably.
 
@@ -665,6 +665,8 @@ Scenario 4.8.
 
 ## 8. Changes to the current architecture
 
+These verdicts belong to this iteration. Since then, everything outside Beliefs, Desires, and Intentions has been opened for review ([section 12](#12-next-iteration)).
+
 | Concept                                                     | Verdict        | Notes                                                                                                                            |
 | ----------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Beliefs: Common and Scoped, models, beliefs runtime         | Keep           | Add Perception, the enemy model, and sections in the Common Beliefs                                                              |
@@ -749,3 +751,22 @@ The proposal relies on general RTS and Warcraft knowledge. For the next iteratio
 - **Liquipedia and W3Champions guides and recent replays** of Night Elf versus Human, for the Fast Bears playbook's timings, hero builds, and adaptations.
 - **Combat models from RTS research** (Uriarte and Ontañón on combat models and kiting, Churchill's SparCraft), for the combat model.
 - **Warcraft III game data tables**, as the source of Knowledge rather than hand-written numbers.
+
+## 12. Next iteration
+
+Decisions since this iteration (2026-10-17):
+
+- Only Beliefs, Desires, and Intentions are fixed, and even their design may change. Everything else, including what section 8 keeps, is open.
+- Map knowledge is everything useful that can be deduced from the static map files, produced when the map is built. The architecture only needs a clean way for Intentions and other parts to reach such static data and services; the exact contents can wait.
+
+The next iteration will examine these questions, using the sources gathered next:
+
+1. **Infrastructure.** Whether Scoped Beliefs, the beliefs runtime, the component tree with assemble functions and child factories, and per-component Common Beliefs declarations still pay for themselves once Actor Control is gone, or whether component-private memory and plain construction suffice.
+2. **Desires by query.** Whether Intentions should answer what they desire each cycle, as they answer `needs()`, instead of expressing supports with ids, refresh intervals, and staleness.
+3. **Bound capabilities.** Whether each Intention should receive capabilities bound to itself, such as its own force, instead of shared providers acting for whichever update is running.
+4. **Plan libraries and execution formalisms.** Whether methods should be chosen among several Plans per goal by context conditions and preferences, as in BDI plan libraries, and whether Plans, Tactics, and Unit Behaviors should share one formalism, such as behavior trees.
+5. **Goal lifecycle and deliberation.** What BDI research on suspending, resuming, and aborting goals, maintenance goals, goal deliberation, and intention progression changes in the agenda and Allocation.
+6. **Events or conditions.** Whether reactions are triggered by events, as in AgentSpeak, or by re-evaluating conditions each cycle, and where each fits.
+7. **Access to static data and services.** How game data, map knowledge, and services such as navigation reach the code that uses them: imported, injected, or part of the Beliefs.
+8. **Macro and strategy representation.** How strong bots write build orders, playbooks, and adaptations readably.
+9. **Combat, terrain, and opponent models.** Which published models fit, within Lua's CPU budget.
