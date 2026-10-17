@@ -758,6 +758,7 @@ Decisions since this iteration (2026-10-17):
 
 - Only Beliefs, Desires, and Intentions are fixed, and even their design may change. Everything else, including what section 8 keeps, is open.
 - Map knowledge is everything useful that can be deduced from the static map files, produced when the map is built. The architecture only needs a clean way for Intentions and other parts to reach such static data and services; the exact contents can wait.
+- The architecture must be highly testable: test scenarios easy to set up, wide behavioral tests exercising everything except the Warcraft III integration, and end-to-end tests against the real game. How to test is not planned yet, but every design choice is judged by how easily it allows these.
 
 The next iteration will examine these questions, using the sources gathered next:
 
