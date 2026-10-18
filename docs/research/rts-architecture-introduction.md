@@ -90,7 +90,7 @@ Each cycle, the mind asks three sources for proposals:
 - **The playbook**, what the current game plan wants. In its Harass phase, Fast Bears proposes, in falling weight, buying the Staff, harassing the enemy hero, and creeping with the Demon Hunter.
 - **Requests** from active Intentions, for what a commitment needs, such as an item or help. A request disappears with the Intention that made it.
 
-Each proposal carries a **rank**, a **weight**, and a **reason**. The rank is a category, from Survival down to Background: a threat that could kill the main base is Survival, a smaller one Emergency, the game plan's own goals are Game plan, a short-lived gain is usually an Opportunity, and upkeep that is never urgent is Background. The weight is the value within the rank, computed from Beliefs; a weight of 0 vetoes the proposal. A higher rank always comes first, and weight orders proposals within a rank.
+Each proposal carries a **rank**, a **weight**, and a **reason**. The rank is a category, from Survival down to Background: a threat that could kill the main base is Survival, one that would do serious damage is Emergency, the game plan's own goals are Game plan, and so is a small threat such as a lone Footman at the Wisps; a short-lived gain is usually an Opportunity, and upkeep that is never urgent is Background. The weight is the value within the rank, computed from Beliefs; a weight of 0 vetoes the proposal. A higher rank always comes first, and weight orders proposals within a rank.
 
 Right after the sighting, the bot wants this:
 
@@ -148,7 +148,7 @@ Details: [Deliberation](rts-behavior-architecture.md#45-deliberation), [Intentio
 
 Both the raid and the harassment need the Demon Hunter. **Allocation** is the only owner of units and money, and it decides.
 
-Each Intention declares its **needs**: which units (a given hero, unit types, or a class such as army), how many (a minimum and a maximum), which it prefers (closest, healthiest, already held), and how much gold, lumber, and food. Each round, Allocation walks the agenda in order and serves the needs.
+Each Intention declares its **needs**: which units (a given hero, unit types, or a class such as army), how many (a count with a minimum and a maximum, or the fighting strength required), which it prefers (closest, healthiest, already held), and how much gold, lumber, and food. Each round, Allocation walks the agenda in order and serves the needs. It takes only what a need asks for, preferred units first: a defense against one Footman takes the nearest Archer, not a hero from across the map.
 
 A unit moves from one Intention to another only by the **switching rule**:
 
@@ -196,13 +196,15 @@ Details: [Execution](rts-behavior-architecture.md#48-execution), [Opportunities 
 
 ## 9. The twist: an attack at home
 
-While the Demon Hunter raids, Human Footmen reach the Wisps.
+While the Demon Hunter raids, five Human Footmen reach the Wisps.
 
 1. **Reflexes first.** The Wisps flee on the next tick. Their owner, RunEconomy, does not change: reflexes work whoever owns the unit.
-2. **A new Desire.** Beliefs now say the main base is threatened. The standing desire proposes `DefendBase{main}`, rank Emergency, and the new threat runs Deliberation on the next tick instead of waiting for the cycle.
-3. **Preemption across ranks.** DefendBase needs strength above the threat, arriving within 20 seconds: the Archers and the Ancient of War at home, and the Demon Hunter, because his Staff is ready. Emergency outranks Game plan, so Allocation gives him to the defense; across ranks, no margin is needed.
+2. **A new Desire.** Beliefs now say the main base is threatened, and five Footmen at the Wisps would do serious damage. The standing desire proposes `DefendBase{main}`, rank Emergency, and the new threat runs Deliberation on the next tick instead of waiting for the cycle.
+3. **A defense sized to the threat.** DefendBase needs strength above the threat, arriving within 20 seconds, and Allocation fills that need nearest first. The two Archers and the Ancient of War at home are not enough against five Footmen, so the need also reaches the Demon Hunter, whose Staff lets him arrive in time. Emergency outranks Game plan, so Allocation gives him to the defense; across ranks, no margin is needed.
 4. **Acting.** The defense's method has him use the Staff, and the Hold Tactic fights by the Moon Wells, focusing the Footmen.
 5. **Back to normal.** The Footmen die, the threat clears, and the standing desire stops proposing, so DefendBase is achieved. The Peasants at the expansion have fled, so the raid's target is gone and it fails with that reason. The harassment is re-checked, finds the playbook still proposing it and the Archmage alive, and gets the Demon Hunter back. Its method resumes from Beliefs: from where the Archmage was last seen.
+
+**The size of the threat decides who comes.** Had a lone Footman come, the units at home would have met the need, and the Demon Hunter would have stayed on the raid. With nobody at home, a lone Footman would be ranked Game plan, and the Wisp or two it threatens would not outweigh the raid's switching margin: the Wisps would flee, and the raid would go on. Recalling a hero for a small threat wastes more than it saves.
 
 No Intention told another anything. Every switch came from Beliefs, Desires, the agenda, and Allocation, and each one has a recorded reason.
 
@@ -262,7 +264,7 @@ Because the mind takes plain data in and gives plain data out, the story above i
 - the initial state: the Demon Hunter with the Staff, Archers, the Ancient of War, and Wisps;
 - a timeline of observations: a Town Hall seen under construction, then Footmen near the Wisps.
 
-A test creates a fresh mind with a seeded random source, steps it through the timeline, and checks the decision record at the coarsest level that pins the behavior: the raid takes the Demon Hunter, the defense takes him away, and the harassment gets him back. Warcraft is never involved. End-to-end tests run the same mind in the game, with the real Perception and order executor, on a test map.
+A test creates a fresh mind with a seeded random source, steps it through the timeline, and checks the decision record at the coarsest level that pins the behavior: the raid takes the Demon Hunter, the defense takes him away, and the harassment gets him back. The same scenario with a lone Footman checks that the defense leaves him on the raid. Warcraft is never involved. End-to-end tests run the same mind in the game, with the real Perception and order executor, on a test map.
 
 Details: [Testability](rts-behavior-architecture.md#5-testability).
 

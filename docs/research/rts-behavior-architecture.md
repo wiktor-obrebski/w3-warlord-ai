@@ -213,7 +213,7 @@ Desires come from three sources, asked every deliberation cycle:
 - **Weight** is the value within the rank, computed at runtime from Beliefs. A weight of 0 vetoes the proposal.
 - A Desire takes its best proposal: the highest rank, then the highest weight.
 - **Each proposer picks the rank for the situation.**
-  - A threat to the main base that would be lethal is Survival; a smaller one is Emergency.
+  - A threat to the main base that would be lethal is Survival, and one that would do serious damage is Emergency. A small threat, such as a lone Footman at the Wisps, is Game plan: it competes by weight, so it cannot pull a hero off a more valuable commitment.
   - A raid is usually an Opportunity, but the playbook may rank pressing a beaten army as Game plan.
 - **Opportunities carry a window.** A proposal for a short-lived gain states how long the chance lasts and how long pursuing it takes. A Desire that can no longer fit its window, given travel time and the units available, gets weight 0 instead of waiting for units.
 
@@ -226,7 +226,11 @@ const defendThreatenedBases: StandingDesire = ({ beliefs }) =>
     .filter((threat) => threat.against.kind === 'Base')
     .map((threat) => ({
       outcome: { kind: 'DefendBase', base: threat.against.base },
-      rank: threat.lethal ? RANK.SURVIVAL : RANK.EMERGENCY,
+      rank: threat.lethal
+        ? RANK.SURVIVAL
+        : threat.serious
+          ? RANK.EMERGENCY
+          : RANK.GAME_PLAN,
       weight: valueAtRisk({ threat, beliefs }),
       reason: `${threat.strength} enemy strength near ${threat.against.name}`,
     }));
@@ -346,14 +350,14 @@ An Intention declares its needs:
 
 - **Unit needs:**
   - a matcher: a given unit, unit types, or a class such as army;
-  - a count, minimum and maximum;
+  - an amount: a count with a minimum and a maximum, or the fighting strength required, measured by the combat estimate;
   - a preference: closest by travel time, healthiest, already held.
 - **Money needs:** gold, lumber, food.
 - **Producers:** buildings are units, so they are matched like any other.
 
 Each round, Allocation walks the agenda in order:
 
-1. **Picks units.** An Intention keeps the units it already holds first; this stickiness avoids churn. Then it gets free units, then units held by Intentions lower on the agenda. The switching rule decides whether such a unit may move:
+1. **Picks units.** An Intention keeps the units it already holds first; this stickiness avoids churn. Then it gets free units, then units held by Intentions lower on the agenda. Within each group it follows the need's preference, and it stops as soon as the need is met: a defense against one Footman takes the nearest Archer, not a hero from across the map. The switching rule decides whether a unit may move from its holder:
    - nothing moves out of a step marked uninterruptible;
    - otherwise, a challenger with a higher rank wins;
    - a challenger with the same rank wins only if its weight exceeds the holder's by the switching margin: a commitment constant plus the holder's interruption cost.
@@ -682,10 +686,11 @@ Scenarios 2, 2B.1, 2.14, and 2B.9.
 4. **An expansion appears.** The scouting Wisp sees a Town Hall under construction. Perception adds a contact, and a fingerprint recognizes a fast expansion. The playbook adapts and proposes `RaidBase{north expansion}`, rank Game plan, weight 0.85.
 5. **Preemption.** Deliberation adopts the raid. Both Intentions have rank Game plan, so the switching rule applies. The raid's 0.85 exceeds the harassment's 0.6 plus its switching margin: 0.05 commitment plus 0.1 for the engagement under way, 0.75 in total. Allocation moves the Demon Hunter, and the harassment is starved: it keeps its state but has no force.
 6. **The raid.** The raid's Siege Tactic puts the building Peasant first in its kill order, and the Demon Hunter kills it.
-7. **A threat at home.** Footmen reach the Night Elf Wisps.
+7. **A threat at home.** Five Footmen reach the Night Elf Wisps.
    - The Wisps flee by reflex at once; their owner does not change.
-   - The standing desire `DefendBase{main}` proposes rank Emergency, and the urgent event runs Deliberation on the next tick.
-   - DefendBase needs strength above the threat, arriving within 20 seconds: the Archers and the Ancient of War at home, and the Demon Hunter, because his Staff is ready. Allocation gives him to the defense, which outranks the raid.
+   - Five Footmen at the Wisps would do serious damage, so the standing desire proposes `DefendBase{main}` with rank Emergency, and the urgent event runs Deliberation on the next tick.
+   - DefendBase needs strength above the threat, arriving within 20 seconds. Allocation fills the need nearest first. The two Archers and the Ancient of War at home are not enough against five Footmen, so it also takes the Demon Hunter, whose Staff lets him arrive in time. The defense outranks the raid, so no margin is needed.
+   - Against a lone Footman, the Archers and the Ancient of War would meet the need, and the Demon Hunter would stay on the raid. With nobody at home, a lone Footman would be ranked Game plan, and its weight, a Wisp or two, would not beat the raid's switching margin: the Wisps would flee, and the raid would go on.
 8. **The defense.** The defense's method directs him to use the Staff, and the Hold Tactic fights by the Moon Wells, focusing the Footmen.
 9. **Resumption.** With the Footmen dead, the filtered threat clears and the standing desire stops proposing; DefendBase is achieved. The Peasants have evacuated, so the raid's target is gone and it fails with that reason. Before the harassment is stepped again, it is re-checked: the playbook still proposes it and the Archmage is alive, so it gets the Demon Hunter back. Its method re-enters from Beliefs (where the Archmage was last known to be) rather than replaying from where it stopped.
 
