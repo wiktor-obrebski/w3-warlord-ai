@@ -4,6 +4,7 @@ Status: research proposal for discussion, second iteration (18 October 2026). It
 
 Companions:
 
+- [`rts-architecture-introduction.md`](rts-architecture-introduction.md): a tutorial introduction; start there if the architecture is new to you.
 - [`rts-scenario-analysis.md`](rts-scenario-analysis.md): the Night Elf versus Human scenarios, the requirements they imply, and how every deviation is handled.
 - [`rts-research-sources.md`](rts-research-sources.md): the sources read and what each one contributed or warned against.
 
@@ -721,6 +722,8 @@ Scenario 4.8.
 5. **Afterwards.** The Tactic reports that it retreated. The method marks the camp contested and picks one away from the Human army.
 
 ## 7. Where a new behavior goes
+
+A behavior goes at the lowest level that has the information and the authority it needs.
 
 | Behavior to add                                                                    | Home                                                   |
 | ---------------------------------------------------------------------------------- | ------------------------------------------------------ |
