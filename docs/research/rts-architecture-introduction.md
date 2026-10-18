@@ -97,7 +97,7 @@ observations ─▶ Beliefs ─▶ Assessments
                    │            │
                    └─ read by ──┘
                         ▼
-standing desires, playbook, requests ─▶ Desires
+concerns, playbook, requests ─▶ Desires
 ```
 
 Which plan the enemy follows is a claim about the world, so recognizing it belongs to Beliefs, as in the previous section. Whether that plan beats ours is an assessment.
@@ -110,7 +110,7 @@ A **Desire** is an outcome the bot considers worth pursuing: `DefendBase{main}`,
 
 Each cycle, the mind asks three sources for proposals:
 
-- **Standing desires**, what any competent player wants: safe bases, living heroes, supply ahead. Each reads Beliefs and Assessments, and proposes a Desire when a condition breaks, or is about to.
+- **Concerns**, what any competent player keeps caring about all game: safe bases, living heroes, supply ahead. BDI literature calls them maintenance goals. Each reads Beliefs and Assessments, and proposes a Desire when a condition breaks, or is about to.
 - **The playbook**, what the current game plan wants. In its Harass phase, Fast Bears proposes, in falling weight, buying the Staff, harassing the enemy hero, and creeping with the Demon Hunter.
 - **Requests** from active Intentions, for what a commitment needs, such as an item or help. A request disappears with the Intention that made it.
 
@@ -126,7 +126,7 @@ Right after the sighting, the bot wants this:
 
 The raid is a short-lived chance, so its proposal carries a **window**: it is worth something only until the Town Hall is finished. If the Demon Hunter could not get there in time, its weight would drop to 0 and the Desire would disappear without anyone canceling it.
 
-There is no Desire to defend the base yet, because nothing threatens it. One will appear the moment the threat assessment says otherwise, since standing desires are asked every cycle.
+There is no Desire to defend the base yet, because nothing threatens it. One will appear the moment the threat assessment says otherwise, since concerns are asked every cycle.
 
 A proposal is plain data:
 
@@ -223,10 +223,10 @@ Details: [Execution](rts-behavior-architecture.md#49-execution), [Opportunities 
 While the Demon Hunter raids, five Human Footmen reach the Wisps.
 
 1. **Reflexes first.** The Wisps flee on the next tick. Their owner, RunEconomy, does not change: reflexes work whoever owns the unit.
-2. **A new Desire.** Beliefs now hold five Footmen at the Wisps. The threat assessment weighs them against what defends the Wisps, two Archers and the Ancient of War, and rates the threat to the main base serious. The standing desire reads that and proposes `DefendBase{main}`, rank Emergency, and the new threat runs Deliberation on the next tick instead of waiting for the cycle.
+2. **A new Desire.** Beliefs now hold five Footmen at the Wisps. The threat assessment weighs them against what defends the Wisps, two Archers and the Ancient of War, and rates the threat to the main base serious. The base-safety concern reads that and proposes `DefendBase{main}`, rank Emergency, and the new threat runs Deliberation on the next tick instead of waiting for the cycle.
 3. **A defense sized to the threat.** DefendBase needs strength above the threat, arriving within 20 seconds, and Allocation fills that need nearest first. The two Archers and the Ancient of War at home are not enough against five Footmen, so the need also reaches the Demon Hunter, whose Staff lets him arrive in time. Emergency outranks Game plan, so Allocation gives him to the defense; across ranks, no margin is needed.
 4. **Acting.** The defense's method has him use the Staff, and the Hold Tactic fights by the Moon Wells, focusing the Footmen.
-5. **Back to normal.** The Footmen die, the threat assessment clears the threat, and the standing desire stops proposing, so DefendBase is achieved. The Peasants at the expansion have fled, so the raid's target is gone and it fails with that reason. The harassment is re-checked, finds the playbook still proposing it and the Archmage alive, and gets the Demon Hunter back. Its method resumes from Beliefs: from where the Archmage was last seen.
+5. **Back to normal.** The Footmen die, the threat assessment clears the threat, and the base-safety concern stops proposing, so DefendBase is achieved. The Peasants at the expansion have fled, so the raid's target is gone and it fails with that reason. The harassment is re-checked, finds the playbook still proposing it and the Archmage alive, and gets the Demon Hunter back. Its method resumes from Beliefs: from where the Archmage was last seen.
 
 **The size of the threat decides who comes.** Had a lone Footman come, the units at home would have met the need, and the Demon Hunter would have stayed on the raid. With nobody at home, the threat assessment would rate a lone Footman small, so it would be ranked Game plan, and the Wisp or two it threatens would not outweigh the raid's switching margin: the Wisps would flee, and the raid would go on. Recalling a hero for a small threat wastes more than it saves.
 
@@ -239,7 +239,7 @@ Every tick, ten times a second, runs the same phases:
 | Phase                                                                       | Runs                                           |
 | --------------------------------------------------------------------------- | ---------------------------------------------- |
 | 1. Perception observes; belief models revise Beliefs, then Assessments      | every tick                                     |
-| 2. Standing desires, the playbook, and requests propose Desires             | about once a second, or early on urgent events |
+| 2. Concerns, the playbook, and requests propose Desires                     | about once a second, or early on urgent events |
 | 3. Deliberation checks conditions, adopts Intentions, and orders the agenda | with phase 2                                   |
 | 4. Allocation serves needs in agenda order                                  | with phase 2, and when units appear or die     |
 | 5. Intentions step their methods, and Tactics produce Directives            | each at its own pace                           |
@@ -252,7 +252,9 @@ Details: [A tick, phase by phase](rts-behavior-architecture.md#42-a-tick-phase-b
 
 ## 12. The game plan: playbooks
 
-The strategy itself is data. A standing desire proposes executing the playbook it prefers, given the matchup and the recognized enemy plan. There is one playbook at a time. The standing desire switches playbooks when no adaptation of the current one answers the enemy well enough, and switching needs a clearly better score and a minimum time on the current one.
+The strategy itself is data. The strategy concern proposes executing the playbook it prefers, given the matchup and the recognized enemy plan. There is one playbook at a time. The strategy concern switches playbooks when no adaptation of the current one answers the enemy well enough, and switching needs a clearly better score and a minimum time on the current one.
+
+The concern only wants a playbook; Deliberation commits to it. Its Desire, `ExecuteStrategy{playbook}`, becomes an Intention like any other: the committed strategy. That Intention keeps the playbook's current phase, and the playbook's rules propose the Desires that carry the strategy out, such as `TrainHero{Demon Hunter}` or `Attack`. They compete on the agenda with every other Desire, so a threat at home still outranks the plan. Fast Bears is one playbook; a Human tower rush would be another.
 
 A playbook holds:
 
@@ -305,7 +307,7 @@ Put a behavior at the lowest level that has the information and the authority it
 | Creeping with the Ancient of War as a tank                                        | a method of the Creep Intention kind   |
 | A new kind of operation, such as an escort                                        | a new outcome kind and Intention kind  |
 | Raiding when the enemy expands early                                              | an adaptation in the playbook          |
-| Defending a threatened base, as any player would                                  | a standing desire                      |
+| Defending a threatened base, as any player would                                  | a concern                              |
 | What a situation means, needed by several parts, such as a threat to an expansion | an Assessment                          |
 | Recognizing a new enemy strategy, such as a proxy                                 | an entry in the strategy library       |
 | Inferring a new fact, such as the enemy's tech                                    | an inference rule in Beliefs           |
@@ -332,6 +334,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - **Allocation**: the only owner of units and money. It serves needs in agenda order.
 - **Assessment**: what Beliefs mean for the bot, shared by every part that needs it, such as the threat to a base. It is computed after Beliefs and, like them, never proposes Desires.
 - **Beliefs**: the bot's world model, in plain data: what it holds true, has seen, or infers.
+- **Concern**: something the bot keeps caring about all game, such as safe bases; BDI literature calls it a maintenance goal. It reads Beliefs and Assessments, and proposes a Desire when a condition breaks or is about to.
 - **Contact**: a Belief about an enemy unit or structure: what was seen, where, when, and how it is known.
 - **Decision record**: one record per tick of what was decided and why.
 - **Default owner**: the Intention that receives units nobody asked for: RunEconomy for workers, Reserve for army units and heroes.
@@ -357,7 +360,6 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - **Reflex**: a Unit Behavior module that runs first and may override the Directive to keep the unit alive.
 - **Request**: a Desire proposed by an active Intention for one of its subgoals.
 - **Role**: how a unit should play its task, such as Harasser or Tank.
-- **Standing desire**: a maintenance goal of the bot. It reads Beliefs and Assessments, and proposes a Desire when a condition breaks or is about to.
 - **Starved**: the progress of an Intention whose needs go unmet. It keeps its state.
 - **Switching rule**: when a unit may move between Intentions: never out of an uninterruptible step, always to a higher rank, and within a rank only by a margin.
 - **Tactic**: a reusable controller for a group: fight or flight, targets, positions.

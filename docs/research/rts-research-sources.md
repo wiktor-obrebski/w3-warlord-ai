@@ -167,7 +167,7 @@ Sources by Weber, Mateas, and Jhala:
   - suspend and resume hooks.
 - **"Operational Behaviour for Executing, Suspending, and Aborting Goals"** (DALT 2010, published 2011), by the same authors:
   - perform, achieve, and maintain goals;
-  - maintenance goals that only monitor, and spawn achieve goals: _recovery_ when their condition is violated, _prevention_ when a violation is predicted;
+  - maintenance goals (our concerns) that only monitor, and spawn achieve goals: _recovery_ when their condition is violated, _prevention_ when a violation is predicted;
   - the states Pending, Waiting, Active, and Suspended;
   - _drop_ (discard) versus _abort_ (run cleanup methods).
 - **Cohen and Levesque, "Intention Is Choice with Commitment"** (Artificial Intelligence 42, 1990). The _relativized_ persistent goal: an intention is given up when the agent believes it is achieved, believes it impossible, or no longer believes the reason it was adopted for. Dropping a supergoal is enough reason to drop its subgoals. "Persistent in pursuing its goals, but not fanatically so."

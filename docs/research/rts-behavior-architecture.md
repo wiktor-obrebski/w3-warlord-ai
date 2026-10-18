@@ -29,7 +29,7 @@ That research confirmed the core of the first iteration and changed most of what
 
 2. **Fixed phases per tick, and a decision record.** Each tick observes, revises Beliefs, deliberates and allocates on cadence, steps Intentions, decides per unit, and executes. No phase depends on another being updated first. Every phase records why it decided what it did.
 3. **Interpretation has explicit homes.** Beliefs hold what was seen and what is probably true. Assessments hold what it means for the bot, shared by every part that needs it, such as the threat to a base. An interpretation only one module needs stays private in that module, and how the game works is Knowledge.
-4. **Desires are asked for, not pushed.** Each deliberation cycle collects proposals from three sources: standing desires (the bot's maintenance goals), the committed strategy's playbook, and the active Intentions' requests. There are no support ids, refresh intervals, or staleness.
+4. **Desires are asked for, not pushed.** Each deliberation cycle collects proposals from three sources: concerns (maintenance goals, in BDI terms), the committed strategy's playbook, and the active Intentions' requests. There are no support ids, refresh intervals, or staleness.
 5. **Deliberation ranks, and commitment is explicit.** A Desire has a rank (a category) and a weight (its value within that category):
    - context conditions over Beliefs settle logical conflicts;
    - Allocation settles competition for resources;
@@ -53,13 +53,13 @@ That research confirmed the core of the first iteration and changed most of what
 
 The bot answers five questions, each in one place:
 
-| Question                                                                             | Answered by                                                                  |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| **Know**: what is true, was seen, or is probably true, and what does it mean for us? | Beliefs (memory and inference), Assessments, and static Knowledge            |
-| **Want**: what would be worth achieving now?                                         | Desires proposed by standing desires, the playbook, and Intentions' requests |
-| **Commit**: what do we pursue, and in which order?                                   | Deliberation: Intentions and the agenda                                      |
-| **Allocate**: who gets which units, gold, lumber, and food?                          | Allocation: needs served in agenda order                                     |
-| **Act**: how is each commitment carried out, unit by unit?                           | Intention → method → Tactic → Directive → Unit Behavior → order              |
+| Question                                                                             | Answered by                                                          |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| **Know**: what is true, was seen, or is probably true, and what does it mean for us? | Beliefs (memory and inference), Assessments, and static Knowledge    |
+| **Want**: what would be worth achieving now?                                         | Desires proposed by concerns, the playbook, and Intentions' requests |
+| **Commit**: what do we pursue, and in which order?                                   | Deliberation: Intentions and the agenda                              |
+| **Allocate**: who gets which units, gold, lumber, and food?                          | Allocation: needs served in agenda order                             |
+| **Act**: how is each commitment carried out, unit by unit?                           | Intention → method → Tactic → Directive → Unit Behavior → order      |
 
 ## 2. Requirements
 
@@ -72,7 +72,7 @@ The [scenario analysis](rts-scenario-analysis.md#2-requirements-from-the-scenari
 | R1: Commitment with replaceable methods                                                                                                                      | Intention kinds with several methods, which the generic runtime chooses and replaces (4.7)                                                |
 | R2: Interruption without loss                                                                                                                                | Starved and paused Intentions keep their state; method runs are re-entrant; the switching rule weighs named interruption costs (4.7, 4.8) |
 | R3: One priority order for contested assets                                                                                                                  | The agenda, and Allocation of units and money in its order (4.6, 4.8)                                                                     |
-| R4: Situations create Desires                                                                                                                                | Standing desires and playbook rules over Beliefs and Assessments, asked every cycle (4.4, 4.5)                                            |
+| R4: Situations create Desires                                                                                                                                | Concerns and playbook rules over Beliefs and Assessments, asked every cycle (4.4, 4.5)                                                    |
 | R5: Bounded opportunism                                                                                                                                      | Latitude in Directives, opportunity windows, and one value test at every level (4.9, 4.10)                                                |
 | R6: Reflexes faster than deliberation                                                                                                                        | Unit Behavior reflexes every tick, whoever owns the unit (4.9, 4.13)                                                                      |
 | R7: Group combat as a skill                                                                                                                                  | Tactics: persistent fight-or-flight state, the combat estimate with named modifiers, pickers (4.9)                                        |
@@ -183,7 +183,7 @@ onEveryTick(() => {
 
 - **Contacts, not actors.** Enemy beliefs record what the bot saw and inferred, never the enemy units themselves. A remembered "ghost" becomes invalid when its position is seen empty.
 - **Uncertainty stays uncertainty.** Inferred beliefs carry confidence and age.
-- **Projections enable prevention.** Proactive maintenance needs beliefs about the near future: the food queued production will use, when a threatening army will arrive, when research completes. Standing desires act on these before a condition breaks; in an RTS, reacting after it breaks is too late.
+- **Projections enable prevention.** Proactive maintenance needs beliefs about the near future: the food queued production will use, when a threatening army will arrive, when research completes. Concerns act on these before a condition breaks; in an RTS, reacting after it breaks is too late.
 - **Derived facts are filtered once.** Facts that drive decisions, such as an enemy army being near, get their hysteresis where they are inferred, not in every consumer.
 - **Knowledge is supplied when the mind is created.** Tests can then give it a two-region map and a handful of unit types.
   - Knowledge functions are pure and are imported where needed: the combat estimate, travel time, routes with danger costs, damage, production time, requirements.
@@ -195,12 +195,12 @@ onEveryTick(() => {
 
 Beliefs say what is, or is probably, true. **Assessments say what it means for the bot.** Five Footmen at the Wisps are a fact. Whether they are a serious threat depends on what defends the Wisps: two Archers, or a ring of Ancient Protectors. That judgment is an assessment. The distinction is the adopted architecture's: "Belief is not assessment".
 
-| Assessment        | Says                                                                                                                                                                                                                            | Read by                                                                       |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Threats           | each threat to own assets: its target; the enemy's strength, discounted by distance and using projected movement, against what defends the target; when it arrives; its severity (lethal, serious, or small); the value at risk | standing desires, context conditions, worker reflexes                         |
-| Danger            | how dangerous each region is, from enemy contacts, their projected movement, and towers                                                                                                                                         | navigation, Tactics, methods choosing camps and routes                        |
-| Relative strength | own army against the enemy's estimate, now and at the playbook's next timing                                                                                                                                                    | the playbook's phase conditions and adaptations, the strategy standing desire |
-| Map control       | which regions and camps each side holds or contests                                                                                                                                                                             | creeping and expansion methods, the playbook                                  |
+| Assessment        | Says                                                                                                                                                                                                                            | Read by                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Threats           | each threat to own assets: its target; the enemy's strength, discounted by distance and using projected movement, against what defends the target; when it arrives; its severity (lethal, serious, or small); the value at risk | concerns, context conditions, worker reflexes                         |
+| Danger            | how dangerous each region is, from enemy contacts, their projected movement, and towers                                                                                                                                         | navigation, Tactics, methods choosing camps and routes                |
+| Relative strength | own army against the enemy's estimate, now and at the playbook's next timing                                                                                                                                                    | the playbook's phase conditions and adaptations, the strategy concern |
+| Map control       | which regions and camps each side holds or contests                                                                                                                                                                             | creeping and expansion methods, the playbook                          |
 
 **An interpretation is an assessment** when it interprets Beliefs relative to the bot (its assets, its defenses, its plan) and several parts need it and must agree on it. A defense sized by one threat estimate must not meet an economy that fled from another. Every interpretation has one home:
 
@@ -217,7 +217,7 @@ Which plan the enemy follows is a claim about the world, so recognizing it is in
 **How Assessments work:**
 
 - They are revised in phase 1, after the Beliefs they read, each at its own cadence ([section 4.13](#413-timing-and-budgets)).
-- They are plain data, read-only to everything else. Like Beliefs, they never propose Desires: standing desires, the playbook, and requests read them and propose.
+- They are plain data, read-only to everything else. Like Beliefs, they never propose Desires: concerns, the playbook, and requests read them and propose.
 - An assessment keeps memory where it needs it. A base counts as threatened only once a threat has persisted, and stays so until it has clearly passed. That hysteresis lives in one place, not in every reader.
 - Each records its inputs, so the decision record shows the whole chain, for example: "5 Footmen seen near the Wisps 2 s ago; strength 7.5 against 4.2 at home → serious threat to the main base → `DefendBase`, Emergency".
 - An assessment may be small, like threats, or a subsystem with its own structure, like danger over the whole map. Either way its output stays narrow.
@@ -230,15 +230,15 @@ A Desire is an outcome the bot considers worth pursuing. It has a canonical iden
 - **Two kinds of outcome.**
   - _Achieve_ a state: `ReachTech{Tier 3}`, `AcquireItem{Demon Hunter, Staff of Teleportation}`, `ReviveHero{hero}`.
   - _Perform_ an activity: `Creep{heroes, until}`, `HarassEnemyHero{hero}`, `DefendBase{base}`, `Attack{objective}`.
-- **Maintenance goals are standing desires, not Desires.** Examples are "keep the bases safe" and "keep supply ahead". A standing desire monitors a condition, and proposes an achieve or perform Desire when the condition is violated (recovery) or predicted to be violated (prevention). This is how BDI research models maintenance goals.
+- **Concerns are not Desires.** A concern is something the bot keeps caring about all game, such as "keep the bases safe" or "keep supply ahead"; BDI literature calls it a maintenance goal. A concern watches a condition, and proposes an achieve or perform Desire when the condition is violated (recovery) or predicted to be violated (prevention).
 
 Desires come from three sources, asked every deliberation cycle:
 
-| Source           | Owner                  | Examples                                                                                                                                                                                                           |
-| ---------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Standing desires | the bot                | `DefendBase{base}` while threatened; `ReviveHero{hero}` while dead; `Scout{enemy start}` until known; `ExecuteStrategy{playbook}` for the preferred playbook; `RunEconomy`, `MaintainSupply`, and `Reserve` always |
-| Playbook         | the committed strategy | `TrainHero`, `ProduceArmy{composition}`, `Creep`, `HarassEnemyHero`, `RaidBase`, `HireHero`, `ReachTech`, `Attack`                                                                                                 |
-| Requests         | active Intentions      | `AcquireItem{Demon Hunter, Staff}`, `ProtectUnit{Demon Hunter}`, `ClearCamp{camp at the expansion}`                                                                                                                |
+| Source   | Owner                  | Examples                                                                                                                                                                                                           |
+| -------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Concerns | the bot                | `DefendBase{base}` while threatened; `ReviveHero{hero}` while dead; `Scout{enemy start}` until known; `ExecuteStrategy{playbook}` for the preferred playbook; `RunEconomy`, `MaintainSupply`, and `Reserve` always |
+| Playbook | the committed strategy | `TrainHero`, `ProduceArmy{composition}`, `Creep`, `HarassEnemyHero`, `RaidBase`, `HireHero`, `ReachTech`, `Attack`                                                                                                 |
+| Requests | active Intentions      | `AcquireItem{Demon Hunter, Staff}`, `ProtectUnit{Demon Hunter}`, `ClearCamp{camp at the expansion}`                                                                                                                |
 
 **A proposal carries a rank, a weight, and a reason.**
 
@@ -246,15 +246,15 @@ Desires come from three sources, asked every deliberation cycle:
 - **Weight** is the value within the rank, computed at runtime from Beliefs and Assessments. A weight of 0 vetoes the proposal.
 - A Desire takes its best proposal: the highest rank, then the highest weight.
 - **Each proposer picks the rank for the situation.**
-  - The threat assessment rates a threat lethal, serious, or small, and the standing desire ranks it Survival, Emergency, or Game plan. A small threat, such as a lone Footman at the Wisps, competes by weight, so it cannot pull a hero off a more valuable commitment.
+  - The threat assessment rates a threat lethal, serious, or small, and the base-safety concern ranks it Survival, Emergency, or Game plan. A small threat, such as a lone Footman at the Wisps, competes by weight, so it cannot pull a hero off a more valuable commitment.
   - A raid is usually an Opportunity, but the playbook may rank pressing a beaten army as Game plan.
 - **Opportunities carry a window.** A proposal for a short-lived gain states how long the chance lasts and how long pursuing it takes. A Desire that can no longer fit its window, given travel time and the units available, gets weight 0 instead of waiting for units.
 
 **A request belongs to its Intention.** It disappears as soon as the Intention stops proposing it, or ends. Every Desire is recomputed each cycle from the current Beliefs, Assessments, and Intentions.
 
 ```ts
-// A standing desire (sketch): a maintenance goal proposing recovery.
-const defendThreatenedBases: StandingDesire = ({ assessments }) =>
+// A concern (sketch): keep the bases safe, proposing recovery.
+const keepBasesSafe: Concern = ({ assessments }) =>
   assessments.threats
     .filter((threat) => threat.against.kind === 'Base')
     .map((threat) => ({
@@ -279,7 +279,7 @@ Each cycle, Deliberation:
    - achieved: the Intention is finished as achieved;
    - impossible: it is finished as failed, with the reason;
    - out of context: it is paused, with the reason.
-2. **Adopts.** For each valid Desire without an Intention, it creates an Intention of the kind registered for the outcome's kind. A Desire's identity keeps this to one Intention per outcome: two proposals to raid the same base are one Desire, and there is one strategy because the standing desire proposes only the playbook it prefers.
+2. **Adopts.** For each valid Desire without an Intention, it creates an Intention of the kind registered for the outcome's kind. A Desire's identity keeps this to one Intention per outcome: two proposals to raid the same base are one Desire, and there is one strategy because the strategy concern proposes only the playbook it prefers.
 3. **Orders the agenda.**
    - Intentions are ordered by rank, then by weight: by their value only. Switching costs apply only where one Intention would take units from another ([section 4.8](#48-allocation)).
    - An Intention is relative to the reason it was adopted for. Once its Desire is gone, it is dropped, unless its run is in a step marked uninterruptible: a hero at the shop with gold reserved finishes the purchase first.
@@ -359,23 +359,23 @@ interface MethodRun {
 
 The Intention kinds the scenarios need:
 
-| Intention kind                  | Adopted for                          | Methods, for example                                             | Needs                                              |
-| ------------------------------- | ------------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------- |
-| RunEconomy                      | standing                             | harvest toward worker targets                                    | workers (default owner), the main hall             |
-| MaintainSupply                  | standing                             | build ahead of predicted food                                    | a builder, money                                   |
-| Reserve                         | standing                             | gather near defenses, stay safe                                  | military units nobody else claimed (default owner) |
-| ExecuteStrategy                 | standing, for the preferred playbook | follow the playbook's phases                                     | nothing; it proposes Desires                       |
-| ExecuteOpening                  | playbook                             | follow the opening book                                          | builders, producers, money                         |
-| ReachTech, ProduceArmy          | playbook                             | construct, research, or train after resolving requirements       | builders, producers, money, food                   |
-| TrainHero, HireHero, ReviveHero | playbook, standing                   | train at the Altar; hire through a visitor timed to readiness    | the Altar or a visitor, money, food                |
-| AcquireItem                     | requests, playbook                   | buy with the hero                                                | the hero, money                                    |
-| Scout                           | standing, playbook                   | visit candidates by likelihood                                   | one cheap mobile unit                              |
-| Creep                           | playbook                             | with the army; with an Ancient as tank; hero alone               | heroes, army strength suited to the camps          |
-| HarassEnemyHero, RaidBase       | playbook                             | hit and run; raid workers                                        | a mobile hero or units                             |
-| DefendBase                      | standing                             | hold near defenses and Moon Wells; Town Portal or Staff when far | strength above the threat, arriving in time        |
-| ProtectUnit                     | requests                             | reach and cover                                                  | units able to reach in time                        |
-| Attack                          | playbook                             | choose the target, travel, siege, skirmish                       | an army above a minimum strength                   |
-| Expand, ClearCamp               | playbook, requests                   | clear the site, then build                                       | a builder, money, an army                          |
+| Intention kind                  | Adopted for                         | Methods, for example                                             | Needs                                              |
+| ------------------------------- | ----------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| RunEconomy                      | concern                             | harvest toward worker targets                                    | workers (default owner), the main hall             |
+| MaintainSupply                  | concern                             | build ahead of predicted food                                    | a builder, money                                   |
+| Reserve                         | concern                             | gather near defenses, stay safe                                  | military units nobody else claimed (default owner) |
+| ExecuteStrategy                 | concern, for the preferred playbook | follow the playbook's phases                                     | nothing; it proposes Desires                       |
+| ExecuteOpening                  | playbook                            | follow the opening book                                          | builders, producers, money                         |
+| ReachTech, ProduceArmy          | playbook                            | construct, research, or train after resolving requirements       | builders, producers, money, food                   |
+| TrainHero, HireHero, ReviveHero | playbook, concern                   | train at the Altar; hire through a visitor timed to readiness    | the Altar or a visitor, money, food                |
+| AcquireItem                     | requests, playbook                  | buy with the hero                                                | the hero, money                                    |
+| Scout                           | concern, playbook                   | visit candidates by likelihood                                   | one cheap mobile unit                              |
+| Creep                           | playbook                            | with the army; with an Ancient as tank; hero alone               | heroes, army strength suited to the camps          |
+| HarassEnemyHero, RaidBase       | playbook                            | hit and run; raid workers                                        | a mobile hero or units                             |
+| DefendBase                      | concern                             | hold near defenses and Moon Wells; Town Portal or Staff when far | strength above the threat, arriving in time        |
+| ProtectUnit                     | requests                            | reach and cover                                                  | units able to reach in time                        |
+| Attack                          | playbook                            | choose the target, travel, siege, skirmish                       | an army above a minimum strength                   |
+| Expand, ClearCamp               | playbook, requests                  | clear the site, then build                                       | a builder, money, an army                          |
 
 **One Intention, several groups.** An Intention pursues one Desire. When an operation needs coordinated groups, it declares several needs and steers each group with its own Tactic. An example is an attack that pins the enemy army while the Demon Hunter hits the workers.
 
@@ -511,15 +511,17 @@ const demonHunter = unitBehavior({
 - The Wisp traveling to the Tavern allows none, and has a deadline.
 - A decisive fight lets cheap units fight to the end, while heroes keep a high retreat threshold.
 
-**Nothing reports opportunities upward.** Whatever any unit sees enters the Beliefs, and standing desires and the playbook, reading Beliefs and Assessments, turn what matters into Desires. Intentions only request what is specific to them, such as help or an item.
+**Nothing reports opportunities upward.** Whatever any unit sees enters the Beliefs, and concerns and the playbook, reading Beliefs and Assessments, turn what matters into Desires. Intentions only request what is specific to them, such as help or an item.
 
 ### 4.11 Strategy, playbooks, and production
 
 **Choosing a strategy.**
 
-- A standing desire proposes executing the playbook it prefers for the matchup and the recognized enemy plan. It switches playbooks when no adaptation of the current one answers the enemy well enough.
-- There is one strategy at a time, because the standing desire proposes only the playbook it prefers.
+- The strategy concern proposes executing the playbook it prefers for the matchup and the recognized enemy plan. It switches playbooks when no adaptation of the current one answers the enemy well enough.
+- There is one strategy at a time, because the strategy concern proposes only the playbook it prefers.
 - Switching needs a clearly better score and a minimum time on the current playbook: AMAI requires 1.05× and a minimum strategy time.
+
+**From strategy to Desires.** The strategy concern's Desire, `ExecuteStrategy{playbook}`, is adopted like any other: the resulting Intention is the committed strategy. It keeps the playbook's current phase, and the playbook's rules propose the Desires that carry the strategy out, such as `TrainHero{Demon Hunter}` or `Attack`. Those compete on the agenda with every other Desire, so a threat at home still outranks the plan. Fast Bears and the Human tower rush are each one playbook.
 
 **A playbook is typed data plus small functions:**
 
@@ -737,11 +739,11 @@ Scenarios 2, 2B.1, 2.14, and 2B.9.
 6. **The raid.** The raid's Siege Tactic puts the building Peasant first in its kill order, and the Demon Hunter kills it.
 7. **A threat at home.** Five Footmen reach the Night Elf Wisps.
    - The Wisps flee by reflex at once; their owner does not change.
-   - The threat assessment weighs the five Footmen against the two Archers and the Ancient of War at home, and rates the threat serious. The standing desire proposes `DefendBase{main}` with rank Emergency, and the urgent event runs Deliberation on the next tick.
+   - The threat assessment weighs the five Footmen against the two Archers and the Ancient of War at home, and rates the threat serious. The base-safety concern proposes `DefendBase{main}` with rank Emergency, and the urgent event runs Deliberation on the next tick.
    - DefendBase needs strength above the threat, arriving within 20 seconds. Allocation fills the need nearest first. The two Archers and the Ancient of War at home are not enough against five Footmen, so it also takes the Demon Hunter, whose Staff lets him arrive in time. The defense outranks the raid, so no margin is needed.
    - Against a lone Footman, the Archers and the Ancient of War would meet the need, and the Demon Hunter would stay on the raid. With nobody at home, the threat assessment would rate a lone Footman small, so it would be ranked Game plan, and its weight, a Wisp or two, would not beat the raid's switching margin: the Wisps would flee, and the raid would go on.
 8. **The defense.** The defense's method directs him to use the Staff, and the Hold Tactic fights by the Moon Wells, focusing the Footmen.
-9. **Resumption.** With the Footmen dead, the threat assessment clears the threat, and the standing desire stops proposing; DefendBase is achieved. The Peasants have evacuated, so the raid's target is gone and it fails with that reason. Before the harassment is stepped again, it is re-checked: the playbook still proposes it and the Archmage is alive, so it gets the Demon Hunter back. Its method re-enters from Beliefs (where the Archmage was last known to be) rather than replaying from where it stopped.
+9. **Resumption.** With the Footmen dead, the threat assessment clears the threat, and the base-safety concern stops proposing; DefendBase is achieved. The Peasants have evacuated, so the raid's target is gone and it fails with that reason. Before the harassment is stepped again, it is re-checked: the playbook still proposes it and the Archmage is alive, so it gets the Demon Hunter back. Its method re-enters from Beliefs (where the Archmage was last known to be) rather than replaying from where it stopped.
 
 No Intention told another anything. Every switch came from Beliefs, Desires, the agenda, and Allocation, and the decision record holds the reason for each.
 
@@ -789,7 +791,7 @@ A behavior goes at the lowest level that has the information and the authority i
 | Another way of carrying out an operation                                                      | a new method of the Intention kind                     |
 | A step or choice inside one way                                                               | that method's state machine                            |
 | A new kind of operation, such as an escort or a drop                                          | a new outcome kind and Intention kind                  |
-| Something any competent player wants in some situation                                        | a standing desire                                      |
+| Something any competent player wants in some situation                                        | a concern                                              |
 | Something this game plan wants, or an adaptation to the enemy                                 | the playbook                                           |
 | What should win a conflict                                                                    | a rank or weight consideration, or a context condition |
 | What a situation means for the bot, needed by several parts, such as a threat to an expansion | an Assessment                                          |
@@ -809,7 +811,7 @@ A behavior goes at the lowest level that has the information and the authority i
 | Assemble functions, AssembledComponent, child factories, the component tree       | dropped: owners construct their parts directly                                             |
 | Capability providers acting for the running update                                | dropped: Intentions receive their force as an argument and return Directives               |
 | Desire supports with ids, refresh, and staleness                                  | proposals asked for each cycle                                                             |
-| Permanent Desires                                                                 | standing desires (maintenance monitors)                                                    |
+| Permanent Desires                                                                 | concerns (maintenance goals)                                                               |
 | Option Generation                                                                 | kept: collects and merges proposals                                                        |
 | Deliberation (a fixed policy)                                                     | conditions, an adoption registry, a ranked agenda, reasons                                 |
 | Intention (`update`, `assessCommitment`)                                          | Intention kinds (conditions, methods, requests, failure policy) on one generic runtime     |
@@ -823,7 +825,7 @@ Mapping the current behaviors:
 
 - **Worker safety** becomes the worker reflex.
 - **Tower target selection** becomes the Guard Tower's Unit Behavior.
-- **AdaptStrategy** becomes the strategy's standing desire.
+- **AdaptStrategy** becomes the strategy concern.
 - **The tower rush** becomes a Human playbook with an operation that establishes the tower position. That operation needs the forward Peasants and repairs the towers. RunEconomy runs the home economy.
 
 `@lib/bdi` shrinks to what is generic and still needed:
@@ -844,7 +846,7 @@ Each step leaves a working bot and updates the architecture documents.
    - Drop Scoped Beliefs, the beliefs runtime's registration, and the component tree.
 3. **Desires, Deliberation, Intention kinds.**
    - Proposals, ranks and weights, conditions, the agenda, and the generic Intention runtime.
-   - Port the current behaviors: AdaptStrategy becomes a standing desire; the tower rush becomes a playbook and its operation.
+   - Port the current behaviors: AdaptStrategy becomes the strategy concern; the tower rush becomes a playbook and its operation.
 4. **Allocation.**
    - Units first, then money with projected income.
    - Remove Actor Control.
@@ -865,7 +867,7 @@ Each step leaves a working bot and updates the architecture documents.
 ## 10. Risks and open questions
 
 1. **Calibration.** The agenda is only as good as the ranks and weights feeding it.
-   - Ranks with fixed meanings, weights from value estimates, and proposals concentrated in a few places (standing desires and playbooks) keep tuning manageable.
+   - Ranks with fixed meanings, weights from value estimates, and proposals concentrated in a few places (concerns and playbooks) keep tuning manageable.
    - Interruption costs are grounded in named losses, which keeps them on one scale.
    - The decision record shows why something won.
 2. **The combat estimate.** Fight or flight at every level depends on it.
