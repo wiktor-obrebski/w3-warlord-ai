@@ -897,6 +897,5 @@ Each step leaves a working bot and updates the architecture documents.
 9. **Automating end-to-end tests.** Launching Warcraft III into a test map, at speed and with a fixed seed, is unverified.
 10. **Persistence across games.** Whether a map script can keep an opponent model between games is unknown. Without it, the opponent model lasts one game.
 11. **The generic Intention runtime must stay small.**
-
-- It earns its place only by removing duplication from Intention kinds.
-- Anything that cannot be explained in a paragraph belongs to a kind, not to the runtime.
+    - It earns its place only by removing duplication from Intention kinds.
+    - Anything that cannot be explained in a paragraph belongs to a kind, not to the runtime.
