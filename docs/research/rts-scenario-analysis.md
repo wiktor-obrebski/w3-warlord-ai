@@ -247,7 +247,7 @@ The tables below map every deviation to the part of the [proposed architecture](
 
 Every entry above names a home for the response. These entries rest on parts that are hard, unbuilt, or unverified:
 
-- **The combat estimate.** Fight-or-flight decisions and the size of every defense rest on it: 1.2, 1.3, 1.9, 1.13, 2.3, 2.13, 2.14, 2B.8, 2B.14, 4.6–4.9, 4.13, 4.14, 5.12, 5.13, 6.5, 6.22–6.24, 6.30. The proposal starts from a cheap strength estimate with named modifiers; whether that suffices is open.
+- **The combat estimate.** Fight-or-flight decisions and the size of every defense rest on it: 1.2, 1.3, 1.9, 1.13, 2.3, 2.13, 2.14, 2B.8, 2B.14, 4.6–4.9, 4.13, 4.14, 5.12, 5.13, 6.5, 6.22–6.24, 6.30. The architecture document starts from a cheap strength estimate with named modifiers; whether that suffices is open.
 - **Plan recognition.** Under fog it is often ambiguous, and a wrong call becomes a wrong adaptation (1.1, 1.4–1.8, 3.11, 3.12, 6.4, 6.17). Adaptations scale with its confidence, and scouting resolves close calls.
 - **The enemy's whereabouts and intent.** Estimates of where unseen heroes and armies are may be poor (2.1, 2.17, 2.20, 5.10, 6.11). The bot reacts to what it sees and infers; it does not model the opponent's decisions, such as baiting (2.17), coming back to defend (2B.7, 2B.8), or trading bases (6.20).
 - **What Perception can read.** Shop and Tavern stock (2.9, 3.5, 3.6) may not be readable through natives, or not fairly. Then it is inferred from heroes seen and failed purchases.
@@ -256,7 +256,7 @@ Every entry above names a home for the response. These entries rest on parts tha
 - **Fine timing.** Last hits (1.13, 2.16, 4.8) and stepping out of Blizzard (6.16) need damage and spell prediction within a 0.1 s tick.
 - **Calibration.** Which commitment wins (1.4, 2.14, 2B.1, 4.1, 5.1, 6.19, 6.20) depends on ranks, weights, and interruption costs that are not tuned yet, including where a threat stops being small.
 
-The [proposal's risks](rts-behavior-architecture.md#10-risks-and-open-questions) cover each of these.
+The architecture document's [risks and open questions](rts-behavior-architecture.md#10-risks-and-open-questions) cover each of these.
 
 ## 4. The original scenarios
 

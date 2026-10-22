@@ -243,7 +243,7 @@ Sources by Weber, Mateas, and Jhala:
 
 ## 4. Warcraft III knowledge used
 
-Four Liquipedia pages were read through web.archive.org: Experience, Creeps (camp colors), Daytime, and Items. The proposal uses game mechanics only as examples of Knowledge, not as checked values. The source catalogue gives the current patch as 3.0.1 (build 24342, 7 October 2026); check game data and playbooks against it before writing them.
+Four Liquipedia pages were read through web.archive.org: Experience, Creeps (camp colors), Daytime, and Items. The architecture document uses game mechanics only as examples of Knowledge, not as checked values. The source catalogue gives the current patch as 3.0.1 (build 24342, 7 October 2026); check game data and playbooks against it before writing them.
 
 ## 5. Gaps
 

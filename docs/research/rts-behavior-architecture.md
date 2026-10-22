@@ -1,6 +1,6 @@
 # Research: Architecture for Full RTS Gameplay
 
-Status: research proposal for discussion, second iteration (18 October 2026). It is not the adopted architecture; that remains [`ARCHITECTURE.md`](../ARCHITECTURE.md), summarized together with the current implementation in [`ARCHITECTURE_SITEMAP.md`](../ARCHITECTURE_SITEMAP.md). The first iteration is in the Git history of this file.
+Status: a proposed architecture, for discussion; second iteration (18 October 2026). It is not the adopted architecture; that remains [`ARCHITECTURE.md`](../ARCHITECTURE.md), summarized together with the current implementation in [`ARCHITECTURE_SITEMAP.md`](../ARCHITECTURE_SITEMAP.md). The first iteration is in the Git history of this file.
 
 Companions:
 
@@ -225,7 +225,9 @@ Which plan the enemy follows is a claim about the world, so recognizing it is in
 
 ### 4.5 Desires
 
-A Desire is an outcome the bot considers worth pursuing. It has a canonical identity and the proposals that support it. It carries no behavior and commits to nothing.
+A Desire is an outcome the bot considers worth pursuing. It carries no behavior and commits to nothing.
+
+**A proposal is one source backing one outcome:** which outcome, how strongly (rank and weight), and why (reason). Sources make their proposals afresh every deliberation cycle. Proposals for the same outcome merge into one Desire, identified by its outcome. A Desire exists only while at least one source proposes it, and Deliberation adopts at most one Intention for it.
 
 - **Two kinds of outcome.**
   - _Achieve_ a state: `ReachTech{Tier 3}`, `AcquireItem{Demon Hunter, Staff of Teleportation}`, `ReviveHero{hero}`.
@@ -249,6 +251,15 @@ Desires come from three sources, asked every deliberation cycle:
   - The threat assessment rates a threat lethal, serious, or small, and the base-safety concern ranks it Survival, Emergency, or Game plan. A small threat, such as a lone Footman at the Wisps, competes by weight, so it cannot pull a hero off a more valuable commitment.
   - A raid is usually an Opportunity, but the playbook may rank pressing a beaten army as Game plan.
 - **Opportunities carry a window.** A proposal for a short-lived gain states how long the chance lasts and how long pursuing it takes. A Desire that can no longer fit its window, given travel time and the units available, gets weight 0 instead of waiting for units.
+
+**Two proposals, one Desire.** While the Staff is out of stock and the harassment runs without it, two sources propose buying it:
+
+| Source                       | Proposes                           | Rank      | Weight | Reason                         |
+| ---------------------------- | ---------------------------------- | --------- | ------ | ------------------------------ |
+| the playbook's Harass phase  | `AcquireItem{Demon Hunter, Staff}` | Game plan | 0.7    | the phase wants an escape item |
+| the harassment, as a request | `AcquireItem{Demon Hunter, Staff}` | Game plan | 0.8    | hit and run needs an escape    |
+
+The Desire ranks as its stronger proposal, Game plan 0.8, and has at most one Intention. When the harassment ends, its request goes with it, and the playbook's proposal alone keeps the Desire alive. A Desire nobody proposes disappears, and an Intention still pursuing it is dropped.
 
 **A request belongs to its Intention.** It disappears as soon as the Intention stops proposing it, or ends. Every Desire is recomputed each cycle from the current Beliefs, Assessments, and Intentions.
 

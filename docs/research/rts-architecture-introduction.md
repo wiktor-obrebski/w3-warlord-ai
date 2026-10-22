@@ -1,8 +1,8 @@
 # Research: Introduction to the Proposed Architecture
 
-Status: a tutorial introduction to the research proposal in [`rts-behavior-architecture.md`](rts-behavior-architecture.md), second iteration. The proposal is not the adopted architecture; that remains [`ARCHITECTURE.md`](../ARCHITECTURE.md). Where this introduction and the proposal disagree, the proposal is right.
+Status: a tutorial introduction to the proposed architecture (second iteration) described in the architecture document, [`rts-behavior-architecture.md`](rts-behavior-architecture.md). The proposed architecture is not the adopted one; that remains [`ARCHITECTURE.md`](../ARCHITECTURE.md). Where this introduction and the architecture document disagree, the architecture document is right.
 
-This introduction builds the proposed architecture up one idea at a time, following one moment of one game. It explains what each part is for and how the parts work together, and links to the proposal for the exact rules. It assumes you know TypeScript and the basics of Warcraft III, but not BDI.
+This introduction builds the proposed architecture up one idea at a time, following one moment of one game. It explains what each part is for and how the parts work together, and links to the architecture document for the exact rules. It assumes you know TypeScript and the basics of Warcraft III, but not BDI.
 
 ## 1. The problem
 
@@ -54,7 +54,7 @@ Details: [One mind, two boundaries](rts-behavior-architecture.md#41-one-mind-two
 
 ## 3. The running example
 
-The rest of this introduction follows one moment of a Night Elf versus Human game, the proposal's [first walkthrough](rts-behavior-architecture.md#61-the-demon-hunters-harassment-interrupted-twice).
+The rest of this introduction follows one moment of a Night Elf versus Human game, the architecture document's [first walkthrough](rts-behavior-architecture.md#61-the-demon-hunters-harassment-interrupted-twice).
 
 The Night Elf plays the Fast Bears strategy. Its Demon Hunter carries a Staff of Teleportation and is harassing the Human Archmage. Then:
 
@@ -108,13 +108,22 @@ Details: [Assessments](rts-behavior-architecture.md#44-assessments).
 
 A **Desire** is an outcome the bot considers worth pursuing: `DefendBase{main}`, `AcquireItem{Demon Hunter, Staff}`, `RaidBase{north expansion}`. A Desire commits to nothing, and Desires are cheap: they are recomputed every deliberation cycle, about once a second.
 
-Each cycle, the mind asks three sources for proposals:
+Desires are made of **proposals**. A proposal is one source saying "this outcome is worth pursuing", together with how strongly and why. Each cycle, the mind asks three sources for their proposals:
 
 - **Concerns**, what any competent player keeps caring about all game: safe bases, living heroes, supply ahead. BDI literature calls them maintenance goals. Each reads Beliefs and Assessments, and proposes a Desire when a condition breaks, or is about to.
 - **The playbook**, what the current game plan wants. In its Harass phase, Fast Bears proposes, in falling weight, buying the Staff, harassing the enemy hero, and creeping with the Demon Hunter.
 - **Requests** from active Intentions, for what a commitment needs, such as an item or help. A request disappears with the Intention that made it.
 
 Each proposal carries a **rank**, a **weight**, and a **reason**. The rank is a category, from Survival down to Background: a threat the threat assessment rates lethal is Survival, a serious one is Emergency, the game plan's own goals are Game plan, and so is a small threat such as a lone Footman at the Wisps; a short-lived gain is usually an Opportunity, and upkeep that is never urgent is Background. The weight is the value within the rank, computed from Beliefs and Assessments; a weight of 0 vetoes the proposal. A higher rank always comes first, and weight orders proposals within a rank.
+
+Proposals for the same outcome merge into one Desire. The Desire ranks as its strongest proposal, and it lasts only while at least one source still proposes it. Deliberation adopts at most one Intention per Desire. For example, if the Staff were out of stock and the harassment ran without it, two sources would propose buying it:
+
+| Source                       | Proposes                           | Rank      | Weight | Reason                         |
+| ---------------------------- | ---------------------------------- | --------- | ------ | ------------------------------ |
+| the playbook's Harass phase  | `AcquireItem{Demon Hunter, Staff}` | Game plan | 0.7    | the phase wants an escape item |
+| the harassment, as a request | `AcquireItem{Demon Hunter, Staff}` | Game plan | 0.8    | hit and run needs an escape    |
+
+That is two proposals, one Desire ranked Game plan 0.8, and at most one Intention. When the harassment ends, its request goes with it, and the playbook's proposal alone keeps the Desire alive. A Desire nobody proposes any more disappears, and an Intention still pursuing it is dropped.
 
 Right after the sighting, the bot wants this:
 
@@ -317,7 +326,7 @@ The full list is in [Where a new behavior goes](rts-behavior-architecture.md#7-w
 
 ## 16. What is still open
 
-The proposal is research, and parts of it are unproven:
+The proposed architecture is research, and parts of it are unproven:
 
 - every fight-or-flight decision depends on a combat estimate that still has to be calibrated;
 - some facts the scenarios need, such as shop and Tavern stock, may not be readable through natives;
@@ -339,7 +348,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - **Decision record**: one record per tick of what was decided and why.
 - **Default owner**: the Intention that receives units nobody asked for: RunEconomy for workers, Reserve for army units and heroes.
 - **Deliberation**: checks Intentions' conditions, adopts Intentions for Desires, and orders the agenda.
-- **Desire**: an outcome worth pursuing, with the proposals that support it. It commits to nothing.
+- **Desire**: an outcome worth pursuing, backed by one or more proposals. It commits to nothing, lasts while anyone proposes it, and gets at most one Intention.
 - **Directive**: what is asked of one unit: a task, a role, latitude, and optionally where to stand and where to fall back.
 - **Fingerprint**: a sign of an enemy strategy in the strategy library: a small rule over what was seen and when, such as an early Town Hall away from the enemy's start.
 - **Intention**: a commitment to a Desire, pursued through methods until it is achieved, becomes impossible, or is no longer wanted.
@@ -355,7 +364,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - **Perception**: the only code reading Warcraft state for decisions. It filters by visibility.
 - **Plan recognition**: the inference that matches what was seen against a library of known enemy strategies, and gives the likeliest one or two with a confidence.
 - **Playbook**: a strategy as data: phases, an opening book, production goals, adaptations, and builds.
-- **Proposal**: a source's support for a Desire: a rank, a weight, and a reason.
+- **Proposal**: one source backing one outcome: how strongly (a rank and a weight) and why (a reason). Proposals for the same outcome merge into one Desire.
 - **Rank**: a proposal's category: Survival, Emergency, Game plan, Opportunity, or Background.
 - **Reflex**: a Unit Behavior module that runs first and may override the Directive to keep the unit alive.
 - **Request**: a Desire proposed by an active Intention for one of its subgoals.
@@ -364,11 +373,11 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - **Switching rule**: when a unit may move between Intentions: never out of an uninterruptible step, always to a higher rank, and within a rank only by a margin.
 - **Tactic**: a reusable controller for a group: fight or flight, targets, positions.
 - **Unit Behavior**: one per own unit. It turns the unit's Directive into an order: reflexes, skills, opportunities, task.
-- **Weight**: a proposal's value within its rank, computed from Beliefs. A weight of 0 vetoes the proposal.
+- **Weight**: a proposal's value within its rank, computed from Beliefs and Assessments. A weight of 0 vetoes the proposal.
 - **Window**: how long an opportunity lasts. A Desire that can no longer fit its window gets weight 0.
 
 ## 18. Where to read next
 
-- [`rts-behavior-architecture.md`](rts-behavior-architecture.md): the proposal, with every rule, sketches, more walkthroughs, and the roadmap.
+- [`rts-behavior-architecture.md`](rts-behavior-architecture.md): the architecture document, with every rule, sketches, more walkthroughs, and the roadmap.
 - [`rts-scenario-analysis.md`](rts-scenario-analysis.md): how each deviation of the Night Elf versus Human scenarios fits the architecture.
 - [`rts-research-sources.md`](rts-research-sources.md): what each studied bot and paper contributed.
