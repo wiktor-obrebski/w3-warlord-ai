@@ -1,6 +1,6 @@
 # Research: Sources and What They Contributed
 
-Companion to [`rts-behavior-architecture.md`](rts-behavior-architecture.md). It records the sources read for its second iteration (October 2026): what each one contributed, and what it warned against. Section 5 lists the sources that were not reachable.
+Companion to [`rts-behavior-architecture.md`](rts-behavior-architecture.md). It records the sources read for its second iteration (October 2026): what each one contributed, and what it warned against. Section 5 lists the sources that were not reachable. Terms of the proposed architecture are set in _**bold italics**_, to tell them from the sources' own terms.
 
 ## 1. RTS bots
 
@@ -75,7 +75,7 @@ Sources by Weber, Mateas, and Jhala:
 
 - Typed requests that separate _what_ (strategy) from _how_ (specialists).
 - Several alternative behaviors for one goal, tried in order of specificity, each with a success test and a context condition. Failure falls through to the next alternative.
-- Expectations attached to a strategy: when one is violated, the strategy is reconsidered. Here they become adaptations that guard the playbook's assumptions and run Deliberation early. "Expected X, not seen" may count only where scouting coverage says X would have been seen.
+- Expectations attached to a strategy: when one is violated, the strategy is reconsidered. Here they become _**adaptations**_ that guard the _**playbook**_'s assumptions and run _**Deliberation**_ early. "Expected X, not seen" may count only where scouting coverage says X would have been seen.
 - A particle model for enemy units in the fog: one particle per enemy unit seen, with per-class decay and drift toward chokepoints, culled by our own vision.
   - Accuracy: 0.739 versus 0.669 for last-known positions.
   - In-game win rate: 78% versus 67%.
@@ -120,7 +120,7 @@ Sources by Weber, Mateas, and Jhala:
 - Map-hacked inputs: enemy strength and army positions are read through the fog. AMAI also does no scouting.
 - Blocking threads coordinated by global flags, and a 16,000-line file.
 - Code generated from positional table columns.
-- Dependence on engine AI natives (captains, creep-camp finders), which our tactics and map knowledge replace.
+- Dependence on engine AI natives (captains, creep-camp finders), which our _**tactics**_ and map knowledge replace.
 
 ## 2. BDI frameworks and research
 
@@ -143,13 +143,13 @@ Sources by Weber, Mateas, and Jhala:
 **Avoided**
 
 - Rule engines that propagate changes. Jadex's own documentation admits they miss changes inside complex objects.
-- Abort-and-restart on suspension. Our methods recompute their phase from Beliefs when they resume.
+- Abort-and-restart on suspension. Our _**methods**_ recompute their phase from _**Beliefs**_ when they resume.
 - Event consumption that depends on loading order.
 - Atomic intentions that block everything else.
 
 **Not adopted**
 
-- "Easy deliberation": inhibition between goal kinds, and cardinality limits. Context conditions over Beliefs and the identity of Desires cover the cases the scenarios need, without a second mechanism.
+- "Easy deliberation": inhibition between goal kinds, and cardinality limits. _**Context conditions**_ over _**Beliefs**_ and the identity of _**Desires**_ cover the cases the scenarios need, without a second mechanism.
 
 ### BDI research
 
@@ -158,7 +158,7 @@ Sources by Weber, Mateas, and Jhala:
   - plan-rules with context conditions (control flow as plan choice);
   - failure handling at the goal level;
   - intention scheduling.
-  - An open problem it names: most BDI languages offer no deliberation over whether to _adopt_ a goal the agent generated itself. Our Deliberation does exactly that.
+  - An open problem it names: most BDI languages offer no deliberation over whether to _adopt_ a goal the agent generated itself. Our _**Deliberation**_ does exactly that.
 - **Thangarajah, Harland, Morley, and Yorke-Smith, "Suspending and Resuming Tasks in BDI Agents"** (AAMAS 2008):
   - reasons to suspend a goal;
   - reconsideration conditions;
@@ -167,7 +167,7 @@ Sources by Weber, Mateas, and Jhala:
   - suspend and resume hooks.
 - **"Operational Behaviour for Executing, Suspending, and Aborting Goals"** (DALT 2010, published 2011), by the same authors:
   - perform, achieve, and maintain goals;
-  - maintenance goals (our concerns) that only monitor, and spawn achieve goals: _recovery_ when their condition is violated, _prevention_ when a violation is predicted;
+  - maintenance goals (our _**concerns**_) that only monitor, and spawn achieve goals: _recovery_ when their condition is violated, _prevention_ when a violation is predicted;
   - the states Pending, Waiting, Active, and Suspended;
   - _drop_ (discard) versus _abort_ (run cleanup methods).
 - **Cohen and Levesque, "Intention Is Choice with Commitment"** (Artificial Intelligence 42, 1990). The _relativized_ persistent goal: an intention is given up when the agent believes it is achieved, believes it impossible, or no longer believes the reason it was adopted for. Dropping a supergoal is enough reason to drop its subgoals. "Persistent in pursuing its goals, but not fanatically so."
@@ -181,14 +181,14 @@ Sources by Weber, Mateas, and Jhala:
   - Summary information of definite and potential conditions is computed from the goal-plan tree.
   - The incumbent wins by default.
 
-  This grounds interruption cost in what would actually be lost.
+  This grounds _**interruption cost**_ in what would actually be lost.
 
 - **Vikhorev, Alechina, and Logan, "Agent Programming with Priorities and Deadlines"** (AgentSpeak(RT), AAMAS 2011):
   - Intentions are admitted in priority order while the set stays feasible, and the set is recomputed each cycle.
   - Infeasible intentions are dropped.
   - The bot commits to a priority-maximal set, and its reactivity delay is bounded.
 
-  Our Allocation has the same shape, and opportunities borrow the idea of a deadline.
+  Our _**Allocation**_ has the same shape, and opportunities borrow the idea of a deadline.
 
 - **Logan, Thangarajah, and Yorke-Smith, "Progressing Intention Progression"** (AAMAS 2017), and **Yao, Logan, and Thangarajah, "Robust Execution of BDI Agent Programs by Exploiting Synergies Between Intentions"** (AAAI 2016):
   - Logan et al. define the intention progression problem: which plan to use, and which intention to progress next. The state of practice is round-robin or hand-crafted scheduling.
@@ -243,7 +243,7 @@ Sources by Weber, Mateas, and Jhala:
 
 ## 4. Warcraft III knowledge used
 
-Four Liquipedia pages were read through web.archive.org: Experience, Creeps (camp colors), Daytime, and Items. The architecture document uses game mechanics only as examples of Knowledge, not as checked values. The source catalogue gives the current patch as 3.0.1 (build 24342, 7 October 2026); check game data and playbooks against it before writing them.
+Four Liquipedia pages were read through web.archive.org: Experience, Creeps (camp colors), Daytime, and Items. The architecture document uses game mechanics only as examples of _**Knowledge**_, not as checked values. The source catalogue gives the current patch as 3.0.1 (build 24342, 7 October 2026); check game data and _**playbooks**_ against it before writing them.
 
 ## 5. Gaps
 
@@ -257,7 +257,7 @@ These sources were not reachable from the research environment:
 - **Duff, Harland, and Thangarajah, "On Proactivity and Maintenance Goals"** (AAMAS 2006): not found online. The proceedings are missing from ifaamas.org.
 - **pdfs.semanticscholar.org:** blocked.
 
-None of them blocks the architecture work. Liquipedia and Warcraft 3 Gym matter later, for game data and playbook content. Game data should rather come from the game files themselves (CASC extraction), versioned by client build.
+None of them blocks the architecture work. Liquipedia and Warcraft 3 Gym matter later, for game data and _**playbook**_ content. Game data should rather come from the game files themselves (CASC extraction), versioned by client build.
 
 The research also skipped several areas for budget:
 
