@@ -78,7 +78,7 @@ _**Beliefs**_ are one world model in plain data. Small pure functions, the _**be
 - **Uncertainty stays visible.** Inferred facts carry their confidence and age.
 - **Derived facts are filtered once.** A fact such as "the base is threatened" gets its hysteresis where it is inferred, so that everything reading it sees the same stable answer.
 
-_**Knowledge**_ is everything known before the game starts. Game data (costs, build times, damage tables, requirements) and map knowledge (regions, chokes, routes, creep camps, shops) come from build-time tooling and are handed to the _**mind**_ when it is created. Pure _**Knowledge**_ functions compute what all parts must agree on, such as the _**combat estimate**_ and travel time. When the raid asks whether the Demon Hunter can reach the Town Hall before it is finished, it uses the same build time and travel time as every other part of the bot.
+_**Knowledge**_ is everything known before the game starts, and it never changes during the game. Game data (costs, build times, damage tables, requirements) and map knowledge (terrain, trees, regions, creep camps, shops) come from build-time tooling and are handed to the _**mind**_ when it is created. Whatever changes during a game, however rarely, is not _**Knowledge**_: trees are cut down and buildings go up, opening and closing routes, so _**Beliefs**_ hold the map as the bot believes it now. Pure _**Knowledge**_ functions compute what all parts must agree on, such as the _**combat estimate**_ and travel time. When the raid asks whether the Demon Hunter can reach the Town Hall before it is finished, it uses the same build time and travel time as every other part of the bot.
 
 Details: [Beliefs and Knowledge](rts-behavior-architecture.md#43-beliefs-and-knowledge), [The enemy model](rts-behavior-architecture.md#412-the-enemy-model).
 
@@ -355,7 +355,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - _**Intention kind**_: the declaration behind _**Intentions**_ of one sort: conditions, _**methods**_, _**requests**_, and a _**failure policy**_.
 - _**Interruption cost**_: what interrupting an _**Intention**_ now would waste, given by name. It is part of the _**switching margin**_.
 - _**Judgment**_: an interpretation only one module needs, such as a _**Tactic**_'s view of its own fight. It stays private in that module.
-- _**Knowledge**_: static game data and map knowledge, prepared offline and supplied when the _**mind**_ is created.
+- _**Knowledge**_: game data and the map as they are when the game starts, prepared offline and supplied when the _**mind**_ is created. It never changes during a game.
 - _**Latitude**_: how far a unit may deviate from its _**Directive**_: retreat threshold, opportunism, leash.
 - _**Method**_: one way to pursue an _**Intention**_: a small, re-entrant state machine. BDI calls it a Plan.
 - _**Mind**_: all of the bot's reasoning, between _**Perception**_ and the _**order executor**_. There is one per game.
