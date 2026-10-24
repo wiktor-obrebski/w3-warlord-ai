@@ -217,11 +217,16 @@ _**Beliefs**_ say what is, or is probably, true. **_Assessments_ say what it mea
 | What it means for one decision only, such as a _**Tactic**_'s view of its own fight or a _**plan**_'s choice of the next camp | a private _**judgment**_ in that module     |
 | How the game works                                                                                                            | _**Knowledge**_                             |
 
-Which strategy the enemy follows is a claim about the world, so recognizing it is inference ([section 4.12](#412-the-enemy-model)). Whether that strategy beats ours is an _**assessment**_.
+**Inference or _assessment_?** Two questions decide:
+
+- **Can it be checked against the truth?** Whether the enemy has Tier 2, or where his army is, has an answer that a test harness knows. That is inference, and it belongs to _**Beliefs**_. Whether a threat is serious has no such answer: it is a judgment, tuned for how well the bot plays.
+- **Does it depend on what the bot wants or values?** Inference never does. A threat's severity depends on the value at risk, and relative strength on the _**playbook**_'s next timing, so both are _**Assessments**_.
+
+Which strategy the enemy follows is a claim about the world, so recognizing it is inference ([section 4.12](#412-the-enemy-model)). Whether that strategy beats ours is an _**assessment**_. Keeping the two apart lets _**Beliefs**_ be measured against the truth, lets judgments be tuned without making _**Beliefs**_ less accurate, and keeps what the bot wants out of what it believes.
 
 **How _Assessments_ work:**
 
-- They are revised in phase 1, after the _**Beliefs**_ they read, each at its own cadence ([section 4.13](#413-timing-and-budgets)).
+- They are computed like _**belief models**_: pure functions over plain data, revised in phase 1, right after the _**Beliefs**_ they read, each at its own cadence ([section 4.13](#413-timing-and-budgets)). Inference and _**Assessments**_ are one kind of module with two kinds of output, not two subsystems.
 - They are plain data, read-only to everything else. Like _**Beliefs**_, they never propose _**Desires**_: _**concerns**_, the _**playbook**_, and _**requests**_ read them and propose.
 - An _**assessment**_ keeps memory where it needs it. A base counts as threatened only once a threat has persisted, and stays so until it has clearly passed. That hysteresis lives in one place, not in every reader.
 - Each records its inputs, so the _**decision record**_ shows the whole chain, for example: "5 Footmen seen near the Wisps 2 s ago; strength 7.5 against 4.2 at home → serious threat to the main base → `DefendBase`, Emergency".
