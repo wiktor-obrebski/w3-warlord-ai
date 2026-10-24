@@ -340,7 +340,7 @@ An _**Intention kind**_ is a goal with:
 _**Plan runs**_ are small, explicit state machines. A run:
 
 - declares its _**Intention**_'s _**needs**_;
-- returns _**Directives**_;
+- returns _**Directives**_: what each unit its _**Intention**_ owns should do ([section 4.9](#49-execution));
 - reports its status;
 - monitors its own progress: it has an expected progress and a stall timeout, after which it repairs itself, changes its steps, or fails;
 - reports its _**interruption cost**_: what interrupting it now would waste ([section 4.8](#48-allocation)). A step that must not be interrupted at all, such as a Town Portal about to take effect or a purchase being made, marks itself _**uninterruptible**_ for a bounded time.
@@ -465,7 +465,16 @@ _**Tactics**_ are reusable group controllers that _**plans**_ run: Travel, Skirm
 - **Takes local opportunities** within the _**latitude**_ its _**plan**_ gave it.
 - **Reports its status upward:** ongoing, won, retreated, stalled, or imminent failure.
 
-_**Directives**_ come from a closed vocabulary. They are constraints, not micromanagement:
+**_Directives_.** A _**Directive**_ is what a unit's owner asks of it. Every own unit gets one from its owner's _**plan run**_: a _**Tactic**_ writes the _**Directives**_ for the units in its group, and the run writes them itself for units outside any group, such as a builder or a scout. A _**Directive**_ holds until the run replaces it; in between, the unit's _**Unit Behavior**_ turns it into an order every tick. When a unit changes owner, its old _**Directive**_ ends, and the new owner's run gives it one in the same tick.
+
+A _**Directive**_ says:
+
+- the _**task**_: what to do, from a closed vocabulary, such as Move, Engage, Hold, Harvest, Build, Repair, Produce, UseItem, Purchase, or PickUp;
+- the _**role**_: how to play the _**task**_, such as Harasser, Tank, or Scout;
+- the _**latitude**_: how far the unit may deviate from the _**task**_: its retreat threshold, how much opportunism it allows, and its leash;
+- optionally, a station to hold while engaging and a point to fall back to.
+
+**_Directives_ are constraints, not micromanagement.** A _**Directive**_ says what to achieve and within which limits; the _**Unit Behavior**_ chooses the orders that achieve it: which target to hit, when to cast, where to step. Because the vocabulary is closed, every _**Unit Behavior**_ understands every _**Directive**_, and _**plans**_ and _**Tactics**_ can be tested by what they ask, not by Warcraft orders.
 
 ```ts
 // A Directive (sketch).
@@ -639,7 +648,7 @@ _**Belief**_ quality can be measured offline, because a test harness knows the g
 | _**Perception**_ and fast _**Beliefs**_               | every tick                                                            | —                                                                      |
 | _**Unit Behaviors**_                                  | every tick, round-robin within a budget, units nearest a threat first | an own unit attacked                                                   |
 | _**Tactics**_                                         | 0.2–0.5 s                                                             | enemies appearing near the group                                       |
-| _**Intentions**_ and _**plans**_                      | 0.5–1 s                                                               | a _**Tactic**_'s status, a unit lost                                   |
+| _**Intentions**_ and _**plans**_                      | 0.5–1 s                                                               | a _**Tactic**_'s status, a unit gained or lost                         |
 | _**Desires**_, _**Deliberation**_, _**Allocation**_   | about 1 s                                                             | a new threat, a broken _**expectation**_, an _**Intention**_ finishing |
 | Slow inference: particles, the army estimate          | 1–2 s, spread over ticks                                              | —                                                                      |
 | Enemy _**strategy recognition**_                      | every few seconds, incrementally                                      | a new enemy building type seen                                         |
