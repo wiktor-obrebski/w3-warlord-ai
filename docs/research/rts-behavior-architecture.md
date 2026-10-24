@@ -300,7 +300,10 @@ Each cycle, _**Deliberation**_:
    - An _**Intention**_ is relative to the reason it was adopted for. Once its _**Desire**_ is gone, it is dropped, unless its run is in a step marked _**uninterruptible**_: a hero at the shop with gold reserved finishes the purchase first.
 4. **Records reasons.** Every adoption, pause, and drop, and every _**agenda**_ position, is recorded with the _**ranks**_, _**weights**_, and vetoes that produced it.
 
-**Logical conflicts are _pause conditions_.** Expand's _**pause condition**_ is a threat at its site, as the _**threat assessment**_ sees it, so a defense there pauses the expansion, with that reason. Competition for units and money is not a conflict here; _**Allocation**_ resolves it.
+**Conflicts between _Intentions_.** _**Deliberation**_ has no rules saying which _**Intention**_ blocks which. Conflicts come in two kinds, and each is settled elsewhere:
+
+- **Competing for the same units or money.** _**Allocation**_ settles it in _**agenda**_ order ([section 4.8](#48-allocation)).
+- **One makes no sense while another goes on**, such as building an expansion at a site under attack. The _**Intention**_ that should wait says so in its own _**pause condition**_: Expand pauses while the _**threat assessment**_ sees a threat at its site. It reads the same threat the defense answers, so neither _**Intention**_ refers to the other.
 
 ### 4.7 Intentions
 
