@@ -129,7 +129,7 @@ Warcraft ──▶ Perception ──▶ ┌────────────�
 - **The _order executor_** is the only code issuing Warcraft orders.
   - It skips an order equal to what the unit is already doing, because a re-issued attack restarts it.
   - It records each order's reason.
-  - Rejected orders return to the _**mind**_ as _**observations**_.
+  - When Warcraft refuses an order, the refusal reaches the _**mind**_ with the next tick's _**observations**_, 0.1 s later. _**Beliefs**_ hold it among that tick's events, and a _**belief model**_ keeps what should last, such as what a shop has in stock after a purchase failed.
 - **Inputs are injected.**
   - Game time arrives with the _**observations**_.
   - One seeded random source is passed in.
@@ -182,7 +182,7 @@ onEveryTick(() => {
 | Neutral                  | Creep camps (alive, wounded, cleared, last seen); items on the ground; shop and Tavern stock when seen.                                                                                                                                                                                                                                                                                                                         |
 | Map                      | The map as the bot believes it now: trees and destructibles seen destroyed, and how the regions connect given those and the structures standing, including the chokes and which unit sizes fit through.                                                                                                                                                                                                                         |
 | Time                     | Game time; day or night.                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Events                   | What happened this tick: attacks on own units, deaths seen, spells seen, order outcomes.                                                                                                                                                                                                                                                                                                                                        |
+| Events                   | What happened this tick, kept for this tick only: attacks on own units, deaths seen, spells seen, order outcomes. Whatever must last, a _**belief model**_ records in another section.                                                                                                                                                                                                                                          |
 | _**Knowledge**_ (static) | The game and the map as they are when the game starts. **Game data:** units, heroes, abilities, items, upgrades, requirements, costs, build times, damage and armor tables, experience rules. **Map knowledge:** terrain and its pathing by unit size, trees and destructibles, regions, start locations, bases and their gold mines, creep camps with their creeps and item drops, shops, Taverns, Mercenary Camps, fountains. |
 
 - **_Contacts_, not actors.** Enemy _**beliefs**_ record what the bot saw and inferred, never the enemy units themselves. A remembered "ghost" becomes invalid when its position is seen empty.
@@ -894,6 +894,7 @@ Each step leaves a working bot and updates the architecture documents.
 7. **Order semantics.**
    - Scripts cannot queue orders, and re-issued attacks restart.
    - Ability and item orders need verifying in the game, skill by skill.
+   - An order native's result is not always reliable: a build order reports failure even when the unit accepts it, so a refusal must be confirmed from what the unit does next.
 8. **What _Perception_ can read.** Some _**Beliefs**_ the scenarios rely on may not be readable through natives, or not fairly; shop and Tavern stock above all. Each needs an in-game probe. A fact that cannot be read must be inferred, for example stock from a failed purchase.
 9. **Automating end-to-end tests.** Launching Warcraft III into a test map, at speed and with a fixed seed, is unverified.
 10. **Persistence across games.** Whether a map script can keep an opponent model between games is unknown. Without it, the opponent model lasts one game.
