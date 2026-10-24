@@ -35,7 +35,7 @@ That research confirmed the core of the first iteration and changed most of what
 5. **_Deliberation_ ranks, and commitment is explicit.** A _**Desire**_ has a _**rank**_ (a category) and a _**weight**_ (its value within that category):
    - _**context conditions**_ over _**Beliefs**_ settle logical conflicts;
    - _**Allocation**_ settles competition for resources;
-   - a _**switching rule**_ makes preemption deliberate: within a _**rank**_, a challenger must beat the incumbent by a margin. The margin is a _**commitment constant**_ plus what interrupting the incumbent would waste.
+   - a _**switching rule**_ makes preemption deliberate: within a _**rank**_, a challenger must beat a unit's holder by the _**switching margin**_: a _**commitment constant**_ plus what interrupting the holder would waste.
 6. **_Intentions_ are goals with _methods_.** An _**Intention kind**_ declares its conditions, its _**methods**_ (its Plans), its _**requests**_, and how it handles failure. One small generic runtime chooses _**methods**_, handles failure in a bounded, named way, and keeps every state change with its reason.
 7. **_Allocation_ is the only owner of units and money.** _**Needs**_ are served in _**agenda**_ order and renewed every cycle. Money is reserved against stock plus projected income. Workers, scouts, and builders are not special cases.
 8. **Execution keeps the first iteration's chain, with a fitting formalism at each level.**
@@ -339,13 +339,11 @@ An _**Intention kind**_ is a goal with:
 
 _**Method runs**_ are small, explicit state machines. A run:
 
-- declares its _**needs**_;
+- declares its _**Intention**_'s _**needs**_;
 - returns _**Directives**_;
 - reports its status;
 - monitors its own progress: it has an expected progress and a stall timeout, after which it repairs itself, replans, or fails;
-- reports its _**interruption cost**_: what interrupting it now would waste, by name, such as a fight under way, a builder already at the site, or a camp half cleared. A step that must not be interrupted at all, such as a Town Portal about to take effect or a purchase being made, marks itself _**uninterruptible**_ for a bounded time.
-
-Named, grounded costs keep _**Intentions**_ written by different authors on one scale. A bare number would let any _**Intention**_ inflate its own priority.
+- reports its _**interruption cost**_: what interrupting it now would waste ([section 4.8](#48-allocation)). A step that must not be interrupted at all, such as a Town Portal about to take effect or a purchase being made, marks itself _**uninterruptible**_ for a bounded time.
 
 An _**Intention**_ receives its force (the units and budget allocated to it) as an argument, and returns _**Directives**_ rather than calling a capability. That makes it data in and data out.
 
@@ -392,11 +390,11 @@ The _**Intention kinds**_ the scenarios need:
 | Attack                          | _**playbook**_                                  | choose the target, travel, siege, skirmish                       | an army above a minimum strength                         |
 | Expand, ClearCamp               | _**playbook**_, _**requests**_                  | clear the site, then build                                       | a builder, money, an army                                |
 
-**One _Intention_, several groups.** An _**Intention**_ pursues one _**Desire**_. When an operation needs coordinated groups, it declares several _**needs**_ and steers each group with its own _**Tactic**_. An example is an attack that pins the enemy army while the Demon Hunter hits the workers.
+**One _Intention_, several groups.** An _**Intention**_ pursues one _**Desire**_, but its _**method**_ may need coordinated groups, such as an attack that pins the enemy army while the Demon Hunter hits the workers. The _**method run**_ then declares one _**need**_ per group and steers each group with its own _**Tactic**_.
 
 ### 4.8 Allocation
 
-An _**Intention**_ declares its _**needs**_:
+The run of an _**Intention**_'s current _**method**_ declares the _**Intention**_'s _**needs**_:
 
 - **Unit _needs_:**
   - a matcher: a given unit, unit types, or a class such as army;
@@ -418,6 +416,11 @@ Each round, _**Allocation**_ walks the _**agenda**_ in order:
 3. **Reserves money.** Money is reserved against the stock plus a short projection of income. An unmet _**need**_ reports when it becomes affordable; that is how saving works.
 4. **Assigns leftovers to _default owners_.** Workers nobody asked for go to RunEconomy, army units and heroes to Reserve.
 5. **Records every grant and denial with its reason.**
+
+**The two terms of the _switching margin_:**
+
+- The _**commitment constant**_ is one small _**weight**_, the same for every _**Intention**_: the least gain worth moving a unit at all. _**Weights**_ are recomputed every cycle and shift a little each time; without the constant, two _**Intentions**_ of close _**weight**_ would pass a unit back and forth.
+- The _**interruption cost**_ is what taking the unit now would waste for its holder: a fight under way, a builder already at the site, a camp half cleared. The holder's _**method run**_ names these losses from one shared list, and each named loss is valued in one shared place, not by the _**Intention**_ reporting it. That keeps _**Intentions**_ written by different authors on one scale; a number each _**Intention**_ chose for itself would let it inflate its own priority. The cost follows the run's progress: interrupting a harassment that is still searching wastes little, interrupting one in a fight wastes the fight.
 
 _**Allocation**_ rests on these rules:
 
@@ -511,12 +514,12 @@ const demonHunter = unitBehavior({
 
 ### 4.10 Opportunities and latitude
 
-| Level      | Examples                                                                                                    | Decided by                              | Bounded by                                                                    |
-| ---------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
-| Unit       | last hit (2.16), finish a dying unit in range (2.15), pick up a dropped item, Mana Burn a passing caster    | _**Unit Behavior**_ _**opportunities**_ | the _**Directive**_'s _**latitude**_                                          |
-| Group      | finish a camp the Humans left wounded (2.21), kill exposed workers on the way, chase a fleeing hero briefly | the _**Tactic**_                        | the leash, time, and risk its _**method**_ gave it                            |
-| Operation  | switch the harassment to a worker line, take a mercenary camp on the route (4.17)                           | the _**Intention**_'s _**method**_      | the _**Intention**_'s goal                                                    |
-| Commitment | raid a fresh expansion (1.4, 2B.1), attack because the enemy army died (1.20, 5.18)                         | a _**Desire**_, then _**Deliberation**_ | _**rank**_ and _**weight**_ on the _**agenda**_, and the _**switching rule**_ |
+| Level     | Examples                                                                                                    | Decided by                              | Bounded by                                                                    |
+| --------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
+| Unit      | last hit (2.16), finish a dying unit in range (2.15), pick up a dropped item, Mana Burn a passing caster    | _**Unit Behavior**_ _**opportunities**_ | the _**Directive**_'s _**latitude**_                                          |
+| Group     | finish a camp the Humans left wounded (2.21), kill exposed workers on the way, chase a fleeing hero briefly | the _**Tactic**_                        | the leash, time, and risk its _**method**_ gave it                            |
+| Intention | switch the harassment to a worker line, take a mercenary camp on the route (4.17)                           | the _**Intention**_'s _**method**_      | the _**Intention**_'s goal                                                    |
+| Agenda    | raid a fresh expansion (1.4, 2B.1), attack because the enemy army died (1.20, 5.18)                         | a _**Desire**_, then _**Deliberation**_ | _**rank**_ and _**weight**_ on the _**agenda**_, and the _**switching rule**_ |
 
 **Every level weighs an opportunity the same way.** Its value, minus the detour, the risk, and the value of what it interrupts, must exceed a threshold, within the _**latitude**_ given. Values come from _**Knowledge**_: unit worth, experience, item worth.
 
@@ -681,8 +684,8 @@ Each part answers a question nothing else answers:
 - **_Desires_ separate from _Intentions_.** Otherwise every attractive opportunity becomes behavior at once, and threats and opportunities have no common place to be compared.
 - **The _agenda_.** Without it, conflicts are decided by update order.
 - **_Allocation_.** Without it, each _**Intention**_ picks its own units and special cases multiply.
-- **_Methods_.** Without them, an operation has one way to succeed, and its failure is the _**Intention**_'s failure.
-- **_Tactics_.** Without them, every operation reimplements fighting.
+- **_Methods_.** Without them, an _**Intention**_ has one way to succeed, and when that way fails, the _**Intention**_ fails.
+- **_Tactics_.** Without them, every _**method**_ reimplements fighting.
 - **_Unit Behaviors_.** Without them, every _**Tactic**_ reimplements every unit's micro and _**reflexes**_.
 - **The _decision record_.** Without it, behavior can be watched but neither explained nor asserted.
 
@@ -750,7 +753,7 @@ Scenarios 2, 2B.1, 2.14, and 2B.9.
 2. **Search.** The _**method**_ searches where the Archmage was last seen and where camps found cleared suggest his route; both come from the _**enemy model**_. The Travel _**Tactic**_ moves the Demon Hunter with local opportunism, and he creeps small camps on the way.
 3. **Contact.** The HitAndRun _**Tactic**_ directs the Demon Hunter to engage the Archmage as a Harasser, retreating at 45 % life to a fallback point. His _**Unit Behavior**_ burns mana while the Archmage has enough to lose, and his escape _**reflex**_ is armed with the Staff.
 4. **An expansion appears.** The scouting Wisp sees a Town Hall under construction. _**Perception**_ adds a _**contact**_, and _**plan recognition**_ now reads the enemy plan as a fast expansion. The _**playbook**_ adapts and proposes `RaidBase{north expansion}`, _**rank Game plan**_, _**weight**_ 0.85.
-5. **Preemption.** _**Deliberation**_ adopts the raid. Both _**Intentions**_ have _**rank Game plan**_, so the _**switching rule**_ applies. The raid's 0.85 exceeds the harassment's 0.6 plus its _**switching margin**_: 0.05 commitment plus 0.1 for the engagement under way, 0.75 in total. _**Allocation**_ moves the Demon Hunter, and the harassment is _**starved**_: it keeps its state but has no force.
+5. **Preemption.** _**Deliberation**_ adopts the raid. Both _**Intentions**_ have _**rank Game plan**_, so the _**switching rule**_ applies. The raid's 0.85 exceeds the harassment's 0.6 plus its _**switching margin**_: the _**commitment constant**_, 0.05, plus the _**interruption cost**_ of the engagement under way, 0.1; 0.75 in total. _**Allocation**_ moves the Demon Hunter, and the harassment is _**starved**_: it keeps its state but has no force.
 6. **The raid.** The raid's Siege _**Tactic**_ puts the building Peasant first in its kill order, and the Demon Hunter kills it.
 7. **A threat at home.** Five Footmen reach the Night Elf Wisps.
    - The Wisps flee by _**reflex**_ at once; their owner does not change.
@@ -803,9 +806,9 @@ A behavior goes at the lowest level that has the information and the authority i
 | A small gain one unit can take alone, such as a last hit                                      | _**Unit Behavior**_ _**opportunities**_                                                                     |
 | Coordination of a group in a fight: focus fire, spreading, kill order                         | a _**Tactic**_'s pickers and engagement rules                                                               |
 | A local gain a group can take within its purpose, such as finishing a wounded camp            | _**Tactic**_ opportunities                                                                                  |
-| Another way of carrying out an operation                                                      | a new _**method**_ of the _**Intention kind**_                                                              |
+| Another way of pursuing an _**Intention**_                                                    | a new _**method**_ of the _**Intention kind**_                                                              |
 | A step or choice inside one way                                                               | that _**method**_'s state machine                                                                           |
-| A new kind of operation, such as an escort or a drop                                          | a new outcome kind and _**Intention kind**_                                                                 |
+| A new kind of outcome to pursue, such as an escort or a drop                                  | a new outcome kind and _**Intention kind**_                                                                 |
 | Something any competent player wants in some situation                                        | a _**concern**_                                                                                             |
 | Something this game plan wants, or an _**adaptation**_ to the enemy                           | the _**playbook**_                                                                                          |
 | What should win a conflict                                                                    | a _**rank**_ or _**weight**_ consideration, or a _**context condition**_                                    |
@@ -841,7 +844,7 @@ Mapping the current behaviors:
 - **Worker safety** becomes the worker _**reflex**_.
 - **Tower target selection** becomes the Guard Tower's _**Unit Behavior**_.
 - **AdaptStrategy** becomes the _**strategy concern**_.
-- **The tower rush** becomes a Human _**playbook**_ with an operation that establishes the tower position. That operation needs the forward Peasants and repairs the towers. RunEconomy runs the home economy.
+- **The tower rush** becomes a Human _**playbook**_, with an _**Intention kind**_ that establishes the tower position. Its _**method**_ needs the forward Peasants and repairs the towers. RunEconomy runs the home economy.
 
 `@lib/bdi` shrinks to what is generic and still needed:
 
@@ -861,7 +864,7 @@ Each step leaves a working bot and updates the architecture documents.
    - Drop Scoped Beliefs, the beliefs runtime's registration, and the component tree.
 3. **_Desires_, _Deliberation_, _Intention kinds_.**
    - _**Proposals**_, _**ranks**_ and _**weights**_, conditions, the _**agenda**_, and the generic _**Intention**_ runtime.
-   - Port the current behaviors: AdaptStrategy becomes the _**strategy concern**_; the tower rush becomes a _**playbook**_ and its operation.
+   - Port the current behaviors: AdaptStrategy becomes the _**strategy concern**_; the tower rush becomes a _**playbook**_ and its _**Intention kind**_.
 4. **_Allocation_.**
    - Units first, then money with projected income.
    - Remove Actor Control.
