@@ -7,6 +7,7 @@ Companions:
 - [`rts-architecture-introduction.md`](rts-architecture-introduction.md): a tutorial introduction; start there if the architecture is new to you.
 - [`rts-scenario-analysis.md`](rts-scenario-analysis.md): the Night Elf versus Human scenarios, the requirements they imply, and how every deviation is handled.
 - [`rts-research-sources.md`](rts-research-sources.md): the sources read and what each one contributed or warned against.
+- [`rts-ideas.md`](rts-ideas.md): techniques that could fill parts of the architecture but that it does not depend on, such as particles for unseen units.
 
 Terms of the architecture are set in _**bold italics**_; the introduction's [glossary](rts-architecture-introduction.md#17-glossary) defines them.
 
@@ -79,7 +80,7 @@ The [scenario analysis](rts-scenario-analysis.md#2-requirements-from-the-scenari
 | R6: _**Reflexes**_ faster than _**deliberation**_                                                                                                            | _**Unit Behavior**_ _**reflexes**_ every tick, whoever owns the unit (4.9, 4.13)                                                                                      |
 | R7: Group combat as a skill                                                                                                                                  | _**Tactics**_: persistent fight-or-flight state, the _**combat estimate**_ with named modifiers, pickers (4.9)                                                        |
 | R8: Unit- and hero-specific play                                                                                                                             | A _**Unit Behavior**_ per unit type, _**roles**_ in _**Directives**_, hero builds in _**playbooks**_ (4.9, 4.11)                                                      |
-| R9: Knowledge under uncertainty                                                                                                                              | _**Contacts**_ with age and provenance; inferences with confidence: particles, _**strategy recognition**_, coverage (4.3, 4.12)                                       |
+| R9: Knowledge under uncertainty                                                                                                                              | _**Contacts**_ with age and provenance; inferences with confidence: unseen units, _**strategy recognition**_, coverage (4.3, 4.12)                                    |
 | R10: Space and time                                                                                                                                          | Map knowledge, the map in _**Beliefs**_ as it changes, navigation, the _**danger assessment**_, travel time, projections, opportunity _**windows**_ (4.3–4.5)         |
 | R11: Consistent mechanics                                                                                                                                    | One set of _**Knowledge**_ data and functions, and shared _**Assessments**_ (4.3, 4.4)                                                                                |
 | R12: Strategy as an adaptable game plan                                                                                                                      | _**Playbooks**_: phases, an _**opening book**_, production goals, _**adaptations**_ (4.11)                                                                            |
@@ -177,7 +178,7 @@ onEveryTick(() => {
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Self                     | Own units: type, position, life, mana, cooldowns, current order, items. Heroes: level, experience, skills. Buildings and their queues, upgrades, gold, lumber, food and upkeep, Moon Well mana.                                                                                                                                                                                                                                 |
 | Enemy _**contacts**_     | Every enemy unit and structure seen, with: last known position; life and mana while visible; time since seen; how it is known (seen or inferred); visibility (visible, recently seen, missing, gone); confidence. Heroes with level and items seen. Bases.                                                                                                                                                                      |
-| Enemy inferences         | Tech inferred from requirements; unseen units as particles; army estimate and projected movement; hero whereabouts; the recognized enemy strategy; scouting coverage.                                                                                                                                                                                                                                                           |
+| Enemy inferences         | Tech inferred from requirements; where unseen units probably are; army estimate and projected movement; hero whereabouts; the recognized enemy strategy; scouting coverage.                                                                                                                                                                                                                                                     |
 | Neutral                  | Creep camps (alive, wounded, cleared, last seen); items on the ground; shop and Tavern stock when seen.                                                                                                                                                                                                                                                                                                                         |
 | Map                      | The map as the bot believes it now: trees and destructibles seen destroyed, and how the regions connect given those and the structures standing, including the chokes and which unit sizes fit through.                                                                                                                                                                                                                         |
 | Time                     | Game time; day or night.                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -463,7 +464,7 @@ Each level uses the formalism that fits it, instead of one formalism everywhere:
 _**Tactics**_ are reusable group controllers that _**plans**_ run: Travel, Skirmish, CreepCamp, HitAndRun, Siege, Hold, Recover. Each _**Tactic**_:
 
 - **Keeps its group's fight-or-flight state across updates.** Engaging and disengaging have separate thresholds, and there is a minimum time between switches.
-- **Evaluates fights** with the _**combat estimate**_ plus named modifiers: near home, at a choke, caught by faster enemies, already committed.
+- **Evaluates fights** with the _**combat estimate**_ plus named modifiers: near home, at a choke, caught by faster enemies, already committed ([ideas](rts-ideas.md#2-computing-the-combat-estimate)).
 - **Picks targets and positions with utility pickers:**
   - a kill order: healers, casters, summons, repairing Peasants;
   - focus fire without overkill;
@@ -564,28 +565,9 @@ const demonHunter = unitBehavior({
 - _**desire**_ rules per phase;
 - _**expectations**_ about the enemy, and _**adaptations**_ keyed by enemy strategies;
 - hero skill and item builds;
-- style knobs (aggression, risk tolerance, persistence), optionally drawn per game from the seeded random source to vary play.
+- style knobs, such as aggression, risk tolerance, and persistence, possibly drawn per game ([ideas](rts-ideas.md#4-a-personality-per-game)).
 
-**The opening language** follows Steamhammer's: items, `N x`, `@ location`, commands, barriers. Commands propose _**Desires**_.
-
-```ts
-// Illustrative opening, not a tuned build (sketch).
-const fastBearsOpening = opening({
-  steps: [
-    '5 x wisp',
-    'altar of elders',
-    'wisp',
-    'moon well',
-    'go scout enemy start',
-    'ancient of war',
-    'train demon hunter',
-    'go creep demon hunter with ancient of war',
-    "hunter's hall",
-    'barrier',
-    'tree of ages',
-  ],
-});
-```
+**The _opening book_** is followed by the ExecuteOpening _**Intention**_. Its commands, such as scouting the enemy start, propose _**Desires**_ like the rest of the _**playbook**_. Its small language could follow Steamhammer's ([ideas](rts-ideas.md#3-an-opening-language)).
 
 **Production after the opening** belongs to ordinary _**Intentions**_: ProduceArmy, ReachTech, MaintainSupply, HireHero, ReviveHero, AcquireItem, Expand. Their _**plans**_:
 
@@ -623,14 +605,7 @@ The _**enemy model**_ lives in _**Beliefs**_ and is fed only by _**Perception**_
 
 - **_Contacts_.** Every unit and structure seen, with its visibility state. Ghosts are invalidated when their position is seen empty.
 - **Inferred tech.** Requirements are walked back from every type seen. A Druid of the Claw implies an Ancient of Lore and Tier 2.
-- **Particles for unseen units**, as in EISBot:
-  - one per enemy unit seen;
-  - weight decays per class;
-  - particles drift toward chokepoints;
-  - they are culled by own vision;
-  - heroes keep identified tracks.
-
-  In EISBot this beat last-known positions and helped win more games.
+- **Where unseen units probably are**, estimated from what was seen, where, and how long ago. A place seen empty holds nothing. EISBot's particles are one way to estimate it ([ideas](rts-ideas.md#1-particles-for-unseen-units)).
 
 - **_Strategy recognition_.** The enemy's strategy is recognized against a library of known ones, kept as data: tower rush, fast expansion, Tier 2 rush, mass Footmen, and as many more as the _**playbooks**_ need answers to. Each strategy lists its signs as _**fingerprints**_: composable, timed predicates over _**contacts**_, such as "two Barracks by 3:00, no Lumber Mill". Recognition:
   - matches what was seen against every strategy in the library; an absence counts only where scouting coverage says the sign would have been seen;
@@ -638,14 +613,14 @@ The _**enemy model**_ lives in _**Beliefs**_ and is fed only by _**Perception**_
   - runs every few seconds and incrementally, so hundreds of strategies stay within budget;
   - publishes a small result: the top one or two hypotheses, each with a confidence, since when it has held, and the signs that matched, plus what would tell them apart, for scouting to look for.
 
-  It is a sizable subsystem with a narrow output, and it can be tested alone and measured offline against replays. Steamhammer found even a crude recognizer a clear net win.
+  It is a sizable subsystem with a narrow output, and it can be tested alone and measured offline against recorded games ([ideas](rts-ideas.md#7-measuring-inference-offline)). Steamhammer found even a crude recognizer a clear net win.
 
 - **The army estimate and its projected movement.**
 - **Scouting coverage:** where and when the bot has looked, which tells which absences mean something.
 
 What the _**enemy model**_ means for the bot, such as threats to own assets and danger by region, is in _**Assessments**_ ([section 4.4](#44-assessments)).
 
-_**Belief**_ quality can be measured offline, because a test harness knows the ground truth and the bot does not.
+_**Belief**_ quality can be measured offline, because a test harness knows the ground truth and the bot does not ([ideas](rts-ideas.md#7-measuring-inference-offline)).
 
 ### 4.13 Timing and budgets
 
@@ -656,15 +631,14 @@ _**Belief**_ quality can be measured offline, because a test harness knows the g
 | _**Tactics**_                                         | 0.2–0.5 s                                                             | enemies appearing near the group                                       |
 | _**Intentions**_ and _**plans**_                      | 0.5–1 s                                                               | a _**Tactic**_'s status, a unit gained or lost                         |
 | _**Desires**_, _**Deliberation**_, _**Allocation**_   | about 1 s                                                             | a new threat, a broken _**expectation**_, an _**Intention**_ finishing |
-| Slow inference: particles, the army estimate          | 1–2 s, spread over ticks                                              | —                                                                      |
+| Slow inference: unseen units, the army estimate       | 1–2 s, spread over ticks                                              | —                                                                      |
 | Enemy _**strategy recognition**_                      | every few seconds, incrementally                                      | a new enemy building type seen                                         |
 | _**Assessments**_: threats, danger, relative strength | 1–2 s, spread over ticks                                              | enemies seen near own assets                                           |
 
-- Each kind of work has a weight and a guaranteed maximum number of skipped ticks, so nothing starves.
-- Long analyses resume across ticks.
-- The _**decision record**_ counts the work done, so bounded work can be asserted in tests. When ticks run long, cheaper fallbacks take over.
+- No kind of work may starve, however busy the tick.
+- The _**decision record**_ counts the work done, so bounded work can be asserted in tests.
 
-PurpleWave's frame-time overruns are the cautionary example.
+How work is scheduled within the budget is open; PurpleWave's weighted scheduling is one way ([ideas](rts-ideas.md#5-scheduling-work-within-the-budget)). PurpleWave's frame-time overruns are the cautionary example.
 
 ### 4.14 The decision record
 
@@ -685,7 +659,7 @@ Each tick produces one record of plain data:
 The record has several uses:
 
 - **One structure, four readers:** the in-game debug overlay (status text over units and groups), logs, the trace saved by end-to-end tests, and assertions in behavioral tests.
-- **Bounded storage:** records live in a fixed-size ring buffer with channels, so recording fits the Lua budget.
+- **Bounded storage:** only the last records are kept, so recording fits the Lua budget. A ring buffer with channels is one way to keep them ([ideas](rts-ideas.md#6-a-ring-buffer-for-the-decision-record)).
 - **A change log:** strategy, phase, adopted _**Intentions**_, and key inferences are logged when they change.
 - **A dump on bugs:** an invariant violation, such as a unit with two owners or a _**Directive**_ for a unit not owned, dumps the last records.
 
@@ -891,7 +865,7 @@ Each step leaves a working bot and updates the architecture documents.
    - Production _**Intentions**_ with desired totals and jam detection.
    - Gates for tier pacing and upkeep.
 7. **The _enemy model_ and scouting.**
-   - _**Contacts**_ with ghosts, inferred tech, _**strategy recognition**_ with its _**strategy library**_, particles, and coverage.
+   - _**Contacts**_ with ghosts, inferred tech, _**strategy recognition**_ with its _**strategy library**_, estimates of unseen units, and coverage.
    - The danger and relative strength _**Assessments**_.
 8. **The Night Elf game plan.**
    - The Fast Bears _**playbook**_, phase by phase.
@@ -904,9 +878,9 @@ Each step leaves a working bot and updates the architecture documents.
    - _**Interruption costs**_ are grounded in named losses, which keeps them on one scale.
    - The _**decision record**_ shows why something won.
 2. **The _combat estimate_.** Fight or flight at every level depends on it.
-   - Start with a cheap strength estimate (AMAI's and PurpleWave's) plus named modifiers.
+   - Start with a cheap strength estimate (AMAI's and PurpleWave's) plus named modifiers ([ideas](rts-ideas.md#2-computing-the-combat-estimate)).
    - Calibrate it with in-game probes, and add simulation only where decisions go wrong.
-3. **_Strategy recognition_.** Under fog, recognition is often ambiguous, and a wrong call becomes a wrong _**adaptation**_. _**Adaptations**_ scale with the recognition's confidence, scouting resolves close calls, and accuracy can be measured offline against replays.
+3. **_Strategy recognition_.** Under fog, recognition is often ambiguous, and a wrong call becomes a wrong _**adaptation**_. _**Adaptations**_ scale with the recognition's confidence, scouting resolves close calls, and accuracy can be measured offline against recorded games ([ideas](rts-ideas.md#7-measuring-inference-offline)).
 4. **The Lua budget.** _**Unit Behaviors**_ every tick for about a hundred units, plus inference, must fit. Measure early, with the work counters in the _**decision record**_.
 5. **Game data.**
    - Liquipedia answers the research environment only through web.archive.org, page by page. Extract game data from the game's own files and version it by client build.

@@ -382,3 +382,4 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - [`rts-behavior-architecture.md`](rts-behavior-architecture.md): the architecture document, with every rule, sketches, more walkthroughs, and the roadmap.
 - [`rts-scenario-analysis.md`](rts-scenario-analysis.md): how each deviation of the Night Elf versus Human scenarios fits the architecture.
 - [`rts-research-sources.md`](rts-research-sources.md): what each studied bot and paper contributed.
+- [`rts-ideas.md`](rts-ideas.md): techniques that could fill parts of the architecture, such as particles for unseen units.
