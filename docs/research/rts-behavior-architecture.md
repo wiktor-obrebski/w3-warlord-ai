@@ -231,7 +231,7 @@ Which strategy the enemy follows is a claim about the world, so recognizing it i
 
 A _**Desire**_ is an outcome the bot considers worth pursuing. It carries no behavior and commits to nothing.
 
-**A _proposal_ is one source backing one outcome:** which outcome, how strongly (_**rank**_ and _**weight**_), and why (reason). Sources make their _**proposals**_ afresh every _**deliberation**_ cycle. _**Proposals**_ for the same outcome merge into one _**Desire**_, identified by its outcome. A _**Desire**_ exists only while at least one source proposes it, and _**Deliberation**_ adopts at most one _**Intention**_ for it.
+**A _proposal_ is one source backing one outcome:** which outcome, how strongly (_**rank**_ and _**weight**_), and why (reason). Sources make their _**proposals**_ afresh every _**deliberation**_ cycle. _**Proposals**_ for the same outcome merge into one _**Desire**_, identified by its outcome: its kind and its arguments. Two _**proposals**_ of `AcquireItem{Demon Hunter, Staff}` are one _**Desire**_; `RaidBase{north expansion}` and `RaidBase{east expansion}` are two. Nobody creates or deletes a _**Desire**_: it exists in every cycle in which at least one source proposes it, whether or not it has an _**Intention**_, and _**Deliberation**_ adopts at most one _**Intention**_ for it at a time.
 
 - **Two kinds of outcome.**
   - _Achieve_ a state: `ReachTech{Tier 3}`, `AcquireItem{Demon Hunter, Staff of Teleportation}`, `ReviveHero{hero}`.
@@ -294,9 +294,12 @@ Each cycle, _**Deliberation**_:
    - achieved: the _**Intention**_ is finished as achieved;
    - impossible: it is finished as failed, with the reason;
    - its _**pause condition**_ holds: it is paused, with the reason.
-2. **Adopts.** For each valid _**Desire**_ without an _**Intention**_, it creates an _**Intention**_ of the kind registered for the outcome's kind. A _**Desire**_'s identity keeps this to one _**Intention**_ per outcome: two _**proposals**_ to raid the same base are one _**Desire**_, and there is one strategy because the _**strategy concern**_ proposes only the _**playbook**_ it prefers.
+2. **Adopts.** For each valid _**Desire**_ without an _**Intention**_, it creates an _**Intention**_ of the kind registered for the outcome's kind.
+   - A _**Desire**_ is valid when its best _**proposal**_ has a _**weight**_ above 0 and its outcome is neither achieved nor impossible, as its _**Intention kind**_'s conditions judge it. _**Deliberation**_ never adopts what would finish at once, and an _**Intention**_ that failed as impossible is adopted again only once its outcome is possible again.
+   - A _**Desire**_'s identity keeps this to one _**Intention**_ per outcome: two _**proposals**_ to raid the same base are one _**Desire**_, and there is one strategy because the _**strategy concern**_ proposes only the _**playbook**_ it prefers.
+   - **After giving up, the _Desire_ must lapse.** When an _**Intention**_ fails because its _**failure policy**_ gave up, its _**Desire**_ gets a new _**Intention**_ only after it has lapsed: no source proposed it for a cycle. Otherwise a _**Desire**_ proposed throughout would start the same attempts over and over. An _**Intention kind**_ that should try again later recurs instead ([section 4.7](#47-intentions)).
 3. **Orders the _agenda_.**
-   - _**Intentions**_ are ordered by _**rank**_, then by _**weight**_: by their value only. Switching costs apply only where one _**Intention**_ would take units from another ([section 4.8](#48-allocation)).
+   - _**Intentions**_ are ordered by _**rank**_, then by _**weight**_: by their value only. An _**Intention**_ has no _**rank**_ or _**weight**_ of its own; each cycle it takes its _**Desire**_'s, from the strongest _**proposal**_, so its place moves as the _**proposals**_ change. Switching costs apply only where one _**Intention**_ would take units from another ([section 4.8](#48-allocation)).
    - An _**Intention**_ is relative to the reason it was adopted for. Once its _**Desire**_ is gone, it is dropped, unless its run is in a step marked _**uninterruptible**_: a hero at the shop with gold reserved finishes the purchase first.
 4. **Records reasons.** Every adoption, pause, and drop, and every _**agenda**_ position, is recorded with the _**ranks**_, _**weights**_, and vetoes that produced it.
 
@@ -312,7 +315,7 @@ An _**Intention kind**_ is a goal with:
 - **Conditions over _Beliefs_ and _Assessments_:** achieved, impossible, and a _**pause condition**_: when it must wait for now, such as Creep while all its heroes are dead. Jadex states the same as a context condition, which must hold for a goal to proceed.
 - **_Plans_:** each one is applicable (a precondition), has a preference, and starts a run.
 - **_Requests_:** _**Desires**_ it proposes for goals it depends on but does not pursue itself, such as buying the Staff for its hero (`AcquireItem`) or covering its hero in trouble (`ProtectUnit`). A _**request**_ competes on the _**agenda**_ like any other _**Desire**_, so it gets units and money only by its own _**rank**_ and _**weight**_. If adopted, an _**Intention**_ of its own pursues it, and the requester sees the result in _**Beliefs**_, such as the Staff in the hero's inventory ([section 4.5](#45-desires)).
-- **A _failure policy_:** how long a failed _**plan**_ is excluded, how many attempts are allowed, and then whether to recur (wait and retry) or fail.
+- **A _failure policy_:** how long a failed _**plan**_ is excluded, how many attempts are allowed, and then whether to recur, waiting and retrying, or to fail, giving up until its _**Desire**_ lapses ([section 4.6](#46-deliberation)).
 
 **One small generic runtime does the means-end reasoning**, so _**Intention kinds**_ do not reimplement it.
 
