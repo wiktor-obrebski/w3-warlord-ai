@@ -70,7 +70,7 @@ When the Wisp spots the Town Hall, the bot's _**Beliefs**_ include:
 
 - its own units: the Demon Hunter with his life, mana, cooldowns, and the Staff; the Wisps and where they work; gold, lumber, and food;
 - the Archmage, last seen 40 seconds ago near the north camp. This is a _**contact**_: a record of what was seen, where, and when, not the Archmage himself. Where he is now is an estimate, built from the sighting and from camps found cleared;
-- the Town Hall, just seen, and what the bot concludes from it: the enemy is making a fast expansion. The conclusion comes from _**plan recognition**_, which compares what was seen with a library of known enemy strategies. Each strategy has signs, called _**fingerprints**_: small rules over what was seen and when, such as "an enemy Town Hall built away from its start before 5:00". Seen at 15:00, the same building would be an ordinary expansion. The conclusion is a _**Belief**_ with a confidence, because it may be wrong.
+- the Town Hall, just seen, and what the bot concludes from it: the enemy is making a fast expansion. The conclusion comes from _**strategy recognition**_, which compares what was seen with a library of known enemy strategies. Each strategy has signs, called _**fingerprints**_: small rules over what was seen and when, such as "an enemy Town Hall built away from its start before 5:00". Seen at 15:00, the same building would be an ordinary expansion. The conclusion is a _**Belief**_ with a confidence, because it may be wrong.
 
 _**Beliefs**_ are one world model in plain data. Small pure functions, the _**belief models**_, revise their parts from the previous _**Beliefs**_ and the new _**observations**_; nothing else writes to _**Beliefs**_. Three rules keep them honest:
 
@@ -100,7 +100,7 @@ observations ─▶ Beliefs ─▶ Assessments
 concerns, playbook, requests ─▶ Desires
 ```
 
-Which plan the enemy follows is a claim about the world, so recognizing it belongs to _**Beliefs**_, as in the previous section. Whether that plan beats ours is an _**assessment**_.
+Which strategy the enemy follows is a claim about the world, so recognizing it belongs to _**Beliefs**_, as in the previous section. Whether that strategy beats ours is an _**assessment**_.
 
 Details: [Assessments](rts-behavior-architecture.md#44-assessments).
 
@@ -167,13 +167,13 @@ An _**Intention**_ is **relative to the reason it was adopted for**. When its _*
 **_Intention kinds_.** Every _**Intention**_ belongs to a kind, which declares:
 
 - **conditions over _Beliefs_**: when the goal is achieved, when it is impossible, and when it cannot be pursued now;
-- _**methods**_, the alternative ways to pursue it (BDI's _Plans_), each with a precondition and a preference;
+- _**plans**_, the alternative ways to pursue it, each with a precondition and a preference;
 - _**requests**_: _**Desires**_ for its subgoals;
-- **a _failure policy_**: how long a failed _**method**_ is excluded, how many attempts are allowed, and then whether to retry later or fail.
+- **a _failure policy_**: how long a failed _**plan**_ is excluded, how many attempts are allowed, and then whether to retry later or fail.
 
-One small generic runtime chooses the _**method**_ and handles failure, so kinds do not reimplement it. The raid's _**method**_ might be "hit the workers": travel, kill the builders and Peasants, and leave before defenders arrive. The harassment's _**method**_ is hit and run: search, engage, disengage, recover.
+One small generic runtime chooses the _**plan**_ and handles failure, so kinds do not reimplement it. The raid's _**plan**_ might be "hit the workers": travel, kill the builders and Peasants, and leave before defenders arrive. The harassment's _**plan**_ is hit and run: search, engage, disengage, recover.
 
-**State.** An _**Intention**_ is active, paused, or finished, and its progress is idle, _**starved**_, or running, each with a reason. The harassment is about to be _**starved**_: still adopted and still wanted, but without the Demon Hunter. It keeps its state. When it gets him back, its _**method**_ works out where it stands from _**Beliefs**_ instead of replaying from where it stopped.
+**State.** An _**Intention**_ is active, paused, or finished, and its progress is idle, _**starved**_, or running, each with a reason. The harassment is about to be _**starved**_: still adopted and still wanted, but without the Demon Hunter. It keeps its state. When it gets him back, its _**plan**_ works out where it stands from _**Beliefs**_ instead of replaying from where it stopped.
 
 Details: [Deliberation](rts-behavior-architecture.md#46-deliberation), [Intentions](rts-behavior-architecture.md#47-intentions).
 
@@ -209,21 +209,21 @@ The raid now owns the Demon Hunter. What it wants from him passes down a short c
 
 ```text
 Intention        RaidBase{north expansion}
-  Method         hit the workers: travel → strike → leave
+  Plan           hit the workers: travel → strike → leave
     Tactic       Siege around the unfinished Town Hall: builders first
       Directive  Demon Hunter: Engage(the building Peasant), role Harasser, retreat at 45 % life
         Unit Behavior (Demon Hunter): reflexes, then skills, opportunities, task
           Order  attack the Peasant
 ```
 
-- _**Method**_: one way to pursue the _**Intention**_, written as a small state machine. It runs _**Tactics**_ for its groups.
+- _**Plan**_: one way to pursue the _**Intention**_, written as a small state machine. It runs _**Tactics**_ for its groups.
 - _**Tactic**_: a reusable controller for a group: Travel, Skirmish, CreepCamp, HitAndRun, Siege, Hold, Recover. It keeps its group's fight-or-flight state between updates, with separate thresholds for engaging and disengaging so that it does not flip back and forth, and it picks targets and positions. Here, the Siege _**Tactic**_ puts builders first.
 - _**Directive**_: what is asked of one unit, from a closed vocabulary: a _**task**_, a _**role**_ (how to play it), and _**latitude**_ (how far the unit may deviate: retreat threshold, opportunism, leash). _**Directives**_ are constraints, not micromanagement.
 - _**Unit Behavior**_: every own unit has one, chosen by its unit type. Each tick it runs _**reflexes**_ first, which may override the _**Directive**_ to keep the unit alive. Then it tries _**skills**_ (abilities and items, as the _**role**_ suggests), _**opportunities**_ (within the _**latitude**_), and finally the _**task**_. It returns one order and the reason for it.
 
 _**Roles**_, not unit types, decide how a unit plays: the same Demon Hunter burns the Archmage's mana as a Harasser and the casters' mana as Damage. The order goes to the _**order executor**_, which skips it if the unit is already doing exactly that.
 
-**Opportunities at every level.** Whoever sees a chance, such as a dying creep in range or a lone Peasant on the way, takes it if its value beats the detour, the risk, and what it interrupts, within the _**latitude**_ it was given. A _**Unit Behavior**_ takes a last hit, a _**Tactic**_ finishes a wounded camp, a _**method**_ takes a camp on its route, and anything bigger becomes a _**Desire**_ that competes on the _**agenda**_. A scout's _**Directive**_ allows free opportunism; the Wisp walking to the Tavern allows none.
+**Opportunities at every level.** Whoever sees a chance, such as a dying creep in range or a lone Peasant on the way, takes it if its value beats the detour, the risk, and what it interrupts, within the _**latitude**_ it was given. A _**Unit Behavior**_ takes a last hit, a _**Tactic**_ finishes a wounded camp, a _**plan**_ takes a camp on its route, and anything bigger becomes a _**Desire**_ that competes on the _**agenda**_. A scout's _**Directive**_ allows free opportunism; the Wisp walking to the Tavern allows none.
 
 Details: [Execution](rts-behavior-architecture.md#49-execution), [Opportunities and latitude](rts-behavior-architecture.md#410-opportunities-and-latitude).
 
@@ -234,8 +234,8 @@ While the Demon Hunter raids, five Human Footmen reach the Wisps.
 1. **_Reflexes_ first.** The Wisps flee on the next tick. Their owner, RunEconomy, does not change: _**reflexes**_ work whoever owns the unit.
 2. **A new _Desire_.** _**Beliefs**_ now hold five Footmen at the Wisps. The _**threat assessment**_ weighs them against what defends the Wisps, two Archers and the Ancient of War, and rates the threat to the main base serious. The _**base-safety concern**_ reads that and proposes `DefendBase{main}`, _**rank Emergency**_, and the new threat runs _**Deliberation**_ on the next tick instead of waiting for the cycle.
 3. **A defense sized to the threat.** DefendBase needs strength above the threat, arriving within 20 seconds, and _**Allocation**_ fills that _**need**_ nearest first. The two Archers and the Ancient of War at home are not enough against five Footmen, so the _**need**_ also reaches the Demon Hunter, whose Staff lets him arrive in time. _**Emergency**_ outranks _**Game plan**_, so _**Allocation**_ gives him to the defense; across _**ranks**_, no margin is needed.
-4. **Acting.** The defense's _**method**_ has him use the Staff, and the Hold _**Tactic**_ fights by the Moon Wells, focusing the Footmen.
-5. **Back to normal.** The Footmen die, the _**threat assessment**_ clears the threat, and the _**base-safety concern**_ stops proposing, so DefendBase is achieved. The Peasants at the expansion have fled, so the raid's target is gone and it fails with that reason. The harassment is re-checked, finds the _**playbook**_ still proposing it and the Archmage alive, and gets the Demon Hunter back. Its _**method**_ resumes from _**Beliefs**_: from where the Archmage was last seen.
+4. **Acting.** The defense's _**plan**_ has him use the Staff, and the Hold _**Tactic**_ fights by the Moon Wells, focusing the Footmen.
+5. **Back to normal.** The Footmen die, the _**threat assessment**_ clears the threat, and the _**base-safety concern**_ stops proposing, so DefendBase is achieved. The Peasants at the expansion have fled, so the raid's target is gone and it fails with that reason. The harassment is re-checked, finds the _**playbook**_ still proposing it and the Archmage alive, and gets the Demon Hunter back. Its _**plan**_ resumes from _**Beliefs**_: from where the Archmage was last seen.
 
 **The size of the threat decides who comes.** Had a lone Footman come, the units at home would have met the _**need**_, and the Demon Hunter would have stayed on the raid. With nobody at home, the _**threat assessment**_ would rate a lone Footman small, so it would be ranked _**Game plan**_, and the Wisp or two it threatens would not outweigh the raid's _**switching margin**_: the Wisps would flee, and the raid would go on. Recalling a hero for a small threat wastes more than it saves.
 
@@ -251,7 +251,7 @@ Every tick, ten times a second, runs the same phases:
 | 2. _**Concerns**_, the _**playbook**_, and _**requests**_ propose _**Desires**_                | about once a second, or early on urgent events |
 | 3. _**Deliberation**_ checks conditions, adopts _**Intentions**_, and orders the _**agenda**_  | with phase 2                                   |
 | 4. _**Allocation**_ serves _**needs**_ in _**agenda**_ order                                   | with phase 2, and when units appear or die     |
-| 5. _**Intentions**_ step their _**methods**_, and _**Tactics**_ produce _**Directives**_       | each at its own pace                           |
+| 5. _**Intentions**_ step their _**plans**_, and _**Tactics**_ produce _**Directives**_         | each at its own pace                           |
 | 6. Each _**Unit Behavior**_ decides its unit's order                                           | every tick, within a budget                    |
 | 7. The _**decision record**_ keeps what was decided and why                                    | every tick                                     |
 
@@ -261,16 +261,16 @@ Details: [A tick, phase by phase](rts-behavior-architecture.md#42-a-tick-phase-b
 
 ## 12. The game plan: playbooks
 
-The strategy itself is data. The _**strategy concern**_ proposes executing the _**playbook**_ it prefers, given the matchup and the recognized enemy plan. There is one _**playbook**_ at a time. The _**strategy concern**_ switches _**playbooks**_ when no _**adaptation**_ of the current one answers the enemy well enough, and switching needs a clearly better score and a minimum time on the current one.
+The strategy itself is data. The _**strategy concern**_ proposes executing the _**playbook**_ it prefers, given the matchup and the recognized enemy strategy. There is one _**playbook**_ at a time. The _**strategy concern**_ switches _**playbooks**_ when no _**adaptation**_ of the current one answers the enemy well enough, and switching needs a clearly better score and a minimum time on the current one.
 
-The _**concern**_ only wants a _**playbook**_; _**Deliberation**_ commits to it. Its _**Desire**_, `ExecuteStrategy{playbook}`, becomes an _**Intention**_ like any other: the committed strategy. That _**Intention**_ keeps the _**playbook**_'s current phase, and the _**playbook**_'s rules propose the _**Desires**_ that carry the strategy out, such as `TrainHero{Demon Hunter}` or `Attack`. They compete on the _**agenda**_ with every other _**Desire**_, so a threat at home still outranks the plan. Fast Bears is one _**playbook**_; a Human tower rush would be another.
+The _**concern**_ only wants a _**playbook**_; _**Deliberation**_ commits to it. Its _**Desire**_, `ExecuteStrategy{playbook}`, becomes an _**Intention**_ like any other: the committed strategy. That _**Intention**_ keeps the _**playbook**_'s current phase, and the _**playbook**_'s rules propose the _**Desires**_ that carry the strategy out, such as `TrainHero{Demon Hunter}` or `Attack`. They compete on the _**agenda**_ with every other _**Desire**_, so a threat at home still outranks the game plan. Fast Bears is one _**playbook**_; a Human tower rush would be another.
 
 A _**playbook**_ holds:
 
 - **phases** with entry conditions, each proposing _**Desires**_. Fast Bears has Opening, Harass, Second hero, Reunite, and Bear timing;
 - **an _opening book_** in a small language: `'5 x wisp'`, `'altar of elders'`, `'go scout enemy start'`;
 - **production goals** as desired totals, so recomputing a _**Desire**_ never builds twice;
-- _**adaptations**_: rules on the recognized enemy plan, other _**Beliefs**_, and _**Assessments**_ that change _**ranks**_ and _**weights**_, or add and withdraw _**Desires**_. They scale with the recognition's confidence. _**Expectations**_ are _**adaptations**_ that guard the plan's own assumptions, such as "no air units before 8:00";
+- _**adaptations**_: rules on the recognized enemy strategy, other _**Beliefs**_, and _**Assessments**_ that change _**ranks**_ and _**weights**_, or add and withdraw _**Desires**_. They scale with the recognition's confidence. _**Expectations**_ are _**adaptations**_ that guard the _**playbook**_'s own assumptions, such as "no air units before 8:00";
 - **hero skill and item builds**, and style knobs such as aggression.
 
 In the example, the harassment exists because of the Harass phase, and the raid because of the fast-expansion _**adaptation**_. Changing how the bot plays Night Elf versus Human means editing its _**playbook**_, not the machinery.
@@ -285,7 +285,7 @@ Each tick produces one record of plain data:
 - the _**Desires**_ and their _**proposals**_, with _**ranks**_, _**weights**_, and reasons;
 - the _**Intentions**_ adopted, paused, or finished, and why;
 - the _**agenda**_, and _**Allocation**_'s grants and denials with the terms of the _**switching rule**_;
-- each _**method**_'s phase, each _**Tactic**_'s status, and the _**Directives**_;
+- each _**plan**_'s phase, each _**Tactic**_'s status, and the _**Directives**_;
 - each unit's chosen module and its reason, and the orders.
 
 The same record feeds the in-game overlay (status text over units), logs, traces of end-to-end tests, and assertions in behavioral tests. In the example, it answers "why did the Demon Hunter leave the Archmage?" with the raid's 0.85 against the harassment's 0.6, plus 0.05 for commitment and 0.1 for the engagement under way.
@@ -313,7 +313,7 @@ Put a behavior at the lowest level that has the information and the authority it
 | Naga casts Mana Shield when focused                                               | a _**skill**_ in Naga's _**Unit Behavior**_        |
 | Workers flee from danger                                                          | a _**reflex**_ in the worker's _**Unit Behavior**_ |
 | The army kills Priests first                                                      | a _**Tactic**_'s kill order                        |
-| Creeping with the Ancient of War as a tank                                        | a _**method**_ of the Creep _**Intention kind**_   |
+| Creeping with the Ancient of War as a tank                                        | a _**plan**_ of the Creep _**Intention kind**_     |
 | A new kind of operation, such as an escort                                        | a new outcome kind and _**Intention kind**_        |
 | Raiding when the enemy expands early                                              | an _**adaptation**_ in the _**playbook**_          |
 | Defending a threatened base, as any player would                                  | a _**concern**_                                    |
@@ -351,18 +351,17 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - _**Desire**_: an outcome worth pursuing, backed by one or more _**proposals**_. It commits to nothing, lasts while anyone proposes it, and gets at most one _**Intention**_.
 - _**Directive**_: what is asked of one unit: a _**task**_, a _**role**_, _**latitude**_, and optionally where to stand and where to fall back.
 - _**Fingerprint**_: a sign of an enemy strategy in the _**strategy library**_: a small rule over what was seen and when, such as an early Town Hall away from the enemy's start.
-- _**Intention**_: a commitment to a _**Desire**_, pursued through _**methods**_ until it is achieved, becomes impossible, or is no longer wanted.
-- _**Intention kind**_: the declaration behind _**Intentions**_ of one sort: conditions, _**methods**_, _**requests**_, and a _**failure policy**_.
+- _**Intention**_: a commitment to a _**Desire**_, pursued through _**plans**_ until it is achieved, becomes impossible, or is no longer wanted.
+- _**Intention kind**_: the declaration behind _**Intentions**_ of one sort: conditions, _**plans**_, _**requests**_, and a _**failure policy**_.
 - _**Interruption cost**_: what interrupting an _**Intention**_ now would waste, given by name. It is part of the _**switching margin**_.
 - _**Judgment**_: an interpretation only one module needs, such as a _**Tactic**_'s view of its own fight. It stays private in that module.
 - _**Knowledge**_: game data and the map as they are when the game starts, prepared offline and supplied when the _**mind**_ is created. It never changes during a game.
 - _**Latitude**_: how far a unit may deviate from its _**Directive**_: retreat threshold, opportunism, leash.
-- _**Method**_: one way to pursue an _**Intention**_: a small, re-entrant state machine. BDI calls it a Plan.
 - _**Mind**_: all of the bot's reasoning, between _**Perception**_ and the _**order executor**_. There is one per game.
 - _**Need**_: what an _**Intention**_ asks _**Allocation**_ for: units, gold, lumber, or food.
 - _**Order executor**_: the only code issuing Warcraft orders.
 - _**Perception**_: the only code reading Warcraft state for decisions. It filters by visibility.
-- _**Plan recognition**_: the inference that matches what was seen against a library of known enemy strategies, and gives the likeliest one or two with a confidence.
+- _**Plan**_: one way to pursue an _**Intention**_: a small, re-entrant state machine, chosen by its precondition and preference.
 - _**Playbook**_: a strategy as data: phases, an _**opening book**_, production goals, _**adaptations**_, and builds.
 - _**Proposal**_: one source backing one outcome: how strongly (a _**rank**_ and a _**weight**_) and why (a reason). _**Proposals**_ for the same outcome merge into one _**Desire**_.
 - _**Rank**_: a _**proposal**_'s category: _**Survival**_, _**Emergency**_, _**Game plan**_, _**Opportunity**_, or _**Background**_.
@@ -370,6 +369,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - _**Request**_: a _**Desire**_ proposed by an active _**Intention**_ for one of its subgoals.
 - _**Role**_: how a unit should play its _**task**_, such as Harasser or Tank.
 - _**Starved**_: the progress of an _**Intention**_ whose _**needs**_ go unmet. It keeps its state.
+- _**Strategy recognition**_: the inference that matches what was seen against a library of known enemy strategies, and gives the likeliest one or two with a confidence.
 - _**Switching rule**_: when a unit may move between _**Intentions**_: never out of an _**uninterruptible**_ step, always to a higher _**rank**_, and within a _**rank**_ only by a margin.
 - _**Tactic**_: a reusable controller for a group: fight or flight, targets, positions.
 - _**Unit Behavior**_: one per own unit. It turns the unit's _**Directive**_ into an order: _**reflexes**_, _**skills**_, _**opportunities**_, _**task**_.

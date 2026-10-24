@@ -143,7 +143,7 @@ Sources by Weber, Mateas, and Jhala:
 **Avoided**
 
 - Rule engines that propagate changes. Jadex's own documentation admits they miss changes inside complex objects.
-- Abort-and-restart on suspension. Our _**methods**_ recompute their phase from _**Beliefs**_ when they resume.
+- Abort-and-restart on suspension. Our _**plans**_ recompute their phase from _**Beliefs**_ when they resume.
 - Event consumption that depends on loading order.
 - Atomic intentions that block everything else.
 
