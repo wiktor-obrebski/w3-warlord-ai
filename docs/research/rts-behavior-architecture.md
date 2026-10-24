@@ -308,7 +308,7 @@ An _**Intention kind**_ is a goal with:
 
 - **Conditions over _Beliefs_ and _Assessments_:** achieved, impossible, and a _**pause condition**_: when it must wait for now, such as Creep while all its heroes are dead. Jadex states the same as a context condition, which must hold for a goal to proceed.
 - **_Plans_:** each one is applicable (a precondition), has a preference, and starts a run.
-- **_Requests_:** _**Desires**_ for its subgoals.
+- **_Requests_:** _**Desires**_ it proposes for goals it depends on but does not pursue itself, such as buying the Staff for its hero (`AcquireItem`) or covering its hero in trouble (`ProtectUnit`). A _**request**_ competes on the _**agenda**_ like any other _**Desire**_, so it gets units and money only by its own _**rank**_ and _**weight**_. If adopted, an _**Intention**_ of its own pursues it, and the requester sees the result in _**Beliefs**_, such as the Staff in the hero's inventory ([section 4.5](#45-desires)).
 - **A _failure policy_:** how long a failed _**plan**_ is excluded, how many attempts are allowed, and then whether to recur (wait and retry) or fail.
 
 **One small generic runtime does the means-end reasoning**, so _**Intention kinds**_ do not reimplement it.
