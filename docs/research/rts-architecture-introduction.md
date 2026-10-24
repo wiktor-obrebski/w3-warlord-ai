@@ -155,7 +155,7 @@ Details: [Desires](rts-behavior-architecture.md#45-desires).
 
 _**Deliberation**_ turns _**Desires**_ into _**Intentions**_: commitments the bot pursues until they are achieved, become impossible, or are no longer wanted. Each cycle it:
 
-1. checks every active _**Intention**_'s conditions: achieved, impossible, or out of context;
+1. checks every active _**Intention**_'s conditions: whether it is achieved, impossible, or must pause;
 2. adopts an _**Intention**_ for each valid _**Desire**_ that has none;
 3. orders the _**agenda**_: by _**rank**_, then by _**weight**_;
 4. records the reasons for all of it.
@@ -166,7 +166,7 @@ An _**Intention**_ is **relative to the reason it was adopted for**. When its _*
 
 **_Intention kinds_.** Every _**Intention**_ belongs to a kind, which declares:
 
-- **conditions over _Beliefs_**: when the goal is achieved, when it is impossible, and when it cannot be pursued now;
+- **conditions over _Beliefs_**: when the goal is achieved, when it is impossible, and when it must wait for now, its _**pause condition**_;
 - _**plans**_, the alternative ways to pursue it, each with a precondition and a preference;
 - _**requests**_: _**Desires**_ for its subgoals;
 - **a _failure policy_**: how long a failed _**plan**_ is excluded, how many attempts are allowed, and then whether to retry later or fail.
@@ -360,6 +360,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - _**Mind**_: all of the bot's reasoning, between _**Perception**_ and the _**order executor**_. There is one per game.
 - _**Need**_: what an _**Intention**_ asks _**Allocation**_ for: units, gold, lumber, or food.
 - _**Order executor**_: the only code issuing Warcraft orders.
+- _**Pause condition**_: when an _**Intention**_ must wait for now, such as Creep while all its heroes are dead. While it holds, the _**Intention**_ is paused, not dropped.
 - _**Perception**_: the only code reading Warcraft state for decisions. It filters by visibility.
 - _**Plan**_: one way to pursue an _**Intention**_: a small, re-entrant state machine, chosen by its precondition and preference.
 - _**Playbook**_: a strategy as data: phases, an _**opening book**_, production goals, _**adaptations**_, and builds.

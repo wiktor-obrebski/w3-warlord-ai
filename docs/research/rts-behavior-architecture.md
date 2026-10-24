@@ -33,7 +33,7 @@ That research confirmed the core of the first iteration and changed most of what
 3. **Interpretation has explicit homes.** _**Beliefs**_ hold what was seen and what is probably true. _**Assessments**_ hold what it means for the bot, shared by every part that needs it, such as the threat to a base. An interpretation only one module needs stays private in that module, and how the game works is _**Knowledge**_.
 4. **_Desires_ are asked for, not pushed.** Each _**deliberation**_ cycle collects _**proposals**_ from three sources: _**concerns**_ (maintenance goals, in BDI terms), the committed strategy's _**playbook**_, and the active _**Intentions**_' _**requests**_. There are no support ids, refresh intervals, or staleness.
 5. **_Deliberation_ ranks, and commitment is explicit.** A _**Desire**_ has a _**rank**_ (a category) and a _**weight**_ (its value within that category):
-   - _**context conditions**_ over _**Beliefs**_ settle logical conflicts;
+   - _**pause conditions**_ over _**Beliefs**_ settle logical conflicts;
    - _**Allocation**_ settles competition for resources;
    - a _**switching rule**_ makes preemption deliberate: within a _**rank**_, a challenger must beat a unit's holder by the _**switching margin**_: a _**commitment constant**_ plus what interrupting the holder would waste.
 6. **_Intentions_ are goals with _plans_.** An _**Intention kind**_ declares its conditions, its _**plans**_, its _**requests**_, and how it handles failure. One small generic runtime chooses _**plans**_, handles failure in a bounded, named way, and keeps every state change with its reason.
@@ -201,7 +201,7 @@ _**Beliefs**_ say what is, or is probably, true. **_Assessments_ say what it mea
 
 | Assessment        | Says                                                                                                                                                                                                                            | Read by                                                                                 |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Threats           | each threat to own assets: its target; the enemy's strength, discounted by distance and using projected movement, against what defends the target; when it arrives; its severity (lethal, serious, or small); the value at risk | _**concerns**_, _**context conditions**_, worker _**reflexes**_                         |
+| Threats           | each threat to own assets: its target; the enemy's strength, discounted by distance and using projected movement, against what defends the target; when it arrives; its severity (lethal, serious, or small); the value at risk | _**concerns**_, _**pause conditions**_, worker _**reflexes**_                           |
 | Danger            | how dangerous each region is, from enemy _**contacts**_, their projected movement, and towers                                                                                                                                   | navigation, _**Tactics**_, _**plans**_ choosing camps and routes                        |
 | Relative strength | own army against the enemy's estimate, now and at the _**playbook**_'s next timing                                                                                                                                              | the _**playbook**_'s phase conditions and _**adaptations**_, the _**strategy concern**_ |
 | Map control       | which regions and camps each side holds or contests                                                                                                                                                                             | creeping and expansion _**plans**_, the _**playbook**_                                  |
@@ -293,20 +293,20 @@ Each cycle, _**Deliberation**_:
 1. **Checks conditions.** It evaluates each active _**Intention**_'s conditions over _**Beliefs**_ and _**Assessments**_:
    - achieved: the _**Intention**_ is finished as achieved;
    - impossible: it is finished as failed, with the reason;
-   - out of context: it is paused, with the reason.
+   - its _**pause condition**_ holds: it is paused, with the reason.
 2. **Adopts.** For each valid _**Desire**_ without an _**Intention**_, it creates an _**Intention**_ of the kind registered for the outcome's kind. A _**Desire**_'s identity keeps this to one _**Intention**_ per outcome: two _**proposals**_ to raid the same base are one _**Desire**_, and there is one strategy because the _**strategy concern**_ proposes only the _**playbook**_ it prefers.
 3. **Orders the _agenda_.**
    - _**Intentions**_ are ordered by _**rank**_, then by _**weight**_: by their value only. Switching costs apply only where one _**Intention**_ would take units from another ([section 4.8](#48-allocation)).
    - An _**Intention**_ is relative to the reason it was adopted for. Once its _**Desire**_ is gone, it is dropped, unless its run is in a step marked _**uninterruptible**_: a hero at the shop with gold reserved finishes the purchase first.
 4. **Records reasons.** Every adoption, pause, and drop, and every _**agenda**_ position, is recorded with the _**ranks**_, _**weights**_, and vetoes that produced it.
 
-**Logical conflicts are _context conditions_.** Expand's context requires the _**threat assessment**_ to see no threat at its site, so a defense there pauses the expansion with that reason. Competition for units and money is not a conflict here; _**Allocation**_ resolves it.
+**Logical conflicts are _pause conditions_.** Expand's _**pause condition**_ is a threat at its site, as the _**threat assessment**_ sees it, so a defense there pauses the expansion, with that reason. Competition for units and money is not a conflict here; _**Allocation**_ resolves it.
 
 ### 4.7 Intentions
 
 An _**Intention kind**_ is a goal with:
 
-- **Conditions over _Beliefs_ and _Assessments_:** achieved, impossible, and context (whether it can be pursued now).
+- **Conditions over _Beliefs_ and _Assessments_:** achieved, impossible, and a _**pause condition**_: when it must wait for now, such as Creep while all its heroes are dead. Jadex states the same as a context condition, which must hold for a goal to proceed.
 - **_Plans_:** each one is applicable (a precondition), has a preference, and starts a run.
 - **_Requests_:** _**Desires**_ for its subgoals.
 - **A _failure policy_:** how long a failed _**plan**_ is excluded, how many attempts are allowed, and then whether to recur (wait and retry) or fail.
@@ -322,14 +322,14 @@ An _**Intention kind**_ is a goal with:
 
 **An _Intention_'s state is two fields, each with a reason:**
 
-| Field    | Values                                                                                                                    |
-| -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| State    | **active** · **paused**: context false, or waiting to recur until T · **finished**: achieved, failed, dropped, or aborted |
-| Progress | **idle**: needs nothing now · _**starved**_: its _**needs**_ are unmet, held by Y · **running**                           |
+| Field    | Values                                                                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| State    | **active** · **paused**: its _**pause condition**_ holds, or it waits to recur until T · **finished**: achieved, failed, dropped, or aborted |
+| Progress | **idle**: needs nothing now · _**starved**_: its _**needs**_ are unmet, held by Y · **running**                                              |
 
 **Suspension needs no protocol of its own.**
 
-- An _**Intention**_ whose _**needs**_ go unmet is _**starved**_. One whose context failed is paused. Either way it keeps its state, and it holds nothing that needs releasing, because _**Allocation**_ recomputes every round.
+- An _**Intention**_ whose _**needs**_ go unmet is _**starved**_. One whose _**pause condition**_ holds is paused. Either way it keeps its state, and it holds nothing that needs releasing, because _**Allocation**_ recomputes every round.
 - Resuming is a decision, not a replay:
   - Before a _**starved**_ or paused _**Intention**_ is stepped again, its conditions and its reason are re-checked, and it may be dropped instead.
   - _**Plan runs**_ are re-entrant: when stepped again they work out their phase from _**Beliefs**_, and re-check the conditions they rely on.
@@ -354,7 +354,7 @@ const creep = intentionKind<CreepGoal>({
   achieved: ({ goal, beliefs }) => heroesReachedLevel({ goal, beliefs }),
   impossible: ({ beliefs }) =>
     reachableCamps({ beliefs }).length === 0 ? 'no camps left' : null,
-  outOfContext: ({ goal, beliefs }) =>
+  paused: ({ goal, beliefs }) =>
     anyHeroAlive({ goal, beliefs }) ? null : 'all heroes dead',
   plans: [creepWithArmy, creepWithAncientTank, soloHeroCreep],
   requests: ({ goal, beliefs }) => healingItemsWanted({ goal, beliefs }),
@@ -820,7 +820,7 @@ A behavior goes at the lowest level that has the information and the authority i
 | A new kind of outcome to pursue, such as an escort or a drop                                  | a new outcome kind and _**Intention kind**_                                                                 |
 | Something any competent player wants in some situation                                        | a _**concern**_                                                                                             |
 | Something this game plan wants, or an _**adaptation**_ to the enemy                           | the _**playbook**_                                                                                          |
-| What should win a conflict                                                                    | a _**rank**_ or _**weight**_ consideration, or a _**context condition**_                                    |
+| What should win a conflict                                                                    | a _**rank**_ or _**weight**_ consideration, or a _**pause condition**_                                      |
 | What a situation means for the bot, needed by several parts, such as a threat to an expansion | an _**Assessment**_                                                                                         |
 | A new enemy strategy to recognize, such as a proxy                                            | an entry in the _**strategy library**_                                                                      |
 | A new fact or inference about the game, such as the enemy's tech                              | a _**belief model**_ or inference rule                                                                      |

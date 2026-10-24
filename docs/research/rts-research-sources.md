@@ -130,7 +130,7 @@ Sources by Weber, Mateas, and Jhala:
 
 - A goal kind is a set of conditions over Beliefs rather than a class:
   - creation;
-  - context (false suspends the goal);
+  - context (false suspends the goal; our _**pause condition**_ is its opposite);
   - drop;
   - target (achieved);
   - maintain, with a separate restore target for hysteresis;
@@ -149,7 +149,7 @@ Sources by Weber, Mateas, and Jhala:
 
 **Not adopted**
 
-- "Easy deliberation": inhibition between goal kinds, and cardinality limits. _**Context conditions**_ over _**Beliefs**_ and the identity of _**Desires**_ cover the cases the scenarios need, without a second mechanism.
+- "Easy deliberation": inhibition between goal kinds, and cardinality limits. _**Pause conditions**_ over _**Beliefs**_ and the identity of _**Desires**_ cover the cases the scenarios need, without a second mechanism.
 
 ### BDI research
 
