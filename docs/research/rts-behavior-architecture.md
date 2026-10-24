@@ -33,7 +33,7 @@ That research confirmed the core of the first iteration and changed most of what
 2. **Fixed phases per tick, and a _decision record_.** Each tick observes, revises _**Beliefs**_, deliberates and allocates on cadence, steps _**Intentions**_, decides per unit, and executes. No phase depends on another being updated first. Every phase records why it decided what it did.
 3. **Interpretation has explicit homes.** _**Beliefs**_ hold what was seen and what is probably true. _**Assessments**_ hold what it means for the bot, shared by every part that needs it, such as the threat to a base. An interpretation only one module needs stays private in that module, and how the game works is _**Knowledge**_.
 4. **_Desires_ are asked for, not pushed.** Each _**deliberation**_ cycle collects _**proposals**_ from three sources: _**concerns**_ (maintenance goals, in BDI terms), the committed strategy's _**playbook**_, and the active _**Intentions**_' _**requests**_. There are no support ids, refresh intervals, or staleness.
-5. **_Deliberation_ ranks, and commitment is explicit.** A _**Desire**_ has a _**rank**_ (a category) and a _**weight**_ (its value within that category):
+5. **_Deliberation_ ranks, and commitment is explicit.** A _**Desire**_ has a _**rank**_ (a category) and a _**weight**_ (its value within that category, in gold):
    - _**pause conditions**_ over _**Beliefs**_ settle logical conflicts;
    - _**Allocation**_ settles competition for resources;
    - a _**switching rule**_ makes preemption deliberate: within a _**rank**_, a challenger must beat a unit's holder by the _**switching margin**_: a _**commitment constant**_ plus what interrupting the holder would waste.
@@ -200,12 +200,12 @@ onEveryTick(() => {
 
 _**Beliefs**_ say what is, or is probably, true. **_Assessments_ say what it means for the bot.** Five Footmen at the Wisps are a fact. Whether they are a serious threat depends on what defends the Wisps: two Archers, or a ring of Ancient Protectors. That judgment is an _**assessment**_. The distinction is the adopted architecture's: "Belief is not assessment".
 
-| Assessment        | Says                                                                                                                                                                                                                            | Read by                                                                                 |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Threats           | each threat to own assets: its target; the enemy's strength, discounted by distance and using projected movement, against what defends the target; when it arrives; its severity (lethal, serious, or small); the value at risk | _**concerns**_, _**pause conditions**_, worker _**reflexes**_                           |
-| Danger            | how dangerous each region is, from enemy _**contacts**_, their projected movement, and towers                                                                                                                                   | navigation, _**Tactics**_, _**plans**_ choosing camps and routes                        |
-| Relative strength | own army against the enemy's estimate, now and at the _**playbook**_'s next timing                                                                                                                                              | the _**playbook**_'s phase conditions and _**adaptations**_, the _**strategy concern**_ |
-| Map control       | which regions and camps each side holds or contests                                                                                                                                                                             | creeping and expansion _**plans**_, the _**playbook**_                                  |
+| Assessment        | Says                                                                                                                                                                                                                            | Read by                                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Threats           | each threat to own assets: its target; the enemy's strength, discounted by distance and using projected movement, against what defends the target; when it arrives; its severity (lethal, serious, or small); the value at risk | _**concerns**_, _**pause conditions**_, worker _**reflexes**_                                                                        |
+| Danger            | how dangerous each region is, from enemy _**contacts**_, their projected movement, and towers                                                                                                                                   | navigation, _**Tactics**_, _**plans**_ choosing camps and routes                                                                     |
+| Relative strength | own army and economy against the enemy's estimates, now and at the _**playbook**_'s next timing; who gains from waiting, and how fast: the price of time, which also sets how much risk to accept                               | the _**playbook**_'s phase conditions and _**adaptations**_, the _**strategy concern**_, every _**weight**_ that prices time or risk |
+| Map control       | which regions and camps each side holds or contests                                                                                                                                                                             | creeping and expansion _**plans**_, the _**playbook**_                                                                               |
 
 **An interpretation is an _assessment_** when it interprets _**Beliefs**_ relative to the bot (its assets, its defenses, its strategy) and several parts need it and must agree on it. Take five Footmen at the Wisps: the defense decides how many units to send, and the Wisps decide whether to flee. If each judged the threat on its own, they could disagree: the Wisps could abandon their trees over a threat the defense thinks small, or the defense could send too few units against a threat serious enough to make the Wisps flee. Reading one _**threat assessment**_, both act on the same answer. Every interpretation has one home:
 
@@ -255,21 +255,28 @@ _**Desires**_ come from three sources, asked every _**deliberation**_ cycle:
 **A _proposal_ carries a _rank_, a _weight_, and a reason.**
 
 - _**Rank**_ is the category: _**Survival**_, _**Emergency**_, _**Game plan**_, _**Opportunity**_, or _**Background**_.
-- _**Weight**_ is the value within the _**rank**_, computed at runtime from _**Beliefs**_ and _**Assessments**_. A _**weight**_ of 0 vetoes the _**proposal**_.
+- _**Weight**_ is the value within the _**rank**_, in gold, computed at runtime from _**Beliefs**_ and _**Assessments**_. A _**weight**_ of 0 vetoes the _**proposal**_.
 - A _**Desire**_ takes its best _**proposal**_: the highest _**rank**_, then the highest _**weight**_.
 - **Each proposer picks the _rank_ for the situation.**
   - The _**threat assessment**_ rates a threat lethal, serious, or small, and the _**base-safety concern**_ ranks it _**Survival**_, _**Emergency**_, or _**Game plan**_. A small threat, such as a lone Footman at the Wisps, competes by _**weight**_, so it cannot pull a hero off a more valuable commitment.
   - A raid is usually an _**Opportunity**_, but the _**playbook**_ may rank pressing a beaten army as _**Game plan**_.
 - **Opportunities carry a _window_.** A _**proposal**_ for a short-lived gain states how long the chance lasts and how long pursuing it takes. A _**Desire**_ that can no longer fit its _**window**_, given travel time and the units available, gets _**weight**_ 0 instead of waiting for units.
 
+**_Weights_ are measured in gold.** A _**weight**_ says how far pursuing the outcome would move the balance between the two sides, net of its risk: killing an enemy Peasant is worth its cost plus the mining the enemy loses, and losing one of ours costs the same. _**Knowledge**_ supplies costs, income, and experience; _**Beliefs**_ and _**Assessments**_ supply what is at stake and the risk. Two refinements make gold a fair measure:
+
+- **Time is priced at the rate the balance moves**, which the relative strength _**assessment**_ provides ([section 4.4](#44-assessments)). With three mines against one, a minute moves the balance a lot, so time is dear and gold cheap. With our last mine against none, each minute adds to our lead: waiting earns something, so a risky attack must beat simply waiting.
+- **The same answer sets how much risk to accept.** Ahead and gaining, the bot avoids big risks; behind and losing ground, it takes them.
+
+The price of time changes over the game, but _**weights**_ are only compared within one cycle, so they stay comparable. The _**commitment constant**_ and _**interruption costs**_ are in gold too. The numbers in this document's examples are illustrative.
+
 **Two _proposals_, one _Desire_.** While the Staff is out of stock and the harassment runs without it, two sources propose buying it:
 
-| Source                             | Proposes                           | Rank            | Weight | Reason                         |
-| ---------------------------------- | ---------------------------------- | --------------- | ------ | ------------------------------ |
-| the _**playbook**_'s Harass phase  | `AcquireItem{Demon Hunter, Staff}` | _**Game plan**_ | 0.7    | the phase wants an escape item |
-| the harassment, as a _**request**_ | `AcquireItem{Demon Hunter, Staff}` | _**Game plan**_ | 0.8    | hit and run needs an escape    |
+| Source                             | Proposes                           | Rank            | Weight (gold) | Reason                         |
+| ---------------------------------- | ---------------------------------- | --------------- | ------------- | ------------------------------ |
+| the _**playbook**_'s Harass phase  | `AcquireItem{Demon Hunter, Staff}` | _**Game plan**_ | 280           | the phase wants an escape item |
+| the harassment, as a _**request**_ | `AcquireItem{Demon Hunter, Staff}` | _**Game plan**_ | 320           | hit and run needs an escape    |
 
-The _**Desire**_ ranks as its stronger _**proposal**_, _**Game plan**_ 0.8, and has at most one _**Intention**_. When the harassment ends, its _**request**_ goes with it, and the _**playbook**_'s _**proposal**_ alone keeps the _**Desire**_ alive. A _**Desire**_ nobody proposes disappears, and an _**Intention**_ still pursuing it is dropped.
+The _**Desire**_ ranks as its stronger _**proposal**_, _**Game plan**_ with 320 gold, and has at most one _**Intention**_. When the harassment ends, its _**request**_ goes with it, and the _**playbook**_'s _**proposal**_ alone keeps the _**Desire**_ alive. A _**Desire**_ nobody proposes disappears, and an _**Intention**_ still pursuing it is dropped.
 
 **A _request_ belongs to its _Intention_.** It disappears as soon as the _**Intention**_ stops proposing it, or ends. Every _**Desire**_ is recomputed each cycle from the current _**Beliefs**_, _**Assessments**_, and _**Intentions**_.
 
@@ -432,7 +439,7 @@ Each round, _**Allocation**_ walks the _**agenda**_ in order:
 **The two terms of the _switching margin_:**
 
 - The _**commitment constant**_ is one small _**weight**_, the same for every _**Intention**_: the least gain worth moving a unit at all. _**Weights**_ are recomputed every cycle and shift a little each time; without the constant, two _**Intentions**_ of close _**weight**_ would pass a unit back and forth.
-- The _**interruption cost**_ is what taking the unit now would waste for its holder: a fight under way, a builder already at the site, a camp half cleared. The holder's _**plan run**_ names these losses from one shared list, and each named loss is valued in one shared place, not by the _**Intention**_ reporting it. That keeps _**Intentions**_ written by different authors on one scale; a number each _**Intention**_ chose for itself would let it inflate its own priority. The cost follows the run's progress: interrupting a harassment that is still searching wastes little, interrupting one in a fight wastes the fight.
+- The _**interruption cost**_ is what taking the unit now would waste for its holder: a fight under way, a builder already at the site, a camp half cleared. The holder's _**plan run**_ names these losses from one shared list, and each named loss is valued in gold in one shared place, not by the _**Intention**_ reporting it. That keeps _**Intentions**_ written by different authors on one scale; a number each _**Intention**_ chose for itself would let it inflate its own priority. The cost follows the run's progress: interrupting a harassment that is still searching wastes little, interrupting one in a fight wastes the fight.
 
 _**Allocation**_ rests on these rules:
 
@@ -445,7 +452,7 @@ _**Allocation**_ rests on these rules:
 ### 4.9 Execution
 
 ```text
-Intention        Harass the Archmage with the Demon Hunter            rank Game plan, weight 0.6
+Intention        Harass the Archmage with the Demon Hunter            rank Game plan, weight 240 gold
   Plan           hit and run: search → engage → disengage → recover
     Tactic       HitAndRun around the Archmage                        leash 800, chase at most 3 s
       Directive  Demon Hunter: Engage(Archmage), role Harasser, retreat at 45 % life, fallback at the camp
@@ -743,11 +750,11 @@ The project asks for three kinds of tests. This section describes the properties
 
 Scenarios 2, 2B.1, 2.14, and 2B.9.
 
-1. **Adoption.** In its Harass phase the _**playbook**_ proposes, in falling _**weight**_, buying the Staff, `HarassEnemyHero{Archmage}` (_**rank Game plan**_, _**weight**_ 0.6), and creeping with the Demon Hunter. Once he holds the Staff, AcquireItem is achieved and frees him, and _**Allocation**_ gives him to the harassment, the highest _**Intention**_ that needs him.
+1. **Adoption.** In its Harass phase the _**playbook**_ proposes, in falling _**weight**_, buying the Staff, `HarassEnemyHero{Archmage}` (_**rank Game plan**_, _**weight**_ 240 gold), and creeping with the Demon Hunter. Once he holds the Staff, AcquireItem is achieved and frees him, and _**Allocation**_ gives him to the harassment, the highest _**Intention**_ that needs him.
 2. **Search.** The _**plan**_ searches where the Archmage was last seen and where camps found cleared suggest his route; both come from the _**enemy model**_. The Travel _**Tactic**_ moves the Demon Hunter with local opportunism, and he creeps small camps on the way.
 3. **Contact.** The HitAndRun _**Tactic**_ directs the Demon Hunter to engage the Archmage as a Harasser, retreating at 45 % life to a fallback point. His _**Unit Behavior**_ burns mana while the Archmage has enough to lose, and his escape _**reflex**_ is armed with the Staff.
-4. **An expansion appears.** The scouting Wisp sees a Town Hall under construction. _**Perception**_ adds a _**contact**_, and _**strategy recognition**_ now reads the enemy strategy as a fast expansion. The _**playbook**_ adapts and proposes `RaidBase{north expansion}`, _**rank Game plan**_, _**weight**_ 0.85.
-5. **Preemption.** _**Deliberation**_ adopts the raid. Both _**Intentions**_ have _**rank Game plan**_, so the _**switching rule**_ applies. The raid's 0.85 exceeds the harassment's 0.6 plus its _**switching margin**_: the _**commitment constant**_, 0.05, plus the _**interruption cost**_ of the engagement under way, 0.1; 0.75 in total. _**Allocation**_ moves the Demon Hunter, and the harassment is _**starved**_: it keeps its state but has no force.
+4. **An expansion appears.** The scouting Wisp sees a Town Hall under construction. _**Perception**_ adds a _**contact**_, and _**strategy recognition**_ now reads the enemy strategy as a fast expansion. The _**playbook**_ adapts and proposes `RaidBase{north expansion}`, _**rank Game plan**_, _**weight**_ 340 gold.
+5. **Preemption.** _**Deliberation**_ adopts the raid. Both _**Intentions**_ have _**rank Game plan**_, so the _**switching rule**_ applies. The raid's 340 gold exceeds the harassment's 240 plus its _**switching margin**_: the _**commitment constant**_, 20, plus the _**interruption cost**_ of the engagement under way, 40; 300 in total. _**Allocation**_ moves the Demon Hunter, and the harassment is _**starved**_: it keeps its state but has no force.
 6. **The raid.** The raid's Siege _**Tactic**_ puts the building Peasant first in its kill order, and the Demon Hunter kills it.
 7. **A threat at home.** Five Footmen reach the Night Elf Wisps.
    - The Wisps flee by _**reflex**_ at once; their owner does not change.
@@ -878,10 +885,12 @@ Each step leaves a working bot and updates the architecture documents.
 
 ## 10. Risks and open questions
 
-1. **Calibration.** The _**agenda**_ is only as good as the _**ranks**_ and _**weights**_ feeding it.
-   - _**Ranks**_ with fixed meanings, _**weights**_ from value estimates, and _**proposals**_ concentrated in a few places (_**concerns**_ and _**playbooks**_) keep tuning manageable.
-   - _**Interruption costs**_ are grounded in named losses, which keeps them on one scale.
-   - The _**decision record**_ shows why something won.
+1. **Calibration.** The _**agenda**_ is only as good as the _**ranks**_ and _**weights**_ feeding it. No formula picks good values, but tuning can be made safe:
+   - _**Ranks**_ keep fixed meanings, so the hardest comparisons, such as a lethal threat against creeping, never come down to numbers.
+   - _**Weights**_ are values in gold, computed from game facts, so whether one is right can be argued and checked ([section 4.5](#45-desires)). What stays hand-set is a handful of named knobs, such as how much a hero level is worth, how far ahead to look, and how much risk to accept: the _**playbook**_'s style knobs.
+   - _**Proposals**_ come from few places, the _**concerns**_ and the _**playbooks**_, and _**interruption costs**_ are named losses valued in one place.
+   - Each scenario becomes a test of the decision it should produce, such as a fresh expansion's raid beating an ongoing harassment, or a lone Footman not recalling the hero. Changing a value function or a knob reruns them all, so tuning cannot silently break earlier decisions.
+   - When a game goes wrong, the _**decision record**_ shows which term was misjudged, so that estimate is fixed rather than the final number.
 2. **The _combat estimate_.** Fight or flight at every level depends on it.
    - Start with a cheap strength estimate (AMAI's and PurpleWave's) plus named modifiers ([ideas](rts-ideas.md#2-computing-the-combat-estimate)).
    - Calibrate it with in-game probes, and add simulation only where decisions go wrong.

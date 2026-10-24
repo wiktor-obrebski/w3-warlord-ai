@@ -114,24 +114,24 @@ _**Desires**_ are made of _**proposals**_. A _**proposal**_ is one source saying
 - **The _playbook_**, what the current game plan wants. In its Harass phase, Fast Bears proposes, in falling _**weight**_, buying the Staff, harassing the enemy hero, and creeping with the Demon Hunter.
 - _**Requests**_ from active _**Intentions**_, for what a commitment needs, such as an item or help. A _**request**_ disappears with the _**Intention**_ that made it.
 
-Each _**proposal**_ carries a _**rank**_, a _**weight**_, and a **reason**. The _**rank**_ is a category, from _**Survival**_ down to _**Background**_: a threat the _**threat assessment**_ rates lethal is _**Survival**_, a serious one is _**Emergency**_, the game plan's own goals are _**Game plan**_, and so is a small threat such as a lone Footman at the Wisps; a short-lived gain is usually an _**Opportunity**_, and upkeep that is never urgent is _**Background**_. The _**weight**_ is the value within the _**rank**_, computed from _**Beliefs**_ and _**Assessments**_; a _**weight**_ of 0 vetoes the _**proposal**_. A higher _**rank**_ always comes first, and _**weight**_ orders _**proposals**_ within a _**rank**_.
+Each _**proposal**_ carries a _**rank**_, a _**weight**_, and a **reason**. The _**rank**_ is a category, from _**Survival**_ down to _**Background**_: a threat the _**threat assessment**_ rates lethal is _**Survival**_, a serious one is _**Emergency**_, the game plan's own goals are _**Game plan**_, and so is a small threat such as a lone Footman at the Wisps; a short-lived gain is usually an _**Opportunity**_, and upkeep that is never urgent is _**Background**_. The _**weight**_ is the value within the _**rank**_, in gold: how far pursuing the outcome would move the balance between the two sides. It is computed from _**Beliefs**_ and _**Assessments**_, with time priced by how fast the balance is moving, and the numbers in this introduction are illustrative; a _**weight**_ of 0 vetoes the _**proposal**_. A higher _**rank**_ always comes first, and _**weight**_ orders _**proposals**_ within a _**rank**_.
 
 _**Proposals**_ for the same outcome merge into one _**Desire**_. The _**Desire**_ ranks as its strongest _**proposal**_, and it lasts only while at least one source still proposes it. _**Deliberation**_ adopts at most one _**Intention**_ per _**Desire**_. For example, if the Staff were out of stock and the harassment ran without it, two sources would propose buying it:
 
-| Source                             | Proposes                           | Rank            | Weight | Reason                         |
-| ---------------------------------- | ---------------------------------- | --------------- | ------ | ------------------------------ |
-| the _**playbook**_'s Harass phase  | `AcquireItem{Demon Hunter, Staff}` | _**Game plan**_ | 0.7    | the phase wants an escape item |
-| the harassment, as a _**request**_ | `AcquireItem{Demon Hunter, Staff}` | _**Game plan**_ | 0.8    | hit and run needs an escape    |
+| Source                             | Proposes                           | Rank            | Weight (gold) | Reason                         |
+| ---------------------------------- | ---------------------------------- | --------------- | ------------- | ------------------------------ |
+| the _**playbook**_'s Harass phase  | `AcquireItem{Demon Hunter, Staff}` | _**Game plan**_ | 280           | the phase wants an escape item |
+| the harassment, as a _**request**_ | `AcquireItem{Demon Hunter, Staff}` | _**Game plan**_ | 320           | hit and run needs an escape    |
 
-That is two _**proposals**_, one _**Desire**_ ranked _**Game plan**_ 0.8, and at most one _**Intention**_. When the harassment ends, its _**request**_ goes with it, and the _**playbook**_'s _**proposal**_ alone keeps the _**Desire**_ alive. A _**Desire**_ nobody proposes any more disappears, and an _**Intention**_ still pursuing it is dropped.
+That is two _**proposals**_, one _**Desire**_ ranked _**Game plan**_ with 320 gold, and at most one _**Intention**_. When the harassment ends, its _**request**_ goes with it, and the _**playbook**_'s _**proposal**_ alone keeps the _**Desire**_ alive. A _**Desire**_ nobody proposes any more disappears, and an _**Intention**_ still pursuing it is dropped.
 
 Right after the sighting, the bot wants this:
 
-| Desire                      | Source                                               | Rank            | Weight | Reason                                           |
-| --------------------------- | ---------------------------------------------------- | --------------- | ------ | ------------------------------------------------ |
-| `RaidBase{north expansion}` | the _**playbook**_'s fast-expansion _**adaptation**_ | _**Game plan**_ | 0.85   | fast expansion seen; the Town Hall is unfinished |
-| `HarassEnemyHero{Archmage}` | the _**playbook**_'s Harass phase                    | _**Game plan**_ | 0.6    | the Harass phase                                 |
-| `Creep{Demon Hunter}`       | the _**playbook**_'s Harass phase                    | _**Game plan**_ | lower  | the Harass phase                                 |
+| Desire                      | Source                                               | Rank            | Weight (gold) | Reason                                           |
+| --------------------------- | ---------------------------------------------------- | --------------- | ------------- | ------------------------------------------------ |
+| `RaidBase{north expansion}` | the _**playbook**_'s fast-expansion _**adaptation**_ | _**Game plan**_ | 340           | fast expansion seen; the Town Hall is unfinished |
+| `HarassEnemyHero{Archmage}` | the _**playbook**_'s Harass phase                    | _**Game plan**_ | 240           | the Harass phase                                 |
+| `Creep{Demon Hunter}`       | the _**playbook**_'s Harass phase                    | _**Game plan**_ | lower         | the Harass phase                                 |
 
 The raid is a short-lived chance, so its _**proposal**_ carries a _**window**_: it is worth something only until the Town Hall is finished. If the Demon Hunter could not get there in time, its _**weight**_ would drop to 0 and the _**Desire**_ would disappear without anyone canceling it.
 
@@ -144,7 +144,7 @@ A _**proposal**_ is plain data:
 const raidProposal = {
   outcome: { kind: 'RaidBase', base: northExpansion },
   rank: RANK.GAME_PLAN,
-  weight: 0.85,
+  weight: 340, // gold
   reason: 'fast expansion seen; Town Hall unfinished',
 };
 ```
@@ -160,7 +160,7 @@ _**Deliberation**_ turns _**Desires**_ into _**Intentions**_: commitments the bo
 3. orders the _**agenda**_: by _**rank**_, then by _**weight**_;
 4. records the reasons for all of it.
 
-In the example, _**Deliberation**_ adopts the raid. The _**agenda**_ now reads: the raid (_**Game plan**_, 0.85), the harassment (_**Game plan**_, 0.6), creeping (_**Game plan**_, lower).
+In the example, _**Deliberation**_ adopts the raid. The _**agenda**_ now reads: the raid (_**Game plan**_, 340 gold), the harassment (_**Game plan**_, 240 gold), creeping (_**Game plan**_, lower).
 
 An _**Intention**_ is **relative to the reason it was adopted for**. When its _**Desire**_ disappears, the _**Intention**_ is dropped, unless it is in a step that must not be interrupted, such as a purchase being made. Nobody has to remember to cancel it.
 
@@ -189,7 +189,7 @@ A unit moves from one _**Intention**_ to another only by the _**switching rule**
 - otherwise, a challenger with a higher _**rank**_ wins;
 - a challenger with the same _**rank**_ wins only by a margin: a _**commitment constant**_ plus the holder's _**interruption cost**_, what interrupting the holder now would waste.
 
-The raid and the harassment have the same _**rank**_, so the margin applies. The harassment is fighting the Archmage and reports that as its _**interruption cost**_: 0.1 for an engagement under way. With a _**commitment constant**_ of 0.05, the raid needs a _**weight**_ above 0.6 + 0.15 = 0.75. It has 0.85, so the Demon Hunter moves to the raid, and the _**decision record**_ keeps every term of the comparison.
+The raid and the harassment have the same _**rank**_, so the margin applies. The harassment is fighting the Archmage and reports that as its _**interruption cost**_: 40 gold for an engagement under way. With a _**commitment constant**_ of 20 gold, the raid needs a _**weight**_ above 240 + 60 = 300 gold. It has 340, so the Demon Hunter moves to the raid, and the _**decision record**_ keeps every term of the comparison.
 
 _**Interruption costs**_ are named losses, such as "an engagement under way" or "a camp half cleared", not bare numbers. That keeps _**Intentions**_ written by different people on one scale.
 
@@ -288,7 +288,7 @@ Each tick produces one record of plain data:
 - each _**plan**_'s phase, each _**Tactic**_'s status, and the _**Directives**_;
 - each unit's chosen module and its reason, and the orders.
 
-The same record feeds the in-game overlay (status text over units), logs, traces of end-to-end tests, and assertions in behavioral tests. In the example, it answers "why did the Demon Hunter leave the Archmage?" with the raid's 0.85 against the harassment's 0.6, plus 0.05 for commitment and 0.1 for the engagement under way.
+The same record feeds the in-game overlay (status text over units), logs, traces of end-to-end tests, and assertions in behavioral tests. In the example, it answers "why did the Demon Hunter leave the Archmage?" with the raid's 340 gold against the harassment's 240, plus 20 for commitment and 40 for the engagement under way.
 
 Details: [The decision record](rts-behavior-architecture.md#414-the-decision-record).
 
@@ -353,7 +353,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - _**Fingerprint**_: a sign of an enemy strategy in the _**strategy library**_: a small rule over what was seen and when, such as an early Town Hall away from the enemy's start.
 - _**Intention**_: a commitment to a _**Desire**_, pursued through _**plans**_ until it is achieved, becomes impossible, or is no longer wanted.
 - _**Intention kind**_: the declaration behind _**Intentions**_ of one sort: conditions, _**plans**_, _**requests**_, and a _**failure policy**_.
-- _**Interruption cost**_: what interrupting an _**Intention**_ now would waste, given by name. It is part of the _**switching margin**_.
+- _**Interruption cost**_: what interrupting an _**Intention**_ now would waste, given by name and valued in gold. It is part of the _**switching margin**_.
 - _**Judgment**_: an interpretation only one module needs, such as a _**Tactic**_'s view of its own fight. It stays private in that module.
 - _**Knowledge**_: game data and the map as they are when the game starts, prepared offline and supplied when the _**mind**_ is created. It never changes during a game.
 - _**Latitude**_: how far a unit may deviate from its _**Directive**_: retreat threshold, opportunism, leash.
@@ -374,7 +374,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - _**Switching rule**_: when a unit may move between _**Intentions**_: never out of an _**uninterruptible**_ step, always to a higher _**rank**_, and within a _**rank**_ only by a margin.
 - _**Tactic**_: a reusable controller for a group: fight or flight, targets, positions.
 - _**Unit Behavior**_: one per own unit. It turns the unit's _**Directive**_ into an order: _**reflexes**_, _**skills**_, _**opportunities**_, _**task**_.
-- _**Weight**_: a _**proposal**_'s value within its _**rank**_, computed from _**Beliefs**_ and _**Assessments**_. A _**weight**_ of 0 vetoes the _**proposal**_.
+- _**Weight**_: a _**proposal**_'s value within its _**rank**_, in gold: how far pursuing it would move the balance between the two sides. It is computed from _**Beliefs**_ and _**Assessments**_. A _**weight**_ of 0 vetoes the _**proposal**_.
 - _**Window**_: how long an opportunity lasts. A _**Desire**_ that can no longer fit its _**window**_ gets _**weight**_ 0.
 
 ## 18. Where to read next
