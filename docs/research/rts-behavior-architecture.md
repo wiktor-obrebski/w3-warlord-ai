@@ -490,9 +490,20 @@ _**Tactics**_ are reusable group controllers that _**plans**_ run: Travel, Skirm
   - focus fire without overkill;
   - spreading out against area damage.
 - **Takes local opportunities** within the _**latitude**_ its _**plan**_ gave it.
-- **Reports its status upward:** ongoing, won, retreated, stalled, or imminent failure.
+- **Reports its status upward:** ongoing, done, retreated, stalled, or failing, with a reason that says what happened, such as arrived, camp cleared, or fight won.
 
 Travel, for example, asks navigation for a route for its group, at the speed of its slowest unit and the size of its largest. It leads the group from waypoint to waypoint with Move _**Directives**_, waits for stragglers, and asks again when danger or the map changes along the way, switching only to a clearly better route.
+
+**How a status reaches the _plan_.** A _**Tactic**_ never calls its _**plan**_. The runtime steps it at its own pace, and each step returns plain data: its _**Directives**_, its status, and the reason. The runtime keeps each _**Tactic**_'s latest result for the _**plan run**_ that started it, and a change in the kind of status makes that run step in the same tick ([section 4.13](#413-timing-and-budgets)). The run reads the results and decides which units each of its _**Tactics**_ steers. When Travel reports its reinforcements done, at the rendezvous, the run moves them into the group its Siege _**Tactic**_ steers and ends the Travel _**Tactic**_. Moving units between its own _**Tactics**_ is the _**plan**_'s business alone: the units keep their owner, so _**Allocation**_ is not involved.
+
+```ts
+// What a Tactic returns from each step (sketch).
+interface TacticStep {
+  directives: readonly Directive[];
+  status: TacticStatus; // ongoing, done, retreated, stalled, failing
+  reason: string; // such as 'arrived: 3 of 3 Archers at the rendezvous'
+}
+```
 
 **_Directives_.** A _**Directive**_ is what a unit's owner asks of it. Every own unit gets one from its owner's _**plan run**_: a _**Tactic**_ writes the _**Directives**_ for the units in its group, and the run writes them itself for units outside any group, such as a builder or a scout. A _**Directive**_ holds until the run replaces it; in between, the unit's _**Unit Behavior**_ turns it into an order every tick. When a unit changes owner, its old _**Directive**_ ends, and the new owner's run gives it one in the same tick.
 
@@ -651,7 +662,7 @@ _**Belief**_ quality can be measured offline, because a test harness knows the g
 | _**Perception**_ and fast _**Beliefs**_               | every tick                                                            | —                                                                      |
 | _**Unit Behaviors**_                                  | every tick, round-robin within a budget, units nearest a threat first | an own unit attacked                                                   |
 | _**Tactics**_                                         | 0.2–0.5 s                                                             | enemies appearing near the group                                       |
-| _**Intentions**_ and _**plans**_                      | 0.5–1 s                                                               | a _**Tactic**_'s status, a unit gained or lost                         |
+| _**Intentions**_ and _**plans**_                      | 0.5–1 s                                                               | a change in a _**Tactic**_'s status, a unit gained or lost             |
 | _**Desires**_, _**Deliberation**_, _**Allocation**_   | about 1 s                                                             | a new threat, a broken _**expectation**_, an _**Intention**_ finishing |
 | Slow inference: unseen units, the army estimate       | 1–2 s, spread over ticks                                              | —                                                                      |
 | Enemy _**strategy recognition**_                      | every few seconds, incrementally                                      | a new enemy building type seen                                         |
