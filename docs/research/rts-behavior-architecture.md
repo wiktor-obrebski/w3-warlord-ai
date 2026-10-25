@@ -459,6 +459,15 @@ _**Allocation**_ rests on these rules:
 
 ### 4.9 Execution
 
+**Execution turns a commitment into orders, unit by unit.** Once _**Allocation**_ has given an _**Intention**_ its units, a short chain carries the _**Intention**_ out:
+
+- its current _**plan**_ works through the steps of one way to pursue the goal;
+- the _**plan**_ runs a _**Tactic**_ for each group of its units, which decides the group's fighting, movement, and positions;
+- each _**Tactic**_ writes a _**Directive**_ for every unit in its group: what is asked of the unit, and within which limits;
+- every unit's _**Unit Behavior**_ turns its _**Directive**_ into one order each tick, which the _**order executor**_ issues.
+
+Constraints go down the chain and status comes back up, so each level decides only what it is best placed to decide. This is the chain for the Demon Hunter's harassment:
+
 ```text
 Intention        Harass the Archmage with the Demon Hunter            rank Game plan, weight 240 gold
   Plan           hit and run: search → engage → disengage → recover
