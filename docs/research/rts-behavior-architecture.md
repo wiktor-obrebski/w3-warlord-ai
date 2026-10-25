@@ -520,7 +520,7 @@ A _**Directive**_ says:
 
 - the _**task**_: what to do, from a closed vocabulary, such as Move, Engage, Hold, Harvest, Build, Repair, Produce, UseItem, Purchase, or PickUp;
 - the _**role**_: how to play the _**task**_, such as Harasser, Tank, or Scout;
-- the _**latitude**_: how far the unit may deviate from the _**task**_: its retreat threshold, how much opportunism it allows, and its leash;
+- the _**latitude**_: how far the unit may deviate from the _**task**_: its retreat threshold, its leash, and its opportunism, none, own, or free ([section 4.10](#410-opportunities-and-latitude));
 - optionally, a station to hold while engaging and a point to fall back to.
 
 **_Directives_ are constraints, not micromanagement.** A _**Directive**_ says what to achieve and within which limits; the _**Unit Behavior**_ chooses the orders that achieve it: which target to hit, when to cast, where to step. Because the vocabulary is closed, every _**Unit Behavior**_ understands every _**Directive**_, and _**plans**_ and _**Tactics**_ can be tested by what they ask, not by Warcraft orders.
@@ -531,7 +531,7 @@ interface Directive {
   unit: UnitId;
   task: Task; // Move, Engage, Hold, Harvest, Build, Repair, Produce, UseItem, Purchase, PickUp…
   role?: Role; // how to play it: Harasser, Tank, Damage, Support, Scout, Bait
-  latitude: Latitude; // retreat threshold, opportunism, leash
+  latitude: Latitude; // retreat threshold, leash, opportunism: none, own, or free
   station?: Point; // where to stand while engaging
   fallback?: Point; // where to retreat to
 }
@@ -583,9 +583,19 @@ const demonHunter = unitBehavior({
 
 **_Latitude_ is the filter of Bratman, Israel and Pollack's IRMA architecture** ("Plans and Resource-Bounded Practical Reasoning"). Options incompatible with current commitments are rejected cheaply. Only strong enough options override the filter and reach _**deliberation**_.
 
-- A scout's _**Directive**_ allows free opportunism, so it may chase a lone Peasant.
-- The Wisp traveling to the Tavern allows none, and has a deadline.
-- A decisive fight lets cheap units fight to the end, while heroes keep a high retreat threshold.
+A _**latitude**_ has three parts: a retreat threshold, a leash, and an opportunism. A decisive fight, for example, lets cheap units fight to the end, while heroes keep a high retreat threshold.
+
+**Who may take a chance.** A unit may take a chance on its own when no one else in its group could take the same chance, and taking it does not pull the unit away from what its group is doing. Otherwise its _**Tactic**_ decides, because only the _**Tactic**_ sees all the units involved. Whoever writes a unit's _**Directive**_ says how much the unit may take on its own, as the opportunism in its _**latitude**_:
+
+| Opportunism | The unit may take                                                                    | Typical case                                                                           |
+| ----------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| none        | nothing beyond its _**reflexes**_                                                    | the Wisp walking to the Tavern; units waiting for an ambush signal                     |
+| own         | only chances no one else could take: an item at its feet, a potion, a buff on itself | units fighting together under one _**Tactic**_                                         |
+| free        | any chance worth its detour, targets included, within its leash                      | a scout, which may chase a lone Peasant; the harassing Demon Hunter; a unit on its own |
+
+_**Reflexes**_ run whatever the _**latitude**_. A _**Tactic**_ changes the _**latitude**_ as its fight changes: own during a decisive engagement, and free once the fight is won, so that units pick off stragglers on their own; a little overkill then costs less than waiting.
+
+**One chance, one taker.** A chance that several units of a group could take is their _**Tactic**_'s call. When a weak enemy appears in range of ten Dryads, their _**Tactic**_ steps at once, because enemies appeared near its group. It gives the target to one Dryad that is ready to fire, with only the damage the target needs, measured with the damage function in _**Knowledge**_; the other nine keep their targets. The same holds for spells: several casters should not spend their mana on one target. Units of different groups that see the same chance skip a target that own units already attack with enough damage, as _**Beliefs**_ show from those units' current orders.
 
 **Nothing reports opportunities upward.** Whatever any unit sees enters the _**Beliefs**_, and _**concerns**_ and the _**playbook**_, reading _**Beliefs**_ and _**Assessments**_, turn what matters into _**Desires**_. _**Intentions**_ only request what is specific to them, such as help or an item.
 
