@@ -183,6 +183,12 @@ Sources by Weber, Mateas, and Jhala:
 
   This grounds _**interruption cost**_ in what would actually be lost.
 
+- **Bratman, Israel, and Pollack, "Plans and Resource-Bounded Practical Reasoning"** (the IRMA architecture, 1988), known here through the papers that discuss it (see [Gaps](#5-gaps)):
+  - options incompatible with current commitments are rejected cheaply by a filter;
+  - only options strong enough to override the filter reach deliberation.
+
+  _**Latitude**_ is that filter for each unit, and the _**switching rule**_ is its override in numeric form.
+
 - **Vikhorev, Alechina, and Logan, "Agent Programming with Priorities and Deadlines"** (AgentSpeak(RT), AAMAS 2011):
   - Intentions are admitted in priority order while the set stays feasible, and the set is recomputed each cycle.
   - Infeasible intentions are dropped.

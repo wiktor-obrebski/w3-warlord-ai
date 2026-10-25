@@ -437,7 +437,7 @@ Each round, _**Allocation**_ walks the _**agenda**_ in order:
    - otherwise, a challenger with a higher _**rank**_ wins;
    - a challenger with the same _**rank**_ wins only if its _**weight**_ exceeds the holder's by the _**switching margin**_: a _**commitment constant**_ plus the holder's _**interruption cost**_.
 
-   The _**switching rule**_ is IRMA's filter override in numeric form, and each of its terms is recorded.
+   The _**decision record**_ keeps each term of the _**switching rule**_.
 
 2. **Applies the minimum.** A _**need**_ whose minimum cannot be met gets nothing, so units are not wasted on a force too weak to act.
 3. **Reserves money.** Money is reserved against the stock plus a short projection of income. An unmet _**need**_ reports when it becomes affordable; that is how saving works.
@@ -580,8 +580,6 @@ const demonHunter = unitBehavior({
 | Agenda    | raid a fresh expansion (1.4, 2B.1), attack because the enemy army died (1.20, 5.18)                         | a _**Desire**_, then _**Deliberation**_ | _**rank**_ and _**weight**_ on the _**agenda**_, and the _**switching rule**_ |
 
 **Every level weighs an opportunity the same way.** Its value, minus the detour, the risk, and the value of what it interrupts, must exceed a threshold, within the _**latitude**_ given. Values come from _**Knowledge**_: unit worth, experience, item worth.
-
-**_Latitude_ is the filter of Bratman, Israel and Pollack's IRMA architecture** ("Plans and Resource-Bounded Practical Reasoning"). Options incompatible with current commitments are rejected cheaply. Only strong enough options override the filter and reach _**deliberation**_.
 
 A _**latitude**_ has three parts: a retreat threshold, a leash, and an opportunism. A decisive fight, for example, lets cheap units fight to the end, while heroes keep a high retreat threshold.
 
