@@ -610,14 +610,14 @@ _**Reflexes**_ run whatever the _**latitude**_. A _**Tactic**_ changes the _**la
 **A _playbook_ is typed data plus small functions:**
 
 - phases with entry conditions;
-- an _**opening book**_ in a small language;
+- an _**opening book**_: the exact first steps of the game, in order, such as five Wisps, an Altar of Elders, and scouting the enemy start;
 - production goals as desired totals with _**ranks**_ and _**weights**_, and gates: upkeep, tier pacing;
 - _**desire**_ rules per phase;
 - _**expectations**_ about the enemy, and _**adaptations**_ keyed by enemy strategies;
 - hero skill and item builds;
 - style knobs, such as aggression, risk tolerance, and persistence, possibly drawn per game ([ideas](rts-ideas.md#4-a-personality-per-game)).
 
-**The _opening book_** is followed by the ExecuteOpening _**Intention**_. Its commands, such as scouting the enemy start, propose _**Desires**_ like the rest of the _**playbook**_. Its small language could follow Steamhammer's ([ideas](rts-ideas.md#3-an-opening-language)).
+**The _opening book_** is followed step by step by the ExecuteOpening _**Intention**_. Most steps build, train, or research; commands, such as scouting the enemy start, propose _**Desires**_ like the rest of the _**playbook**_. How the steps are written down, for example as short lines of text in the way Steamhammer writes its openings, is an open choice ([ideas](rts-ideas.md#3-an-opening-language)).
 
 **Production after the opening** belongs to ordinary _**Intentions**_: ProduceArmy, ReachTech, MaintainSupply, HireHero, ReviveHero, AcquireItem, Expand. Their _**plans**_:
 
