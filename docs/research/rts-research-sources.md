@@ -75,7 +75,7 @@ Sources by Weber, Mateas, and Jhala:
 
 - Typed requests that separate _what_ (strategy) from _how_ (specialists).
 - Several alternative behaviors for one goal, tried in order of specificity, each with a success test and a context condition. Failure falls through to the next alternative.
-- Expectations attached to a strategy: when one is violated, the strategy is reconsidered. Here they become _**adaptations**_ that guard the _**playbook**_'s assumptions and run _**Deliberation**_ early. "Expected X, not seen" may count only where scouting coverage says X would have been seen.
+- Expectations attached to a strategy, the core of goal-driven autonomy: when one is violated, the strategy is reconsidered. Here they become _**adaptations**_ that guard the _**playbook**_'s assumptions and run _**Deliberation**_ early. "Expected X, not seen" may count only where scouting coverage says X would have been seen.
 - A particle model for enemy units in the fog: one particle per enemy unit seen, with per-class decay and drift toward chokepoints, culled by our own vision.
   - Accuracy: 0.739 versus 0.669 for last-known positions.
   - In-game win rate: 78% versus 67%.
@@ -194,7 +194,7 @@ Sources by Weber, Mateas, and Jhala:
   - Infeasible intentions are dropped.
   - The bot commits to a priority-maximal set, and its reactivity delay is bounded.
 
-  Our _**Allocation**_ has the same shape, and opportunities borrow the idea of a deadline.
+  Our _**Allocation**_ has the same shape, plus the _**switching rule**_'s protection of holders, and opportunities borrow the idea of a deadline.
 
 - **Logan, Thangarajah, and Yorke-Smith, "Progressing Intention Progression"** (AAMAS 2017), and **Yao, Logan, and Thangarajah, "Robust Execution of BDI Agent Programs by Exploiting Synergies Between Intentions"** (AAAI 2016):
   - Logan et al. define the intention progression problem: which plan to use, and which intention to progress next. The state of practice is round-robin or hand-crafted scheduling.
@@ -221,6 +221,9 @@ Sources by Weber, Mateas, and Jhala:
   - feedback limited to completion, imminent failure, and threats seen;
   - bots may "temporarily ignore orders in order to survive";
   - a planner rerun at a fixed rate, with continuation conditions that keep the current plan.
+
+  Orders as constraints, limited feedback, and survival before orders became our _**hierarchy contract**_; _**reflexes**_ are how a unit ignores its _**Directive**_ to survive.
+
 - **Côté, "Reactivity and Deliberation in Decision-Making Systems"**:
   - reactions and deliberation as separate modules joined by an action selector;
   - hysteresis on derived facts such as "threat seen".

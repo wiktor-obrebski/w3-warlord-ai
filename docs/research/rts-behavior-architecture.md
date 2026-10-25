@@ -454,7 +454,7 @@ _**Allocation**_ rests on these rules:
 - **_Needs_ are declared again every round.** An _**Intention**_ that ends, or stops needing a unit, loses it without having to release anything.
 - **One owner per unit.** A production building belongs to ProduceArmy while it trains and to Creep while it tanks, never to both. A _**Directive**_ for a unit the _**Intention**_ does not own is rejected and recorded as a bug.
 - **Reserved money is spent only by its holder.** Gold reserved for a hero is not spent on Archers.
-- **Every _starvation_ has a named cause:** a higher _**Intention**_ that was served, or a holder the _**switching rule**_ protected. The _**decision record**_ holds it, and tests can assert it. Apart from that protection, _**Allocation**_ works like AgentSpeak(RT)'s scheduler, which admits intentions in priority order and recomputes the set every cycle.
+- **Every _starvation_ has a named cause:** a higher _**Intention**_ that was served, or a holder the _**switching rule**_ protected. The _**decision record**_ holds it, and tests can assert it.
 - **No special owners.** Workers, scouts, and builders are ordinary _**needs**_.
 
 ### 4.9 Execution
@@ -546,7 +546,7 @@ interface Directive {
    - cancel a construction about to be destroyed;
    - eat a tree.
 
-   A _**reflex**_ may override the _**Directive**_, the way Killzone 3's bots "temporarily ignore orders in order to survive". The owner of the unit does not change.
+   A _**reflex**_ may override the _**Directive**_ to keep the unit alive. The owner of the unit does not change.
 
 2. **Then tries ordered modules:**
    - _**skills**_: abilities and items, used as the _**role**_ suggests;
@@ -564,7 +564,7 @@ const demonHunter = unitBehavior({
 });
 ```
 
-**The _hierarchy contract_**, from Killzone 3:
+**The _hierarchy contract_:**
 
 - **Orders go down** as constraints from a closed vocabulary.
 - **Feedback goes up** only as status (completion, stall, imminent failure) and through _**Beliefs**_ (threats seen).
@@ -647,7 +647,7 @@ _**Adaptations**_ are rules on the recognized enemy strategy, other _**Beliefs**
 | Enemy army beaten (1.20, 5.18, 6.23) | `Attack` ranked _**Game plan**_, its _**weight**_ decaying as the enemy rebuilds         |
 | Flying army (6.17)                   | Anti-air composition                                                                     |
 
-_**Expectations**_ are _**adaptations**_ that guard the _**playbook**_'s own assumptions, such as "no air units before 8:00". An absence counts only where scouting coverage says the units would have been seen. A broken _**expectation**_ runs _**Deliberation**_ early, and the _**decision record**_ names it as the reason for the change. This is EISBot's goal-driven autonomy in a small form.
+_**Expectations**_ are _**adaptations**_ that guard the _**playbook**_'s own assumptions, such as "no air units before 8:00". An absence counts only where scouting coverage says the units would have been seen. A broken _**expectation**_ runs _**Deliberation**_ early, and the _**decision record**_ names it as the reason for the change.
 
 ### 4.12 The enemy model
 
