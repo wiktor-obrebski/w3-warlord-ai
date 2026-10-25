@@ -190,11 +190,19 @@ onEveryTick(() => {
 - **Projections enable prevention.** Proactive maintenance needs _**beliefs**_ about the near future: the food queued production will use, when a threatening army will arrive, when research completes. _**Concerns**_ act on these before a condition breaks; in an RTS, reacting after it breaks is too late.
 - **Derived facts are filtered once.** Facts that drive decisions, such as an enemy army being near, get their hysteresis where they are inferred, not in every consumer.
 - **_Knowledge_ is the game as it starts.** It never changes during a game; anything that can, however rarely, is a _**Belief**_ or an _**Assessment**_. Trees are cut down and structures go up, opening and closing routes, so _**Beliefs**_ hold the map as the bot believes it now. Changes arrive through _**Perception**_ like any other _**observation**_, so a route cut in the fog stays closed in _**Beliefs**_ until it is seen.
-- **_Knowledge_ is supplied when the _mind_ is created.** Tests can then give it a two-region map and a handful of unit types.
-  - _**Knowledge**_ functions are pure and are imported where needed: the _**combat estimate**_, travel time, routes with danger costs, damage, production time, requirements.
-  - They take what changes as input, from _**Beliefs**_ and _**Assessments**_. For example, routes and travel time follow the map in _**Beliefs**_, and routes weigh danger from the _**danger assessment**_.
+- **_Knowledge_ is data, supplied when the _mind_ is created and read like _Beliefs_.** Tests can then give it a two-region map and a handful of unit types, with no code involved.
+  - _**Knowledge**_ functions live beside the data, not on it: the _**combat estimate**_, navigation, damage, production time, requirements. They are pure and imported where needed, and they take what they need as arguments: the data from _**Knowledge**_, and what changes from _**Beliefs**_ and _**Assessments**_. Each can be tested alone, with exactly the inputs it names.
+  - They keep no state between calls, since the _**mind**_ has no module-level state. Whatever they precompute is data: computed offline into _**Knowledge**_, or kept in _**Beliefs**_ by a _**belief model**_.
 - **No Scoped Beliefs.** A fact several components need is a _**Belief**_; anything else is a component's execution state.
 - **_Beliefs_ are not _Assessments_.** _**Beliefs**_ say what is, or is probably, true. What that means for the bot belongs to _**Assessments**_ ([section 4.4](#44-assessments)).
+
+**Navigation** is the _**Knowledge**_ function every part uses to move around the map. It reads only the bot's own information, never Warcraft: the map as built from _**Knowledge**_, the map as believed now from _**Beliefs**_, and the danger of each region from the _**danger assessment**_. It answers three questions:
+
+- **Can a unit of this size get there?**
+- **How long does it take?** _**Allocation**_ uses this to prefer the nearest units and to check that they arrive in time, proposers to check a _**window**_, and the _**threat assessment**_ to tell when an enemy army arrives.
+- **Which way?** It returns a route through regions and chokes, as waypoints, weighing each region's danger by how much danger the caller accepts: none for the Wisp walking to the Tavern, some for an army.
+
+Navigation plans only from region to region. Between waypoints, Warcraft's own pathfinder moves each unit around trees, buildings, and other units, as it does for a player's orders. Following a route is the Travel _**Tactic**_'s job ([section 4.9](#49-execution)).
 
 ### 4.4 Assessments
 
@@ -483,6 +491,8 @@ _**Tactics**_ are reusable group controllers that _**plans**_ run: Travel, Skirm
   - spreading out against area damage.
 - **Takes local opportunities** within the _**latitude**_ its _**plan**_ gave it.
 - **Reports its status upward:** ongoing, won, retreated, stalled, or imminent failure.
+
+Travel, for example, asks navigation for a route for its group, at the speed of its slowest unit and the size of its largest. It leads the group from waypoint to waypoint with Move _**Directives**_, waits for stragglers, and asks again when danger or the map changes along the way, switching only to a clearly better route.
 
 **_Directives_.** A _**Directive**_ is what a unit's owner asks of it. Every own unit gets one from its owner's _**plan run**_: a _**Tactic**_ writes the _**Directives**_ for the units in its group, and the run writes them itself for units outside any group, such as a builder or a scout. A _**Directive**_ holds until the run replaces it; in between, the unit's _**Unit Behavior**_ turns it into an order every tick. When a unit changes owner, its old _**Directive**_ ends, and the new owner's run gives it one in the same tick.
 
