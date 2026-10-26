@@ -89,11 +89,11 @@ function WarlordRunBundle(warlord_computer_player)
     end
 
     -- Real-world time for log records, as text: Warcraft's Lua integers
-    -- are 32-bit, too small for milliseconds since the epoch, and seconds
-    -- since the epoch may not fit a float exactly. os.time counts whole
-    -- seconds; os.clock, elapsed time on Windows but CPU time elsewhere,
-    -- adds the milliseconds and is re-anchored whenever it leaves the
-    -- current os.time second, so seconds and milliseconds are kept apart.
+    -- are 32-bit, too small for milliseconds since the epoch, and its
+    -- 32-bit floats cannot hold seconds since the epoch exactly, so seconds
+    -- and milliseconds are kept apart. os.time counts whole seconds;
+    -- os.clock, which in-game follows real time, adds the milliseconds and
+    -- is re-anchored whenever it leaves the current os.time second.
     -- Declared for TypeScript in @lib/warcraft3-api/warlord.
     local function readOsNumber(read)
         if type(read) ~= "function" then
@@ -140,34 +140,6 @@ function WarlordRunBundle(warlord_computer_player)
             return nil
         end
         return osClock()
-    end
-
-    -- TEMPORARY probe of Warcraft's Lua numbers and clocks; remove once
-    -- its readings are recorded in lib/logger/README.md.
-    do
-        local loadClock = anchorClock
-        local loadTime = anchorSeconds
-        local probeTimer = CreateTimer()
-        TimerStart(probeTimer, 2.0, false, environment.guard(function()
-            DestroyTimer(probeTimer)
-            local lines = {
-                "Lua probe: " .. tostring(_VERSION),
-                "maxinteger " .. tostring(math.maxinteger)
-                    .. ", 2147483647 + 1 = " .. tostring(2147483647 + 1),
-                "0.1 as %.17g " .. string.format("%.17g", 0.1)
-                    .. ", 16777217.0 " .. tostring(16777217.0)
-                    .. ", 1/3 " .. tostring(1 / 3),
-                "os.time " .. tostring(osTime ~= nil) .. " " .. tostring(loadTime)
-                    .. " -> " .. tostring(osTime and osTime()),
-                "os.clock " .. tostring(osClock ~= nil) .. " " .. tostring(loadClock)
-                    .. " -> " .. tostring(osClock and osClock()) .. " over 2 game s",
-                "os.date " .. tostring(os ~= nil and os.date ~= nil),
-                "wall clock text " .. tostring(environment.readWallClockMillisecondsText()),
-            }
-            for _, line in ipairs(lines) do
-                DisplayTimedTextToPlayer(Player(0), 0, 0, 120, line)
-            end
-        end))
     end
 
     local chunk, loadError = load(

@@ -108,7 +108,15 @@ Lua differs from Node in ways the library cannot hide:
 
 ### 32-bit numbers
 
-Warcraft's Lua integers are 32-bit: the first in-game logs had `os.time() * 1000` wrap around to `2047466568` instead of `1793048829000`. Any number above 2,147,483,647 is out of reach in Lua, so `time` is passed as text by `readTime` and written as it is. Whether Warcraft's floats are 32-bit too, which would leave about 7 significant digits instead of 14, is not yet known. The Lua compatibility test catches neither unless `$LUA` is a Lua built with 32-bit numbers (`LUA_32BITS`).
+Warcraft runs Lua 5.3 built with 32-bit numbers, as an in-game probe showed: `math.maxinteger` is 2147483647, `2147483647 + 1` wraps to -2147483648, and floats are single precision, so `0.1` is `0.10000000149011612`. The first in-game logs had `os.time() * 1000` wrap around to `2047466568` instead of `1793048829000`.
+
+For logs this means:
+
+- `time` is passed as text by `readTime` and written as it is, since epoch milliseconds fit neither an integer nor a float.
+- Floats are written with 7 significant digits, such as `0.3333333` or `1.677722e+07`. A `gameTime` keeps millisecond precision for the first 10,000 seconds of a game.
+- Integers such as `seq` and batch numbers stay far below 2^31.
+
+The Lua compatibility test runs the system `lua`, which normally uses 64-bit numbers, so it catches none of this unless `$LUA` is a Lua built with `LUA_32BITS`.
 
 ## Buffer and drop policy
 

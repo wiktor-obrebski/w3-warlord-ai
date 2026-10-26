@@ -108,6 +108,7 @@ When uncertainty materially affects the implementation, state it rather than gue
 - Runtime code executes in Warcraft, not Node.js or a browser. Keep Node.js APIs in build tooling; verify that dependencies can compile and run under TSTL and Warcraft's available Lua libraries.
 - Normal map timers, triggers, callbacks, and closures are available. Use map scheduling mechanisms; do not assume standalone AI thread or sleep semantics apply.
 - Player-paramless AI functions such as `GetUnitCount` and `GetAiPlayer` did not provide a usable AI context in our map-script probes. Prefer explicit player/unit APIs and maintained bot state; verify uncertain natives in-game.
+- Warcraft's Lua 5.3 uses 32-bit numbers (confirmed in-game): integers wrap past 2147483647, and floats are single precision, about 7 significant digits. Keep integers well below 2^31, and do not rely on float precision, e.g. for epoch milliseconds or long sums. Standalone `lua` and Node use 64-bit numbers, so tests there do not catch overflow or precision loss.
 - Lua objects are garbage-collected. Warcraft handles still need appropriate lifecycle management, such as destroying temporary groups and timers when no longer needed.
 - Keep default melee AI disabled for players controlled by this bot so it does not compete for unit orders.
 
