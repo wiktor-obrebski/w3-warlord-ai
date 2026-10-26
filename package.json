@@ -9,7 +9,11 @@
     "lint": "oxlint . && npm run format:check",
     "format:check": "oxfmt --check",
     "format:fix": "oxfmt",
-    "typecheck": "tstl --noEmit",
+    "typecheck": "tstl --noEmit && tsc -p lib/logger/tsconfig.json",
+    "test": "node --require ts-node/register/transpile-only --test \"lib/**/*.test.ts\"",
+    "bench:node": "node --require ts-node/register/transpile-only lib/logger/benchmarks/node-benchmark.ts",
+    "bench:lua": "tstl -p tsconfig.lua-harness.json --outDir _build/lua-harness --luaBundle logger-benchmark.lua --luaBundleEntry lib/logger/benchmarks/lua-benchmark.ts && lua _build/lua-harness/logger-benchmark.lua",
+    "collect-logs": "node --require ts-node/register/transpile-only lib/logger/collector/collect-logs.ts",
     "build-map": "./bin/build-map/build-map.sh"
   },
   "devDependencies": {

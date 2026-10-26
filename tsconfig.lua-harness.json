@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/TypeScriptToLua/TypeScriptToLua/master/tsconfig-schema.json",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": []
+  },
+  "include": [
+    "lib/logger/*.ts",
+    "lib/logger/tests/support/*.ts",
+    "lib/logger/tests/lua/*.ts",
+    "lib/logger/benchmarks/logger-benchmarks.ts",
+    "lib/logger/benchmarks/lua-benchmark.ts"
+  ],
+  "exclude": ["lib/logger/warcraft.ts"]
+}

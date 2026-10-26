@@ -1,0 +1,6 @@
+{
+  "name": "@lib/logger",
+  "private": true,
+  "main": "./logger.ts",
+  "types": "./logger.ts"
+}

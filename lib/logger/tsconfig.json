@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "war3-types-strict/1.33.0"],
+    "noEmit": true
+  },
+  "include": ["**/*.ts", "../warcraft3-api/modules/*.d.ts"],
+  "exclude": []
+}

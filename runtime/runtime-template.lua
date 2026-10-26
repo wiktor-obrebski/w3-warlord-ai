@@ -88,6 +88,44 @@ function WarlordRunBundle(warlord_computer_player)
         end
     end
 
+    -- Real-world time for log records. Lua offers no portable sub-second
+    -- wall clock: os.time counts whole seconds, while os.clock counts
+    -- elapsed time on Windows but CPU time elsewhere. os.clock interpolates
+    -- within the current os.time second and is re-anchored whenever it
+    -- leaves it. Declared for TypeScript in @lib/warcraft3-api/warlord.
+    local function readOsNumber(read)
+        if type(read) ~= "function" then
+            return nil
+        end
+        local ok, number = pcall(read)
+        return ok and type(number) == "number" and number or nil
+    end
+
+    local osTime = os and os.time
+    local osClock = os and os.clock
+    local anchorSeconds = readOsNumber(osTime)
+    local anchorClock = readOsNumber(osClock)
+
+    environment.readWallClockMilliseconds = function()
+        if anchorSeconds == nil then
+            return nil
+        end
+
+        local wholeSeconds = osTime()
+        if anchorClock == nil then
+            return wholeSeconds * 1000
+        end
+
+        local seconds = anchorSeconds + (osClock() - anchorClock)
+        if seconds < wholeSeconds or seconds >= wholeSeconds + 1 then
+            anchorSeconds = wholeSeconds
+            anchorClock = osClock()
+            seconds = wholeSeconds
+        end
+
+        return math.floor(seconds * 1000)
+    end
+
     local chunk, loadError = load(
         source,
         "@warlord.lua",
