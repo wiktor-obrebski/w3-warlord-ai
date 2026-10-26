@@ -96,7 +96,9 @@ A component created during the tick is registered and has its Scoped Beliefs fir
 
 Generic BDI contracts, the beliefs runtime (`createBeliefsRuntime`, `BeliefContainer`), component assembly (`AssembledComponent`, `childFactory`), the Option Generation contract (`OptionGeneration`, `DesireExpressionProvider`), and the actor control arbiter (`createActorControlArbiter`, `ActorControlProvider`, `ActorControlPolicy`) live in the domain-independent [`@lib/bdi`](../lib/bdi/README.md). The bot's Option Generation is implemented in `src/desires/option-generation.ts`, including how stale supports decay and expire, and created with the bot's permanent Desires by `createDesires` in `src/desires/`, over the outcomes in `src/contracts/desires.ts`. A support stays fresh for its `refreshSeconds` plus one tick, since its Intention can refresh it only on a tick, then decays linearly over two more intervals and expires. The bot's actor control, the arbiter together with the policy deciding which requests are granted, is created by `createActorControl` in `src/capabilities/actor-control/`, over the request type in `src/contracts/actor-control.ts`. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
 
-Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, diagnostic artifacts, and automated tests.
+Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/logging.ts` holds the logging configuration and creates the bot's root logger, which adds `gameTime` to every record. It exports the records every half game second as batch files through Warcraft's preload natives, writing each file synchronously on the game thread. A Node collector turns the batch files into Pino JSON lines on the host. The runtime wrapper provides the wall clock for record times.
+
+Not yet implemented: the Central Timing Scheduler (intentions throttle their own update cadence), decision traces, and diagnostic artifacts. Automated tests cover only `@lib/logger`.
 
 ---
 
@@ -247,8 +249,9 @@ Before ordering an Actor, every Plan and Controller requests Actor Control for i
 
 ```text
 src/
-├─ main.ts        startup: installs the bot player, debug mode, starts the runtime
+├─ main.ts        startup: installs the bot player, debug mode, logging, starts the runtime
 ├─ runtime.ts     the bot loop
+├─ logging.ts     logging configuration, the root logger and its export
 ├─ contracts/     type-only domain vocabulary shared across layers: Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
 ├─ beliefs/       common belief model, observing Warcraft state for decisions
 ├─ desires/       the bot's Option Generation, its permanent Desires, and outcome identity
@@ -274,7 +277,8 @@ Which modules may import which, to be enforced by an architecture linter later:
 | `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                       |
 | `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`                     |
 | `runtime.ts`                                                     | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/`, `debug.ts` |
-| `main.ts`                                                        | `@lib/**`, `runtime.ts`, `privileged/`, `debug.ts`                                            |
+| `main.ts`                                                        | `@lib/**`, `runtime.ts`, `logging.ts`, `privileged/`, `debug.ts`                              |
+| `logging.ts`                                                     | `@lib/**`, `beliefs/game-clock.ts`, `debug.ts`                                                |
 | `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                       |
 | `debug.ts`                                                       | `@lib/warcraft3-api/**`                                                                       |
 

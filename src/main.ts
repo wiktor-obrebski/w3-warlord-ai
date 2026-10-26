@@ -2,6 +2,7 @@ import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3TimerApi from '@lib/warcraft3-api/timer';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
 import { debug } from './debug';
+import { startLogging } from './logging';
 import { startRuntime } from './runtime';
 import { installBotPlayer } from './privileged/install-bot-player';
 import { enableDebugMode, updateDebugMode } from './privileged/debug-mode';
@@ -22,13 +23,17 @@ function main(computerPlayer: W3PlayerApi.player) {
 }
 
 function play({ bot }: { bot: W3PlayerApi.player }) {
-  debug({ message: `Bot player id: ${W3PlayerApi.GetPlayerId(bot)}` });
+  const logger = startLogging({ bot });
+  const botPlayerId = W3PlayerApi.GetPlayerId(bot);
+
+  debug({ message: `Bot player id: ${botPlayerId}` });
+  logger.info({ botPlayerId }, 'Warlord AI started');
 
   if (DebugModeEnabled) {
     startDebugMode({ bot });
   }
 
-  startRuntime({ bot });
+  startRuntime({ bot, logger });
 }
 
 function startDebugMode({ bot }: { bot: W3PlayerApi.player }) {

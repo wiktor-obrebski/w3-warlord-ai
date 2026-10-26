@@ -29,10 +29,21 @@ On the new map all slots set to `Computer (Normal)` will be controlled by Warlor
 
 ```sh
 npm run lint          # oxlint and format:check
-npm run typecheck     # TSTL type check without emitting Lua
+npm run typecheck     # TSTL type check without emitting Lua, and a Node type check of Node-side code
 npm run format:check  # report files not formatted with oxfmt
 npm run format:fix    # format files in place with oxfmt
+npm test              # unit tests (node:test)
 ```
+
+## Logs
+
+The bot writes structured logs to `Documents/Warcraft III/CustomMapData/WarlordLogs`. Collect them as Pino JSON lines while the game runs:
+
+```sh
+npm run collect-logs -- --dir "<CustomMapData>/WarlordLogs" | npx pino-pretty
+```
+
+See [`lib/logger/README.md`](lib/logger/README.md).
 
 ## Docker Sandbox Kit
 

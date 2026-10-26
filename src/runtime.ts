@@ -2,6 +2,7 @@ import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3TimerApi from '@lib/warcraft3-api/timer';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
 import { createBeliefsRuntime } from '@lib/bdi';
+import type { Logger } from '@lib/logger';
 import { debug } from './debug';
 import type { WarlordUpdateChild } from './contracts/component';
 import type { WarlordDesire } from './contracts/desires';
@@ -21,6 +22,11 @@ export { startRuntime };
 
 const TickSeconds = 0.1;
 
+interface StartRuntimeArgs {
+  bot: W3PlayerApi.player;
+  logger: Logger;
+}
+
 /**
  * Runs the bot's BDI loop for one player, from the first tick until the game
  * is won.
@@ -39,7 +45,8 @@ const TickSeconds = 0.1;
  * then acts for it. At the end of the tick, components gone from the tree
  * lose their Scoped Beliefs, control, and desire supports.
  */
-function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
+function startRuntime({ bot, logger }: StartRuntimeArgs) {
+  const log = logger.child({ component: 'Runtime' });
   let currentStrategy: Strategy | null = null;
   const beliefs = createBeliefsRuntime({
     commonModel: createCommonBeliefsModel({
@@ -69,14 +76,14 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
     const now = commonBeliefs.time;
 
     if (commonBeliefs.enemyPlayersPlaying === 0) {
-      stopLoop({ loop });
+      stopLoop({ loop, log });
       return;
     }
 
     const previousDesires = desires;
 
     ({ desires } = optionGeneration.generate({ now }));
-    reportDesireChanges({ previousDesires, desires });
+    reportDesireChanges({ previousDesires, desires, log });
 
     ({ intentions } = deliberation.deliberate({
       beliefs: commonBeliefs,
@@ -108,32 +115,42 @@ function startRuntime({ bot }: { bot: W3PlayerApi.player }) {
   tick();
 }
 
+interface StopLoopArgs {
+  loop: W3TimerApi.timer;
+  log: Logger;
+}
+
 // With every enemy defeated there is nothing left to play for, and the
 // tower rush cannot run without an enemy.
-function stopLoop({ loop }: { loop: W3TimerApi.timer }) {
+function stopLoop({ loop, log }: StopLoopArgs) {
   W3TimerApi.PauseTimer(loop);
   W3TimerApi.DestroyTimer(loop);
   debug({ message: 'Game won; Warlord AI stops.' });
+  log.info('Game won; Warlord AI stops');
 }
 
 interface ReportDesireChangesArgs {
   previousDesires: readonly WarlordDesire[];
   desires: readonly WarlordDesire[];
+  log: Logger;
 }
 
 function reportDesireChanges({
   previousDesires,
   desires,
+  log,
 }: ReportDesireChangesArgs) {
   for (const desire of previousDesires) {
     if (!desires.includes(desire)) {
       debug({ message: `Desire gone: ${desire.id}` });
+      log.info({ desire: desire.id }, 'Desire gone');
     }
   }
 
   for (const desire of desires) {
     if (!previousDesires.includes(desire)) {
       debug({ message: `Desire appeared: ${desire.id}` });
+      log.info({ desire: desire.id }, 'Desire appeared');
     }
   }
 }
