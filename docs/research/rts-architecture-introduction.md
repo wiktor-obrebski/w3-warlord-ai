@@ -268,7 +268,7 @@ The _**concern**_ only wants a _**playbook**_; _**Deliberation**_ commits to it.
 A _**playbook**_ holds:
 
 - **phases** with entry conditions, each proposing _**Desires**_. Fast Bears has Opening, Harass, Second hero, Reunite, and Bear timing;
-- **an _opening book_** in a small language: `'5 x wisp'`, `'altar of elders'`, `'go scout enemy start'`;
+- **an _opening book_**: the exact first steps of the game, in order, such as five Wisps, an Altar of Elders, and scouting the enemy start;
 - **production goals** as desired totals, so recomputing a _**Desire**_ never builds twice;
 - _**adaptations**_: rules on the recognized enemy strategy, other _**Beliefs**_, and _**Assessments**_ that change _**ranks**_ and _**weights**_, or add and withdraw _**Desires**_. They scale with the recognition's confidence. _**Expectations**_ are _**adaptations**_ that guard the _**playbook**_'s own assumptions, such as "no air units before 8:00";
 - **hero skill and item builds**, and style knobs such as aggression.
