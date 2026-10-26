@@ -186,7 +186,7 @@ npm run collect-logs -- --dir "<CustomMapData>/WarlordLogs" | npx pino-pretty
 npm run collect-logs -- --dir "<CustomMapData>/WarlordLogs" > game.jsonl
 ```
 
-The collector polls the folder (every 250 ms by default) and writes every record to stdout as one JSON line with `session` added, in batch order per session. Diagnostics go to stderr. It writes a batch only after stdout has taken the previous one, so a slow consumer slows collection instead of growing memory. Unwritten batches wait on disk.
+The collector polls the folder (every 250 ms by default) and writes every record to stdout as one JSON line with `session` added, in batch order per session. Diagnostics go to stderr. It writes a batch only after stdout has taken the previous one, so a slow consumer slows collection instead of growing memory. Unwritten batches wait on disk. The folder must exist: the collector exits with an error when it does not, or stops being one, rather than waiting for a mistyped path. The game creates it with its first export.
 
 - **Ordering**: a session starts at its lowest batch present. A missing batch is waited for (`--gap-timeout-ms`, default 10 s), then reported and skipped.
 - **Completeness**: a file without the trailer is still being written. If it stays like that for `--incomplete-timeout-ms` (default 10 s), it is rejected. A file whose header does not match its content is rejected at once. Rejected files are renamed to `*.rejected` and kept. Record lines that are not JSON objects are reported and skipped.

@@ -243,17 +243,7 @@ async function listBatchFiles({
   directory: string;
 }): Promise<Map<string, Map<number, string>>> {
   const sessions = new Map<string, Map<number, string>>();
-  let fileNames: string[];
-
-  try {
-    fileNames = await fs.readdir(directory);
-  } catch (error) {
-    // The game creates the folder with its first batch.
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return sessions;
-    }
-    throw error;
-  }
+  const fileNames = await fs.readdir(directory);
 
   for (const fileName of fileNames.sort()) {
     const name = parseBatchFileName({ fileName });

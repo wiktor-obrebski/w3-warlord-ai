@@ -1,3 +1,4 @@
+import * as fs from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { createLogCollector } from './log-collector';
 
@@ -6,7 +7,7 @@ const Usage = `Usage: npm run collect-logs -- --dir <folder> [options]
 Writes the records of the game's log batch files to stdout as JSON lines,
 and diagnostics to stderr.
 
-  --dir <folder>                 the batch files' folder, e.g.
+  --dir <folder>                 the batch files' folder, which must exist, e.g.
                                  <Documents>/Warcraft III/CustomMapData/WarlordLogs
   --poll-ms <ms>                 how often to look for new batches (default 250)
   --gap-timeout-ms <ms>          wait for a missing batch (default 10000)
@@ -35,6 +36,14 @@ async function main() {
   if (values.help || values.dir === undefined) {
     process.stderr.write(Usage);
     process.exitCode = values.help ? 0 : 1;
+    return;
+  }
+
+  const folderError = await checkFolder({ folder: values.dir });
+
+  if (folderError !== undefined) {
+    process.stderr.write(`[collect-logs] ${folderError}\n`);
+    process.exitCode = 1;
     return;
   }
 
@@ -72,6 +81,23 @@ async function main() {
   while (!stopped) {
     await collector.poll();
     await new Promise((resolve) => setTimeout(resolve, pollMs));
+  }
+}
+
+/** Describes why `folder` cannot be collected from, if it cannot. */
+async function checkFolder({
+  folder,
+}: {
+  folder: string;
+}): Promise<string | undefined> {
+  try {
+    const stats = await fs.stat(folder);
+
+    return stats.isDirectory() ? undefined : `Not a folder: ${folder}`;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'ENOENT'
+      ? `Folder does not exist: ${folder}`
+      : `Cannot read ${folder}: ${(error as Error).message}`;
   }
 }
 

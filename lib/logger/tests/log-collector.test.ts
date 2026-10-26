@@ -246,6 +246,12 @@ describe('log collector', () => {
     );
   });
 
+  it('fails when the folder does not exist', async () => {
+    const { collector } = setUp({ directory: path.join(directory, 'missing') });
+
+    await assert.rejects(collector.poll(), { code: 'ENOENT' });
+  });
+
   it('keeps collected files when asked, without writing them again', async () => {
     await writeBatch({ directory, batch: 0, records: [record({ seq: 1 })] });
     const { collector, output } = setUp({ directory, deleteCollected: false });
