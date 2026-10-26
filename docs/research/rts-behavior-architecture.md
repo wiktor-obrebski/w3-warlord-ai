@@ -674,16 +674,16 @@ _**Belief**_ quality can be measured offline, because a test harness knows the g
 
 ### 4.13 Timing and budgets
 
-| Work                                                  | Pace                                                                  | Runs earlier on                                                        |
-| ----------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| _**Perception**_ and fast _**Beliefs**_               | every tick                                                            | —                                                                      |
-| _**Unit Behaviors**_                                  | every tick, round-robin within a budget, units nearest a threat first | an own unit attacked                                                   |
-| _**Tactics**_                                         | 0.2–0.5 s                                                             | enemies appearing near the group                                       |
-| _**Intentions**_ and _**plans**_                      | 0.5–1 s                                                               | a change in a _**Tactic**_'s status, a unit gained or lost             |
-| _**Desires**_, _**Deliberation**_, _**Allocation**_   | about 1 s                                                             | a new threat, a broken _**expectation**_, an _**Intention**_ finishing |
-| Slow inference: unseen units, the army estimate       | 1–2 s, spread over ticks                                              | —                                                                      |
-| Enemy _**strategy recognition**_                      | every few seconds, incrementally                                      | a new enemy building type seen                                         |
-| _**Assessments**_: threats, danger, relative strength | 1–2 s, spread over ticks                                              | enemies seen near own assets                                           |
+| Work                                                  | Pace                             | Runs earlier on                                                        |
+| ----------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------- |
+| _**Perception**_ and fast _**Beliefs**_               | every tick                       | —                                                                      |
+| _**Unit Behaviors**_                                  | every tick, within a budget      | —                                                                      |
+| _**Tactics**_                                         | 0.2–0.5 s                        | enemies appearing near the group                                       |
+| _**Intentions**_ and _**plans**_                      | 0.5–1 s                          | a change in a _**Tactic**_'s status, a unit gained or lost             |
+| _**Desires**_, _**Deliberation**_, _**Allocation**_   | about 1 s                        | a new threat, a broken _**expectation**_, an _**Intention**_ finishing |
+| Slow inference: unseen units, the army estimate       | 1–2 s, spread over ticks         | —                                                                      |
+| Enemy _**strategy recognition**_                      | every few seconds, incrementally | a new enemy building type seen                                         |
+| _**Assessments**_: threats, danger, relative strength | 1–2 s, spread over ticks         | enemies seen near own assets                                           |
 
 - No kind of work may starve, however busy the tick.
 - The _**decision record**_ counts the work done, so bounded work can be asserted in tests.
