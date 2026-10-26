@@ -88,11 +88,13 @@ function WarlordRunBundle(warlord_computer_player)
         end
     end
 
-    -- Real-world time for log records. Lua offers no portable sub-second
-    -- wall clock: os.time counts whole seconds, while os.clock counts
-    -- elapsed time on Windows but CPU time elsewhere. os.clock interpolates
-    -- within the current os.time second and is re-anchored whenever it
-    -- leaves it. Declared for TypeScript in @lib/warcraft3-api/warlord.
+    -- Real-world time for log records, as text: Warcraft's Lua integers
+    -- are 32-bit, too small for milliseconds since the epoch, and seconds
+    -- since the epoch may not fit a float exactly. os.time counts whole
+    -- seconds; os.clock, elapsed time on Windows but CPU time elsewhere,
+    -- adds the milliseconds and is re-anchored whenever it leaves the
+    -- current os.time second, so seconds and milliseconds are kept apart.
+    -- Declared for TypeScript in @lib/warcraft3-api/warlord.
     local function readOsNumber(read)
         if type(read) ~= "function" then
             return nil
@@ -106,24 +108,38 @@ function WarlordRunBundle(warlord_computer_player)
     local anchorSeconds = readOsNumber(osTime)
     local anchorClock = readOsNumber(osClock)
 
-    environment.readWallClockMilliseconds = function()
+    environment.readWallClockMillisecondsText = function()
         if anchorSeconds == nil then
             return nil
         end
 
         local wholeSeconds = osTime()
         if anchorClock == nil then
-            return wholeSeconds * 1000
+            return string.format("%d000", wholeSeconds)
         end
 
-        local seconds = anchorSeconds + (osClock() - anchorClock)
-        if seconds < wholeSeconds or seconds >= wholeSeconds + 1 then
+        local elapsed = osClock() - anchorClock
+        local elapsedSeconds = math.floor(elapsed)
+        if anchorSeconds + elapsedSeconds ~= wholeSeconds then
             anchorSeconds = wholeSeconds
             anchorClock = osClock()
-            seconds = wholeSeconds
+            elapsed = 0
+            elapsedSeconds = 0
         end
 
-        return math.floor(seconds * 1000)
+        -- A 32-bit float can round a fraction just below 1 up to 1000 ms.
+        local milliseconds = math.min(
+            math.floor((elapsed - elapsedSeconds) * 1000),
+            999
+        )
+        return string.format("%d%03d", anchorSeconds + elapsedSeconds, milliseconds)
+    end
+
+    environment.readClockSeconds = function()
+        if anchorClock == nil then
+            return nil
+        end
+        return osClock()
     end
 
     local chunk, loadError = load(

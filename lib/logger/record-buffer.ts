@@ -20,12 +20,13 @@ interface LogRecordBuffer {
    * Stores a record; called by loggers. Takes positional parameters, since
    * an argument object would allocate a Lua table on every log call.
    *
+   * @param time The JSON number text of `time`.
    * @param bindings The logger's bindings as JSON members, each preceded
    *   by a comma.
    */
   append(
     level: number,
-    time: number | undefined,
+    time: string | undefined,
     bindings: string,
     fields: CapturedFields | undefined,
     message: string | undefined
@@ -57,7 +58,7 @@ function createLogRecordBuffer({
   // One array per record property: a table per record would add an
   // allocation to every log call.
   const levels: number[] = [];
-  const times: (number | undefined)[] = [];
+  const times: (string | undefined)[] = [];
   const sequenceNumbers: number[] = [];
   const recordBindings: string[] = [];
   const recordFields: (CapturedFields | undefined)[] = [];
@@ -71,7 +72,7 @@ function createLogRecordBuffer({
 
   const store = (
     level: number,
-    time: number | undefined,
+    time: string | undefined,
     bindings: string,
     fields: CapturedFields | undefined,
     message: string | undefined
@@ -96,7 +97,7 @@ function createLogRecordBuffer({
     nextSeq += 1;
   };
 
-  const storeDropSummary = (time: number | undefined) => {
+  const storeDropSummary = (time: string | undefined) => {
     store(
       LOG_LEVELS.warn,
       time,
@@ -146,7 +147,7 @@ function createLogRecordBuffer({
         parts.push(formatJsonNumber(levels[slot]!));
         if (time !== undefined) {
           parts.push(',"time":');
-          parts.push(formatJsonNumber(time));
+          parts.push(time);
         }
         parts.push(',"seq":');
         parts.push(formatJsonNumber(sequenceNumbers[slot]!));

@@ -49,16 +49,16 @@ function startWarcraftLogExport({
   const timer = W3TimerApi.CreateTimer();
 
   const exportBatch = () => {
-    const startedAt = WarlordApi.readWallClockMilliseconds();
+    const startedAt = WarlordApi.readClockSeconds();
     const batch = buffer.drain({ maxRecords: batchSize });
 
     if (batch.recordCount === 0) {
       return;
     }
 
-    const formattedAt = WarlordApi.readWallClockMilliseconds();
+    const formattedAt = WarlordApi.readClockSeconds();
     transport.write({ batch });
-    const writtenAt = WarlordApi.readWallClockMilliseconds();
+    const writtenAt = WarlordApi.readClockSeconds();
 
     // A batch holding nothing but the previous batch's report would keep an
     // idle game writing a file every interval.
@@ -101,9 +101,12 @@ interface ElapsedMillisecondsArgs {
   to: number | undefined;
 }
 
+// Between two clock readings in seconds, rounded to 0.01 ms.
 function elapsedMilliseconds({
   from,
   to,
 }: ElapsedMillisecondsArgs): number | undefined {
-  return from === undefined || to === undefined ? undefined : to - from;
+  return from === undefined || to === undefined
+    ? undefined
+    : Math.round((to - from) * 100_000) / 100;
 }

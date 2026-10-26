@@ -34,7 +34,7 @@ function startLogging({ bot }: { bot: W3PlayerApi.player }): Logger {
     return createLogger({ enabled: false });
   }
 
-  const startedAt = WarlordApi.readWallClockMilliseconds();
+  const startedAt = WarlordApi.readWallClockMillisecondsText();
 
   if (startedAt === undefined) {
     debug({ message: 'Logging is off: Lua offers no wall clock.' });
@@ -46,7 +46,7 @@ function startLogging({ bot }: { bot: W3PlayerApi.player }): Logger {
   const logger = createLogger({
     level: LogLevel,
     buffer,
-    readTime: () => WarlordApi.readWallClockMilliseconds(),
+    readTime: () => WarlordApi.readWallClockMillisecondsText(),
     mixin: () => ({ gameTime: readGameClock({ clock }) }),
   });
 

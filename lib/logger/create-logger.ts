@@ -50,10 +50,12 @@ interface EnabledLoggerOptions {
   level?: LogLevelName;
   buffer: LogRecordBuffer;
   /**
-   * Real-world time for `time`, in milliseconds since the Unix epoch; no
-   * `time` is written while it returns `undefined`.
+   * Real-world time for `time`, as the decimal digits of milliseconds since
+   * the Unix epoch, written as they are. Text, because Warcraft's Lua
+   * numbers are 32-bit and cannot hold the number. No `time` is written
+   * while it returns `undefined`.
    */
-  readTime?: () => number | undefined;
+  readTime?: () => string | undefined;
   /**
    * Like Pino's `mixin`: fields added to every record, before the call's
    * own, such as the current game time.
@@ -86,7 +88,7 @@ interface LoggerCore {
   level: LogLevelName;
   threshold: number;
   buffer: LogRecordBuffer | undefined;
-  readTime: (() => number | undefined) | undefined;
+  readTime: (() => string | undefined) | undefined;
   mixin: (() => LogBindings) | undefined;
 }
 

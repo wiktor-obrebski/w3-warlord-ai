@@ -3,7 +3,7 @@ import type { Logger } from '../../create-logger';
 export { runLoggingScenario, SCENARIO_TIME };
 
 /** The `time` every scenario record carries. */
-const SCENARIO_TIME = 1793039520000;
+const SCENARIO_TIME = '1793039520000';
 
 /**
  * Log calls exercising every kind of value, run in both Node and Lua so

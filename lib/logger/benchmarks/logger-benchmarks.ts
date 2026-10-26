@@ -186,7 +186,7 @@ function createBenchmarkLogger({
   const logger = createLogger({
     level: 'info',
     buffer,
-    readTime: () => 1793039520000,
+    readTime: () => '1793039520000',
     mixin: () => {
       gameTime += 0.1;
       return { gameTime };

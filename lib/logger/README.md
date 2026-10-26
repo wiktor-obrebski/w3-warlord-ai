@@ -30,7 +30,7 @@ const buffer = createLogRecordBuffer({ capacity: 4096 });
 const logger = createLogger({
   level: 'debug',
   buffer,
-  readTime: () => WarlordApi.readWallClockMilliseconds(),
+  readTime: () => WarlordApi.readWallClockMillisecondsText(),
   mixin: () => ({ gameTime: readGameClock({ clock }) }),
 });
 
@@ -59,7 +59,7 @@ The bot's configuration (level, capacity, batch size, flush interval, folder, on
 - `trace` / `debug` / `info` / `warn` / `error` / `fatal`: `(message)` or `(fields, message?)`. Pino's levels: 10 to 60.
 - `child(bindings)`: a logger adding `bindings` to every record after its parent's. Bindings are captured when the child is created.
 - `isLevelEnabled(level)`, `level`.
-- Options: `level` (default `info`; `silent` records nothing), `enabled: false` (every call is a no-op and no buffer is needed), `readTime` (real-world time for `time`, in Unix epoch milliseconds), and `mixin` (like Pino's: fields evaluated on every call, such as `gameTime`).
+- Options: `level` (default `info`; `silent` records nothing), `enabled: false` (every call is a no-op and no buffer is needed), `readTime` (real-world time for `time`, as the decimal digits of Unix epoch milliseconds, written as they are; see [32-bit numbers](#32-bit-numbers)), and `mixin` (like Pino's: fields evaluated on every call, such as `gameTime`).
 
 The library knows nothing about game time, ticks, or components: the consumer adds them, with `mixin` for per-record values and `child` for context.
 
@@ -102,9 +102,13 @@ Errors follow Pino's default `err` serializer: `type` (the constructor's name), 
 Lua differs from Node in ways the library cannot hide:
 
 - `null` is `nil`: `null` fields disappear, and an empty table is written as `[]`.
-- Numbers are formatted by Lua's `tostring`, with 14 significant digits, and whole floats keep `.0`, such as `40.0`.
+- Numbers are formatted by Lua's `tostring`, and whole floats keep `.0`, such as `40.0`.
 - Object members come out in arbitrary order.
 - Warcraft errors have no stack traces, since the runtime wrapper provides no real `debug` library; `stack` is then omitted.
+
+### 32-bit numbers
+
+Warcraft's Lua integers are 32-bit: the first in-game logs had `os.time() * 1000` wrap around to `2047466568` instead of `1793048829000`. Any number above 2,147,483,647 is out of reach in Lua, so `time` is passed as text by `readTime` and written as it is. Whether Warcraft's floats are 32-bit too, which would leave about 7 significant digits instead of 14, is not yet known. The Lua compatibility test catches neither unless `$LUA` is a Lua built with 32-bit numbers (`LUA_32BITS`).
 
 ## Buffer and drop policy
 
@@ -165,7 +169,7 @@ Each export measures itself and logs a `debug` record, unless the batch held not
 }
 ```
 
-`formatMs` and `writeMs` come from the runtime wrapper's wall clock, accurate to about a millisecond on Windows.
+`formatMs` and `writeMs` are differences of Lua's `os.clock`, provided by the runtime wrapper: elapsed time on Windows, CPU time elsewhere. They are omitted when `os.clock` is missing.
 
 ## Collector
 

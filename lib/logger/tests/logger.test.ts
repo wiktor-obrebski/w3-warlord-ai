@@ -5,7 +5,7 @@ import { createLogRecordBuffer, type LogRecordBuffer } from '../record-buffer';
 
 describe('logger', () => {
   it('writes Pino records with level, time, seq and message', () => {
-    const { logger, readRecords } = setUp({ readTime: () => 1793039520000 });
+    const { logger, readRecords } = setUp({ readTime: () => '1793039520000' });
 
     logger.info('Simple message');
 
@@ -203,16 +203,27 @@ describe('logger', () => {
   });
 
   it('omits time while the clock has no reading', () => {
-    let time: number | undefined;
+    let time: string | undefined;
     const { logger, readRecords } = setUp({ readTime: () => time });
 
     logger.info('no clock');
-    time = 5;
+    time = '5';
     logger.info('clock');
 
     assert.deepEqual(
       readRecords().map((record) => record.time),
       [undefined, 5]
+    );
+  });
+
+  it('writes time text as given, beyond what 32-bit Lua numbers hold', () => {
+    const { logger, readLines } = setUp({ readTime: () => '1793048829123' });
+
+    logger.info('x');
+
+    assert.equal(
+      readLines()[0],
+      '{"level":30,"time":1793048829123,"seq":1,"msg":"x"}'
     );
   });
 
@@ -297,7 +308,7 @@ describe('logger', () => {
 
 interface SetUpArgs {
   level?: Extract<LoggerOptions, { buffer: LogRecordBuffer }>['level'];
-  readTime?: () => number | undefined;
+  readTime?: () => string | undefined;
   mixin?: () => Record<string, unknown>;
 }
 
