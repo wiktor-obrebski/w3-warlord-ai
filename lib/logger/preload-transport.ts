@@ -40,7 +40,7 @@ interface CreatePreloadTransportArgs {
  * batch's JSON lines. The header is JSON with `format`, `version`,
  * `session`, `batch`, `records`, and `bytes`, the length of the JSON lines,
  * which in Lua is their size in bytes. The JSON lines never contain the
- * file's own line structure, so the collector can split the arguments
+ * file's own line structure, so `parseBatchFile` can split the arguments
  * apart again.
  *
  * Writing is synchronous: `PreloadGenEnd` writes the file on the game

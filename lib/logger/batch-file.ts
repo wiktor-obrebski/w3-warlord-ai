@@ -1,4 +1,4 @@
-import { PRELOAD_BATCH_FORMAT } from '../preload-transport';
+import { PRELOAD_BATCH_FORMAT } from './preload-transport';
 
 export {
   parseBatchFile,
@@ -12,7 +12,10 @@ interface BatchFileName {
   batch: number;
 }
 
-/** Reads the session and batch number from a batch file's name. */
+/**
+ * Reads the session and batch number from a batch file's name; `undefined`
+ * for any other file.
+ */
 function parseBatchFileName({
   fileName,
 }: {
@@ -43,11 +46,11 @@ type ParsedBatchFile =
   | { status: 'malformed'; reason: string };
 
 /**
- * Reassembles a batch file written by the preload transport: the
+ * Reads the records of a batch file written by the Warcraft logger: the
  * `Preload` arguments, joined, are a header line and the records' JSON
  * lines. A file is complete once the trailer `PreloadGenEnd` writes after
  * the arguments is present; it is valid when the header's byte and record
- * counts match.
+ * counts match. Runs in Node.js.
  */
 function parseBatchFile({ content }: { content: Buffer }): ParsedBatchFile {
   // Latin-1 maps each byte to one character, so arguments can be cut and

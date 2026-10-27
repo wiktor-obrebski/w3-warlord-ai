@@ -3,15 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import {
-  COLLECTOR_STATE_FILE_NAME,
-  createLogCollector,
-} from '../collector/log-collector';
-import {
-  PRELOAD_BATCH_FORMAT,
-  PRELOAD_CHUNK_LENGTH,
-} from '../preload-transport';
-import { renderPreloadFile } from './support/fake-preload-engine';
+import { COLLECTOR_STATE_FILE_NAME, createLogCollector } from './log-collector';
 
 describe('log collector', () => {
   let directory: string;
@@ -61,34 +53,6 @@ describe('log collector', () => {
     );
   });
 
-  it('reassembles UTF-8 and escapes split across Preload arguments', async () => {
-    const message = `${'ą'.repeat(PRELOAD_CHUNK_LENGTH)} "C:\\Maps" 🎮`;
-    await writeBatch({
-      directory,
-      batch: 0,
-      records: [JSON.stringify({ level: 30, seq: 1, msg: message })],
-    });
-    const { collector, output } = setUp({ directory });
-
-    await collector.poll();
-
-    assert.equal(output.records()[0]?.msg, message);
-  });
-
-  it('accepts files with Windows line ends', async () => {
-    await writeBatch({
-      directory,
-      batch: 0,
-      records: [record({ seq: 1 }), record({ seq: 2 })],
-      lineEnd: '\r\n',
-    });
-    const { collector, output } = setUp({ directory });
-
-    await collector.poll();
-
-    assert.equal(output.records().length, 2);
-  });
-
   it('waits for a missing batch, then skips it after the gap timeout', async () => {
     await writeBatch({ directory, batch: 0, records: [record({ seq: 1 })] });
     await writeBatch({ directory, batch: 2, records: [record({ seq: 3 })] });
@@ -116,11 +80,10 @@ describe('log collector', () => {
   it('collects a late batch arriving within the gap timeout in order', async () => {
     await writeBatch({ directory, batch: 1, records: [record({ seq: 2 })] });
     const { collector, output } = setUp({ directory });
-    await collector.poll();
-    const writtenBefore = output.records().length;
 
     // A fresh session starts from its lowest batch present.
-    assert.equal(writtenBefore, 1);
+    await collector.poll();
+    assert.equal(output.records().length, 1);
 
     await writeBatch({ directory, batch: 3, records: [record({ seq: 4 })] });
     await collector.poll();
@@ -163,7 +126,7 @@ describe('log collector', () => {
     const filePath = batchPath({ directory, batch: 0 });
     const { collector, output, reports, clock } = setUp({ directory });
 
-    await fs.writeFile(filePath, complete.subarray(0, complete.length - 40));
+    await fs.writeFile(filePath, complete.slice(0, -40));
     await collector.poll();
     assert.equal(output.records().length, 0);
 
@@ -173,7 +136,7 @@ describe('log collector', () => {
 
     await fs.writeFile(
       batchPath({ directory, batch: 1 }),
-      renderBatch({ batch: 1, records: [record({ seq: 2 })] }).subarray(0, 100)
+      renderBatch({ batch: 1, records: [record({ seq: 2 })] }).slice(0, 100)
     );
     await writeBatch({ directory, batch: 2, records: [record({ seq: 3 })] });
     clock.advance(IncompleteTimeoutMs);
@@ -189,13 +152,14 @@ describe('log collector', () => {
     );
   });
 
-  it('rejects a batch whose content does not match its header', async () => {
-    const truncated = renderBatch({
-      batch: 0,
-      records: [record({ seq: 1 })],
-      corrupt: (content) => content.replace('record 1', 'rec'),
-    });
-    await fs.writeFile(batchPath({ directory, batch: 0 }), truncated);
+  it('rejects a malformed batch at once and continues with the next', async () => {
+    await fs.writeFile(
+      batchPath({ directory, batch: 0 }),
+      renderBatch({ batch: 0, records: [record({ seq: 1 })] }).replace(
+        'record 1',
+        'rec'
+      )
+    );
     await writeBatch({ directory, batch: 1, records: [record({ seq: 2 })] });
     const { collector, output, reports } = setUp({ directory });
 
@@ -205,7 +169,20 @@ describe('log collector', () => {
       output.records().map(({ seq }) => seq),
       [2]
     );
-    assert.match(reports.join('\n'), /bytes of records/);
+    assert.match(reports.join('\n'), /Rejected .*-00000000\.txt/);
+  });
+
+  it('rejects a batch whose header names another batch', async () => {
+    await fs.writeFile(
+      batchPath({ directory, batch: 0 }),
+      renderBatch({ batch: 4, records: [record({ seq: 1 })] })
+    );
+    const { collector, output, reports } = setUp({ directory });
+
+    await collector.poll();
+
+    assert.equal(output.records().length, 0);
+    assert.match(reports.join('\n'), /header names session .*, batch 4/);
   });
 
   it('skips and reports records that are not JSON objects', async () => {
@@ -345,48 +322,37 @@ interface RenderBatchArgs {
   session?: string;
   batch: number;
   records: string[];
-  lineEnd?: string;
-  corrupt?: (content: string) => string;
 }
 
 /**
- * The batch file the game writes, cut into Preload arguments by bytes as
- * Lua strings are.
+ * A batch file as the game writes it, with everything in one `Preload`
+ * call; `@lib/logger`'s own tests cover how files are cut and read.
  */
 function renderBatch({
   session = Session,
   batch,
   records,
-  lineEnd,
-  corrupt = (content) => content,
-}: RenderBatchArgs): Buffer {
-  const jsonl = Buffer.from(
-    records.map((line) => `${line}\n`).join(''),
-    'utf8'
-  ).toString('latin1');
+}: RenderBatchArgs): string {
+  const jsonl = records.map((line) => `${line}\n`).join('');
   const header = JSON.stringify({
-    format: PRELOAD_BATCH_FORMAT,
+    format: 'warlord-log-batch',
     version: 1,
     session,
     batch,
     records: records.length,
-    bytes: jsonl.length,
+    bytes: Buffer.byteLength(jsonl),
   });
-  const content = corrupt(`${header}\n${jsonl}`);
-  const preloadArguments: string[] = [];
 
-  for (
-    let offset = 0;
-    offset < content.length;
-    offset += PRELOAD_CHUNK_LENGTH
-  ) {
-    preloadArguments.push(content.slice(offset, offset + PRELOAD_CHUNK_LENGTH));
-  }
-
-  return Buffer.from(
-    renderPreloadFile({ preloadArguments, lineEnd }),
-    'latin1'
-  );
+  return [
+    'function PreloadFiles takes nothing returns nothing',
+    '',
+    '\tcall PreloadStart()',
+    `\tcall Preload( "${header}\n${jsonl}" )`,
+    '\tcall PreloadEnd( 0.0 )',
+    '',
+    'endfunction',
+    '',
+  ].join('\n');
 }
 
 interface WriteBatchArgs extends RenderBatchArgs {

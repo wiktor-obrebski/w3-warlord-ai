@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/TypeScriptToLua/TypeScriptToLua/master/tsconfig-schema.json",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": []
+  },
+  "tstl": {
+    "luaPlugins": [
+      {
+        "name": "../warcraft-tstl-plugin/warcraft-tstl-plugin.ts"
+      }
+    ]
+  },
+  "include": [
+    "*.ts",
+    "tests/support/*.ts",
+    "tests/lua/*.ts",
+    "benchmarks/logger-benchmarks.ts",
+    "benchmarks/lua-benchmark.ts"
+  ],
+  "exclude": ["logger.ts", "warcraft-logger.ts", "batch-file.ts"]
+}

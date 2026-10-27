@@ -144,7 +144,7 @@ function runLoggerBenchmarks({ readSeconds, report }: RunLoggerBenchmarksArgs) {
 
   const transport = createPreloadTransport({ natives: NoopPreloadNatives })({
     session: 'benchmark',
-    directory: 'WarlordLogs',
+    directory: 'logs',
   });
   report({
     result: {

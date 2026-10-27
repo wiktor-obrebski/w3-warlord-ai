@@ -4,14 +4,14 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { after, before, describe, it } from 'node:test';
-import { createLogCollector } from '../collector/log-collector';
+import { parseBatchFile, parseBatchFileName } from '../batch-file';
 import { createLogger } from '../create-logger';
 import { createLogRecordBuffer } from '../record-buffer';
 import { runLoggingScenario, SCENARIO_TIME } from './support/logging-scenario';
 
 // Compiles the logger with TSTL and runs it in standalone Lua (`$LUA`, or
-// `lua`), comparing its records with Node's and collecting the batch files
-// it writes. Warcraft runs Lua 5.3; the installed `lua` may differ.
+// `lua`), comparing its records with Node's and reading back the batch
+// files it writes. Warcraft runs Lua 5.3; the installed `lua` may differ.
 const LuaCommand = process.env.LUA ?? 'lua';
 const IsLuaAvailable =
   spawnSync(LuaCommand, ['-v'], { stdio: 'ignore' }).status === 0;
@@ -34,15 +34,15 @@ describe(
         [
           'tstl',
           '-p',
-          'tsconfig.lua-harness.json',
+          'tsconfig.lua.json',
           '--outDir',
           workDirectory,
           '--luaBundle',
           'driver.lua',
           '--luaBundleEntry',
-          'lib/logger/tests/lua/lua-compat-driver.ts',
+          'tests/lua/lua-compat-driver.ts',
         ],
-        { cwd: RepositoryRoot, stdio: 'pipe' }
+        { cwd: LibraryRoot, stdio: 'pipe' }
       );
 
       const output = execFileSync(LuaCommand, ['driver.lua', batchDirectory], {
@@ -63,37 +63,30 @@ describe(
       );
     });
 
-    it('writes batch files the collector reassembles exactly', async () => {
-      const written: string[] = [];
-      const reports: string[] = [];
-      const collector = createLogCollector({
-        directory: batchDirectory,
-        writeRecords: (text) => {
-          written.push(text);
-          return Promise.resolve();
-        },
-        report: (message) => reports.push(message),
-        now: () => Date.now(),
-        deleteCollected: true,
-        gapTimeoutMs: 0,
-        incompleteTimeoutMs: 0,
-      });
+    it('writes batch files parseBatchFile reassembles exactly', async () => {
+      const fileNames = (await fs.readdir(batchDirectory)).sort();
+      const lines: string[] = [];
 
-      await collector.poll();
+      for (const [batch, fileName] of fileNames.entries()) {
+        const parsed = parseBatchFile({
+          content: await fs.readFile(path.join(batchDirectory, fileName)),
+        });
 
-      assert.deepEqual(reports, []);
-      assert.deepEqual(
-        written
-          .join('')
-          .split('\n')
-          .filter((line) => line !== ''),
-        luaLines.map((line) => `{"session":"lua-session",${line.slice(1)}`)
-      );
+        assert.deepEqual(parseBatchFileName({ fileName }), {
+          session: 'lua-session',
+          batch,
+        });
+        assert.ok(parsed.status === 'complete', JSON.stringify(parsed));
+        assert.deepEqual(parsed.invalidLines, []);
+        lines.push(...parsed.lines);
+      }
+
+      assert.deepEqual(lines, luaLines);
     });
   }
 );
 
-const RepositoryRoot = path.resolve(__dirname, '../../..');
+const LibraryRoot = path.resolve(__dirname, '..');
 
 function runScenarioInNode(): string[] {
   const buffer = createLogRecordBuffer({ capacity: 1000 });

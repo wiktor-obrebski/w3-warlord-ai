@@ -1,12 +1,10 @@
 import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
 import {
-  createLogger,
-  createLogRecordBuffer,
+  createWarcraftLogger,
   type Logger,
   type LogLevelName,
 } from '@lib/logger';
-import { startWarcraftLogExport } from '@lib/logger/warcraft';
 import { readGameClock, startGameClock } from './beliefs/game-clock';
 import { debug } from './debug';
 
@@ -21,8 +19,8 @@ const FlushIntervalSeconds = 0.5;
 const LogDirectory = 'WarlordLogs';
 
 /**
- * Creates the bot's root logger and starts exporting its records to
- * `CustomMapData/WarlordLogs`, where `npm run collect-logs` picks them up.
+ * Creates the bot's root logger, exporting its records to
+ * `CustomMapData/WarlordLogs`, where `bin/collect-logs` picks them up.
  * Every record carries `gameTime`, in game seconds.
  *
  * The session, named after the start time and the bot's player, keeps the
@@ -31,33 +29,26 @@ const LogDirectory = 'WarlordLogs';
  */
 function startLogging({ bot }: { bot: W3PlayerApi.player }): Logger {
   if (!LoggingEnabled) {
-    return createLogger({ enabled: false });
+    return createWarcraftLogger({ enabled: false });
   }
 
   const startedAt = WarlordApi.readWallClockMillisecondsText();
 
   if (startedAt === undefined) {
     debug({ message: 'Logging is off: Lua offers no wall clock.' });
-    return createLogger({ enabled: false });
+    return createWarcraftLogger({ enabled: false });
   }
 
-  const buffer = createLogRecordBuffer({ capacity: BufferCapacity });
   const clock = startGameClock();
-  const logger = createLogger({
+
+  return createWarcraftLogger({
     level: LogLevel,
-    buffer,
     readTime: () => WarlordApi.readWallClockMillisecondsText(),
     mixin: () => ({ gameTime: readGameClock({ clock }) }),
-  });
-
-  startWarcraftLogExport({
-    buffer,
-    logger,
     session: `${startedAt}-p${W3PlayerApi.GetPlayerId(bot)}`,
     directory: LogDirectory,
-    flushIntervalSeconds: FlushIntervalSeconds,
+    bufferCapacity: BufferCapacity,
     batchSize: BatchSize,
+    flushIntervalSeconds: FlushIntervalSeconds,
   });
-
-  return logger;
 }

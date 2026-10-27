@@ -1228,7 +1228,7 @@ Diagnostics are most useful if they are cheap when disabled and simple enough th
 
 Testing should influence the architecture from the beginning rather than being added later.
 
-The project should support several complementary levels of testing. These are architectural targets; so far only `@lib/logger` has automated tests.
+The project should support several complementary levels of testing. These are architectural targets; so far only `@lib/logger` and `bin/collect-logs` have automated tests.
 
 The same core reasoning implementation used by the real bot should also be executable against controlled inputs outside Warcraft. Tests should not depend on maintaining a simplified parallel version of the AI.
 

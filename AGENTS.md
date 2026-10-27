@@ -120,7 +120,7 @@ When uncertainty materially affects the implementation, state it rather than gue
 
 ### Validation
 
-Automated tests cover only `@lib/logger` so far (`npm test`, built-in `node:test`).
+Automated tests cover only `@lib/logger` and `bin/collect-logs` so far (`npm test`, built-in `node:test`).
 
 For now:
 

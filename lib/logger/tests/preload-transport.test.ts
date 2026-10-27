@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { parseBatchFile } from '../collector/batch-file';
+import { parseBatchFile, parseBatchFileName } from '../batch-file';
 import { createLogger } from '../create-logger';
 import {
   createPreloadTransport,
@@ -21,13 +21,17 @@ describe('preload transport', () => {
     assert.deepEqual(
       [...files.keys()],
       [
-        'WarlordLogs/1793039520000-p1-00000000.txt',
-        'WarlordLogs/1793039520000-p1-00000001.txt',
+        'logs/1793039520000-p1-00000000.txt',
+        'logs/1793039520000-p1-00000001.txt',
       ]
+    );
+    assert.deepEqual(
+      parseBatchFileName({ fileName: '1793039520000-p1-00000001.txt' }),
+      { session: '1793039520000-p1', batch: 1 }
     );
   });
 
-  it('writes a header and the records, readable by the collector', () => {
+  it('writes a header and the records, readable by parseBatchFile', () => {
     const { logger, exportBatch, files } = setUp();
 
     logger.info({ path: 'C:\\Maps', quote: '"q" )' }, 'Escapes');
@@ -95,7 +99,7 @@ function setUp() {
   });
   const transport = createPreloadTransport({ natives: engine.natives })({
     session: '1793039520000-p1',
-    directory: 'WarlordLogs',
+    directory: 'logs',
   });
   const buffer = createLogRecordBuffer({ capacity: 1000 });
   const logger = createLogger({ buffer });

@@ -1,46 +1,38 @@
 # `@lib/logger`
 
-Structured logging for the Warlord bot: a [Pino](https://github.com/pinojs/pino)-like API inside Warcraft III, Pino-compatible JSON lines outside it.
+Structured logging for Warcraft III Lua maps: a [Pino](https://github.com/pinojs/pino)-like API inside the game, Pino-compatible JSON lines outside it.
 
-Warcraft's Lua has no file or network I/O, so the library is split into three parts:
+Warcraft's Lua has no file or network I/O, so logging is split between the game and the host:
 
 ```text
-game thread                                         host
-logger calls → record buffer → transport → batch files → collector → stdout (JSONL)
-   (cheap, no I/O)   (bounded)   (periodic, synchronous)      (Node.js)
+game thread                                                    host
+logger calls → record buffer → preload transport → batch files → parseBatchFile
+ (cheap, no I/O)   (bounded)   (periodic, synchronous)              (Node.js)
 ```
 
-| Part              | Module                                   | Runs in       |
-| ----------------- | ---------------------------------------- | ------------- |
-| Runtime logger    | `@lib/logger` (`createLogger`)           | Lua and Node  |
-| Record buffer     | `@lib/logger` (`createLogRecordBuffer`)  | Lua and Node  |
-| Preload transport | `@lib/logger` (`createPreloadTransport`) | Lua and Node  |
-| Warcraft export   | `@lib/logger/warcraft`                   | Warcraft only |
-| Collector         | `collector/collect-logs.ts`              | Node only     |
+The library has two entry points:
 
-Everything but `@lib/logger/warcraft` is free of Warcraft natives, so it is unit tested in Node and, compiled by TSTL, checked in standalone Lua.
+| Entry point              | Exports                                             | Runs in         |
+| ------------------------ | --------------------------------------------------- | --------------- |
+| `@lib/logger`            | `createWarcraftLogger`, `Logger`, `LogLevelName`    | Warcraft (TSTL) |
+| `@lib/logger/batch-file` | `parseBatchFile`, `parseBatchFileName`, their types | Node.js         |
 
-## Usage
+Watching a folder, ordering batches and printing records is left to the program reading the files.
+
+## Logging in the game
 
 ```ts
-import { createLogger, createLogRecordBuffer } from '@lib/logger';
-import { startWarcraftLogExport } from '@lib/logger/warcraft';
+import { createWarcraftLogger } from '@lib/logger';
 
-const buffer = createLogRecordBuffer({ capacity: 4096 });
-const logger = createLogger({
+const logger = createWarcraftLogger({
   level: 'debug',
-  buffer,
-  readTime: () => WarlordApi.readWallClockMillisecondsText(),
-  mixin: () => ({ gameTime: readGameClock({ clock }) }),
-});
-
-startWarcraftLogExport({
-  buffer,
-  logger,
+  readTime,
+  mixin: () => ({ gameTime: readGameTime() }),
   session,
-  directory: 'WarlordLogs',
-  flushIntervalSeconds: 0.5,
+  directory: 'MyMapLogs',
+  bufferCapacity: 4096,
   batchSize: 256,
+  flushIntervalSeconds: 0.5,
 });
 
 logger.info('Simple message');
@@ -52,16 +44,26 @@ const log = logger.child({ component: 'WorkerSafety' });
 log.info({ actorId }, 'Worker escaping');
 ```
 
-The bot's configuration (level, capacity, batch size, flush interval, folder, on/off) is in `src/logging.ts`.
+`createWarcraftLogger({ enabled: false })` returns a logger whose calls do nothing.
 
-### API
+The export runs on a Warcraft timer and uses two globals of the Warlord runtime wrapper, declared in `@lib/warcraft3-api/warlord`: `guard`, to report errors raised in the timer callback, and `readClockSeconds`, to measure each export.
+
+### Options
+
+- `level`: lowest level recorded; `info` by default, `silent` records nothing.
+- `readTime`: real-world time for `time`, as the decimal digits of Unix epoch milliseconds, written as they are; see [32-bit numbers](#32-bit-numbers). Without it, or while it returns `undefined`, records have no `time`.
+- `mixin`: like Pino's, fields evaluated on every call and added to every record.
+- `session`: identifies the log stream in batch file names and headers. It must be unique per game and per logger, such as a start time and player number, or batches of different games collide.
+- `directory`: folder for the batch files, relative to Warcraft's `CustomMapData`.
+- `bufferCapacity`, `batchSize`, `flushIntervalSeconds`: see [buffer](#buffer-and-drop-policy) and [export cost](#cost-on-the-game-thread).
+
+The library knows nothing about game time, ticks, or components: the caller adds them, with `mixin` for per-record values and `child` for context.
+
+### Logger
 
 - `trace` / `debug` / `info` / `warn` / `error` / `fatal`: `(message)` or `(fields, message?)`. Pino's levels: 10 to 60.
 - `child(bindings)`: a logger adding `bindings` to every record after its parent's. Bindings are captured when the child is created.
 - `isLevelEnabled(level)`, `level`.
-- Options: `level` (default `info`; `silent` records nothing), `enabled: false` (every call is a no-op and no buffer is needed), `readTime` (real-world time for `time`, as the decimal digits of Unix epoch milliseconds, written as they are; see [32-bit numbers](#32-bit-numbers)), and `mixin` (like Pino's: fields evaluated on every call, such as `gameTime`).
-
-The library knows nothing about game time, ticks, or components: the consumer adds them, with `mixin` for per-record values and `child` for context.
 
 A call below the level returns at once, but the caller has already built its arguments. In frequently run code, guard calls whose arguments allocate, such as object literals:
 
@@ -89,9 +91,9 @@ One Pino JSON object per line:
 
 Members are written in Pino's order: `level`, `time`, then `seq`, then child bindings, mixin fields, the call's fields, and `msg`. As in Pino, a key repeated by a child and a call appears twice; JSON readers keep the last.
 
-- `time` is real-world time; it is missing while `readTime` returns `undefined`. In the bot, `gameTime` is simulation time, which runs faster than real time at higher game speeds.
-- `seq` numbers every record of a buffer that passed its logger's level, starting at 1. It orders records and exposes gaps from dropped records.
-- `session`, the game and bot the record came from, is added by the collector.
+- `time` is real-world time. Game time, which runs faster than real time at higher game speeds, is for the caller to add, e.g. with `mixin`.
+- `seq` numbers every record of a logger tree that passed its logger's level, starting at 1. It orders records and exposes gaps from dropped records.
+- Records do not repeat the session; it is in the name and header of their batch file.
 
 ### Values
 
@@ -104,23 +106,21 @@ Lua differs from Node in ways the library cannot hide:
 - `null` is `nil`: `null` fields disappear, and an empty table is written as `[]`.
 - Numbers are formatted by Lua's `tostring`, and whole floats keep `.0`, such as `40.0`.
 - Object members come out in arbitrary order.
-- Warcraft errors have no stack traces, since the runtime wrapper provides no real `debug` library; `stack` is then omitted.
+- Errors raised in Warcraft have no stack trace when the runtime provides no real `debug` library; `stack` is then omitted.
 
 ### 32-bit numbers
 
-Warcraft runs Lua 5.3 built with 32-bit numbers, as an in-game probe showed: `math.maxinteger` is 2147483647, `2147483647 + 1` wraps to -2147483648, and floats are single precision, so `0.1` is `0.10000000149011612`. The first in-game logs had `os.time() * 1000` wrap around to `2047466568` instead of `1793048829000`.
+Warcraft runs Lua 5.3 built with 32-bit numbers, as an in-game probe showed: `math.maxinteger` is 2147483647, `2147483647 + 1` wraps to -2147483648, and floats are single precision, so `0.1` is `0.10000000149011612`. An early version computed `os.time() * 1000`, which wrapped around to `2047466568` instead of `1793048829000`.
 
 For logs this means:
 
 - `time` is passed as text by `readTime` and written as it is, since epoch milliseconds fit neither an integer nor a float.
-- Floats are written with 7 significant digits, such as `0.3333333` or `1.677722e+07`. A `gameTime` keeps millisecond precision for the first 10,000 seconds of a game.
+- Floats are written with 7 significant digits, such as `0.3333333` or `1.677722e+07`; a time in seconds keeps millisecond precision only below 10,000.
 - Integers such as `seq` and batch numbers stay far below 2^31.
-
-The Lua compatibility test runs the system `lua`, which normally uses 64-bit numbers, so it catches none of this unless `$LUA` is a Lua built with `LUA_32BITS`.
 
 ## Buffer and drop policy
 
-The buffer is a ring with a fixed `capacity` (at least 2). Logging calls only store records; they never do I/O. When the buffer is full, **new records are dropped** and counted, keeping the older records in order. Once two slots are free again, a `warn` record is stored before the next one:
+Records are kept in a ring of `bufferCapacity` records (at least 2). Logging calls only store records; they never do I/O. When the buffer is full, **new records are dropped** and counted, keeping the older records in order. Once two slots are free again, a `warn` record is stored before the next one:
 
 ```json
 {
@@ -133,7 +133,7 @@ The buffer is a ring with a fixed `capacity` (at least 2). Logging calls only st
 }
 ```
 
-Memory stays bounded whatever happens to the transport or collector. The buffer formats records into JSON only when they are drained. Short strings and member keys, which repeat in most records, are escaped once and cached, with each cache limited to 1024 entries.
+Memory stays bounded whatever happens to the export or to whoever reads the files. Records are formatted into JSON only when they are exported. Short strings and member keys, which repeat in most records, are escaped once and cached, with each cache limited to 1024 entries.
 
 ## Preload transport
 
@@ -145,17 +145,17 @@ Every batch is a new file, `CustomMapData/<directory>/<session>-<batch>.txt`, wh
 {"format":"warlord-log-batch","version":1,"session":"1793039520000-p1","batch":7,"records":120,"bytes":18233}
 ```
 
-`bytes` is the length of the records text in Lua, which counts UTF-8 bytes. Together with `records` and the trailer `PreloadGenEnd` writes, it lets the collector tell a complete batch from a truncated one.
+`bytes` is the length of the records text in Lua, which counts UTF-8 bytes. Together with `records` and the trailer `PreloadGenEnd` writes, it tells a complete batch from a truncated one.
 
 What the format relies on, from [Jassdoc](https://github.com/lep/jassdoc) and community FileIO code:
 
-- A `Preload` argument may be up to 259 characters, so arguments are cut at 255 bytes, possibly inside a UTF-8 character; the collector joins them byte-exactly. A NUL ends an argument; JSON escapes every control character, so records contain none.
+- A `Preload` argument may be up to 259 characters, so arguments are cut at 255 bytes, possibly inside a UTF-8 character; `parseBatchFile` joins them byte-exactly. A NUL ends an argument; JSON escapes every control character, so records contain none.
 - `Preload` writes `\` as `\\` and everything else as is, including `"` and line feeds. Records never contain a raw tab or carriage return, and a line feed in them always follows `}`, so the line structure of the file cannot be forged by record content.
 - `PreloadGenEnd` does not clear its buffer, so every batch starts with `PreloadGenClear`.
 - Files are confined to `CustomMapData`: `%USERPROFILE%\Documents\Warcraft III\CustomMapData\` on Windows, and `~/Library/Application Support/Blizzard/Warcraft III/CustomMapData/` on macOS. Under Proton or Wine it is the Windows path inside the prefix: `<prefix>/drive_c/users/<user>/Documents/Warcraft III/CustomMapData/`, where `<user>` is `steamuser` under Proton. Only `.txt` and `.pld` files can be written.
 - `Preload` also asks the game to cache a file named by its argument. Jassdoc says the game reads in a separate thread, but every argument is a lookup the game did not need, which is one more reason to send few, full arguments.
 
-Not yet verified in-game, to be checked with the first real run: that `PreloadGenEnd` creates the `WarlordLogs` folder, that the 259-character limit applies before backslashes are doubled (otherwise the collector rejects the batch for its byte count), and the exact whitespace and line endings of the file. The collector accepts tabs or spaces and LF or CRLF.
+Not yet verified in-game: that `PreloadGenEnd` creates a missing folder, and that the 259-character limit applies before backslashes are doubled; otherwise `parseBatchFile` reports such batches as malformed for their byte count.
 
 ### Cost on the game thread
 
@@ -168,7 +168,6 @@ Each export measures itself and logs a `debug` record, unless the batch held not
   "level": 20,
   "time": 1793039580000,
   "seq": 4100,
-  "gameTime": 60.5,
   "records": 256,
   "bytes": 31544,
   "formatMs": 1,
@@ -177,37 +176,32 @@ Each export measures itself and logs a `debug` record, unless the batch held not
 }
 ```
 
-`formatMs` and `writeMs` are differences of Lua's `os.clock`, provided by the runtime wrapper: elapsed time on Windows, CPU time elsewhere. They are omitted when `os.clock` is missing.
+`formatMs` and `writeMs` are differences of Lua's `os.clock`, which follows real time in-game. They are omitted when `os.clock` is missing.
 
-## Collector
+## Reading batch files
 
-```sh
-npm run collect-logs -- --dir "<CustomMapData>/WarlordLogs" | npx pino-pretty
-npm run collect-logs -- --dir "<CustomMapData>/WarlordLogs" > game.jsonl
-```
+`@lib/logger/batch-file` reads the files in Node.js:
 
-The collector polls the folder (every 250 ms by default) and writes every record to stdout as one JSON line with `session` added, in batch order per session. Diagnostics go to stderr. It writes a batch only after stdout has taken the previous one, so a slow consumer slows collection instead of growing memory. Unwritten batches wait on disk. The folder must exist: the collector exits with an error when it does not, or stops being one, rather than waiting for a mistyped path. The game creates it with its first export.
+- `parseBatchFileName({ fileName })` returns the `session` and `batch` number of a batch file's name, and `undefined` for any other file.
+- `parseBatchFile({ content })` takes the file's bytes and returns one of:
+  - `complete`, with the header's `session` and `batch`, the records as JSON `lines`, and `invalidLines`, the lines that are not JSON objects;
+  - `incomplete`, when the trailer `PreloadGenEnd` writes last is missing, e.g. while the game is still writing the file;
+  - `malformed`, when the file is finished but its header is invalid or does not match its content.
 
-- **Ordering**: a session starts at its lowest batch present. A missing batch is waited for (`--gap-timeout-ms`, default 10 s), then reported and skipped.
-- **Completeness**: a file without the trailer is still being written. If it stays like that for `--incomplete-timeout-ms` (default 10 s), it is rejected. A file whose header does not match its content is rejected at once. Rejected files are renamed to `*.rejected` and kept. Record lines that are not JSON objects are reported and skipped.
-- **Duplicates and restarts**: after writing a batch, the collector saves the session's next batch number to `.warlord-collector-state.json` in the folder, then deletes the file (`--keep` leaves it). A batch numbered below that is never written again.
+Files appear in batch order per session, one per export, but a reader may see them late or partially written. Ordering, waiting, and deciding when a file is gone for good are up to the reader.
 
-Reliability limits:
+## Development
 
-- Delivery is at least once: a crash after writing a batch but before saving its progress writes that batch again on restart.
-- Handing records to stdout is not durable storage. Records already written to a pipe whose consumer then fails are lost, since the source file is already deleted. Use `--keep`, or write to a file first (`> game.jsonl`, `tee`), when the logs matter.
-- The state file keeps one entry per session ever collected from that folder.
-- Records the game dropped, or never wrote because it crashed or quit before the next export, are not recoverable. `seq` gaps and drop records show where they were.
-
-## Tests and benchmarks
+The package's scripts:
 
 ```sh
 npm test            # node:test unit tests, plus the Lua compatibility test
+npm run typecheck   # Node type check, and TSTL type check of the Lua code
 npm run bench:node  # the logger in Node.js
 npm run bench:lua   # the same benchmarks compiled by TSTL, in standalone Lua
 ```
 
-`tests/lua-compat.test.ts` compiles a driver with TSTL (`tsconfig.lua-harness.json`), runs it in `lua` (or `$LUA`), and checks that its records match Node's and that the collector reassembles the batch files it writes. It is skipped when no `lua` is installed. Warcraft runs Lua 5.3; the installed `lua` may be a later version.
+Everything except `warcraft-logger.ts` and `batch-file.ts` is free of Warcraft natives and of Node, so it is unit tested in Node and, compiled by TSTL with `tsconfig.lua.json`, checked in standalone Lua. `tests/lua-compat.test.ts` runs a driver in `lua` (or `$LUA`) and checks that its records match Node's and that `parseBatchFile` reads back the batch files it writes. It is skipped when no `lua` is installed. The installed `lua` normally uses 64-bit numbers, so it catches no [32-bit](#32-bit-numbers) overflow or precision loss unless `$LUA` is a Lua built with `LUA_32BITS`.
 
 The three kinds of measurement are not interchangeable:
 
@@ -219,14 +213,14 @@ Standalone Lua 5.4.8 on the development machine (µs per operation):
 
 | Operation                                         | µs   |
 | ------------------------------------------------- | ---- |
-| disabled level, message only                      | 0.09 |
-| disabled level, fields object built by the caller | 0.37 |
-| disabled level, guarded by `isLevelEnabled`       | 0.10 |
-| enabled, message only, no time or mixin           | 0.46 |
-| enabled, message only, with time and mixin        | 1.2  |
-| enabled, child, mixin and 3 primitive fields      | 2.8  |
-| enabled, nested object and array fields           | 12   |
-| drain and format, per record                      | 5.4  |
-| cutting a 95 KB batch into `Preload` arguments    | 120  |
+| disabled level, message only                      | 0.07 |
+| disabled level, fields object built by the caller | 0.23 |
+| disabled level, guarded by `isLevelEnabled`       | 0.08 |
+| enabled, message only, no time or mixin           | 0.38 |
+| enabled, message only, with time and mixin        | 1.0  |
+| enabled, child, mixin and 3 primitive fields      | 2.5  |
+| enabled, nested object and array fields           | 11   |
+| drain and format, per record                      | 4.4  |
+| cutting a 95 KB batch into `Preload` arguments    | 98   |
 
-A 256-record export spends about 1.4 ms formatting in standalone Lua, plus whatever `PreloadGenEnd` takes to write the file in the game.
+A 256-record export spends about 1.1 ms formatting in standalone Lua, plus whatever `PreloadGenEnd` takes to write the file in the game.

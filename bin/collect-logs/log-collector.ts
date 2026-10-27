@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { parseBatchFile, parseBatchFileName } from './batch-file';
+import { parseBatchFile, parseBatchFileName } from '@lib/logger/batch-file';
 
 export { createLogCollector, COLLECTOR_STATE_FILE_NAME, type LogCollector };
 
