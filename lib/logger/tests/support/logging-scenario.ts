@@ -1,15 +1,45 @@
-import type { Logger } from '../../create-logger';
+import { createLogger, type Logger } from '../../create-logger';
+import type { LogTransport } from '../../log-transport';
 
-export { runLoggingScenario, SCENARIO_TIME };
-
-/** The `time` every scenario record carries. */
-const SCENARIO_TIME = '1793039520000';
+export { logScenario };
 
 /**
- * Log calls exercising every kind of value, run in both Node and Lua so
- * their records can be compared. Avoids what the two runtimes write
- * differently by design: `null`, empty objects, stack traces, and numbers
- * needing more than 14 significant digits.
+ * Logs the scenario at `debug` level into `transport`, in batches of 10,
+ * flushing until nothing is left, including the flush reports. Portable,
+ * so Node and Lua write records that can be compared.
+ */
+function logScenario({ transport }: { transport: LogTransport }) {
+  let batchesWritten = 0;
+  let gameTime = 0;
+  const logger = createLogger({
+    level: 'debug',
+    transport: {
+      write({ batch }) {
+        batchesWritten += 1;
+        transport.write({ batch });
+      },
+    },
+    bufferCapacity: 1000,
+    batchSize: 10,
+    readTime: () => '1793039520000',
+    mixin: () => {
+      gameTime += 0.25;
+      return { gameTime };
+    },
+  });
+
+  runLoggingScenario({ logger });
+
+  for (let before = -1; before !== batchesWritten;) {
+    before = batchesWritten;
+    logger.flush();
+  }
+}
+
+/**
+ * Log calls exercising every kind of value. Avoids what the two runtimes
+ * write differently by design: `null`, empty objects, stack traces, and
+ * numbers needing more than 14 significant digits.
  */
 function runLoggingScenario({ logger }: { logger: Logger }) {
   const workerSafety = logger.child({ component: 'WorkerSafety', bot: 1 });

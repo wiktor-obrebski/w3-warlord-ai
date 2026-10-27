@@ -6,15 +6,17 @@ import {
 import { isErrorLike } from './err-serializer';
 import { createJsonTextCache } from './json-text-cache';
 import { LOG_LEVELS, type LogLevelName } from './levels';
-import type { LogRecordBuffer } from './record-buffer';
+import type { LogTransport } from './log-transport';
+import { createLogRecordBuffer, type LogRecordBuffer } from './record-buffer';
 
 export { createLogger, type LogBindings, type Logger, type LoggerOptions };
 
 type LogBindings = Readonly<Record<string, unknown>>;
 
 /**
- * A Pino-like logger writing records into a `LogRecordBuffer`. Calls do no
- * I/O: they snapshot their fields and store the record.
+ * A Pino-like logger. Calls do no I/O: they snapshot their fields and store
+ * the record in a bounded buffer, shared by a root logger and its
+ * children, which `flush` writes to the transport.
  *
  * A call below the logger's level returns at once, but its arguments,
  * such as an object literal, are still built by the caller: guard
@@ -40,15 +42,29 @@ interface Logger {
   child(bindings: LogBindings): Logger;
 
   isLevelEnabled(level: LogLevelName): boolean;
+
+  /**
+   * Writes up to `batchSize` of the oldest buffered records to the
+   * transport as one batch, or nothing when none are buffered. Synchronous;
+   * call it periodically, e.g. from a timer. Each flush that writes reports
+   * its duration in a `debug` record.
+   */
+  flush(): void;
 }
 
+/** With `enabled: false`, every call does nothing. */
 type LoggerOptions = EnabledLoggerOptions | { enabled: false };
 
 interface EnabledLoggerOptions {
   enabled?: true;
   /** Lowest level recorded; `info` by default. */
   level?: LogLevelName;
-  buffer: LogRecordBuffer;
+  /** Where `flush` writes batches of records. */
+  transport: LogTransport;
+  /** Most records held before new ones are dropped; at least 2. */
+  bufferCapacity: number;
+  /** Most records written by one `flush`. */
+  batchSize: number;
   /**
    * Real-world time for `time`, as the decimal digits of milliseconds since
    * the Unix epoch, written as they are. Text, because Warcraft's Lua
@@ -61,6 +77,11 @@ interface EnabledLoggerOptions {
    * own, such as the current game time.
    */
   mixin?: () => LogBindings;
+  /**
+   * A clock in seconds, such as Lua's `os.clock`, to measure each flush.
+   * Without it, flush reports carry no durations.
+   */
+  readClockSeconds?: () => number | undefined;
 }
 
 /**
@@ -73,15 +94,20 @@ function createLogger(options: LoggerOptions): Logger {
   }
 
   const level = options.level ?? 'info';
+  const buffer = createLogRecordBuffer({ capacity: options.bufferCapacity });
   const core: LoggerCore = {
     level,
     threshold: LOG_LEVELS[level],
-    buffer: options.buffer,
+    buffer,
     readTime: options.readTime,
     mixin: options.mixin,
+    flush() {
+      flushBatch({ options, buffer, logger });
+    },
   };
+  const logger = new BufferedLogger({ core, bindings: '' });
 
-  return new BufferedLogger({ core, bindings: '' });
+  return logger;
 }
 
 interface LoggerCore {
@@ -90,6 +116,7 @@ interface LoggerCore {
   buffer: LogRecordBuffer | undefined;
   readTime: (() => string | undefined) | undefined;
   mixin: (() => LogBindings) | undefined;
+  flush(): void;
 }
 
 const DisabledCore: LoggerCore = {
@@ -98,6 +125,7 @@ const DisabledCore: LoggerCore = {
   buffer: undefined,
   readTime: undefined,
   mixin: undefined,
+  flush() {},
 };
 
 interface BufferedLoggerConstructorArgs {
@@ -173,6 +201,10 @@ class BufferedLogger implements Logger {
     return level !== 'silent' && this.threshold <= LOG_LEVELS[level];
   }
 
+  flush() {
+    this.core.flush();
+  }
+
   // Positional parameters: an argument object would allocate a Lua table on
   // every log call.
   private write(level: number, first: object | string, message?: string) {
@@ -216,6 +248,55 @@ class BufferedLogger implements Logger {
       message
     );
   }
+}
+
+interface FlushBatchArgs {
+  options: EnabledLoggerOptions;
+  buffer: LogRecordBuffer;
+  logger: Logger;
+}
+
+function flushBatch({ options, buffer, logger }: FlushBatchArgs) {
+  const readClockSeconds = () => options.readClockSeconds?.();
+  const startedAt = readClockSeconds();
+  const batch = buffer.drain({ maxRecords: options.batchSize });
+
+  if (batch.recordCount === 0) {
+    return;
+  }
+
+  const formattedAt = readClockSeconds();
+  options.transport.write({ batch });
+  const writtenAt = readClockSeconds();
+
+  // A batch holding nothing but the previous batch's report would keep an
+  // idle game writing a file every flush.
+  if (batch.recordCount > 1 && logger.isLevelEnabled('debug')) {
+    logger.debug(
+      {
+        records: batch.recordCount,
+        bytes: batch.jsonl.length,
+        formatMs: elapsedMilliseconds({ from: startedAt, to: formattedAt }),
+        writeMs: elapsedMilliseconds({ from: formattedAt, to: writtenAt }),
+      },
+      'Log batch exported'
+    );
+  }
+}
+
+interface ElapsedMillisecondsArgs {
+  from: number | undefined;
+  to: number | undefined;
+}
+
+// Between two clock readings in seconds, rounded to 0.01 ms.
+function elapsedMilliseconds({
+  from,
+  to,
+}: ElapsedMillisecondsArgs): number | undefined {
+  return from === undefined || to === undefined
+    ? undefined
+    : Math.round((to - from) * 100_000) / 100;
 }
 
 function formatBindings({ captured }: { captured: CapturedFields }): string {

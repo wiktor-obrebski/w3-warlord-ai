@@ -3,8 +3,8 @@ import * as W3PreloadApi from '@lib/warcraft3-api/preload';
 import * as W3TimerApi from '@lib/warcraft3-api/timer';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
 import {
-  createDisabledLogger,
-  createPreloadLogger,
+  createLogger,
+  createPreloadTransport,
   type Logger,
   type LogLevelName,
   type PreloadNatives,
@@ -18,12 +18,12 @@ const LoggingEnabled = true;
 const LogLevel: LogLevelName = 'debug';
 const BufferCapacity = 4096;
 const BatchSize = 256;
-const ExportIntervalSeconds = 0.5;
+const FlushIntervalSeconds = 0.5;
 // Relative to Warcraft's CustomMapData folder.
 const LogDirectory = 'WarlordLogs';
 
 /**
- * Creates the bot's root logger and exports its records every half game
+ * Creates the bot's root logger and flushes its records every half game
  * second to `CustomMapData/WarlordLogs`, where `bin/collect-logs` picks them
  * up. Every record carries `gameTime`, in game seconds.
  *
@@ -33,37 +33,38 @@ const LogDirectory = 'WarlordLogs';
  */
 function startLogging({ bot }: { bot: W3PlayerApi.player }): Logger {
   if (!LoggingEnabled) {
-    return createDisabledLogger();
+    return createLogger({ enabled: false });
   }
 
   const startedAt = WarlordApi.readWallClockMillisecondsText();
 
   if (startedAt === undefined) {
     debug({ message: 'Logging is off: Lua offers no wall clock.' });
-    return createDisabledLogger();
+    return createLogger({ enabled: false });
   }
 
   const clock = startGameClock();
-  const preloadLogger = createPreloadLogger({
-    natives: WarcraftPreloadNatives,
+  const logger = createLogger({
     level: LogLevel,
+    transport: createPreloadTransport({ natives: WarcraftPreloadNatives })({
+      session: `${startedAt}-p${W3PlayerApi.GetPlayerId(bot)}`,
+      directory: LogDirectory,
+    }),
+    bufferCapacity: BufferCapacity,
+    batchSize: BatchSize,
     readTime: () => WarlordApi.readWallClockMillisecondsText(),
     mixin: () => ({ gameTime: readGameClock({ clock }) }),
     readClockSeconds: () => WarlordApi.readClockSeconds(),
-    session: `${startedAt}-p${W3PlayerApi.GetPlayerId(bot)}`,
-    directory: LogDirectory,
-    bufferCapacity: BufferCapacity,
-    batchSize: BatchSize,
   });
 
   W3TimerApi.TimerStart(
     W3TimerApi.CreateTimer(),
-    ExportIntervalSeconds,
+    FlushIntervalSeconds,
     true,
-    WarlordApi.guard(() => preloadLogger.exportBatch())
+    WarlordApi.guard(() => logger.flush())
   );
 
-  return preloadLogger.logger;
+  return logger;
 }
 
 const WarcraftPreloadNatives: PreloadNatives = {

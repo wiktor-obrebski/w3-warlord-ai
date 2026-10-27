@@ -6,17 +6,16 @@ import {
   createPreloadTransport,
   PRELOAD_CHUNK_LENGTH,
 } from '../preload-transport';
-import { createLogRecordBuffer } from '../record-buffer';
 import { createFakePreloadEngine } from './support/fake-preload-engine';
 
 describe('preload transport', () => {
   it('writes each batch to a new, numbered file', () => {
-    const { logger, exportBatch, files } = setUp();
+    const { logger, files } = setUp();
 
     logger.info('first');
-    exportBatch();
+    logger.flush();
     logger.info('second');
-    exportBatch();
+    logger.flush();
 
     assert.deepEqual(
       [...files.keys()],
@@ -32,11 +31,11 @@ describe('preload transport', () => {
   });
 
   it('writes a header and the records, readable by parseBatchFile', () => {
-    const { logger, exportBatch, files } = setUp();
+    const { logger, files } = setUp();
 
     logger.info({ path: 'C:\\Maps', quote: '"q" )' }, 'Escapes');
     logger.warn('Second');
-    exportBatch();
+    logger.flush();
 
     const parsed = parseBatchFile({ content: files.values().next().value! });
 
@@ -60,12 +59,12 @@ describe('preload transport', () => {
   });
 
   it('splits content into Preload arguments the engine accepts', () => {
-    const { logger, exportBatch, engine } = setUp();
+    const { logger, engine } = setUp();
 
     for (let index = 0; index < 50; index++) {
       logger.info({ index, padding: 'x'.repeat(index * 7) }, 'Long record');
     }
-    exportBatch();
+    logger.flush();
 
     assert.ok(engine.preloadArguments.length > 1);
     for (const preloadArgument of engine.preloadArguments) {
@@ -96,12 +95,12 @@ describe('preload transport', () => {
   });
 
   it('starts every file from an empty preload buffer', () => {
-    const { logger, exportBatch, files } = setUp();
+    const { logger, files } = setUp();
 
     logger.info('first');
-    exportBatch();
+    logger.flush();
     logger.info('second');
-    exportBatch();
+    logger.flush();
 
     const second = [...files.values()][1]!;
     assert.equal(second.includes('first'), false);
@@ -120,11 +119,11 @@ function setUp() {
     session: '1793039520000-p1',
     directory: 'logs',
   });
-  const buffer = createLogRecordBuffer({ capacity: 1000 });
-  const logger = createLogger({ buffer });
+  const logger = createLogger({
+    transport,
+    bufferCapacity: 1000,
+    batchSize: 1000,
+  });
 
-  const exportBatch = () =>
-    transport.write({ batch: buffer.drain({ maxRecords: 1000 }) });
-
-  return { logger, exportBatch, files, engine, transport };
+  return { logger, files, engine, transport };
 }

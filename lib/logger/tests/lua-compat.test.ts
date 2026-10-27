@@ -5,9 +5,8 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { parseBatchFile, parseBatchFileName } from '../batch-file';
-import { createLogger } from '../create-logger';
-import { createLogRecordBuffer } from '../record-buffer';
-import { runLoggingScenario, SCENARIO_TIME } from './support/logging-scenario';
+import { logScenario } from './support/logging-scenario';
+import { createMemoryTransport } from './support/memory-transport';
 
 // Compiles the logger with TSTL and runs it in standalone Lua (`$LUA`, or
 // `lua`), comparing its records with Node's and reading back the batch
@@ -58,8 +57,8 @@ describe(
 
     it('writes the same records as Node', () => {
       assert.deepEqual(
-        luaLines.map((line) => withoutStacks(JSON.parse(line))),
-        runScenarioInNode().map((line) => withoutStacks(JSON.parse(line)))
+        luaLines.map((line) => comparable(JSON.parse(line))),
+        runScenarioInNode().map((line) => comparable(JSON.parse(line)))
       );
     });
 
@@ -92,39 +91,27 @@ describe(
 const LibraryRoot = path.resolve(__dirname, '..');
 
 function runScenarioInNode(): string[] {
-  const buffer = createLogRecordBuffer({ capacity: 1000 });
-  let gameTime = 0;
-  const logger = createLogger({
-    level: 'debug',
-    buffer,
-    readTime: () => SCENARIO_TIME,
-    mixin: () => {
-      gameTime += 0.25;
-      return { gameTime };
-    },
-  });
+  const transport = createMemoryTransport();
 
-  runLoggingScenario({ logger });
+  logScenario({ transport });
 
-  return buffer
-    .drain({ maxRecords: 1000 })
-    .jsonl.split('\n')
-    .filter((line) => line !== '');
+  return transport.readLines();
 }
 
-// Stack traces differ between the runtimes by nature.
-function withoutStacks(value: unknown): unknown {
+// Differ between the runtimes by nature: stack traces, and the length of a
+// batch, which Lua counts in bytes and JavaScript in UTF-16 code units.
+function comparable(value: unknown): unknown {
   if (typeof value !== 'object' || value === null) {
     return value;
   }
 
   if (Array.isArray(value)) {
-    return value.map(withoutStacks);
+    return value.map(comparable);
   }
 
   return Object.fromEntries(
     Object.entries(value)
-      .filter(([key]) => key !== 'stack')
-      .map(([key, entryValue]) => [key, withoutStacks(entryValue)])
+      .filter(([key]) => key !== 'stack' && key !== 'bytes')
+      .map(([key, entryValue]) => [key, comparable(entryValue)])
   );
 }

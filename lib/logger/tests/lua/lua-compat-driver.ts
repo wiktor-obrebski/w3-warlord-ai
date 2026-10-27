@@ -1,12 +1,10 @@
-import { createLogger } from '../../create-logger';
 import { createPreloadTransport } from '../../preload-transport';
-import { createLogRecordBuffer } from '../../record-buffer';
 import { createFakePreloadEngine } from '../support/fake-preload-engine';
-import { runLoggingScenario, SCENARIO_TIME } from '../support/logging-scenario';
+import { logScenario } from '../support/logging-scenario';
 
 // Compiled by TSTL and run by standalone Lua for `lua-compat.test.ts`:
-// runs the logging scenario, prints the drained JSON lines, and writes the
-// batch files to the folder given as the first argument.
+// logs the scenario, prints the flushed JSON lines, and writes the batch
+// files to the folder given as the first argument.
 
 declare const arg: string[];
 declare const io: {
@@ -19,8 +17,6 @@ interface LuaFile {
   close(): void;
 }
 
-const BatchSize = 10;
-
 const engine = createFakePreloadEngine({
   writeFile: ({ fileName, content }) => {
     const file = io.open(fileName, 'wb');
@@ -32,29 +28,16 @@ const engine = createFakePreloadEngine({
     file.close();
   },
 });
-const transport = createPreloadTransport({ natives: engine.natives })({
+const preloadTransport = createPreloadTransport({ natives: engine.natives })({
   session: 'lua-session',
   directory: arg[0]!,
 });
-const buffer = createLogRecordBuffer({ capacity: 1000 });
-let gameTime = 0;
-const logger = createLogger({
-  level: 'debug',
-  buffer,
-  readTime: () => SCENARIO_TIME,
-  mixin: () => {
-    gameTime += 0.25;
-    return { gameTime };
+
+logScenario({
+  transport: {
+    write({ batch }) {
+      io.write(batch.jsonl);
+      preloadTransport.write({ batch });
+    },
   },
 });
-
-runLoggingScenario({ logger });
-
-for (
-  let batch = buffer.drain({ maxRecords: BatchSize });
-  batch.recordCount > 0;
-  batch = buffer.drain({ maxRecords: BatchSize })
-) {
-  io.write(batch.jsonl);
-  transport.write({ batch });
-}

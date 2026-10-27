@@ -1,6 +1,5 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { createLogger } from '../create-logger';
 import { createLogRecordBuffer } from '../record-buffer';
 
 describe('log record buffer', () => {
@@ -35,8 +34,7 @@ describe('log record buffer', () => {
   });
 
   it('reports the drained record count and formats one line per record', () => {
-    const buffer = createLogRecordBuffer({ capacity: 4 });
-    const logger = createLogger({ buffer });
+    const { buffer, logger } = setUp({ capacity: 4 });
 
     logger.info('a');
     logger.info('b');
@@ -125,7 +123,17 @@ describe('log record buffer', () => {
 
 function setUp({ capacity }: { capacity: number }) {
   const buffer = createLogRecordBuffer({ capacity });
-  const logger = createLogger({ buffer });
+
+  // Stores `info` records as a logger would, without time or bindings.
+  const logger = {
+    info: (first: Record<string, number> | string, message?: string) => {
+      if (typeof first === 'string') {
+        buffer.append(30, undefined, '', undefined, first);
+      } else {
+        buffer.append(30, undefined, '', Object.entries(first).flat(), message);
+      }
+    },
+  };
 
   const drain = ({ maxRecords }: { maxRecords: number }) =>
     buffer
@@ -134,5 +142,5 @@ function setUp({ capacity }: { capacity: number }) {
       .filter((line) => line !== '')
       .map((line) => JSON.parse(line) as Record<string, unknown>);
 
-  return { logger, drain };
+  return { buffer, logger, drain };
 }

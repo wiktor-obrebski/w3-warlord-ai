@@ -1,7 +1,8 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { createLogger, type LoggerOptions } from '../create-logger';
-import { createLogRecordBuffer, type LogRecordBuffer } from '../record-buffer';
+import { createLogger } from '../create-logger';
+import type { LogLevelName } from '../levels';
+import { createMemoryTransport } from './support/memory-transport';
 
 describe('logger', () => {
   it('writes Pino records with level, time, seq and message', () => {
@@ -56,6 +57,7 @@ describe('logger', () => {
     const disabled = createLogger({ enabled: false });
     disabled.fatal('hidden');
     disabled.child({ component: 'X' }).fatal('hidden');
+    disabled.flush();
     assert.equal(disabled.isLevelEnabled('fatal'), false);
   });
 
@@ -306,23 +308,115 @@ describe('logger', () => {
   });
 });
 
+describe('logger flush', () => {
+  it('writes at most a batch of the oldest records per flush, in order', () => {
+    const { logger, transport } = setUpFlush({ batchSize: 2 });
+
+    for (let index = 1; index <= 5; index++) {
+      logger.child({ index }).info('record');
+    }
+    logger.flush();
+    logger.flush();
+    logger.flush();
+
+    assert.deepEqual(
+      transport.batches.map(({ jsonl }) =>
+        jsonl
+          .split('\n')
+          .filter((line) => line !== '')
+          .map((line) => (JSON.parse(line) as { index: number }).index)
+      ),
+      [[1, 2], [3, 4], [5]]
+    );
+  });
+
+  it('writes nothing while no records are buffered', () => {
+    const { logger, transport } = setUpFlush({});
+
+    logger.flush();
+    logger.flush();
+
+    assert.deepEqual(transport.batches, []);
+  });
+
+  it('reports each flush in a debug record of the next batch', () => {
+    let clockSeconds = 10;
+    const { logger, transport } = setUpFlush({
+      level: 'debug',
+      readClockSeconds: () => {
+        clockSeconds += 0.0015;
+        return clockSeconds;
+      },
+    });
+
+    logger.info('first');
+    logger.info('second');
+    logger.flush();
+    logger.flush();
+    // The second batch held only the report, which is not reported again.
+    logger.flush();
+
+    assert.equal(transport.batches.length, 2);
+    assert.deepEqual(JSON.parse(transport.batches[1]!.jsonl), {
+      level: 20,
+      seq: 3,
+      records: 2,
+      bytes: transport.batches[0]!.jsonl.length,
+      formatMs: 1.5,
+      writeMs: 1.5,
+      msg: 'Log batch exported',
+    });
+  });
+});
+
+interface SetUpFlushArgs {
+  level?: LogLevelName;
+  batchSize?: number;
+  readClockSeconds?: () => number;
+}
+
+function setUpFlush({
+  level,
+  batchSize = 100,
+  readClockSeconds,
+}: SetUpFlushArgs) {
+  const transport = createMemoryTransport();
+  const logger = createLogger({
+    level,
+    transport,
+    bufferCapacity: 100,
+    batchSize,
+    readClockSeconds,
+  });
+
+  return { logger, transport };
+}
+
 interface SetUpArgs {
-  level?: Extract<LoggerOptions, { buffer: LogRecordBuffer }>['level'];
+  level?: LogLevelName;
   readTime?: () => string | undefined;
   mixin?: () => Record<string, unknown>;
 }
 
 function setUp({ level, readTime, mixin }: SetUpArgs) {
-  const buffer = createLogRecordBuffer({ capacity: 100 });
-  const logger = createLogger({ level, buffer, readTime, mixin });
-  let drained: string[] | undefined;
+  const transport = createMemoryTransport();
+  const logger = createLogger({
+    level,
+    transport,
+    bufferCapacity: 100,
+    batchSize: 100,
+    readTime,
+    mixin,
+  });
+  let flushed = false;
 
+  // Flushed once, so a flush report does not join the records read.
   const readLines = () => {
-    drained ??= buffer
-      .drain({ maxRecords: 100 })
-      .jsonl.split('\n')
-      .filter((line) => line !== '');
-    return drained;
+    if (!flushed) {
+      logger.flush();
+      flushed = true;
+    }
+    return transport.readLines();
   };
 
   const readRecords = () =>

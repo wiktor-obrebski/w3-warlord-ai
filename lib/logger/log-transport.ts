@@ -3,8 +3,8 @@ import type { LogRecordBatch } from './record-buffer';
 export { type LogTransport };
 
 /**
- * Writes drained record batches out of the game, in the order received.
- * Loggers never see it, so it can be replaced without changing them.
+ * Writes the batches of records a logger flushes, in the order received.
+ * A batch's `jsonl` holds each record's Pino JSON followed by `\n`.
  */
 interface LogTransport {
   write({ batch }: { batch: LogRecordBatch }): void;
