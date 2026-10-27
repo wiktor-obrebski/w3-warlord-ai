@@ -1,4 +1,5 @@
 import { ChildFactory, ChildHandle, childFactory } from '@lib/bdi';
+import type { Logger } from '@lib/logger';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type {
   AssembledChildren,
@@ -27,6 +28,7 @@ export {
 
 interface TowerRushCapabilities {
   readonly actorControl: ActorControl;
+  readonly logger: Logger;
 }
 
 interface TowerRushIntention<
@@ -54,6 +56,7 @@ function assembleTowerRushIntention<
 > {
   const rush = createTowerRushState();
   const children: AssembledChildren<TCommonBeliefs> = [];
+  const logger = capabilities.logger.child({ intention: 'TowerRush' });
 
   return {
     component: new TowerRush({
@@ -63,7 +66,7 @@ function assembleTowerRushIntention<
           assemble: () =>
             assembleEstablishTowerPositionPlan({
               rush,
-              capabilities: { actorControl: capabilities.actorControl },
+              capabilities: { actorControl: capabilities.actorControl, logger },
             }),
         }),
         createEconomyController: childFactory({

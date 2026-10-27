@@ -1,4 +1,5 @@
 import { Deliberation } from '@lib/bdi';
+import type { Logger } from '@lib/logger';
 import { CommonBeliefs } from '../beliefs/common.beliefs';
 import type {
   AssembledWarlordComponent,
@@ -49,6 +50,7 @@ interface WarlordDeliberation extends Deliberation<
 interface CreateDeliberationArgs {
   actorControl: ActorControl;
   desireExpression: WarlordDesireExpression;
+  logger: Logger;
 }
 
 /**
@@ -72,6 +74,7 @@ interface CreateDeliberationArgs {
 function createDeliberation({
   actorControl,
   desireExpression,
+  logger,
 }: CreateDeliberationArgs): WarlordDeliberation {
   const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
     actorControl,
@@ -81,6 +84,7 @@ function createDeliberation({
   };
   const towerRushCapabilitiesProvider: TowerRushCapabilities = {
     actorControl,
+    logger,
   };
   const operateTowersCapabilitiesProvider: OperateTowersCapabilities = {
     actorControl,

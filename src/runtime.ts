@@ -59,6 +59,7 @@ function startRuntime({ bot, logger }: StartRuntimeArgs) {
   const deliberation = createDeliberation({
     actorControl: arbiter.actorControl,
     desireExpression: optionGeneration.desireExpression,
+    logger,
   });
   const loop = W3TimerApi.CreateTimer();
   let desires: readonly WarlordDesire[] = [];

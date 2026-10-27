@@ -1,4 +1,5 @@
 import { PlanStatus } from '@lib/bdi';
+import type { Logger } from '@lib/logger';
 import { Point } from '@lib/math';
 import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
@@ -56,6 +57,7 @@ enum STEP {
 
 interface EstablishTowerPositionPlanCapabilities {
   readonly actorControl: ActorControl;
+  readonly logger: Logger;
 }
 
 interface EstablishTowerPositionConstructorArgs {
@@ -70,6 +72,7 @@ interface EstablishTowerPositionUpdateArgs {
 class EstablishTowerPosition implements EstablishTowerPositionPlan {
   private readonly rush: TowerRushState;
   private readonly capabilities: EstablishTowerPositionPlanCapabilities;
+  private readonly log: Logger;
   private currentStatus: PlanStatus = 'running';
   private step = STEP.START;
   private readonly moveForward = createMoveForwardState();
@@ -83,6 +86,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   }: EstablishTowerPositionConstructorArgs) {
     this.rush = rush;
     this.capabilities = capabilities;
+    this.log = capabilities.logger.child({ plan: 'EstablishTowerPosition' });
   }
 
   public get status(): PlanStatus {
@@ -144,19 +148,26 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
             actorControl,
           }).allUpgraded
         ) {
-          this.currentStatus = 'succeeded';
-          debug({
-            message: `Establish tower position: ${STEP[this.step]} -> ${this.currentStatus}`,
-          });
+          this.succeed();
         }
         break;
     }
   }
 
   private advanceTo({ nextStep }: { nextStep: STEP }) {
-    debug({
-      message: `Establish tower position: ${STEP[this.step]} -> ${STEP[nextStep]}`,
-    });
+    this.reportPhaseChange({ to: STEP[nextStep] });
     this.step = nextStep;
+  }
+
+  private succeed() {
+    this.currentStatus = 'succeeded';
+    this.reportPhaseChange({ to: this.currentStatus });
+  }
+
+  private reportPhaseChange({ to }: { to: string }) {
+    const from = STEP[this.step];
+
+    debug({ message: `Establish tower position: ${from} -> ${to}` });
+    this.log.info({ from, to }, 'Tower rush phase changed');
   }
 }
