@@ -1,7 +1,10 @@
-import { appendCapturedFields, type CapturedFields } from './captured-fields';
-import { formatJsonNumber } from '../json/json';
-import { createJsonTextCache } from '../json/json-text-cache';
-import { LOG_LEVELS } from './levels';
+import {
+  appendCapturedFields,
+  type CapturedFields,
+} from './captured-fields.ts';
+import { formatJsonNumber } from '../json/json.ts';
+import { createJsonTextCache } from '../json/json-text-cache.ts';
+import { LOG_LEVELS } from './levels.ts';
 
 export { createLogRecordBuffer, type LogRecordBatch, type LogRecordBuffer };
 

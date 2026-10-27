@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import { parseArgs } from 'node:util';
-import { createLogCollector } from './log-collector';
+import { createLogCollector } from './log-collector.ts';
 
 const Usage = `Usage: npm run collect-logs -- --dir <folder> [options]
 

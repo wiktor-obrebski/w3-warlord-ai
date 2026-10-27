@@ -3,7 +3,10 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import { COLLECTOR_STATE_FILE_NAME, createLogCollector } from './log-collector';
+import {
+  COLLECTOR_STATE_FILE_NAME,
+  createLogCollector,
+} from './log-collector.ts';
 
 describe('log collector', () => {
   let directory: string;

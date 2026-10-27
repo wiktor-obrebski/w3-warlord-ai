@@ -13,6 +13,7 @@
     "strictPropertyInitialization": false,
     "noUncheckedIndexedAccess": true,
     "allowUnreachableCode": false,
+    "rewriteRelativeImportExtensions": true,
     "paths": {
       "@lib/math": ["./lib/math/math.ts"],
       "@lib/bdi": ["./lib/bdi/bdi.ts"],

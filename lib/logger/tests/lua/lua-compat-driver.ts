@@ -1,6 +1,6 @@
-import { createPreloadTransport } from '../../preload/preload-transport';
-import { createFakePreloadEngine } from '../support/fake-preload-engine';
-import { logScenario } from '../support/logging-scenario';
+import { createPreloadTransport } from '../../preload/preload-transport.ts';
+import { createFakePreloadEngine } from '../support/fake-preload-engine.ts';
+import { logScenario } from '../support/logging-scenario.ts';
 
 // Compiled by TSTL and run by standalone Lua for `lua-compat.test.ts`:
 // logs the scenario, prints the flushed JSON lines, and writes the batch

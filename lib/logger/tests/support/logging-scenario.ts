@@ -1,5 +1,5 @@
-import { createLogger, type Logger } from '../../core/create-logger';
-import type { LogTransport } from '../../core/log-transport';
+import { createLogger, type Logger } from '../../core/create-logger.ts';
+import type { LogTransport } from '../../core/log-transport.ts';
 
 export { logScenario };
 

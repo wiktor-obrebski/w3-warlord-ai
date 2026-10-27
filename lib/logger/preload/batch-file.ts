@@ -1,4 +1,4 @@
-import { PRELOAD_BATCH_FORMAT } from './preload-transport';
+import { PRELOAD_BATCH_FORMAT } from './preload-transport.ts';
 
 export {
   parseBatchFile,

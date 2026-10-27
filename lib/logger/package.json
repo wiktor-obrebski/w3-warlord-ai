@@ -1,12 +1,13 @@
 {
   "name": "@lib/logger",
   "private": true,
+  "type": "module",
   "main": "./logger.ts",
   "types": "./logger.ts",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tstl -p tsconfig.lua.json --noEmit",
-    "test": "node --require ts-node/register/transpile-only --test \"tests/**/*.test.ts\"",
-    "bench:node": "node --require ts-node/register/transpile-only benchmarks/node-benchmark.ts",
+    "test": "node --test \"tests/**/*.test.ts\"",
+    "bench:node": "node benchmarks/node-benchmark.ts",
     "bench:lua": "tstl -p tsconfig.lua.json --outDir _build --luaBundle logger-benchmark.lua --luaBundleEntry benchmarks/lua-benchmark.ts && lua _build/logger-benchmark.lua"
   },
   "devDependencies": {

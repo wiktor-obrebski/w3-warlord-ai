@@ -1,8 +1,8 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { createLogger } from '../core/create-logger';
-import type { LogLevelName } from '../core/levels';
-import { createMemoryTransport } from './support/memory-transport';
+import { createLogger } from '../core/create-logger.ts';
+import type { LogLevelName } from '../core/levels.ts';
+import { createMemoryTransport } from './support/memory-transport.ts';
 
 describe('logger', () => {
   it('writes Pino records with level, time, seq and message', () => {

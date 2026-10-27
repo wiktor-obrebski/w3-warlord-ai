@@ -1,12 +1,12 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { createLogger } from '../core/create-logger';
-import { parseBatchFile, parseBatchFileName } from '../preload/batch-file';
+import { createLogger } from '../core/create-logger.ts';
+import { parseBatchFile, parseBatchFileName } from '../preload/batch-file.ts';
 import {
   createPreloadTransport,
   PRELOAD_CHUNK_LENGTH,
-} from '../preload/preload-transport';
-import { createFakePreloadEngine } from './support/fake-preload-engine';
+} from '../preload/preload-transport.ts';
+import { createFakePreloadEngine } from './support/fake-preload-engine.ts';
 
 describe('preload transport', () => {
   it('writes each batch to a new, numbered file', () => {

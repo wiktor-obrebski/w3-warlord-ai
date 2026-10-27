@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import { runLoggerBenchmarks } from './logger-benchmarks';
+import { runLoggerBenchmarks } from './logger-benchmarks.ts';
 
 // The logger's cost in Node's JIT-compiled JavaScript. Says little about
 // Warcraft's interpreted Lua; see lua-benchmark.ts.

@@ -1,5 +1,5 @@
-import type { LogTransport } from '../../core/log-transport';
-import type { LogRecordBatch } from '../../core/record-buffer';
+import type { LogTransport } from '../../core/log-transport.ts';
+import type { LogRecordBatch } from '../../core/record-buffer.ts';
 
 export { createMemoryTransport, type MemoryTransport };
 

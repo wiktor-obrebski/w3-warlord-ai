@@ -2,12 +2,15 @@ import {
   appendCapturedFields,
   captureFields,
   type CapturedFields,
-} from './captured-fields';
-import { isErrorLike } from '../json/err-serializer';
-import { createJsonTextCache } from '../json/json-text-cache';
-import { LOG_LEVELS, type LogLevelName } from './levels';
-import type { LogTransport } from './log-transport';
-import { createLogRecordBuffer, type LogRecordBuffer } from './record-buffer';
+} from './captured-fields.ts';
+import { isErrorLike } from '../json/err-serializer.ts';
+import { createJsonTextCache } from '../json/json-text-cache.ts';
+import { LOG_LEVELS, type LogLevelName } from './levels.ts';
+import type { LogTransport } from './log-transport.ts';
+import {
+  createLogRecordBuffer,
+  type LogRecordBuffer,
+} from './record-buffer.ts';
 
 export { createLogger, type LogBindings, type Logger, type LoggerOptions };
 

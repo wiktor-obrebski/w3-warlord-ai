@@ -1,4 +1,4 @@
-import { escapeJsonString } from './json';
+import { escapeJsonString } from './json.ts';
 
 export { createJsonTextCache, type JsonTextCache };
 

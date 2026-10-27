@@ -4,9 +4,9 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { after, before, describe, it } from 'node:test';
-import { parseBatchFile, parseBatchFileName } from '../preload/batch-file';
-import { logScenario } from './support/logging-scenario';
-import { createMemoryTransport } from './support/memory-transport';
+import { parseBatchFile, parseBatchFileName } from '../preload/batch-file.ts';
+import { logScenario } from './support/logging-scenario.ts';
+import { createMemoryTransport } from './support/memory-transport.ts';
 
 // Compiles the logger with TSTL and runs it in standalone Lua (`$LUA`, or
 // `lua`), comparing its records with Node's and reading back the batch
@@ -88,7 +88,7 @@ describe(
   }
 );
 
-const LibraryRoot = path.resolve(__dirname, '..');
+const LibraryRoot = path.resolve(import.meta.dirname, '..');
 
 function runScenarioInNode(): string[] {
   const transport = createMemoryTransport();

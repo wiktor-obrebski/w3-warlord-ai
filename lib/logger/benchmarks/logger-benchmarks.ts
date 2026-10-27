@@ -1,10 +1,10 @@
-import { createLogger, type Logger } from '../core/create-logger';
-import type { LogTransport } from '../core/log-transport';
-import type { LogRecordBatch } from '../core/record-buffer';
+import { createLogger, type Logger } from '../core/create-logger.ts';
+import type { LogTransport } from '../core/log-transport.ts';
+import type { LogRecordBatch } from '../core/record-buffer.ts';
 import {
   createPreloadTransport,
   type PreloadNatives,
-} from '../preload/preload-transport';
+} from '../preload/preload-transport.ts';
 
 export { runLoggerBenchmarks, type BenchmarkResult };
 

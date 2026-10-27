@@ -1,4 +1,4 @@
-import { runLoggerBenchmarks } from './logger-benchmarks';
+import { runLoggerBenchmarks } from './logger-benchmarks.ts';
 
 // Compiled by TSTL and run by standalone Lua: the same interpreter family
 // as Warcraft's Lua 5.3, so closer to in-game cost than Node, but without

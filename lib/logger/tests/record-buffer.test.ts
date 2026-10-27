@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { createLogRecordBuffer } from '../core/record-buffer';
+import { createLogRecordBuffer } from '../core/record-buffer.ts';
 
 describe('log record buffer', () => {
   it('drains records in order, in batches, numbering them continuously', () => {

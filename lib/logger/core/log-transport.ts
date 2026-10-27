@@ -1,4 +1,4 @@
-import type { LogRecordBatch } from './record-buffer';
+import type { LogRecordBatch } from './record-buffer.ts';
 
 export { type LogTransport };
 

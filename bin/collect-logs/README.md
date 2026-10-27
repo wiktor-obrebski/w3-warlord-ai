@@ -2,11 +2,11 @@
 
 Collects log batch files written by [`@lib/logger`](../../lib/logger/README.md)'s preload transport while they are being written, and writes their records to stdout as Pino JSON lines, so they can be piped into `pino-pretty`, `jq`, a file, or any other tool. Diagnostics go to stderr.
 
-The script is TypeScript, run with `ts-node`:
+The script is TypeScript, run directly by Node.js 26 or later:
 
 ```sh
-node --require ts-node/register/transpile-only collect-logs.ts --dir <folder> | npx pino-pretty
-node --require ts-node/register/transpile-only collect-logs.ts --dir <folder> > game.jsonl
+node collect-logs.ts --dir <folder> | npx pino-pretty
+node collect-logs.ts --dir <folder> > game.jsonl
 ```
 
 | Option                         | Default | Meaning                                     |

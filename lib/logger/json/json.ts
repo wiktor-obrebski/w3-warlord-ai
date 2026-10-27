@@ -1,4 +1,4 @@
-import { serializeError } from './err-serializer';
+import { serializeError } from './err-serializer.ts';
 
 export { escapeJsonString, formatJsonNumber, serializeJson };
 
