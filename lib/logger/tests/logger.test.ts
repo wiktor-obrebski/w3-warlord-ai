@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { createLogger } from '../create-logger';
-import type { LogLevelName } from '../levels';
+import { createLogger } from '../core/create-logger';
+import type { LogLevelName } from '../core/levels';
 import { createMemoryTransport } from './support/memory-transport';
 
 describe('logger', () => {

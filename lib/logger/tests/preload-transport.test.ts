@@ -1,11 +1,11 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { parseBatchFile, parseBatchFileName } from '../batch-file';
-import { createLogger } from '../create-logger';
+import { createLogger } from '../core/create-logger';
+import { parseBatchFile, parseBatchFileName } from '../preload/batch-file';
 import {
   createPreloadTransport,
   PRELOAD_CHUNK_LENGTH,
-} from '../preload-transport';
+} from '../preload/preload-transport';
 import { createFakePreloadEngine } from './support/fake-preload-engine';
 
 describe('preload transport', () => {

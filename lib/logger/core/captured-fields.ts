@@ -1,6 +1,6 @@
-import { isErrorLike, serializeError } from './err-serializer';
-import { formatJsonNumber, serializeJson } from './json';
-import type { JsonTextCache } from './json-text-cache';
+import { isErrorLike, serializeError } from '../json/err-serializer';
+import { formatJsonNumber, serializeJson } from '../json/json';
+import type { JsonTextCache } from '../json/json-text-cache';
 
 export { appendCapturedFields, captureFields, type CapturedFields };
 

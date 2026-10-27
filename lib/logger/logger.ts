@@ -1,10 +1,10 @@
-import { parseBatchFile, parseBatchFileName } from './batch-file';
-import { createLogger } from './create-logger';
-import { createPreloadTransport } from './preload-transport';
-import type { Logger } from './create-logger';
-import type { LogLevelName } from './levels';
-import type { LogTransport } from './log-transport';
-import type { PreloadNatives } from './preload-transport';
+import { createLogger } from './core/create-logger';
+import { parseBatchFile, parseBatchFileName } from './preload/batch-file';
+import { createPreloadTransport } from './preload/preload-transport';
+import type { Logger } from './core/create-logger';
+import type { LogLevelName } from './core/levels';
+import type { LogTransport } from './core/log-transport';
+import type { PreloadNatives } from './preload/preload-transport';
 
 export {
   createLogger,

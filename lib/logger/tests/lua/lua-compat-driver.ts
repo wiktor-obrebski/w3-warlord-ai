@@ -1,4 +1,4 @@
-import { createPreloadTransport } from '../../preload-transport';
+import { createPreloadTransport } from '../../preload/preload-transport';
 import { createFakePreloadEngine } from '../support/fake-preload-engine';
 import { logScenario } from '../support/logging-scenario';
 

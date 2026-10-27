@@ -1,10 +1,10 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { parseBatchFile, parseBatchFileName } from '../batch-file';
+import { parseBatchFile, parseBatchFileName } from '../preload/batch-file';
 import {
   PRELOAD_BATCH_FORMAT,
   PRELOAD_CHUNK_LENGTH,
-} from '../preload-transport';
+} from '../preload/preload-transport';
 import { renderPreloadFile } from './support/fake-preload-engine';
 
 describe('parseBatchFile', () => {

@@ -1,4 +1,4 @@
-import type { PreloadNatives } from '../../preload-transport';
+import type { PreloadNatives } from '../../preload/preload-transport';
 
 export { createFakePreloadEngine, renderPreloadFile, type FakePreloadEngine };
 

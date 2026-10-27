@@ -4,7 +4,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { after, before, describe, it } from 'node:test';
-import { parseBatchFile, parseBatchFileName } from '../batch-file';
+import { parseBatchFile, parseBatchFileName } from '../preload/batch-file';
 import { logScenario } from './support/logging-scenario';
 import { createMemoryTransport } from './support/memory-transport';
 

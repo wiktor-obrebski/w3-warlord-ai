@@ -1,5 +1,5 @@
-import { serializeJson } from './json';
-import type { LogTransport } from './log-transport';
+import type { LogTransport } from '../core/log-transport';
+import { serializeJson } from '../json/json';
 
 export {
   createPreloadTransport,

@@ -219,6 +219,15 @@ Files appear in batch order per session, one per flush, but a reader may see the
 
 ## Development
 
+```text
+logger.ts     the public API; everything else is internal
+core/         the logger, its record buffer, and the transport contract
+json/         JSON serialization, including errors
+preload/      the preload transport and the reader of its batch files
+tests/        unit tests and the Lua compatibility test
+benchmarks/   benchmarks run in Node and in standalone Lua
+```
+
 The package's scripts:
 
 ```sh

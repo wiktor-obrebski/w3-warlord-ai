@@ -13,6 +13,9 @@
   },
   "include": [
     "*.ts",
+    "core/*.ts",
+    "json/*.ts",
+    "preload/*.ts",
     "tests/support/*.ts",
     "tests/lua/*.ts",
     "benchmarks/logger-benchmarks.ts",

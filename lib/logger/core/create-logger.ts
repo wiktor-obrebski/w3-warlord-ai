@@ -3,8 +3,8 @@ import {
   captureFields,
   type CapturedFields,
 } from './captured-fields';
-import { isErrorLike } from './err-serializer';
-import { createJsonTextCache } from './json-text-cache';
+import { isErrorLike } from '../json/err-serializer';
+import { createJsonTextCache } from '../json/json-text-cache';
 import { LOG_LEVELS, type LogLevelName } from './levels';
 import type { LogTransport } from './log-transport';
 import { createLogRecordBuffer, type LogRecordBuffer } from './record-buffer';

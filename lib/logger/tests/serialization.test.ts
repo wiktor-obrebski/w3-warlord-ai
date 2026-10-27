@@ -1,7 +1,11 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
-import { serializeError } from '../err-serializer';
-import { escapeJsonString, formatJsonNumber, serializeJson } from '../json';
+import { serializeError } from '../json/err-serializer';
+import {
+  escapeJsonString,
+  formatJsonNumber,
+  serializeJson,
+} from '../json/json';
 
 describe('serializeJson', () => {
   it('matches JSON.stringify for JSON data', () => {

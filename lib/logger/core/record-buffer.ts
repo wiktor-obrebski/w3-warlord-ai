@@ -1,6 +1,6 @@
 import { appendCapturedFields, type CapturedFields } from './captured-fields';
-import { formatJsonNumber } from './json';
-import { createJsonTextCache } from './json-text-cache';
+import { formatJsonNumber } from '../json/json';
+import { createJsonTextCache } from '../json/json-text-cache';
 import { LOG_LEVELS } from './levels';
 
 export { createLogRecordBuffer, type LogRecordBatch, type LogRecordBuffer };
