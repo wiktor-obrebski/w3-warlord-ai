@@ -5,26 +5,37 @@ Structured logging for Warcraft III Lua maps: a [Pino](https://github.com/pinojs
 Warcraft's Lua has no file or network I/O, so logging is split between the game and the host:
 
 ```text
-game thread                                                    host
-logger calls → record buffer → preload transport → batch files → parseBatchFile
- (cheap, no I/O)   (bounded)   (periodic, synchronous)              (Node.js)
+game thread                                                     host
+logger calls → record buffer → exportBatch → batch files → parseBatchFile
+ (cheap, no I/O)   (bounded)    (synchronous)                  (Node.js)
 ```
 
-The library has two entry points:
+Everything is imported from `@lib/logger`:
 
-| Entry point              | Exports                                             | Runs in         |
-| ------------------------ | --------------------------------------------------- | --------------- |
-| `@lib/logger`            | `createWarcraftLogger`, `Logger`, `LogLevelName`    | Warcraft (TSTL) |
-| `@lib/logger/batch-file` | `parseBatchFile`, `parseBatchFileName`, their types | Node.js         |
+| Export                                     | Runs in         | Purpose                                     |
+| ------------------------------------------ | --------------- | ------------------------------------------- |
+| `createPreloadLogger`                      | Warcraft (TSTL) | a root logger and the export of its records |
+| `createDisabledLogger`                     | anywhere        | a logger whose calls do nothing             |
+| `parseBatchFile`, `parseBatchFileName`     | Node.js         | reading batch files on the host             |
+| `Logger`, `LogLevelName`, `PreloadNatives` | —               | types                                       |
 
-Watching a folder, ordering batches and printing records is left to the program reading the files.
+The library uses no Warcraft modules or runtime globals itself: the caller passes in the preload natives and schedules the exports. Watching a folder, ordering batches and printing records is left to the program reading the files.
 
 ## Logging in the game
 
 ```ts
-import { createWarcraftLogger } from '@lib/logger';
+import * as W3PreloadApi from '@lib/warcraft3-api/preload';
+import { createPreloadLogger, type PreloadNatives } from '@lib/logger';
 
-const logger = createWarcraftLogger({
+const natives: PreloadNatives = {
+  preloadGenClear: () => W3PreloadApi.PreloadGenClear(),
+  preloadGenStart: () => W3PreloadApi.PreloadGenStart(),
+  preload: (text) => W3PreloadApi.Preload(text),
+  preloadGenEnd: (fileName) => W3PreloadApi.PreloadGenEnd(fileName),
+};
+
+const preloadLogger = createPreloadLogger({
+  natives,
   level: 'debug',
   readTime,
   mixin: () => ({ gameTime: readGameTime() }),
@@ -32,8 +43,12 @@ const logger = createWarcraftLogger({
   directory: 'MyMapLogs',
   bufferCapacity: 4096,
   batchSize: 256,
-  flushIntervalSeconds: 0.5,
 });
+
+// Export twice per game second.
+TimerStart(CreateTimer(), 0.5, true, () => preloadLogger.exportBatch());
+
+const logger = preloadLogger.logger;
 
 logger.info('Simple message');
 logger.debug({ intention: 'TowerRush' }, 'Intention activated');
@@ -44,18 +59,18 @@ const log = logger.child({ component: 'WorkerSafety' });
 log.info({ actorId }, 'Worker escaping');
 ```
 
-`createWarcraftLogger({ enabled: false })` returns a logger whose calls do nothing.
-
-The export runs on a Warcraft timer and uses two globals of the Warlord runtime wrapper, declared in `@lib/warcraft3-api/warlord`: `guard`, to report errors raised in the timer callback, and `readClockSeconds`, to measure each export.
+`exportBatch` writes up to `batchSize` buffered records to a new batch file, and nothing when none are buffered. Errors raised in a timer callback are not reported by Warcraft, so wrap the call in whatever error reporting the map has.
 
 ### Options
 
+- `natives`: the four preload natives, as above.
 - `level`: lowest level recorded; `info` by default, `silent` records nothing.
 - `readTime`: real-world time for `time`, as the decimal digits of Unix epoch milliseconds, written as they are; see [32-bit numbers](#32-bit-numbers). Without it, or while it returns `undefined`, records have no `time`.
 - `mixin`: like Pino's, fields evaluated on every call and added to every record.
+- `readClockSeconds`: a clock in seconds, such as Lua's `os.clock`, to measure each export; without it, export reports carry no durations.
 - `session`: identifies the log stream in batch file names and headers. It must be unique per game and per logger, such as a start time and player number, or batches of different games collide.
 - `directory`: folder for the batch files, relative to Warcraft's `CustomMapData`.
-- `bufferCapacity`, `batchSize`, `flushIntervalSeconds`: see [buffer](#buffer-and-drop-policy) and [export cost](#cost-on-the-game-thread).
+- `bufferCapacity`, `batchSize`: see [buffer](#buffer-and-drop-policy) and [export cost](#cost-on-the-game-thread).
 
 The library knows nothing about game time, ticks, or components: the caller adds them, with `mixin` for per-record values and `child` for context.
 
@@ -149,7 +164,7 @@ Every batch is a new file, `CustomMapData/<directory>/<session>-<batch>.txt`, wh
 
 What the format relies on, from [Jassdoc](https://github.com/lep/jassdoc) and community FileIO code:
 
-- A `Preload` argument may be up to 259 characters, so arguments are cut at 255 bytes, possibly inside a UTF-8 character; `parseBatchFile` joins them byte-exactly. A NUL ends an argument; JSON escapes every control character, so records contain none.
+- A `Preload` argument may be up to 259 characters, so arguments are cut at no more than 255 bytes, and never inside a UTF-8 character, so the file is valid UTF-8 text. A NUL ends an argument; JSON escapes every control character, so records contain none.
 - `Preload` writes `\` as `\\` and everything else as is, including `"` and line feeds. Records never contain a raw tab or carriage return, and a line feed in them always follows `}`, so the line structure of the file cannot be forged by record content.
 - `PreloadGenEnd` does not clear its buffer, so every batch starts with `PreloadGenClear`.
 - Files are confined to `CustomMapData`: `%USERPROFILE%\Documents\Warcraft III\CustomMapData\` on Windows, and `~/Library/Application Support/Blizzard/Warcraft III/CustomMapData/` on macOS. Under Proton or Wine it is the Windows path inside the prefix: `<prefix>/drive_c/users/<user>/Documents/Warcraft III/CustomMapData/`, where `<user>` is `steamuser` under Proton. Only `.txt` and `.pld` files can be written.
@@ -159,7 +174,7 @@ Not yet verified in-game: that `PreloadGenEnd` creates a missing folder, and tha
 
 ### Cost on the game thread
 
-Buffering does not make the export asynchronous. Each export drains up to `batchSize` records, formats them, and writes one file synchronously on the game thread, so `batchSize` bounds the pause of one export. Records arriving faster than `batchSize` per `flushIntervalSeconds` wait in the buffer and are eventually dropped. Empty exports write nothing.
+Buffering does not make the export asynchronous. Each export drains up to `batchSize` records, formats them, and writes one file synchronously on the game thread, so `batchSize` bounds the pause of one export. Records arriving faster than `batchSize` per export wait in the buffer and are eventually dropped. Empty exports write nothing.
 
 Each export measures itself and logs a `debug` record, unless the batch held nothing but the previous report:
 
@@ -176,14 +191,14 @@ Each export measures itself and logs a `debug` record, unless the batch held not
 }
 ```
 
-`formatMs` and `writeMs` are differences of Lua's `os.clock`, which follows real time in-game. They are omitted when `os.clock` is missing.
+`formatMs` and `writeMs` are differences of `readClockSeconds`; Lua's `os.clock` follows real time in-game.
 
 ## Reading batch files
 
-`@lib/logger/batch-file` reads the files in Node.js:
+These run in Node.js; they compile under TSTL but rely on `JSON`, which Warcraft's Lua lacks.
 
 - `parseBatchFileName({ fileName })` returns the `session` and `batch` number of a batch file's name, and `undefined` for any other file.
-- `parseBatchFile({ content })` takes the file's bytes and returns one of:
+- `parseBatchFile({ content })` takes the file's content decoded as UTF-8 and returns one of:
   - `complete`, with the header's `session` and `batch`, the records as JSON `lines`, and `invalidLines`, the lines that are not JSON objects;
   - `incomplete`, when the trailer `PreloadGenEnd` writes last is missing, e.g. while the game is still writing the file;
   - `malformed`, when the file is finished but its header is invalid or does not match its content.
@@ -201,7 +216,7 @@ npm run bench:node  # the logger in Node.js
 npm run bench:lua   # the same benchmarks compiled by TSTL, in standalone Lua
 ```
 
-Everything except `warcraft-logger.ts` and `batch-file.ts` is free of Warcraft natives and of Node, so it is unit tested in Node and, compiled by TSTL with `tsconfig.lua.json`, checked in standalone Lua. `tests/lua-compat.test.ts` runs a driver in `lua` (or `$LUA`) and checks that its records match Node's and that `parseBatchFile` reads back the batch files it writes. It is skipped when no `lua` is installed. The installed `lua` normally uses 64-bit numbers, so it catches no [32-bit](#32-bit-numbers) overflow or precision loss unless `$LUA` is a Lua built with `LUA_32BITS`.
+The library depends on neither Warcraft nor Node, so it is unit tested in Node, with fake preload natives, and, compiled by TSTL with `tsconfig.lua.json`, checked in standalone Lua. `tests/lua-compat.test.ts` runs a driver in `lua` (or `$LUA`) and checks that its records match Node's and that `parseBatchFile` reads back the batch files it writes. It is skipped when no `lua` is installed. The installed `lua` normally uses 64-bit numbers, so it catches no [32-bit](#32-bit-numbers) overflow or precision loss unless `$LUA` is a Lua built with `LUA_32BITS`.
 
 The three kinds of measurement are not interchangeable:
 

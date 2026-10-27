@@ -38,9 +38,7 @@ describe('preload transport', () => {
     logger.warn('Second');
     exportBatch();
 
-    const parsed = parseBatchFile({
-      content: Buffer.from(files.values().next().value!, 'latin1'),
-    });
+    const parsed = parseBatchFile({ content: files.values().next().value! });
 
     assert.equal(parsed.status, 'complete');
     assert.ok(parsed.status === 'complete');
@@ -76,6 +74,27 @@ describe('preload transport', () => {
     }
   });
 
+  it('never cuts an argument inside a UTF-8 character', () => {
+    // Each character stands for one byte, as in Lua strings.
+    const utf8Bytes = Buffer.from(
+      `${'ą'.repeat(300)}🎮${'x'.repeat(254)}${'日本'.repeat(100)}\n`,
+      'utf8'
+    ).toString('latin1');
+    const { engine, transport } = setUp();
+
+    transport.write({ batch: { jsonl: utf8Bytes, recordCount: 1 } });
+
+    assert.ok(engine.preloadArguments.length > 3);
+    for (const preloadArgument of engine.preloadArguments) {
+      assert.ok(preloadArgument.length <= PRELOAD_CHUNK_LENGTH);
+      assert.equal(
+        Buffer.from(preloadArgument, 'latin1').toString('utf8').includes('�'),
+        false
+      );
+    }
+    assert.equal(engine.preloadArguments.join('').endsWith(utf8Bytes), true);
+  });
+
   it('starts every file from an empty preload buffer', () => {
     const { logger, exportBatch, files } = setUp();
 
@@ -107,5 +126,5 @@ function setUp() {
   const exportBatch = () =>
     transport.write({ batch: buffer.drain({ maxRecords: 1000 }) });
 
-  return { logger, exportBatch, files, engine };
+  return { logger, exportBatch, files, engine, transport };
 }

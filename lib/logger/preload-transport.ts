@@ -40,8 +40,9 @@ interface CreatePreloadTransportArgs {
  * batch's JSON lines. The header is JSON with `format`, `version`,
  * `session`, `batch`, `records`, and `bytes`, the length of the JSON lines,
  * which in Lua is their size in bytes. The JSON lines never contain the
- * file's own line structure, so `parseBatchFile` can split the arguments
- * apart again.
+ * file's own line structure, and arguments are never cut inside a UTF-8
+ * character, so `parseBatchFile` can read the file as text and split the
+ * arguments apart again.
  *
  * Writing is synchronous: `PreloadGenEnd` writes the file on the game
  * thread.
@@ -68,14 +69,11 @@ const createPreloadTransport =
         // `PreloadGenEnd` keeps the buffer, and other code may preload too.
         natives.preloadGenClear();
         natives.preloadGenStart();
-        for (
-          let offset = 0;
-          offset < content.length;
-          offset += PRELOAD_CHUNK_LENGTH
-        ) {
-          natives.preload(
-            content.substring(offset, offset + PRELOAD_CHUNK_LENGTH)
-          );
+        for (let offset = 0; offset < content.length;) {
+          const end = chunkEnd({ content, offset });
+
+          natives.preload(content.substring(offset, end));
+          offset = end;
         }
         natives.preloadGenEnd(
           `${directory}/${session}-${formatBatchNumber({ batchNumber })}.txt`
@@ -86,6 +84,33 @@ const createPreloadTransport =
       },
     };
   };
+
+interface ChunkEndArgs {
+  content: string;
+  offset: number;
+}
+
+// Where the `Preload` argument starting at `offset` ends: at most
+// `PRELOAD_CHUNK_LENGTH` later, but never inside a UTF-8 character, so the
+// file stays valid UTF-8 between the arguments. In Lua, string positions
+// count bytes, and UTF-8 continuation bytes are 0x80 to 0xBF.
+function chunkEnd({ content, offset }: ChunkEndArgs): number {
+  let end = offset + PRELOAD_CHUNK_LENGTH;
+
+  if (end >= content.length) {
+    return content.length;
+  }
+
+  while (end > offset + 1 && isContinuationByte(content.charCodeAt(end))) {
+    end -= 1;
+  }
+
+  return end;
+}
+
+function isContinuationByte(code: number): boolean {
+  return code >= 0x80 && code < 0xc0;
+}
 
 // Zero-padded so a folder listing sorts batches in order.
 function formatBatchNumber({ batchNumber }: { batchNumber: number }): string {

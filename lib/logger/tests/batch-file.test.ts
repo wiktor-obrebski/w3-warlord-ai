@@ -24,9 +24,22 @@ describe('parseBatchFile', () => {
     });
   });
 
-  it('reassembles UTF-8 and escapes split across Preload arguments', () => {
+  it('joins UTF-8 and escapes spread over several Preload arguments', () => {
     const line = JSON.stringify({
-      msg: `${'ą'.repeat(PRELOAD_CHUNK_LENGTH)} "C:\\Maps" 🎮`,
+      msg: `${'ą'.repeat(PRELOAD_CHUNK_LENGTH)} "C:\\Maps" 🎮 ${'x'.repeat(300)}`,
+    });
+
+    const parsed = parseBatchFile({
+      content: renderBatch({ records: [line] }),
+    });
+
+    assert.ok(parsed.status === 'complete');
+    assert.deepEqual(parsed.lines, [line]);
+  });
+
+  it('is not misled by records containing the file trailer', () => {
+    const line = JSON.stringify({
+      msg: '\tcall PreloadEnd( 0.0 )\n\nendfunction',
     });
 
     const parsed = parseBatchFile({
@@ -50,8 +63,7 @@ describe('parseBatchFile', () => {
     const complete = renderBatch({ records: [record({ seq: 1 })] });
 
     assert.equal(
-      parseBatchFile({ content: complete.subarray(0, complete.length - 40) })
-        .status,
+      parseBatchFile({ content: complete.slice(0, -40) }).status,
       'incomplete'
     );
   });
@@ -70,7 +82,7 @@ describe('parseBatchFile', () => {
         records: [record({ seq: 1 })],
         corrupt: (content) => content.replace(PRELOAD_BATCH_FORMAT, 'other'),
       }),
-      Buffer.from(renderPreloadFile({ preloadArguments: [] }), 'latin1'),
+      renderPreloadFile({ preloadArguments: [] }),
     ];
 
     for (const content of cases) {
@@ -105,11 +117,16 @@ describe('parseBatchFileName', () => {
       parseBatchFileName({ fileName: '1793039520000-p1-00000012.txt' }),
       { session: '1793039520000-p1', batch: 12 }
     );
-    assert.equal(parseBatchFileName({ fileName: 'notes.txt' }), undefined);
-    assert.equal(
-      parseBatchFileName({ fileName: `${Session}-00000001.txt.rejected` }),
-      undefined
-    );
+
+    for (const fileName of [
+      'notes.txt',
+      '-00000001.txt',
+      `${Session}-0001.txt`,
+      `${Session}-0000000x.txt`,
+      `${Session}-00000001.txt.rejected`,
+    ]) {
+      assert.equal(parseBatchFileName({ fileName }), undefined, fileName);
+    }
   });
 });
 
@@ -126,39 +143,35 @@ interface RenderBatchArgs {
 }
 
 /**
- * The batch file the game writes, cut into Preload arguments by bytes as
- * Lua strings are.
+ * The text of a batch file as the game writes it, cut into Preload
+ * arguments between characters.
  */
 function renderBatch({
   records,
   lineEnd,
   corrupt = (content) => content,
-}: RenderBatchArgs): Buffer {
-  const jsonl = Buffer.from(
-    records.map((line) => `${line}\n`).join(''),
-    'utf8'
-  ).toString('latin1');
+}: RenderBatchArgs): string {
+  const jsonl = records.map((line) => `${line}\n`).join('');
   const header = JSON.stringify({
     format: PRELOAD_BATCH_FORMAT,
     version: 1,
     session: Session,
     batch: 7,
     records: records.length,
-    bytes: jsonl.length,
+    bytes: Buffer.byteLength(jsonl),
   });
-  const content = corrupt(`${header}\n${jsonl}`);
+  const characters = Array.from(corrupt(`${header}\n${jsonl}`));
   const preloadArguments: string[] = [];
 
   for (
     let offset = 0;
-    offset < content.length;
+    offset < characters.length;
     offset += PRELOAD_CHUNK_LENGTH
   ) {
-    preloadArguments.push(content.slice(offset, offset + PRELOAD_CHUNK_LENGTH));
+    preloadArguments.push(
+      characters.slice(offset, offset + PRELOAD_CHUNK_LENGTH).join('')
+    );
   }
 
-  return Buffer.from(
-    renderPreloadFile({ preloadArguments, lineEnd }),
-    'latin1'
-  );
+  return renderPreloadFile({ preloadArguments, lineEnd });
 }

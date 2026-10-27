@@ -18,5 +18,5 @@
     "benchmarks/logger-benchmarks.ts",
     "benchmarks/lua-benchmark.ts"
   ],
-  "exclude": ["logger.ts", "warcraft-logger.ts", "batch-file.ts"]
+  "exclude": []
 }

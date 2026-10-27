@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { parseBatchFile, parseBatchFileName } from '@lib/logger/batch-file';
+import { parseBatchFile, parseBatchFileName } from '@lib/logger';
 
 export { createLogCollector, COLLECTOR_STATE_FILE_NAME, type LogCollector };
 
@@ -75,7 +75,7 @@ function createLogCollector({
   }: CollectBatchArgs): Promise<BatchOutcome> => {
     const filePath = path.join(directory, fileName);
     const [content, stats] = await Promise.all([
-      fs.readFile(filePath),
+      fs.readFile(filePath, 'utf8'),
       fs.stat(filePath),
     ]);
     const parsed = parseBatchFile({ content });

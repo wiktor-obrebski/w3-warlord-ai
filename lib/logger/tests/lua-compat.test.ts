@@ -69,7 +69,10 @@ describe(
 
       for (const [batch, fileName] of fileNames.entries()) {
         const parsed = parseBatchFile({
-          content: await fs.readFile(path.join(batchDirectory, fileName)),
+          content: await fs.readFile(
+            path.join(batchDirectory, fileName),
+            'utf8'
+          ),
         });
 
         assert.deepEqual(parseBatchFileName({ fileName }), {

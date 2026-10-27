@@ -16,8 +16,7 @@
     "paths": {
       "@lib/math": ["./lib/math/math.ts"],
       "@lib/bdi": ["./lib/bdi/bdi.ts"],
-      "@lib/logger": ["./lib/logger/logger.ts"],
-      "@lib/logger/batch-file": ["./lib/logger/batch-file.ts"]
+      "@lib/logger": ["./lib/logger/logger.ts"]
     }
   },
   "tstl": {
@@ -36,7 +35,6 @@
   "include": ["src/**/*.ts", "lib/**/*.ts"],
   "exclude": [
     "lib/warcraft-tstl-plugin",
-    "lib/logger/batch-file.ts",
     "lib/logger/tests",
     "lib/logger/benchmarks"
   ]
