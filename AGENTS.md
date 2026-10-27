@@ -159,6 +159,14 @@ When a change makes existing architecture documentation inaccurate, update the r
 
 Prefer linking to the authoritative document instead of copying the same explanation into several places.
 
+### Library and script READMEs
+
+A README in `lib/<name>/` or `bin/<name>/` is self-contained: it documents only that library or script, such as its own API or command line, behavior, format, constraints, and its own `package.json` scripts.
+
+- Do not mention the app: its root `package.json` scripts, its configuration or source files, where the bot writes files, or how the bot uses the library or script.
+- Link only to what it directly depends on, such as another library whose format it reads.
+- App-level usage (which root script to run, with which paths and settings) belongs in the root `README.md`, which links to the library or script README, not the other way round.
+
 ## Comments
 
 Prefer **self-documenting code over comments**.
