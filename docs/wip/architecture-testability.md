@@ -1,8 +1,6 @@
 # Architecture Testability
 
-How **Chain of Command** makes the bot easy to test. It uses the terms of the [architecture](architecture.md).
-
-Status: work in progress, taken from section 5 of the research [architecture document](../research/rts-behavior-architecture.md). Terms of the architecture are set in _**bold italics**_.
+How **Chain of Command** makes the bot easy to test. It uses the terms of the [architecture](architecture.md), set in _**bold italics**_.
 
 The project asks for three kinds of tests. This document describes the properties of the architecture that make them easy, not a test plan.
 
