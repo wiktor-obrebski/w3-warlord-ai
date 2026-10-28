@@ -86,5 +86,6 @@ Every 0.1 s, the same phases run:
 
 - [Introduction](../research/rts-architecture-introduction.md): the architecture built up one idea at a time, around one moment of one game.
 - [Architecture](architecture.md): every rule, and why.
-- [Research architecture document](../research/rts-behavior-architecture.md): walkthroughs, testability, the roadmap, and risks.
+- [Testability](architecture-testability.md): what makes the architecture easy to test.
+- [Research architecture document](../research/rts-behavior-architecture.md): walkthroughs, the roadmap, and risks.
 - [Ideas](../research/rts-ideas.md): techniques the architecture could use but does not depend on.
