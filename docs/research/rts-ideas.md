@@ -100,17 +100,7 @@ const fastBearsOpening = opening({
 
 **Open questions.** How much Lua work a Warcraft III tick can afford, measured in the game, and which work has cheaper fallbacks.
 
-## 6. A ring buffer for the decision record
-
-**What it is.** Keep only the last records, in a fixed-size ring buffer split into channels, such as one per subsystem, so the in-game overlay can scrub back through recent decisions. From Young's "Debugging AI with Instant In-Game Scrubbing" (Game AI Pro).
-
-**Where it would fit.** The storage of the _**decision record**_ ([section 4.14](rts-behavior-architecture.md#414-the-decision-record)).
-
-**Why it is promising.** Memory stays bounded however long the game runs, and channels let each subsystem keep as much history as it needs.
-
-**Open questions.** How many records Lua can afford to keep, and what a scrubbing overlay can show inside Warcraft III.
-
-## 7. Measuring inference offline
+## 6. Measuring inference offline
 
 **What it is.** Measure how well the bot infers what it cannot see, outside the game:
 

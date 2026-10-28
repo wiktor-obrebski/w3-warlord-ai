@@ -150,7 +150,7 @@ const mind = createMind({
 onEveryTick(() => {
   const { orders, record } = mind.step({ observations: perception.observe() });
   executor.execute({ orders });
-  diagnostics.keep({ record });
+  logDecisions({ record }); // what changed, in log files of its own
 });
 ```
 
@@ -663,14 +663,14 @@ The _**enemy model**_ lives in _**Beliefs**_ and is fed only by _**Perception**_
   - runs every few seconds;
   - publishes a small result: the top one or two hypotheses, each with a confidence, since when it has held, and the signs that matched, plus what would tell them apart, for scouting to look for.
 
-  It is a sizable subsystem with a narrow output, and it can be tested alone and measured offline against recorded games ([ideas](rts-ideas.md#7-measuring-inference-offline)). Steamhammer found even a crude recognizer a clear net win.
+  It is a sizable subsystem with a narrow output, and it can be tested alone and measured offline against recorded games ([ideas](rts-ideas.md#6-measuring-inference-offline)). Steamhammer found even a crude recognizer a clear net win.
 
 - **The army estimate and its projected movement.**
 - **Scouting coverage:** where and when the bot has looked, which tells which absences mean something.
 
 What the _**enemy model**_ means for the bot, such as threats to own assets and danger by region, is in _**Assessments**_ ([section 4.4](#44-assessments)).
 
-_**Belief**_ quality can be measured offline, because a test harness knows the ground truth and the bot does not ([ideas](rts-ideas.md#7-measuring-inference-offline)).
+_**Belief**_ quality can be measured offline, because a test harness knows the ground truth and the bot does not ([ideas](rts-ideas.md#6-measuring-inference-offline)).
 
 ### 4.13 Timing
 
@@ -691,7 +691,7 @@ With 10 to 20 units in a typical army, and about 50 at most, the paces alone sho
 
 ### 4.14 The decision record
 
-Each tick produces one record of plain data:
+**Each tick, `mind.step()` returns, next to its orders, what was decided and why**, as plain data:
 
 - the _**Assessments**_ that changed, with their inputs;
 - the _**Desires**_ and their _**proposals**_ (source, _**rank**_, _**weight**_, reason);
@@ -704,12 +704,11 @@ Each tick produces one record of plain data:
 - each unit's chosen module and reason;
 - the orders.
 
-The record has several uses:
+**The record is data, not log lines.** Tests read it straight from the returned value. And the type of each phase's result requires every decision to carry its reason, where a log call could simply be left out.
 
-- **One structure, four readers:** the in-game debug overlay (status text over units and groups), logs, the trace saved by end-to-end tests, and assertions in behavioral tests.
-- **Bounded storage:** only the last records are kept, so memory stays bounded however long the game runs. A ring buffer with channels is one way to keep them ([ideas](rts-ideas.md#6-a-ring-buffer-for-the-decision-record)).
-- **A change log:** strategy, phase, adopted _**Intentions**_, and key inferences are logged when they change.
-- **A dump on bugs:** an invariant violation, such as a unit with two owners or a _**Directive**_ for a unit not owned, dumps the last records.
+**The runtime shell writes it down.** It writes what changed since the last step through a logger of the record's own, into files apart from the game log. Both logs share the session and the game time, so they line up. Strategy, phase, _**Intentions**_ adopted or dropped, and _**Allocation**_'s grants go at info level, and each unit's choices at debug level. An invariant violation, such as a unit with two owners or a _**Directive**_ for a unit not owned, is logged as an error, with its context.
+
+The in-game debug overlay shows the latest record as status text over units and groups, and the trace of an end-to-end test is its record's log files.
 
 ### 4.15 Why each part is needed
 
@@ -874,7 +873,7 @@ A behavior goes at the lowest level that has the information and the authority i
 | Actor Control                                                                     | _**Allocation**_ and _**Unit Behavior**_ _**reflexes**_                                                      |
 | `UpdateInterval`                                                                  | cadences of the tick phases                                                                                  |
 | Assessments (private `*.assessments.ts`)                                          | shared interpretations become _**Assessments**_; private ones stay in their modules as _**judgments**_       |
-| `debug` messages                                                                  | the _**decision record**_ and its change log                                                                 |
+| `debug` messages                                                                  | the _**decision record**_, in log files of its own, and the game log                                         |
 
 Mapping the current behaviors:
 
@@ -930,7 +929,7 @@ Each step leaves a working bot and updates the architecture documents.
 2. **The _combat estimate_.** Fight or flight at every level depends on it.
    - Start with a cheap strength estimate (AMAI's and PurpleWave's) plus named modifiers ([ideas](rts-ideas.md#2-computing-the-combat-estimate)).
    - Calibrate it with in-game probes, and add simulation only where decisions go wrong.
-3. **_Strategy recognition_.** Under fog, recognition is often ambiguous, and a wrong call becomes a wrong _**adaptation**_. _**Adaptations**_ scale with the recognition's confidence, scouting resolves close calls, and accuracy can be measured offline against recorded games ([ideas](rts-ideas.md#7-measuring-inference-offline)).
+3. **_Strategy recognition_.** Under fog, recognition is often ambiguous, and a wrong call becomes a wrong _**adaptation**_. _**Adaptations**_ scale with the recognition's confidence, scouting resolves close calls, and accuracy can be measured offline against recorded games ([ideas](rts-ideas.md#6-measuring-inference-offline)).
 4. **Cost in Lua.** A _**Unit Behavior**_ for every own unit every tick, plus inference, must run fast enough inside the game's thread. Measure early in the game; if ticks run long, schedule the work more carefully ([ideas](rts-ideas.md#5-scheduling-work-within-the-budget)).
 5. **Game data.**
    - Liquipedia answers the research environment only through web.archive.org, page by page. Extract game data from the game's own files and version it by client build.

@@ -279,7 +279,7 @@ Details: [Strategy, playbooks, and production](rts-behavior-architecture.md#411-
 
 ## 13. Seeing why: the decision record
 
-Each tick produces one record of plain data:
+Each tick, the _**mind**_ returns, next to its orders, one record of what was decided and why, as plain data:
 
 - the _**Assessments**_ that changed, with their inputs;
 - the _**Desires**_ and their _**proposals**_, with _**ranks**_, _**weights**_, and reasons;
@@ -288,7 +288,7 @@ Each tick produces one record of plain data:
 - each _**plan**_'s phase, each _**Tactic**_'s status, and the _**Directives**_;
 - each unit's chosen module and its reason, and the orders.
 
-The same record feeds the in-game overlay (status text over units), logs, traces of end-to-end tests, and assertions in behavioral tests. In the example, it answers "why did the Demon Hunter leave the Archmage?" with the raid's 340 gold against the harassment's 240, plus 20 for commitment and 40 for the engagement under way.
+Behavioral tests read it straight from what the _**mind**_ returns. The runtime shell writes what changed into log files of the record's own, apart from the game log, and the in-game overlay shows the latest record as status text over units. In the example, it answers "why did the Demon Hunter leave the Archmage?" with the raid's 340 gold against the harassment's 240, plus 20 for commitment and 40 for the engagement under way.
 
 Details: [The decision record](rts-behavior-architecture.md#414-the-decision-record).
 
@@ -345,7 +345,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - _**Beliefs**_: the bot's world model, in plain data: what it holds true, has seen, or infers.
 - _**Concern**_: something the bot keeps caring about all game, such as safe bases; BDI literature calls it a maintenance goal. It reads _**Beliefs**_ and _**Assessments**_, and proposes a _**Desire**_ when a condition breaks or is about to.
 - _**Contact**_: a _**Belief**_ about an enemy unit or structure: what was seen, where, when, and how it is known.
-- _**Decision record**_: one record per tick of what was decided and why.
+- _**Decision record**_: what each step of the _**mind**_ returns besides its orders: every decision and why. It is written to log files of its own, and tests read it.
 - _**Default owner**_: the _**Intention**_ that receives units nobody asked for: RunEconomy for workers, Reserve for army units and heroes.
 - _**Deliberation**_: checks _**Intentions**_' conditions, adopts _**Intentions**_ for _**Desires**_, and orders the _**agenda**_.
 - _**Desire**_: an outcome worth pursuing, backed by one or more _**proposals**_. It commits to nothing, lasts while anyone proposes it, and gets at most one _**Intention**_.
