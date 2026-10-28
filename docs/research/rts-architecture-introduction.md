@@ -252,12 +252,12 @@ Every tick, ten times a second, runs the same phases:
 | 3. _**Deliberation**_ checks conditions, adopts _**Intentions**_, and orders the _**agenda**_  | with phase 2                                   |
 | 4. _**Allocation**_ serves _**needs**_ in _**agenda**_ order                                   | with phase 2, and when units appear or die     |
 | 5. _**Intentions**_ step their _**plans**_, and _**Tactics**_ produce _**Directives**_         | each at its own pace                           |
-| 6. Each _**Unit Behavior**_ decides its unit's order                                           | every tick, within a budget                    |
+| 6. Each _**Unit Behavior**_ decides its unit's order                                           | every tick                                     |
 | 7. The _**decision record**_ keeps what was decided and why                                    | every tick                                     |
 
 Each phase reads only _**Beliefs**_ and what earlier phases produced. No part relies on another having run first, an ordering that kept producing bugs in Steamhammer. Slow work runs less often: _**Deliberation**_ about once a second, _**Tactics**_ several times a second, and _**reflexes**_ every tick.
 
-Details: [A tick, phase by phase](rts-behavior-architecture.md#42-a-tick-phase-by-phase), [Timing and budgets](rts-behavior-architecture.md#413-timing-and-budgets).
+Details: [A tick, phase by phase](rts-behavior-architecture.md#42-a-tick-phase-by-phase), [Timing](rts-behavior-architecture.md#413-timing).
 
 ## 12. The game plan: playbooks
 

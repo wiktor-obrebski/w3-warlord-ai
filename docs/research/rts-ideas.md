@@ -21,7 +21,7 @@ Together, the particles give a probability of enemy presence for every place, an
 
 **Open questions.**
 
-- What many particles cost in Lua; they would run as slow inference, spread over ticks.
+- What many particles cost in Lua, as slow inference running every second or two.
 - Drifting needs the routes of the map as the bot believes it now, which the map in _**Beliefs**_ holds.
 - The decay rates need tuning for Warcraft III's units.
 
@@ -94,7 +94,7 @@ const fastBearsOpening = opening({
 - units are updated round-robin, those nearest a threat first;
 - when ticks run long, cheaper algorithms take over.
 
-**Where it would fit.** The cadences and budgets of the tick ([section 4.13](rts-behavior-architecture.md#413-timing-and-budgets)). The architecture requires that work is bounded and counted; this is one way to bound it.
+**Where it would fit.** The paces of the tick ([section 4.13](rts-behavior-architecture.md#413-timing)), once measurements in the game show ticks running long. Until then, the architecture keeps no budgets.
 
 **Why it is promising.** It keeps a bot with many units and analyses responsive. PurpleWave's withdrawal from a tournament over frame-time overruns shows what is at stake.
 
@@ -108,7 +108,7 @@ const fastBearsOpening = opening({
 
 **Why it is promising.** Memory stays bounded however long the game runs, and channels let each subsystem keep as much history as it needs.
 
-**Open questions.** How many records fit the Lua budget, and what a scrubbing overlay can show inside Warcraft III.
+**Open questions.** How many records Lua can afford to keep, and what a scrubbing overlay can show inside Warcraft III.
 
 ## 7. Measuring inference offline
 

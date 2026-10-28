@@ -268,7 +268,7 @@ These sources were not reachable from the research environment:
 
 None of them blocks the architecture work. Liquipedia and Warcraft 3 Gym matter later, for game data and _**playbook**_ content. Game data should rather come from the game files themselves (CASC extraction), versioned by client build.
 
-The research also skipped several areas for budget:
+The research also skipped several areas for lack of time:
 
 - a dedicated study of combat models (SparCraft, Lanchester-law prediction, FAP);
 - terrain-analysis algorithms (BWTA, BWEM);

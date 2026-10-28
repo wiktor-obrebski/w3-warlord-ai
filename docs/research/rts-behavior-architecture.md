@@ -86,7 +86,7 @@ The [scenario analysis](rts-scenario-analysis.md#2-requirements-from-the-scenari
 | R12: Strategy as an adaptable game plan                                                                                                                      | _**Playbooks**_: phases, an _**opening book**_, production goals, _**adaptations**_ (4.11)                                                                            |
 | R13: Explainability                                                                                                                                          | A reason with every decision and every _**assessment**_, kept in the _**decision record**_ (4.4, 4.14)                                                                |
 | R14: Testability. Scenarios are easy to set up; wide behavioral tests cover everything except the Warcraft III integration; end-to-end tests run in the game | Two plain-data boundaries, injected inputs, one root per game, the _**decision record**_ (4.1, 5)                                                                     |
-| R15: Bounded work. Lua inside the game's own thread, up to about a hundred own units, a 0.1 s tick                                                           | Cadences, budgets, and work counters (4.13)                                                                                                                           |
+| R15: Bounded work. Lua inside the game's own thread, up to about a hundred own units, a 0.1 s tick                                                           | A pace for each kind of work, and costs measured in the game (4.13, risk 4)                                                                                           |
 | R16: Maintainability. Every decision has one home, game plans read as data, no framework grows beyond a demonstrated need                                    | One home per behavior (7), _**playbooks**_ as data, a small generic runtime (4.7, 4.11)                                                                               |
 | R17: Fair information. Reasoning sees only what a player could see                                                                                           | _**Perception**_, the only reader of Warcraft, filters by visibility; _**Beliefs**_ hold _**contacts**_, not enemy units (4.1, 4.3)                                   |
 | R18: Static _**knowledge**_ prepared offline. Everything deducible from the map and game files comes from build-time tooling                                 | _**Knowledge**_ supplied when the _**mind**_ is created, read through pure functions (4.3)                                                                            |
@@ -100,7 +100,7 @@ The [scenario analysis](rts-scenario-analysis.md#2-requirements-from-the-scenari
 5. **Deliberate commitment.** Every switch has explicit inertia: of strategy, _**plan**_, target, fight or flight, or a unit's owner.
 6. **Bounded failure handling.** Few alternatives, named recovery, limited attempts, and no generic retry. Failure handling is what makes a BDI program's behavior space explode.
 7. **Data where data suffices.** Game plans, openings, production goals, and unit data are typed data; _**judgments**_ are small pure functions.
-8. **Bounded work.** Every layer has a cadence and a budget, and its work is counted.
+8. **Bounded work.** Every layer runs only as often as its answers can change, and costs are measured in the game before anything is optimized.
 
 ## 4. Architecture
 
@@ -163,7 +163,7 @@ onEveryTick(() => {
 | 3. Deliberate                                 | with phase 2                                                         | _**Beliefs**_, _**Assessments**_, _**Desires**_, _**Intentions**_                | _**Intentions**_ adopted, kept, paused, or finished; the _**agenda**_ |
 | 4. Allocate                                   | with phase 2, and when units appear or die                           | _**Beliefs**_, the _**agenda**_, _**needs**_                                     | each _**Intention**_'s force: units and money                         |
 | 5. Step _**Intentions**_                      | each _**Intention**_ at its cadence, in _**agenda**_ order           | _**Beliefs**_, _**Assessments**_, its force                                      | _**Directives**_                                                      |
-| 6. Decide per unit                            | every tick, within a budget                                          | _**Beliefs**_, _**Assessments**_, each unit's _**Directive**_, the unit's memory | orders                                                                |
+| 6. Decide per unit                            | every tick                                                           | _**Beliefs**_, _**Assessments**_, each unit's _**Directive**_, the unit's memory | orders                                                                |
 | 7. Record                                     | every tick                                                           | everything decided                                                               | the _**decision record**_                                             |
 
 **No phase depends on another being updated first.** No phase calls into a later one, and no component relies on another having run before it. That removes the "must run before X" ordering that kept producing bugs in Steamhammer.
@@ -234,7 +234,7 @@ Which strategy the enemy follows is a claim about the world, so recognizing it i
 
 **How _Assessments_ work:**
 
-- They are computed like _**belief models**_: pure functions over plain data, revised in phase 1, right after the _**Beliefs**_ they read, each at its own cadence ([section 4.13](#413-timing-and-budgets)). Inference and _**Assessments**_ are one kind of module with two kinds of output, not two subsystems.
+- They are computed like _**belief models**_: pure functions over plain data, revised in phase 1, right after the _**Beliefs**_ they read, each at its own cadence ([section 4.13](#413-timing)). Inference and _**Assessments**_ are one kind of module with two kinds of output, not two subsystems.
 - They are plain data, read-only to everything else. Like _**Beliefs**_, they never propose _**Desires**_: _**concerns**_, the _**playbook**_, and _**requests**_ read them and propose.
 - An _**assessment**_ keeps memory where it needs it. A base counts as threatened only once a threat has persisted, and stays so until it has clearly passed. That hysteresis lives in one place, not in every reader.
 - Each records its inputs, so the _**decision record**_ shows the whole chain, for example: "5 Footmen seen near the Wisps 2 s ago; strength 7.5 against 4.2 at home → serious threat to the main base → `DefendBase`, Emergency".
@@ -503,7 +503,7 @@ _**Tactics**_ are reusable group controllers that _**plans**_ run: Travel, Skirm
 
 Travel, for example, asks navigation for a route for its group, at the speed of its slowest unit and the size of its largest. It leads the group from waypoint to waypoint with Move _**Directives**_, waits for stragglers, and asks again when danger or the map changes along the way, switching only to a clearly better route.
 
-**How a status reaches the _plan_.** A _**Tactic**_ never calls its _**plan**_. The runtime steps it at its own pace, and each step returns plain data: its _**Directives**_, its status, and the reason. The runtime keeps each _**Tactic**_'s latest result for the _**plan run**_ that started it, and a change in the kind of status makes that run step in the same tick ([section 4.13](#413-timing-and-budgets)). The run reads the results and decides which units each of its _**Tactics**_ steers. When Travel reports its reinforcements done, at the rendezvous, the run moves them into the group its Siege _**Tactic**_ steers and ends the Travel _**Tactic**_. Moving units between its own _**Tactics**_ is the _**plan**_'s business alone: the units keep their owner, so _**Allocation**_ is not involved.
+**How a status reaches the _plan_.** A _**Tactic**_ never calls its _**plan**_. The runtime steps it at its own pace, and each step returns plain data: its _**Directives**_, its status, and the reason. The runtime keeps each _**Tactic**_'s latest result for the _**plan run**_ that started it, and a change in the kind of status makes that run step in the same tick ([section 4.13](#413-timing)). The run reads the results and decides which units each of its _**Tactics**_ steers. When Travel reports its reinforcements done, at the rendezvous, the run moves them into the group its Siege _**Tactic**_ steers and ends the Travel _**Tactic**_. Moving units between its own _**Tactics**_ is the _**plan**_'s business alone: the units keep their owner, so _**Allocation**_ is not involved.
 
 ```ts
 // What a Tactic returns from each step (sketch).
@@ -660,7 +660,7 @@ The _**enemy model**_ lives in _**Beliefs**_ and is fed only by _**Perception**_
 - **_Strategy recognition_.** The enemy's strategy is recognized against a library of known ones, kept as data: tower rush, fast expansion, Tier 2 rush, mass Footmen, and as many more as the _**playbooks**_ need answers to. Each strategy lists its signs as _**fingerprints**_: composable, timed predicates over _**contacts**_, such as "two Barracks by 3:00, no Lumber Mill". Recognition:
   - matches what was seen against every strategy in the library; an absence counts only where scouting coverage says the sign would have been seen;
   - keeps its answer stable: a new hypothesis takes over only when it clearly beats the current one;
-  - runs every few seconds and incrementally, so hundreds of strategies stay within budget;
+  - runs every few seconds;
   - publishes a small result: the top one or two hypotheses, each with a confidence, since when it has held, and the signs that matched, plus what would tell them apart, for scouting to look for.
 
   It is a sizable subsystem with a narrow output, and it can be tested alone and measured offline against recorded games ([ideas](rts-ideas.md#7-measuring-inference-offline)). Steamhammer found even a crude recognizer a clear net win.
@@ -672,30 +672,22 @@ What the _**enemy model**_ means for the bot, such as threats to own assets and 
 
 _**Belief**_ quality can be measured offline, because a test harness knows the ground truth and the bot does not ([ideas](rts-ideas.md#7-measuring-inference-offline)).
 
-### 4.13 Timing and budgets
+### 4.13 Timing
 
-**The bot shares the game's own thread.** Its Lua runs inside Warcraft on every 0.1 s tick, with up to about a hundred own units, so whatever it does delays the game. Two things keep that cost bounded:
+**The bot shares the game's own thread.** Its Lua runs inside Warcraft on every 0.1 s tick, so whatever it does delays the game. Each kind of work therefore has a pace: it runs only as often as its answers can change, and some events make it run before its next turn.
 
-- **A pace** for each kind of work: how often it runs, which is as often as its answers can change and no more. Some events make it run before its next turn.
-- **A budget** for each kind of work: the most work it may do in one tick, counted in units of work, such as _**Unit Behaviors**_ run or inference steps taken. Work that does not fit one tick, such as slow inference, is spread over several.
+| Work                                                  | Pace              | Runs earlier on                                                        |
+| ----------------------------------------------------- | ----------------- | ---------------------------------------------------------------------- |
+| _**Perception**_ and fast _**Beliefs**_               | every tick        | —                                                                      |
+| _**Unit Behaviors**_                                  | every tick        | —                                                                      |
+| _**Tactics**_                                         | 0.2–0.5 s         | enemies appearing near the group                                       |
+| _**Intentions**_ and _**plans**_                      | 0.5–1 s           | a change in a _**Tactic**_'s status, a unit gained or lost             |
+| _**Desires**_, _**Deliberation**_, _**Allocation**_   | about 1 s         | a new threat, a broken _**expectation**_, an _**Intention**_ finishing |
+| Slow inference: unseen units, the army estimate       | 1–2 s             | —                                                                      |
+| Enemy _**strategy recognition**_                      | every few seconds | a new enemy building type seen                                         |
+| _**Assessments**_: threats, danger, relative strength | 1–2 s             | enemies seen near own assets                                           |
 
-Budgets are counted, not timed, because nothing in the _**mind**_ reads a clock ([section 4.1](#41-one-mind-two-boundaries)), so a budget holds the same in tests as in the game. Their sizes come from measurements in the game, so that a whole tick fits the time Warcraft can spare: the Lua budget of [risk 4](#10-risks-and-open-questions).
-
-| Work                                                  | Pace                             | Runs earlier on                                                        |
-| ----------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------- |
-| _**Perception**_ and fast _**Beliefs**_               | every tick                       | —                                                                      |
-| _**Unit Behaviors**_                                  | every tick, within a budget      | —                                                                      |
-| _**Tactics**_                                         | 0.2–0.5 s                        | enemies appearing near the group                                       |
-| _**Intentions**_ and _**plans**_                      | 0.5–1 s                          | a change in a _**Tactic**_'s status, a unit gained or lost             |
-| _**Desires**_, _**Deliberation**_, _**Allocation**_   | about 1 s                        | a new threat, a broken _**expectation**_, an _**Intention**_ finishing |
-| Slow inference: unseen units, the army estimate       | 1–2 s, spread over ticks         | —                                                                      |
-| Enemy _**strategy recognition**_                      | every few seconds, incrementally | a new enemy building type seen                                         |
-| _**Assessments**_: threats, danger, relative strength | 1–2 s, spread over ticks         | enemies seen near own assets                                           |
-
-- No kind of work may starve, however busy the tick.
-- The _**decision record**_ keeps the counts, so tests can assert that every budget holds.
-
-How work is scheduled within the budgets is open; PurpleWave's weighted scheduling is one way ([ideas](rts-ideas.md#5-scheduling-work-within-the-budget)). PurpleWave's frame-time overruns are the cautionary example.
+With 10 to 20 units in a typical army, and about 50 at most, the paces alone should keep a tick cheap. That is measured early in the game rather than assumed ([risk 4](#10-risks-and-open-questions)). Should ticks ever run long, work can be scheduled more carefully ([ideas](rts-ideas.md#5-scheduling-work-within-the-budget)); PurpleWave's frame-time overruns are the cautionary example.
 
 ### 4.14 The decision record
 
@@ -710,13 +702,12 @@ Each tick produces one record of plain data:
 - each _**Tactic**_'s status;
 - the _**Directives**_;
 - each unit's chosen module and reason;
-- the orders;
-- work counters.
+- the orders.
 
 The record has several uses:
 
 - **One structure, four readers:** the in-game debug overlay (status text over units and groups), logs, the trace saved by end-to-end tests, and assertions in behavioral tests.
-- **Bounded storage:** only the last records are kept, so recording fits the Lua budget. A ring buffer with channels is one way to keep them ([ideas](rts-ideas.md#6-a-ring-buffer-for-the-decision-record)).
+- **Bounded storage:** only the last records are kept, so memory stays bounded however long the game runs. A ring buffer with channels is one way to keep them ([ideas](rts-ideas.md#6-a-ring-buffer-for-the-decision-record)).
 - **A change log:** strategy, phase, adopted _**Intentions**_, and key inferences are logged when they change.
 - **A dump on bugs:** an invariant violation, such as a unit with two owners or a _**Directive**_ for a unit not owned, dumps the last records.
 
@@ -940,11 +931,11 @@ Each step leaves a working bot and updates the architecture documents.
    - Start with a cheap strength estimate (AMAI's and PurpleWave's) plus named modifiers ([ideas](rts-ideas.md#2-computing-the-combat-estimate)).
    - Calibrate it with in-game probes, and add simulation only where decisions go wrong.
 3. **_Strategy recognition_.** Under fog, recognition is often ambiguous, and a wrong call becomes a wrong _**adaptation**_. _**Adaptations**_ scale with the recognition's confidence, scouting resolves close calls, and accuracy can be measured offline against recorded games ([ideas](rts-ideas.md#7-measuring-inference-offline)).
-4. **The Lua budget.** _**Unit Behaviors**_ every tick for about a hundred units, plus inference, must fit. Measure early, with the work counters in the _**decision record**_.
+4. **Cost in Lua.** A _**Unit Behavior**_ for every own unit every tick, plus inference, must run fast enough inside the game's thread. Measure early in the game; if ticks run long, schedule the work more carefully ([ideas](rts-ideas.md#5-scheduling-work-within-the-budget)).
 5. **Game data.**
    - Liquipedia answers the research environment only through web.archive.org, page by page. Extract game data from the game's own files and version it by client build.
    - The source catalogue gives the current patch as 3.0.1 (build 24342).
-6. **Map data.** Map knowledge comes from the build-map tooling, and its format still needs a contract. The map also changes during a game, and keeping the map in _**Beliefs**_ current must fit the Lua budget.
+6. **Map data.** Map knowledge comes from the build-map tooling, and its format still needs a contract. The map also changes during a game, and keeping the map in _**Beliefs**_ current must stay cheap enough in Lua.
 7. **Order semantics.**
    - Scripts cannot queue orders, and re-issued attacks restart.
    - Ability and item orders need verifying in the game, skill by skill.
