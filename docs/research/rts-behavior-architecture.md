@@ -161,8 +161,8 @@ onEveryTick(() => {
 | 1. Revise _**Beliefs**_ and _**Assessments**_ | every tick                                                           | _**observations**_, previous _**Beliefs**_ and _**Assessments**_                 | _**Beliefs**_, then _**Assessments**_                                 |
 | 2. Collect _**Desires**_                      | each _**deliberation**_ cycle (about 1 s), or early on urgent events | _**Beliefs**_, _**Assessments**_, active _**Intentions**_                        | _**Desires**_ with their _**proposals**_                              |
 | 3. Deliberate                                 | with phase 2                                                         | _**Beliefs**_, _**Assessments**_, _**Desires**_, _**Intentions**_                | _**Intentions**_ adopted, kept, paused, or finished; the _**agenda**_ |
-| 4. Allocate                                   | with phase 2, and when units appear or die                           | _**Beliefs**_, the _**agenda**_, _**needs**_                                     | each _**Intention**_'s force and budget                               |
-| 5. Step _**Intentions**_                      | each _**Intention**_ at its cadence, in _**agenda**_ order           | _**Beliefs**_, _**Assessments**_, its force and budget                           | _**Directives**_                                                      |
+| 4. Allocate                                   | with phase 2, and when units appear or die                           | _**Beliefs**_, the _**agenda**_, _**needs**_                                     | each _**Intention**_'s force: units and money                         |
+| 5. Step _**Intentions**_                      | each _**Intention**_ at its cadence, in _**agenda**_ order           | _**Beliefs**_, _**Assessments**_, its force                                      | _**Directives**_                                                      |
 | 6. Decide per unit                            | every tick, within a budget                                          | _**Beliefs**_, _**Assessments**_, each unit's _**Directive**_, the unit's memory | orders                                                                |
 | 7. Record                                     | every tick                                                           | everything decided                                                               | the _**decision record**_                                             |
 
@@ -372,7 +372,7 @@ _**Plan runs**_ are small, explicit state machines. A run:
 - monitors its own progress: it has an expected progress and a stall timeout, after which it repairs itself, changes its steps, or fails;
 - reports its _**interruption cost**_: what interrupting it now would waste ([section 4.8](#48-allocation)). A step that must not be interrupted at all, such as a Town Portal about to take effect or a purchase being made, marks itself _**uninterruptible**_ for a bounded time.
 
-**Needs change over an _Intention_'s life.** Its current _**plan run**_ declares them anew every round, so they follow the run's progress and change when the runtime switches _**plans**_: HireHero needs nothing at first, then a Wisp, then the hero's gold and food ([section 6.2](#62-buying-the-second-hero)). Each step, the run receives its force, the units and budget _**Allocation**_ last granted for those _**needs**_, as an argument, and returns _**Directives**_ rather than calling a capability. That makes it data in and data out.
+**Needs change over an _Intention_'s life.** Its current _**plan run**_ declares them anew every round, so they follow the run's progress and change when the runtime switches _**plans**_: HireHero needs nothing at first, then a Wisp, then the hero's gold and food ([section 6.2](#62-buying-the-second-hero)). Each step, the run receives its force, the units and money _**Allocation**_ last granted for those _**needs**_, as an argument, and returns _**Directives**_ rather than calling a capability. That makes it data in and data out.
 
 ```ts
 // An Intention kind (sketch).
@@ -674,6 +674,13 @@ _**Belief**_ quality can be measured offline, because a test harness knows the g
 
 ### 4.13 Timing and budgets
 
+**The bot shares the game's own thread.** Its Lua runs inside Warcraft on every 0.1 s tick, with up to about a hundred own units, so whatever it does delays the game. Two things keep that cost bounded:
+
+- **A pace** for each kind of work: how often it runs, which is as often as its answers can change and no more. Some events make it run before its next turn.
+- **A budget** for each kind of work: the most work it may do in one tick, counted in units of work, such as _**Unit Behaviors**_ run or inference steps taken. Work that does not fit one tick, such as slow inference, is spread over several.
+
+Budgets are counted, not timed, because nothing in the _**mind**_ reads a clock ([section 4.1](#41-one-mind-two-boundaries)), so a budget holds the same in tests as in the game. Their sizes come from measurements in the game, so that a whole tick fits the time Warcraft can spare: the Lua budget of [risk 4](#10-risks-and-open-questions).
+
 | Work                                                  | Pace                             | Runs earlier on                                                        |
 | ----------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------- |
 | _**Perception**_ and fast _**Beliefs**_               | every tick                       | —                                                                      |
@@ -686,9 +693,9 @@ _**Belief**_ quality can be measured offline, because a test harness knows the g
 | _**Assessments**_: threats, danger, relative strength | 1–2 s, spread over ticks         | enemies seen near own assets                                           |
 
 - No kind of work may starve, however busy the tick.
-- The _**decision record**_ counts the work done, so bounded work can be asserted in tests.
+- The _**decision record**_ keeps the counts, so tests can assert that every budget holds.
 
-How work is scheduled within the budget is open; PurpleWave's weighted scheduling is one way ([ideas](rts-ideas.md#5-scheduling-work-within-the-budget)). PurpleWave's frame-time overruns are the cautionary example.
+How work is scheduled within the budgets is open; PurpleWave's weighted scheduling is one way ([ideas](rts-ideas.md#5-scheduling-work-within-the-budget)). PurpleWave's frame-time overruns are the cautionary example.
 
 ### 4.14 The decision record
 
