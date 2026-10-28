@@ -6,14 +6,7 @@ Status: work in progress, taken from sections 1–4 of the research [architectur
 
 ## 1. Summary
 
-The first iteration proposed _**Intentions**_ that declare what they need, served in one priority order, and a chain of execution down to every unit. The second iteration researched:
-
-- strong RTS bots: PurpleWave, Steamhammer and UAlbertaBot, EISBot;
-- AMAI, the main existing Warcraft III melee AI;
-- the Jadex and Jason BDI frameworks, and BDI research on goal lifecycles and testability;
-- professional game AI practice.
-
-That research confirmed the core of the first iteration and changed most of what surrounds it. The main decisions:
+The architecture rests on these decisions:
 
 1. **One deterministic _mind_ behind two plain-data boundaries.** _**Perception**_ turns Warcraft into _**observations**_, and the _**order executor**_ turns orders into Warcraft calls. Everything between them is TypeScript over plain data:
    - units are identified by ids, not handles;
@@ -25,27 +18,18 @@ That research confirmed the core of the first iteration and changed most of what
 
 2. **Fixed phases per tick, and a _decision record_.** Each tick observes, revises _**Beliefs**_, deliberates and allocates on cadence, steps _**Intentions**_, decides per unit, and executes. No phase depends on another being updated first. Every phase records why it decided what it did.
 3. **Interpretation has explicit homes.** _**Beliefs**_ hold what was seen and what is probably true. _**Assessments**_ hold what it means for the bot, shared by every part that needs it, such as the threat to a base. An interpretation only one module needs stays private in that module, and how the game works is _**Knowledge**_.
-4. **_Desires_ are asked for, not pushed.** Each _**deliberation**_ cycle collects _**proposals**_ from three sources: _**concerns**_ (maintenance goals, in BDI terms), the committed strategy's _**playbook**_, and the active _**Intentions**_' _**requests**_. There are no support ids, refresh intervals, or staleness.
+4. **_Desires_ are asked for, not pushed.** Each _**deliberation**_ cycle collects _**proposals**_ from three sources: _**concerns**_ (maintenance goals, in BDI terms), the committed strategy's _**playbook**_, and the active _**Intentions**_' _**requests**_.
 5. **_Deliberation_ ranks, and commitment is explicit.** A _**Desire**_ has a _**rank**_ (a category) and a _**weight**_ (its value within that category, in gold):
    - _**pause conditions**_ over _**Beliefs**_ settle logical conflicts;
    - _**Allocation**_ settles competition for resources;
    - a _**switching rule**_ makes preemption deliberate: within a _**rank**_, a challenger must beat a unit's holder by the _**switching margin**_: a _**commitment constant**_ plus what interrupting the holder would waste.
 6. **_Intentions_ are goals with _plans_.** An _**Intention kind**_ declares its conditions, its _**plans**_, its _**requests**_, and how it handles failure. One small generic runtime chooses _**plans**_, handles failure in a bounded, named way, and keeps every state change with its reason.
 7. **_Allocation_ is the only owner of units and money.** _**Needs**_ are served in _**agenda**_ order and renewed every cycle. Money is reserved against stock plus projected income. Workers, scouts, and builders are not special cases.
-8. **Execution keeps the first iteration's chain, with a fitting formalism at each level.**
+8. **Execution is a chain of command, with a fitting formalism at each level.**
    - _**Plans**_ are re-entrant state machines.
    - _**Tactics**_ keep a group's fight-or-flight state with hysteresis.
    - _**Unit Behaviors**_ let _**reflexes**_ preempt ordered _**skills**_, _**opportunities**_, and the _**task**_.
    - _**Directives**_ are constraints, not micromanagement, and units may deviate from them to survive.
-9. **The infrastructure shrinks.** These are dropped:
-   - Scoped Beliefs and their runtime;
-   - assemble functions and child factories;
-   - per-component Common Beliefs declarations;
-   - desire supports;
-   - capability providers that act for the running update;
-   - Actor Control.
-
-   Components become plain objects owned by their parents, and _**Beliefs**_ become one world model.
 
 The bot answers five questions, each in one place:
 
@@ -59,7 +43,7 @@ The bot answers five questions, each in one place:
 
 ## 2. Requirements
 
-The brief fixes one point: _**Beliefs**_, _**Desires**_, and _**Intentions**_ keep their purpose and meaning. _**Beliefs**_ are what the bot holds true, _**Desires**_ what it would find worth achieving, and _**Intentions**_ what it has committed to and how it pursues them. Every other concept of the current architecture was free to change. The design must be as simple as possible, but not simpler.
+_**Beliefs**_, _**Desires**_, and _**Intentions**_ have their BDI meaning: _**Beliefs**_ are what the bot holds true, _**Desires**_ what it would find worth achieving, and _**Intentions**_ what it has committed to and how it pursues them. The design must be as simple as possible, but not simpler.
 
 The [scenario analysis](../research/rts-scenario-analysis.md#2-requirements-from-the-scenarios) derives R1–R13 from the scenarios; the project adds R14–R18.
 
@@ -186,7 +170,7 @@ onEveryTick(() => {
 - **_Knowledge_ is data, supplied when the _mind_ is created and read like _Beliefs_.** Tests can then give it a two-region map and a handful of unit types, with no code involved.
   - _**Knowledge**_ functions live beside the data, not on it: the _**combat estimate**_, navigation, damage, production time, requirements. They are pure and imported where needed, and they take what they need as arguments: the data from _**Knowledge**_, and what changes from _**Beliefs**_ and _**Assessments**_. Each can be tested alone, with exactly the inputs it names.
   - They keep no state between calls, since the _**mind**_ has no module-level state. Whatever they precompute is data: computed offline into _**Knowledge**_, or kept in _**Beliefs**_ by a _**belief model**_.
-- **No Scoped Beliefs.** A fact several components need is a _**Belief**_; anything else is a component's execution state.
+- **Shared facts are _Beliefs_.** A fact several components need is a _**Belief**_; anything else is a component's execution state.
 - **_Beliefs_ are not _Assessments_.** _**Beliefs**_ say what is, or is probably, true. What that means for the bot belongs to _**Assessments**_ ([section 4.4](#44-assessments)).
 
 **Navigation** is the _**Knowledge**_ function every part uses to move around the map. It reads only the bot's own information, never Warcraft: the map as built from _**Knowledge**_, the map as believed now from _**Beliefs**_, and the danger of each region from the _**danger assessment**_. It answers three questions:
@@ -199,7 +183,7 @@ Navigation plans only from region to region. Between waypoints, Warcraft's own p
 
 ### 4.4 Assessments
 
-_**Beliefs**_ say what is, or is probably, true. **_Assessments_ say what it means for the bot.** Five Footmen at the Wisps are a fact. Whether they are a serious threat depends on what defends the Wisps: two Archers, or a ring of Ancient Protectors. That judgment is an _**assessment**_. The distinction is the adopted architecture's: "Belief is not assessment".
+_**Beliefs**_ say what is, or is probably, true. **_Assessments_ say what it means for the bot.** Five Footmen at the Wisps are a fact. Whether they are a serious threat depends on what defends the Wisps: two Archers, or a ring of Ancient Protectors. That judgment is an _**assessment**_.
 
 | Assessment        | Says                                                                                                                                                                                                                            | Read by                                                                                                                              |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -365,7 +349,7 @@ _**Plan runs**_ are small, explicit state machines. A run:
 - monitors its own progress: it has an expected progress and a stall timeout, after which it repairs itself, changes its steps, or fails;
 - reports its _**interruption cost**_: what interrupting it now would waste ([section 4.8](#48-allocation)). A step that must not be interrupted at all, such as a Town Portal about to take effect or a purchase being made, marks itself _**uninterruptible**_ for a bounded time.
 
-**Needs change over an _Intention_'s life.** Its current _**plan run**_ declares them anew every round, so they follow the run's progress and change when the runtime switches _**plans**_: HireHero needs nothing at first, then a Wisp, then the hero's gold and food ([walkthrough 6.2](../research/rts-behavior-architecture.md#62-buying-the-second-hero)). Each step, the run receives its force, the units and money _**Allocation**_ last granted for those _**needs**_, as an argument, and returns _**Directives**_ rather than calling a capability. That makes it data in and data out.
+**Needs change over an _Intention_'s life.** Its current _**plan run**_ declares them anew every round, so they follow the run's progress and change when the runtime switches _**plans**_: HireHero needs nothing at first, then a Wisp, then the hero's gold and food ([walkthrough 6.2](../research/rts-behavior-architecture.md#62-buying-the-second-hero)). Each step, the run receives its force, the units and money _**Allocation**_ last granted for those _**needs**_, as an argument, and returns _**Directives**_. That makes it data in and data out.
 
 ```ts
 // An Intention kind (sketch).
@@ -717,16 +701,3 @@ Each part answers a question nothing else answers:
 - **_Tactics_.** Without them, every _**plan**_ reimplements fighting.
 - **_Unit Behaviors_.** Without them, every _**Tactic**_ reimplements every unit's micro and _**reflexes**_.
 - **The _decision record_.** Without it, behavior can be watched but neither explained nor asserted.
-
-What was removed answered questions the remaining parts already answer:
-
-| Removed              | Now answered by                                                  |
-| -------------------- | ---------------------------------------------------------------- |
-| Actor Control        | _**Allocation**_ and _**reflexes**_                              |
-| Scoped Beliefs       | one world model plus execution state                             |
-| The component tree   | plain ownership                                                  |
-| Desire supports      | _**proposals**_ asked each cycle                                 |
-| Capability providers | arguments and returned _**Directives**_                          |
-| Intention Scheduling | the _**agenda**_ and _**Allocation**_                            |
-| Command Arbitration  | each _**Unit Behavior**_, the single decision point for its unit |
-| Execution roles      | _**Directives**_                                                 |
