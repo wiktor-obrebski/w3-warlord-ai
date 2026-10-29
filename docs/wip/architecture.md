@@ -239,7 +239,15 @@ _**Desires**_ come from three sources, asked every _**deliberation**_ cycle:
 
 **A _proposal_ carries a _rank_, a _weight_, and a reason.**
 
-- _**Rank**_ is the category: _**Survival**_, _**Emergency**_, _**Game plan**_, _**Opportunity**_, or _**Background**_.
+- _**Rank**_ is the category. There are five, each with a fixed meaning, from the highest:
+  - _**Survival**_: a lethal threat, one that could destroy a base, such as a tower rush that could kill the main base;
+  - _**Emergency**_: a serious threat, whose losses would outweigh anything the game plan gains meanwhile, such as five Footmen at the Wisps that two Archers cannot hold;
+  - _**Game plan**_: what the committed strategy pursues, and whatever is weighed against it in gold, such as a small threat;
+  - _**Opportunity**_: a short-lived gain the strategy did not plan for, taken with what the game plan does not need;
+  - _**Background**_: upkeep that is never urgent, done with whatever is left.
+
+  A higher _**rank**_ always comes first on the _**agenda**_, whatever the _**weights**_.
+
 - _**Weight**_ is the value within the _**rank**_, in gold, computed at runtime from _**Beliefs**_ and _**Assessments**_. A _**weight**_ of 0 vetoes the _**proposal**_.
 - A _**Desire**_ takes its best _**proposal**_: the highest _**rank**_, then the highest _**weight**_.
 - **Each proposer picks the _rank_ for the situation.**
