@@ -2,7 +2,7 @@
 
 **Chain of Command** is a BDI architecture for real-time strategy: how the WC3 Warlord AI knows, wants, commits, and acts. The [overview](architecture-overview.md) is its short version.
 
-[Testability](architecture-testability.md) has a document of its own. Terms of the architecture are set in _**bold italics**_.
+[Testability](architecture-testability.md) and [risks](architecture-risks.md) have documents of their own. Terms of the architecture are set in _**bold italics**_.
 
 ## 1. Summary
 
@@ -63,7 +63,7 @@ The [scenario analysis](../research/rts-scenario-analysis.md#2-requirements-from
 | R12: Strategy as an adaptable game plan                                                                                                                      | _**Playbooks**_: phases, an _**opening book**_, production goals, _**adaptations**_ (4.11)                                                                            |
 | R13: Explainability                                                                                                                                          | A reason with every decision and every _**assessment**_, kept in the _**decision record**_ (4.4, 4.14)                                                                |
 | R14: Testability. Scenarios are easy to set up; wide behavioral tests cover everything except the Warcraft III integration; end-to-end tests run in the game | Two plain-data boundaries, injected inputs, one root per game, the _**decision record**_ (4.1; [testability](architecture-testability.md))                            |
-| R15: Bounded work. Lua inside the game's own thread, up to about a hundred own units, a 0.1 s tick                                                           | A pace for each kind of work, and costs measured in the game (4.13, risk 4)                                                                                           |
+| R15: Bounded work. Lua inside the game's own thread, up to about a hundred own units, a 0.1 s tick                                                           | A pace for each kind of work, and costs measured in the game (4.13, [risk 4](architecture-risks.md))                                                                  |
 | R16: Maintainability. Every decision has one home, game plans read as data, no framework grows beyond a demonstrated need                                    | One home per behavior ([where a new behavior goes](#5-where-a-new-behavior-goes)), _**playbooks**_ as data, a small generic runtime (4.7, 4.11)                       |
 | R17: Fair information. Reasoning sees only what a player could see                                                                                           | _**Perception**_, the only reader of Warcraft, filters by visibility; _**Beliefs**_ hold _**contacts**_, not enemy units (4.1, 4.3)                                   |
 | R18: Static _**knowledge**_ prepared offline. Everything deducible from the map and game files comes from build-time tooling                                 | _**Knowledge**_ supplied when the _**mind**_ is created, read through pure functions (4.3)                                                                            |
@@ -664,7 +664,7 @@ _**Belief**_ quality can be measured offline, because a test harness knows the g
 | Enemy _**strategy recognition**_                      | every few seconds | a new enemy building type seen                                         |
 | _**Assessments**_: threats, danger, relative strength | 1–2 s             | enemies seen near own assets                                           |
 
-With 10 to 20 units in a typical army, and about 50 at most, the paces alone should keep a tick cheap. That is measured early in the game rather than assumed ([risk 4](../research/rts-behavior-architecture.md#10-risks-and-open-questions)). Should ticks ever run long, work can be scheduled more carefully ([ideas](../research/rts-ideas.md#5-scheduling-work-within-the-budget)); PurpleWave's frame-time overruns are the cautionary example.
+With 10 to 20 units in a typical army, and about 50 at most, the paces alone should keep a tick cheap. That is measured early in the game rather than assumed ([risk 4](architecture-risks.md)). Should ticks ever run long, work can be scheduled more carefully ([ideas](../research/rts-ideas.md#5-scheduling-work-within-the-budget)); PurpleWave's frame-time overruns are the cautionary example.
 
 ### 4.14 The decision record
 
