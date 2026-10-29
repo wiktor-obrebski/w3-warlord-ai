@@ -1,12 +1,12 @@
 import { Point, Vector } from '@lib/math';
 import type { UnitId } from '../../../contracts/ids';
 import type { OwnUnit, VisibleEnemy } from '../../../contracts/world';
-import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
+import type { Beliefs } from '../../../contracts/beliefs';
 
 export { nearbyThreats, threatCenter, isRecentlyAttacked };
 
 interface NearbyThreatsArgs {
-  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
   position: Point;
 }
 
@@ -18,7 +18,7 @@ function nearbyThreats({
   beliefs,
   position,
 }: NearbyThreatsArgs): VisibleEnemy[] {
-  return beliefs.visibleEnemies.filter(
+  return beliefs.enemy.visibleUnits.filter(
     (enemy) =>
       (enemy.isUprootedAncient ||
         (!enemy.isStructure &&
@@ -30,7 +30,7 @@ function nearbyThreats({
 }
 
 interface ThreatCenterArgs {
-  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
   worker: OwnUnit;
 }
 
@@ -47,7 +47,7 @@ function threatCenter({
   const reference =
     nearby.length > 0
       ? nearby
-      : beliefs.visibleEnemies.filter(
+      : beliefs.enemy.visibleUnits.filter(
           (enemy) =>
             recentAttackTarget({ beliefs, attacker: enemy.unit }) ===
             worker.unit
@@ -59,7 +59,7 @@ function threatCenter({
 }
 
 interface IsRecentlyAttackedArgs {
-  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
   attackedUnit: UnitId;
 }
 
@@ -68,7 +68,7 @@ function isRecentlyAttacked({
   beliefs,
   attackedUnit,
 }: IsRecentlyAttackedArgs): boolean {
-  return beliefs.recentAttacks.some(
+  return beliefs.self.recentAttacks.some(
     (attack) => attack.attackedUnit === attackedUnit
   );
 }
@@ -96,7 +96,7 @@ function averagePosition({ enemies }: AveragePositionArgs): Point {
 }
 
 interface RecentAttackTargetArgs {
-  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
   attacker: UnitId;
 }
 
@@ -105,6 +105,7 @@ function recentAttackTarget({
   beliefs,
   attacker,
 }: RecentAttackTargetArgs): UnitId | undefined {
-  return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
-    ?.attackedUnit;
+  return beliefs.self.recentAttacks.find(
+    (attack) => attack.attacker === attacker
+  )?.attackedUnit;
 }

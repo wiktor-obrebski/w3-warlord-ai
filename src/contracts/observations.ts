@@ -11,7 +11,12 @@ import type {
   VisibleEnemy,
 } from './world';
 
-export { type Observations, type ObservedWorld };
+export {
+  type Observations,
+  type ObservedWorld,
+  type ObservedSelf,
+  type ObservedEnemy,
+};
 
 /** What Perception reports each tick: all the mind learns about the game. */
 interface Observations {
@@ -25,16 +30,20 @@ interface Observations {
 interface ObservedWorld {
   // Game seconds since the bot started playing.
   readonly time: number;
-  readonly ownRace: Race;
-  readonly ownStartPosition: Point;
   // Every start location of the map but the bot's own; which of them the
   // enemies started at is not observed.
   readonly otherStartLocations: readonly StartLocation[];
-  // Enemy players still in the game; a defeated player is no longer counted.
-  readonly enemyPlayersPlaying: number;
+  readonly self: ObservedSelf;
+  readonly enemy: ObservedEnemy;
+}
+
+/** The bot's own player, its units, and its home. */
+interface ObservedSelf {
+  readonly race: Race;
+  readonly startPosition: Point;
 
   // Every living unit of the bot, including buildings.
-  readonly ownUnits: ReadonlyMap<UnitId, OwnUnit>;
+  readonly units: ReadonlyMap<UnitId, OwnUnit>;
   // Living units with the worker classification.
   readonly workers: readonly OwnUnit[];
   readonly townHall?: UnitId;
@@ -54,10 +63,14 @@ interface ObservedWorld {
   readonly buildingsUnderConstruction: readonly UnitId[];
   readonly buildingsUpgrading: readonly UnitId[];
 
-  readonly visibleEnemies: readonly VisibleEnemy[];
-
   readonly gold: number;
   readonly lumber: number;
   readonly homeGoldMine?: GoldMine;
   readonly destructablesNearHomeByDistance: readonly HomeDestructable[];
+}
+
+interface ObservedEnemy {
+  // Enemy players still in the game; a defeated player is no longer counted.
+  readonly playersPlaying: number;
+  readonly visibleUnits: readonly VisibleEnemy[];
 }

@@ -1,7 +1,7 @@
 # Contracts
 
-The type-only vocabulary of the Warlord domain, shared by every layer: the ids naming units and destructables, what crosses the boundaries between Warcraft and the mind (observations, orders, the probes, the decision record), the shape of Warlord components, what an Actor is and how actor control is requested, the outcomes the bot can desire, records describing observed game objects, and similar stable types.
+The type-only vocabulary of the Warlord domain, shared by every layer: the ids naming units and destructables, what crosses the boundaries between Warcraft and the mind (observations, orders, the probes, the decision record), the Beliefs, the shape of Warlord components, what an Actor is and how actor control is requested, the outcomes the bot can desire, records describing observed game objects, and similar stable types.
 
-Contracts describe the domain; they are not the bot's knowledge about it. Belief types, such as `CommonBeliefs`, a component's declaration of the Common Beliefs it needs, or its Scoped Beliefs, stay with the code that maintains or reads them, even when several components need the same fact.
+The Beliefs are the bot's one world model, which every part of the mind reads, so their type is a contract; the belief models maintaining them live in `beliefs/`. What a single component remembers is its execution state and stays with it.
 
 Only types belong here, so modules use `import type` for contracts. Behavior built on them, such as the actor control policy, lives elsewhere, here in `capabilities/actor-control/`.

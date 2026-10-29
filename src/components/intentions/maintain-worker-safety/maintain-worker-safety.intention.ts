@@ -1,10 +1,10 @@
 import { ChildFactory, childFactory } from '@lib/bdi';
 import type { Random } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { Beliefs } from '../../../contracts/beliefs';
 import type {
   AssembledChildren,
   AssembledWarlordComponent,
-  WarlordBeliefs,
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
@@ -13,7 +13,6 @@ import type { WarlordDesire } from '../../../contracts/desires';
 import type { OrderQueue } from '../../../contracts/orders';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
-import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import { assembleWorkerSafetyController } from './worker-safety.ctrl';
 
 export {
@@ -33,19 +32,10 @@ interface AssembleMaintainWorkerSafetyIntentionArgs {
   capabilities: MaintainWorkerSafetyCapabilities;
 }
 
-/**
- * Assembles worker safety for a bot whose Common Beliefs are
- * `TCommonBeliefs`, which must provide what worker safety needs to know.
- */
-function assembleMaintainWorkerSafetyIntention<
-  TCommonBeliefs extends MaintainWorkerSafetyCommonBeliefs,
->({
+function assembleMaintainWorkerSafetyIntention({
   capabilities,
-}: AssembleMaintainWorkerSafetyIntentionArgs): AssembledWarlordComponent<
-  WarlordIntention<TCommonBeliefs>,
-  TCommonBeliefs
-> {
-  const children: AssembledChildren<TCommonBeliefs> = [];
+}: AssembleMaintainWorkerSafetyIntentionArgs): AssembledWarlordComponent<WarlordIntention> {
+  const children: AssembledChildren = [];
 
   return {
     component: new MaintainWorkerSafetyIntention({
@@ -67,20 +57,19 @@ function assembleMaintainWorkerSafetyIntention<
   };
 }
 
-type WorkerSafetyController =
-  WarlordController<MaintainWorkerSafetyCommonBeliefs>;
+type WorkerSafetyController = WarlordController;
 
 interface MaintainWorkerSafetyIntentionConstructorArgs {
   createWorkerSafetyController: ChildFactory<WorkerSafetyController>;
 }
 
 interface MaintainWorkerSafetyIntentionUpdateArgs {
-  beliefs: WarlordBeliefs<MaintainWorkerSafetyCommonBeliefs>;
-  updateChild: WarlordUpdateChild<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
+  updateChild: WarlordUpdateChild;
 }
 
 /** Keeps attacked workers out of harm's way, every bot tick. */
-class MaintainWorkerSafetyIntention implements WarlordIntention<MaintainWorkerSafetyCommonBeliefs> {
+class MaintainWorkerSafetyIntention implements WarlordIntention {
   private readonly createWorkerSafetyController: ChildFactory<WorkerSafetyController>;
   private workerSafety: WorkerSafetyController | null = null;
 

@@ -1,13 +1,12 @@
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { Beliefs } from '../../../contracts/beliefs';
 import type { UnitId } from '../../../contracts/ids';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type {
   AssembledWarlordComponent,
-  WarlordBeliefs,
   WarlordController,
 } from '../../../contracts/component';
-import type { OperateTowersCommonBeliefs } from './operate-towers.common-beliefs';
 import {
   RankedTarget,
   rankTowerTargets,
@@ -22,10 +21,7 @@ interface AssembleTowerTargetSelectionControllerArgs {
 
 function assembleTowerTargetSelectionController({
   capabilities,
-}: AssembleTowerTargetSelectionControllerArgs): AssembledWarlordComponent<
-  WarlordController<OperateTowersCommonBeliefs>,
-  OperateTowersCommonBeliefs
-> {
+}: AssembleTowerTargetSelectionControllerArgs): AssembledWarlordComponent<WarlordController> {
   return {
     component: new TowerTargetSelectionController({ capabilities }),
     children: [],
@@ -51,13 +47,13 @@ interface TowerTargetSelectionControllerConstructorArgs {
 }
 
 interface TowerTargetSelectionControllerUpdateArgs {
-  beliefs: WarlordBeliefs<OperateTowersCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 interface TowerTargetSelectionControllerAttackBestTargetInRangeArgs {
   tower: UnitId;
   rankedTargets: readonly RankedTarget[];
-  beliefs: Readonly<OperateTowersCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 interface TowerTargetSelectionControllerRememberTowerTargetArgs {
@@ -69,7 +65,7 @@ interface TowerTargetSelectionControllerRememberTowerTargetArgs {
  * Targets are ranked once for all Guard Towers; each tower then attacks the
  * best one within its own range, so overlapping towers focus the same target.
  */
-class TowerTargetSelectionController implements WarlordController<OperateTowersCommonBeliefs> {
+class TowerTargetSelectionController implements WarlordController {
   private readonly capabilities: TowerTargetSelectionControllerCapabilities;
   // The last attack order of each Guard Tower, so it is not re-issued while
   // the tower is still carrying it out.
@@ -81,16 +77,14 @@ class TowerTargetSelectionController implements WarlordController<OperateTowersC
     this.capabilities = capabilities;
   }
 
-  public update({
-    beliefs: { commonBeliefs: beliefs },
-  }: TowerTargetSelectionControllerUpdateArgs) {
+  public update({ beliefs }: TowerTargetSelectionControllerUpdateArgs) {
     const rankedTargets = rankTowerTargets({ beliefs });
 
     this.towerTargets = this.towerTargets.filter((towerTarget) =>
-      beliefs.guardTowers.includes(towerTarget.tower)
+      beliefs.self.guardTowers.includes(towerTarget.tower)
     );
 
-    for (const tower of beliefs.guardTowers) {
+    for (const tower of beliefs.self.guardTowers) {
       if (
         this.capabilities.actorControl.request({
           actor: tower,
@@ -114,7 +108,7 @@ class TowerTargetSelectionController implements WarlordController<OperateTowersC
     const currentAttackTarget = this.towerTargets.find(
       (towerTarget) => towerTarget.tower === tower
     )?.attackTarget;
-    const towerBusy = !beliefs.idleUnits.includes(tower);
+    const towerBusy = !beliefs.self.idleUnits.includes(tower);
 
     for (const { enemy, priority } of rankedTargets) {
       if (

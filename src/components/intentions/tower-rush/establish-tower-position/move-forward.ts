@@ -3,7 +3,7 @@ import type { ActorControl } from '../../../../contracts/actor-control';
 import type { UnitId } from '../../../../contracts/ids';
 import type { OrderQueue } from '../../../../contracts/orders';
 import type { GoldMine } from '../../../../contracts/world';
-import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
+import type { Beliefs } from '../../../../contracts/beliefs';
 import { TowerRushState } from '../tower-rush.state';
 import { positionOf } from '../tower-rush.assessments';
 
@@ -19,7 +19,7 @@ function createMoveForwardState(): MoveForwardState {
 }
 
 interface UpdateMoveForwardArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   moveForwardState: MoveForwardState;
   actorControl: ActorControl;
@@ -34,7 +34,7 @@ function updateMoveForward({
   actorControl,
   orders,
 }: UpdateMoveForwardArgs): { arrived: boolean } {
-  const destination = beliefs.enemyMainGoldMine;
+  const destination = beliefs.enemy.mainGoldMine;
 
   if (!destination) {
     throw new Error('Tower rush: enemy main gold mine not found.');
@@ -42,7 +42,7 @@ function updateMoveForward({
 
   const controlled = rush.forwardWorkers.filter(
     (worker) =>
-      beliefs.ownUnits.has(worker) &&
+      beliefs.self.units.has(worker) &&
       actorControl.request({ actor: worker, request: 'normal' })
   );
 
@@ -75,7 +75,7 @@ const ArrivalRadius = 400;
 
 interface SendNewMilitiaToEnemyArgs {
   destination: GoldMine;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   moveForwardState: MoveForwardState;
   controlled: readonly UnitId[];
   orders: OrderQueue;
@@ -93,7 +93,7 @@ function sendNewMilitiaToEnemy({
 }: SendNewMilitiaToEnemyArgs) {
   for (const worker of controlled) {
     if (
-      beliefs.militia.includes(worker) &&
+      beliefs.self.militia.includes(worker) &&
       !moveForwardState.forwardWorkersSentToEnemy.includes(worker)
     ) {
       orders.queue({
@@ -112,7 +112,7 @@ function sendNewMilitiaToEnemy({
 
 interface HoldArrivedMilitiaArgs {
   destination: GoldMine;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   moveForwardState: MoveForwardState;
   controlled: readonly UnitId[];
   orders: OrderQueue;
@@ -130,7 +130,7 @@ function holdArrivedMilitia({
   for (const worker of moveForwardState.forwardWorkersSentToEnemy) {
     if (
       controlled.includes(worker) &&
-      beliefs.militia.includes(worker) &&
+      beliefs.self.militia.includes(worker) &&
       !moveForwardState.forwardWorkersHoldingPosition.includes(worker) &&
       new Vector({
         start: positionOf({ beliefs, unit: worker }),
@@ -157,7 +157,7 @@ function holdArrivedMilitia({
 }
 
 interface ForwardWorkersHaveRevertedToPeasantsArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   moveForwardState: MoveForwardState;
 }
@@ -169,7 +169,8 @@ function forwardWorkersHaveRevertedToPeasants({
 }: ForwardWorkersHaveRevertedToPeasantsArgs): boolean {
   const survivingForwardWorkers = rush.forwardWorkers.filter(
     (worker) =>
-      beliefs.peasants.includes(worker) || beliefs.militia.includes(worker)
+      beliefs.self.peasants.includes(worker) ||
+      beliefs.self.militia.includes(worker)
   );
 
   return (
@@ -177,7 +178,7 @@ function forwardWorkersHaveRevertedToPeasants({
     survivingForwardWorkers.every(
       (worker) =>
         moveForwardState.forwardWorkersSentToEnemy.includes(worker) &&
-        beliefs.peasants.includes(worker)
+        beliefs.self.peasants.includes(worker)
     )
   );
 }

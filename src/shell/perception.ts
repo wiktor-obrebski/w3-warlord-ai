@@ -268,40 +268,47 @@ function observeWorld({
 
   return {
     time: readGameClock({ clock }),
-    ownRace: raceOf({ whichPlayer: bot }),
-    ownStartPosition,
     otherStartLocations: otherStartLocations({ ownStartLocation, handles }),
-    enemyPlayersPlaying: enemies.length,
-    ownUnits,
-    workers,
-    townHall,
-    peasants,
-    militia,
-    idleUnits,
-    harvestingUnits,
-    holdingPositionUnits,
-    repairingUnits,
-    scoutTowerBuildOrderUnits,
-    scoutTowers,
-    guardTowers,
-    lumberMills,
-    buildingsUnderConstruction,
-    buildingsUpgrading,
-    visibleEnemies: visibleEnemies({ bot, enemies, handles }),
-    gold: W3PlayerApi.GetPlayerState(
-      bot,
-      W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD
-    ),
-    lumber: W3PlayerApi.GetPlayerState(
-      bot,
-      W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER
-    ),
-    homeGoldMine: findClosestGoldMine({ position: ownStartPosition, handles }),
-    destructablesNearHomeByDistance: destructablesByDistance({
-      position: ownStartPosition,
-      radius: HomeDestructableSearchRadius,
-      handles,
-    }),
+    self: {
+      race: raceOf({ whichPlayer: bot }),
+      startPosition: ownStartPosition,
+      units: ownUnits,
+      workers,
+      townHall,
+      peasants,
+      militia,
+      idleUnits,
+      harvestingUnits,
+      holdingPositionUnits,
+      repairingUnits,
+      scoutTowerBuildOrderUnits,
+      scoutTowers,
+      guardTowers,
+      lumberMills,
+      buildingsUnderConstruction,
+      buildingsUpgrading,
+      gold: W3PlayerApi.GetPlayerState(
+        bot,
+        W3PlayerApi.PLAYER_STATE_RESOURCE_GOLD
+      ),
+      lumber: W3PlayerApi.GetPlayerState(
+        bot,
+        W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER
+      ),
+      homeGoldMine: findClosestGoldMine({
+        position: ownStartPosition,
+        handles,
+      }),
+      destructablesNearHomeByDistance: destructablesByDistance({
+        position: ownStartPosition,
+        radius: HomeDestructableSearchRadius,
+        handles,
+      }),
+    },
+    enemy: {
+      playersPlaying: enemies.length,
+      visibleUnits: visibleEnemies({ bot, enemies, handles }),
+    },
   };
 }
 

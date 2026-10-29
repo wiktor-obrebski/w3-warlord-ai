@@ -5,12 +5,11 @@ import type { OrderQueue } from '../../../contracts/orders';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { OwnUnit } from '../../../contracts/world';
+import type { Beliefs } from '../../../contracts/beliefs';
 import type {
   AssembledWarlordComponent,
-  WarlordBeliefs,
   WarlordController,
 } from '../../../contracts/component';
-import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import {
   isRecentlyAttacked,
   nearbyThreats,
@@ -25,10 +24,7 @@ interface AssembleWorkerSafetyControllerArgs {
 
 function assembleWorkerSafetyController({
   capabilities,
-}: AssembleWorkerSafetyControllerArgs): AssembledWarlordComponent<
-  WarlordController<MaintainWorkerSafetyCommonBeliefs>,
-  MaintainWorkerSafetyCommonBeliefs
-> {
+}: AssembleWorkerSafetyControllerArgs): AssembledWarlordComponent<WarlordController> {
   return {
     component: new WorkerSafetyController({ capabilities }),
     children: [],
@@ -63,20 +59,20 @@ interface WorkerSafetyControllerConstructorArgs {
 }
 
 interface WorkerSafetyControllerUpdateArgs {
-  beliefs: WarlordBeliefs<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 interface WorkerSafetyControllerRememberAttacksArgs {
-  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 interface WorkerSafetyControllerProtectWorkerArgs {
   worker: OwnUnit;
-  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 interface WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs {
-  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 /**
@@ -87,7 +83,7 @@ interface WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs {
  * releases it by no longer requesting it. While recovering, the worker is not
  * ordered at all.
  */
-class WorkerSafetyController implements WarlordController<MaintainWorkerSafetyCommonBeliefs> {
+class WorkerSafetyController implements WarlordController {
   private readonly capabilities: WorkerSafetyControllerCapabilities;
   private readonly fleeRounds = new Map<UnitId, FleeRound>();
   // When each worker attacked within the last SafeAfterAttackSeconds was
@@ -98,12 +94,10 @@ class WorkerSafetyController implements WarlordController<MaintainWorkerSafetyCo
     this.capabilities = capabilities;
   }
 
-  public update({
-    beliefs: { commonBeliefs: beliefs },
-  }: WorkerSafetyControllerUpdateArgs) {
+  public update({ beliefs }: WorkerSafetyControllerUpdateArgs) {
     this.rememberAttacks({ beliefs });
 
-    for (const worker of beliefs.workers) {
+    for (const worker of beliefs.self.workers) {
       const isUnsafe =
         this.fleeRounds.has(worker.unit) ||
         this.lastAttackedAt.has(worker.unit);
@@ -127,7 +121,7 @@ class WorkerSafetyController implements WarlordController<MaintainWorkerSafetyCo
   private rememberAttacks({
     beliefs,
   }: WorkerSafetyControllerRememberAttacksArgs) {
-    for (const worker of beliefs.workers) {
+    for (const worker of beliefs.self.workers) {
       if (isRecentlyAttacked({ beliefs, attackedUnit: worker.unit })) {
         this.lastAttackedAt.set(worker.unit, beliefs.time);
       }
@@ -209,7 +203,9 @@ class WorkerSafetyController implements WarlordController<MaintainWorkerSafetyCo
 
     for (const worker of this.fleeRounds.keys()) {
       if (
-        !beliefs.workers.some((livingWorker) => livingWorker.unit === worker)
+        !beliefs.self.workers.some(
+          (livingWorker) => livingWorker.unit === worker
+        )
       ) {
         lostWorkers.push(worker);
       }
@@ -270,7 +266,7 @@ function stopFleeing({ worker, orders }: StopFleeingArgs) {
 
 interface NextFleeRoundArgs {
   worker: OwnUnit;
-  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  beliefs: Beliefs;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;

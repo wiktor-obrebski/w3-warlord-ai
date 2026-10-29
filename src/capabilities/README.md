@@ -6,4 +6,4 @@ Each capability is its own module, `capabilities/<capability>/`. Components neve
 
 Desire expression reaches Intentions the same way but is not implemented here: it is part of the bot's Option Generation, created in `desires/`.
 
-A capability that needs Beliefs takes them as an argument, typed by its own declaration of what it needs, rather than reaching for the bot's belief state. It reads nothing from Warcraft: like everything in the mind, it learns about the game only from Perception, through the Beliefs it is given.
+A capability that needs Beliefs takes them as an argument rather than reaching for the bot's belief state. It reads nothing from Warcraft: like everything in the mind, it learns about the game only from Perception, through the Beliefs it is given.

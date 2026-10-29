@@ -1,9 +1,9 @@
 import { ChildFactory, childFactory } from '@lib/bdi';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { Beliefs } from '../../../contracts/beliefs';
 import type {
   AssembledChildren,
   AssembledWarlordComponent,
-  WarlordBeliefs,
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
@@ -12,7 +12,6 @@ import type { WarlordDesire } from '../../../contracts/desires';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { UpdateInterval } from '../update-interval';
-import type { OperateTowersCommonBeliefs } from './operate-towers.common-beliefs';
 import { assembleTowerTargetSelectionController } from './tower-target-selection.ctrl';
 
 export { assembleOperateTowersIntention, type OperateTowersCapabilities };
@@ -27,20 +26,10 @@ interface AssembleOperateTowersIntentionArgs {
   capabilities: OperateTowersCapabilities;
 }
 
-/**
- * Assembles tower operation for a bot whose Common Beliefs are
- * `TCommonBeliefs`, which must provide what operating the towers needs to
- * know.
- */
-function assembleOperateTowersIntention<
-  TCommonBeliefs extends OperateTowersCommonBeliefs,
->({
+function assembleOperateTowersIntention({
   capabilities,
-}: AssembleOperateTowersIntentionArgs): AssembledWarlordComponent<
-  WarlordIntention<TCommonBeliefs>,
-  TCommonBeliefs
-> {
-  const children: AssembledChildren<TCommonBeliefs> = [];
+}: AssembleOperateTowersIntentionArgs): AssembledWarlordComponent<WarlordIntention> {
+  const children: AssembledChildren = [];
 
   return {
     component: new OperateTowersIntention({
@@ -62,19 +51,19 @@ function assembleOperateTowersIntention<
 
 const UpdateSeconds = 1;
 
-type OperateTowersController = WarlordController<OperateTowersCommonBeliefs>;
+type OperateTowersController = WarlordController;
 
 interface OperateTowersIntentionConstructorArgs {
   createTargetSelection: ChildFactory<OperateTowersController>;
 }
 
 interface OperateTowersIntentionUpdateArgs {
-  beliefs: WarlordBeliefs<OperateTowersCommonBeliefs>;
-  updateChild: WarlordUpdateChild<OperateTowersCommonBeliefs>;
+  beliefs: Beliefs;
+  updateChild: WarlordUpdateChild;
 }
 
 /** Directs the fire of the bot's Guard Towers. */
-class OperateTowersIntention implements WarlordIntention<OperateTowersCommonBeliefs> {
+class OperateTowersIntention implements WarlordIntention {
   private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
   private readonly createTargetSelection: ChildFactory<OperateTowersController>;
   private targetSelection: OperateTowersController | null = null;
@@ -86,7 +75,7 @@ class OperateTowersIntention implements WarlordIntention<OperateTowersCommonBeli
   }
 
   public update({ beliefs, updateChild }: OperateTowersIntentionUpdateArgs) {
-    if (this.interval.claim({ now: beliefs.commonBeliefs.time })) {
+    if (this.interval.claim({ now: beliefs.time })) {
       this.targetSelection ??= this.createTargetSelection().component;
       updateChild({ child: this.targetSelection });
     }

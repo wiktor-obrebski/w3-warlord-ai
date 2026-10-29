@@ -1,15 +1,14 @@
 import { PlanStatus } from '@lib/bdi';
 import { Point, Random } from '@lib/math';
 import type { ActorControl } from '../../../../contracts/actor-control';
+import type { Beliefs } from '../../../../contracts/beliefs';
 import type { OrderQueue } from '../../../../contracts/orders';
 import type { WarcraftProbes } from '../../../../contracts/probes';
 import type { DecisionRecorder } from '../../../../contracts/record';
 import type {
   AssembledWarlordComponent,
-  WarlordBeliefs,
   WarlordPlan,
 } from '../../../../contracts/component';
-import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { TowerRushState } from '../tower-rush.state';
 import { updateStart } from './start';
 import { createMoveForwardState, updateMoveForward } from './move-forward';
@@ -26,7 +25,7 @@ export { type EstablishTowerPositionPlan, assembleEstablishTowerPositionPlan };
  * Each step requests the Actors it orders, so the plan's control moves with
  * the step: e.g. the forward Peasants are released once the towers are built.
  */
-interface EstablishTowerPositionPlan extends WarlordPlan<TowerRushCommonBeliefs> {
+interface EstablishTowerPositionPlan extends WarlordPlan {
   /** Whether building the rush towers has finished. */
   readonly towersBuilt: boolean;
 }
@@ -39,10 +38,7 @@ interface AssembleEstablishTowerPositionPlanArgs {
 function assembleEstablishTowerPositionPlan({
   rush,
   capabilities,
-}: AssembleEstablishTowerPositionPlanArgs): AssembledWarlordComponent<
-  EstablishTowerPositionPlan,
-  TowerRushCommonBeliefs
-> {
+}: AssembleEstablishTowerPositionPlanArgs): AssembledWarlordComponent<EstablishTowerPositionPlan> {
   return {
     component: new EstablishTowerPosition({ rush, capabilities }),
     children: [],
@@ -70,7 +66,7 @@ interface EstablishTowerPositionConstructorArgs {
 }
 
 interface EstablishTowerPositionUpdateArgs {
-  beliefs: WarlordBeliefs<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 class EstablishTowerPosition implements EstablishTowerPositionPlan {
@@ -99,9 +95,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
     return this.step === STEP.UPGRADE_TOWERS;
   }
 
-  public update({
-    beliefs: { commonBeliefs: beliefs },
-  }: EstablishTowerPositionUpdateArgs) {
+  public update({ beliefs }: EstablishTowerPositionUpdateArgs) {
     if (this.currentStatus !== 'running') {
       throw new Error('Establish tower position: updated after it ended.');
     }

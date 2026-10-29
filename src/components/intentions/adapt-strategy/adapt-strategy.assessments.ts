@@ -1,5 +1,5 @@
+import type { Beliefs } from '../../../contracts/beliefs';
 import type { Strategy } from '../../../contracts/strategy';
-import type { AdaptStrategyCommonBeliefs } from './adapt-strategy.common-beliefs';
 
 export { type StrategyPreference, preferredStrategy };
 
@@ -10,7 +10,7 @@ interface StrategyPreference {
 }
 
 interface PreferredStrategyArgs {
-  beliefs: AdaptStrategyCommonBeliefs;
+  beliefs: Beliefs;
 }
 
 /**
@@ -21,11 +21,11 @@ interface PreferredStrategyArgs {
 function preferredStrategy({
   beliefs,
 }: PreferredStrategyArgs): StrategyPreference {
-  if (beliefs.ownRace !== 'Human') {
+  if (beliefs.self.race !== 'Human') {
     return { strategy: null, reason: 'no strategy for this race' };
   }
 
-  if (!beliefs.enemyStartPosition) {
+  if (!beliefs.enemy.startPosition) {
     return { strategy: null, reason: 'the enemy start is unknown' };
   }
 

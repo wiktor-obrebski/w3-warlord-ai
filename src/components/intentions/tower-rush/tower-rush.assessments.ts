@@ -1,7 +1,7 @@
 import { Point, Vector } from '@lib/math';
 import type { UnitId } from '../../../contracts/ids';
 import type { HomeDestructable, OwnUnit } from '../../../contracts/world';
-import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
+import type { Beliefs } from '../../../contracts/beliefs';
 
 export {
   RUSH_TOWER_COUNT,
@@ -21,21 +21,21 @@ export {
 const RUSH_TOWER_COUNT = 3;
 
 interface AllRushTowersBuiltArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 /** Whether every rush tower has been placed and finished construction. */
 function allRushTowersBuilt({ beliefs }: AllRushTowersBuiltArgs): boolean {
   return (
-    beliefs.scoutTowers.length >= RUSH_TOWER_COUNT &&
-    beliefs.scoutTowers.every(
-      (tower) => !beliefs.buildingsUnderConstruction.includes(tower)
+    beliefs.self.scoutTowers.length >= RUSH_TOWER_COUNT &&
+    beliefs.self.scoutTowers.every(
+      (tower) => !beliefs.self.buildingsUnderConstruction.includes(tower)
     )
   );
 }
 
 interface RushTowersAtLeastArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   lifeFraction: number;
 }
 
@@ -48,15 +48,15 @@ function rushTowersAtLeast({
   lifeFraction,
 }: RushTowersAtLeastArgs): boolean {
   return (
-    beliefs.scoutTowers.length >= RUSH_TOWER_COUNT &&
-    beliefs.scoutTowers.every(
+    beliefs.self.scoutTowers.length >= RUSH_TOWER_COUNT &&
+    beliefs.self.scoutTowers.every(
       (tower) => lifeFractionOf({ beliefs, unit: tower }) >= lifeFraction
     )
   );
 }
 
 interface IsAvailableForwardPeasantArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   worker: UnitId;
 }
 
@@ -70,15 +70,15 @@ function isAvailableForwardPeasant({
   worker,
 }: IsAvailableForwardPeasantArgs): boolean {
   return (
-    beliefs.peasants.includes(worker) &&
-    (beliefs.idleUnits.includes(worker) ||
-      beliefs.holdingPositionUnits.includes(worker) ||
-      beliefs.harvestingUnits.includes(worker))
+    beliefs.self.peasants.includes(worker) &&
+    (beliefs.self.idleUnits.includes(worker) ||
+      beliefs.self.holdingPositionUnits.includes(worker) ||
+      beliefs.self.harvestingUnits.includes(worker))
   );
 }
 
 interface LumberDestructablesByPreferenceArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   peasantOrigin: UnitId;
 }
 
@@ -104,7 +104,7 @@ function lumberDestructablesByPreference({
   }
 
   const nearestMill = sortByDistanceTo({
-    destructables: beliefs.destructablesNearHomeByDistance,
+    destructables: beliefs.self.destructablesNearHomeByDistance,
     origin: positionOf({ beliefs, unit: mill }),
   });
   const candidates = sortByDistanceTo({
@@ -116,13 +116,13 @@ function lumberDestructablesByPreference({
 }
 
 interface OwnUnitArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   unit: UnitId;
 }
 
 /** Throws for a unit not believed to be a living unit of the bot. */
 function ownUnit({ beliefs, unit }: OwnUnitArgs): OwnUnit {
-  const believed = beliefs.ownUnits.get(unit);
+  const believed = beliefs.self.units.get(unit);
 
   if (!believed) {
     throw new Error('Tower rush: not a living unit of the bot.');
@@ -132,7 +132,7 @@ function ownUnit({ beliefs, unit }: OwnUnitArgs): OwnUnit {
 }
 
 interface PositionOfArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   unit: UnitId;
 }
 
@@ -141,7 +141,7 @@ function positionOf({ beliefs, unit }: PositionOfArgs): Point {
 }
 
 interface LifeFractionOfArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   unit: UnitId;
 }
 
@@ -152,7 +152,7 @@ function lifeFractionOf({ beliefs, unit }: LifeFractionOfArgs): number {
 }
 
 interface MostDamagedUnitArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   units: readonly UnitId[];
 }
 
@@ -177,7 +177,7 @@ function mostDamagedUnit({
 }
 
 interface ConstructionProgressArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   building: UnitId;
 }
 
@@ -198,19 +198,19 @@ function constructionProgress({
 }
 
 interface CompletedLumberMillArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 function completedLumberMill({
   beliefs,
 }: CompletedLumberMillArgs): UnitId | undefined {
-  return beliefs.lumberMills.find(
-    (mill) => !beliefs.buildingsUnderConstruction.includes(mill)
+  return beliefs.self.lumberMills.find(
+    (mill) => !beliefs.self.buildingsUnderConstruction.includes(mill)
   );
 }
 
 interface ClosestUnitArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   units: readonly UnitId[];
   to: UnitId;
 }
@@ -268,7 +268,7 @@ interface IsAwayFromMillArgs {
 }
 
 interface DestructablesAwayFromUnfinishedMillArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 // Nearest home first, with those on the far side of the Hall from the mill
@@ -276,13 +276,13 @@ interface DestructablesAwayFromUnfinishedMillArgs {
 function destructablesAwayFromUnfinishedMill({
   beliefs,
 }: DestructablesAwayFromUnfinishedMillArgs): readonly HomeDestructable[] {
-  const mill = beliefs.lumberMills[0];
+  const mill = beliefs.self.lumberMills[0];
 
   if (!mill) {
-    return beliefs.destructablesNearHomeByDistance;
+    return beliefs.self.destructablesNearHomeByDistance;
   }
 
-  const hall = beliefs.ownStartPosition;
+  const hall = beliefs.self.startPosition;
   const toMill = new Vector({
     start: hall,
     end: positionOf({ beliefs, unit: mill }),
@@ -291,7 +291,7 @@ function destructablesAwayFromUnfinishedMill({
     new Vector({ start: hall, end: destructable.position }).dot({
       vector: toMill,
     }) < 0;
-  const nearHome = beliefs.destructablesNearHomeByDistance;
+  const nearHome = beliefs.self.destructablesNearHomeByDistance;
 
   return [
     ...nearHome.filter((destructable) => isAwayFromMill({ destructable })),

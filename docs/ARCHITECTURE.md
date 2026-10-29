@@ -18,8 +18,8 @@ The code is being migrated to Chain of Command in phases. Until the migration en
 | Phase | Content                                                                                        | Status                           |
 | ----- | ---------------------------------------------------------------------------------------------- | -------------------------------- |
 | 0     | The architecture documents are adopted                                                         | done                             |
-| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done, awaiting the in-game check |
-| 2     | One world model in Beliefs                                                                     | not started                      |
+| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done                             |
+| 2     | One world model in Beliefs                                                                     | done, awaiting the in-game check |
 | 3     | Desires, Deliberation, Intention kinds                                                         | not started                      |
 | 4     | Unit Behaviors, Allocation, Directives                                                         | not started                      |
 | 5     | Clean-up                                                                                       | not started                      |
@@ -32,6 +32,8 @@ The bot's behaviors today, as first-iteration Intentions:
 - **OperateTowers:** once the tower position stands, Guard Towers focus their fire by target priority.
 
 They run inside the mind, behind the two boundaries. Every 0.1 s, `src/shell/runtime.ts` takes Perception's observations, steps the mind, hands the orders the step returns to the order executor, and writes the step's decision record. Units and destructables are named by ids; only the shell holds Warcraft handles. An order Warcraft refuses reaches the mind with the next observations, and the component that gave it can correct its own state. Randomness comes from one generator, seeded once from Warcraft's synchronized generator.
+
+Each step first revises the Beliefs, which have only the sections today's behaviors read: the time; self, with the bot's units, resources, and home, and the attacks on its units it still remembers; and enemy, with the enemy units in sight and, when the start locations tell it, where the enemy started. Enemy units seen earlier are not remembered, and there are no neutral, map, or events sections yet. What a component remembers for itself, such as when each worker was last attacked, is its own execution state.
 
 Two temporary exceptions remain, for later phases to remove:
 
@@ -132,12 +134,12 @@ src/
 ├─ shell/         the only code touching Warcraft: the bot loop (runtime.ts), Perception, the order executor, the probes, logging, debug output, the game clock
 ├─ mind/          the mind, running the first-iteration framework below, and the orders it gives
 ├─ knowledge/     the Knowledge type, a stub so far
-├─ contracts/     type-only vocabulary shared across layers: ids, observations, orders, probes, the decision record, Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
-├─ beliefs/       the Common Beliefs model, revised from the observations
+├─ contracts/     type-only vocabulary shared across layers: ids, observations, the Beliefs, orders, probes, the decision record, Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
+├─ beliefs/       the belief models, revising the Beliefs from the observations
 ├─ desires/       the bot's Option Generation, its permanent Desires, and outcome identity
 ├─ deliberation/  creates, retains, and drops Intentions
 ├─ components/
-│  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, *.common-beliefs.ts, scoped *.beliefs.ts, and *.assessments.ts
+│  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, and *.assessments.ts
 │  ├─ plans/        Plans assembled by several Intentions
 │  └─ controllers/  Controllers assembled by several Intentions
 ├─ capabilities/  implementations of what components declare in their Capabilities, one module per capability: actor control
@@ -156,7 +158,7 @@ Which modules may import which, to be enforced by an architecture linter later:
 | `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                                  |
 | `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                                  |
 | `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                                  |
-| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`                                |
+| `deliberation/`                                                  | `@lib/**`, `contracts/`, `desires/`, `components/**/*.api.ts`                                            |
 | `mind/`                                                          | `@lib/**`, `contracts/`, `knowledge/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/`, `mind/` |
 | `shell/`                                                         | `@lib/**`, `contracts/`, `knowledge/`, `mind/mind.ts`, `shell/`                                          |
 | `main.ts`                                                        | `@lib/**`, `shell/`, `privileged/`                                                                       |

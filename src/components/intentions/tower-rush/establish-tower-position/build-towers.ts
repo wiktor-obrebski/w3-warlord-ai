@@ -5,7 +5,7 @@ import type { UnitId } from '../../../../contracts/ids';
 import type { OrderQueue } from '../../../../contracts/orders';
 import type { WarcraftProbes } from '../../../../contracts/probes';
 import type { DecisionRecorder } from '../../../../contracts/record';
-import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
+import type { Beliefs } from '../../../../contracts/beliefs';
 import { TowerRushState } from '../tower-rush.state';
 import {
   controlForwardPeasants,
@@ -36,7 +36,7 @@ function createBuildTowersState(): BuildTowersState {
 }
 
 interface UpdateBuildTowersArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   buildTowersState: BuildTowersState;
   actorControl: ActorControl;
@@ -66,20 +66,20 @@ function updateBuildTowers({
   recorder,
   random,
 }: UpdateBuildTowersArgs): { towerPositions: Point[] | undefined } {
-  const enemyMain = beliefs.enemyStartPosition;
+  const enemyMain = beliefs.enemy.startPosition;
 
   if (!enemyMain) {
     throw new Error('Tower rush: enemy start position not found.');
   }
 
-  if (!beliefs.enemyMainGoldMine) {
+  if (!beliefs.enemy.mainGoldMine) {
     throw new Error('Tower rush: enemy main gold mine not found.');
   }
 
   forgetAbandonedTowerSites({ beliefs, buildTowersState, recorder });
   forgetFinishedTowerHelpers({ beliefs, buildTowersState });
 
-  const towerPositions = beliefs.scoutTowers.map((tower) =>
+  const towerPositions = beliefs.self.scoutTowers.map((tower) =>
     positionOf({ beliefs, unit: tower })
   );
   const sitesAwaitingTower = buildTowersState.pendingTowerSites.filter(
@@ -123,7 +123,7 @@ function updateBuildTowers({
       orderScoutTower({
         worker: builder,
         rules: {
-          mine: beliefs.enemyMainGoldMine.position,
+          mine: beliefs.enemy.mainGoldMine.position,
           enemyMain,
           occupied: [
             ...towerPositions,
@@ -144,7 +144,7 @@ function updateBuildTowers({
         if (!rush.forwardWorkersSentToSafety.includes(worker)) {
           hideBehindClosestTower({
             worker,
-            towers: beliefs.scoutTowers,
+            towers: beliefs.self.scoutTowers,
             enemyMain,
             beliefs,
             rush,
@@ -262,7 +262,7 @@ function busyNonBuilder({
 
 interface HelpUnfinishedTowerArgs {
   worker: UnitId;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   buildTowersState: BuildTowersState;
   orders: OrderQueue;
   recorder: DecisionRecorder;
@@ -277,8 +277,8 @@ function helpUnfinishedTower({
   orders,
   recorder,
 }: HelpUnfinishedTowerArgs) {
-  const unfinished = beliefs.scoutTowers.filter((tower) =>
-    beliefs.buildingsUnderConstruction.includes(tower)
+  const unfinished = beliefs.self.scoutTowers.filter((tower) =>
+    beliefs.self.buildingsUnderConstruction.includes(tower)
   );
   const abandoned = closestUnit({
     beliefs,
@@ -328,7 +328,7 @@ function helpUnfinishedTower({
 
 interface HasLivingBuilderArgs {
   tower: UnitId;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   buildTowersState: BuildTowersState;
 }
 
@@ -350,7 +350,7 @@ function hasLivingBuilder({
 }
 
 interface ForgetFinishedTowerHelpersArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   buildTowersState: BuildTowersState;
 }
 
@@ -361,14 +361,14 @@ function forgetFinishedTowerHelpers({
 }: ForgetFinishedTowerHelpersArgs) {
   buildTowersState.towerHelpers = buildTowersState.towerHelpers.filter(
     (help) =>
-      beliefs.peasants.includes(help.builder) &&
+      beliefs.self.peasants.includes(help.builder) &&
       !isAvailableForwardPeasant({ beliefs, worker: help.builder }) &&
-      beliefs.scoutTowers.includes(help.tower)
+      beliefs.self.scoutTowers.includes(help.tower)
   );
 }
 
 interface TowerBuildingFinishedArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
 }
 
@@ -379,11 +379,11 @@ function towerBuildingFinished({
   rush,
 }: TowerBuildingFinishedArgs): boolean {
   const livingForwardPeasants = rush.forwardWorkers.filter((worker) =>
-    beliefs.peasants.includes(worker)
+    beliefs.self.peasants.includes(worker)
   );
 
   return (
-    (beliefs.scoutTowers.length >= RUSH_TOWER_COUNT ||
+    (beliefs.self.scoutTowers.length >= RUSH_TOWER_COUNT ||
       livingForwardPeasants.length === 0) &&
     livingForwardPeasants.every((worker) =>
       rush.forwardWorkersSentToSafety.includes(worker)
@@ -392,7 +392,7 @@ function towerBuildingFinished({
 }
 
 interface ForgetAbandonedTowerSitesArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   buildTowersState: BuildTowersState;
   recorder: DecisionRecorder;
 }
@@ -406,24 +406,24 @@ function forgetAbandonedTowerSites({
   buildTowersState,
   recorder,
 }: ForgetAbandonedTowerSitesArgs) {
-  const towerPositions = beliefs.scoutTowers.map((tower) =>
+  const towerPositions = beliefs.self.scoutTowers.map((tower) =>
     positionOf({ beliefs, unit: tower })
   );
 
   buildTowersState.pendingTowerSites =
     buildTowersState.pendingTowerSites.filter((site) => {
       const started = hasStartedTower({ site, towerPositions });
-      const builderAlive = beliefs.peasants.includes(site.builder);
+      const builderAlive = beliefs.self.peasants.includes(site.builder);
       const builderBusy =
         builderAlive &&
-        (beliefs.scoutTowerBuildOrderUnits.includes(site.builder) ||
+        (beliefs.self.scoutTowerBuildOrderUnits.includes(site.builder) ||
           (started &&
             !isAvailableForwardPeasant({ beliefs, worker: site.builder })));
 
       if (!builderBusy && !started) {
         // PROBE (temporary): gold, lumber, and how far the nearest tower stands.
         recorder.note({
-          message: `Tower rush: Scout Tower build failed before it started; retrying. PROBE gold ${beliefs.gold}, lumber ${beliefs.lumber}, nearest tower ${probeNearestTower({ position: site.position, towers: towerPositions })} away.`,
+          message: `Tower rush: Scout Tower build failed before it started; retrying. PROBE gold ${beliefs.self.gold}, lumber ${beliefs.self.lumber}, nearest tower ${probeNearestTower({ position: site.position, towers: towerPositions })} away.`,
         });
       }
 
@@ -450,7 +450,7 @@ function hasStartedTower({
 interface OrderScoutTowerArgs {
   worker: UnitId;
   rules: PlacementRules;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   buildTowersState: BuildTowersState;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
@@ -514,7 +514,7 @@ function orderScoutTower({
   }
 
   recorder.note({
-    message: `Tower rush: no Scout Tower placement accepted. PROBE rejections: enemy main too close ${probeRejections.enemyMainTooClose}, enemy main out of reach ${probeRejections.enemyMainOutOfReach}, mine out of reach ${probeRejections.mineOutOfReach}, overlaps ${probeRejections.overlaps}, Warcraft ${probeRejections.warcraft}; gold ${beliefs.gold}.`,
+    message: `Tower rush: no Scout Tower placement accepted. PROBE rejections: enemy main too close ${probeRejections.enemyMainTooClose}, enemy main out of reach ${probeRejections.enemyMainOutOfReach}, mine out of reach ${probeRejections.mineOutOfReach}, overlaps ${probeRejections.overlaps}, Warcraft ${probeRejections.warcraft}; gold ${beliefs.self.gold}.`,
   });
 }
 

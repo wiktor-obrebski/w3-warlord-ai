@@ -1,10 +1,10 @@
 import { ChildFactory, ChildHandle, childFactory } from '@lib/bdi';
 import type { Random } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { Beliefs } from '../../../contracts/beliefs';
 import type {
   AssembledChildren,
   AssembledWarlordComponent,
-  WarlordBeliefs,
   WarlordController,
   WarlordIntention,
   WarlordUpdateChild,
@@ -14,7 +14,6 @@ import type { OrderQueue } from '../../../contracts/orders';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { UpdateInterval } from '../update-interval';
-import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { createTowerRushState } from './tower-rush.state';
 import {
   EstablishTowerPositionPlan,
@@ -37,9 +36,7 @@ interface TowerRushCapabilities {
   readonly random: Random;
 }
 
-interface TowerRushIntention<
-  TCommonBeliefs extends TowerRushCommonBeliefs = TowerRushCommonBeliefs,
-> extends WarlordIntention<TCommonBeliefs> {
+interface TowerRushIntention extends WarlordIntention {
   /** Whether every rush tower stands as a Guard Tower. */
   readonly positionEstablished: boolean;
 }
@@ -48,20 +45,11 @@ interface AssembleTowerRushIntentionArgs {
   capabilities: TowerRushCapabilities;
 }
 
-/**
- * Assembles the tower rush for a bot whose Common Beliefs are
- * `TCommonBeliefs`, which must provide what the tower rush needs to know.
- */
-function assembleTowerRushIntention<
-  TCommonBeliefs extends TowerRushCommonBeliefs,
->({
+function assembleTowerRushIntention({
   capabilities,
-}: AssembleTowerRushIntentionArgs): AssembledWarlordComponent<
-  TowerRushIntention<TCommonBeliefs>,
-  TCommonBeliefs
-> {
+}: AssembleTowerRushIntentionArgs): AssembledWarlordComponent<TowerRushIntention> {
   const rush = createTowerRushState();
-  const children: AssembledChildren<TCommonBeliefs> = [];
+  const children: AssembledChildren = [];
   const { actorControl, orders, probes, recorder, random } = capabilities;
 
   return {
@@ -99,7 +87,7 @@ function assembleTowerRushIntention<
 
 const UpdateSeconds = 1;
 
-type TowerRushController = WarlordController<TowerRushCommonBeliefs>;
+type TowerRushController = WarlordController;
 
 interface TowerRushChildFactories {
   readonly createEstablishTowerPositionPlan: ChildFactory<EstablishTowerPositionPlan>;
@@ -108,8 +96,8 @@ interface TowerRushChildFactories {
 }
 
 interface TowerRushUpdateArgs {
-  beliefs: WarlordBeliefs<TowerRushCommonBeliefs>;
-  updateChild: WarlordUpdateChild<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
+  updateChild: WarlordUpdateChild;
 }
 
 interface TowerRushDiscardEndedPlanArgs {
@@ -152,7 +140,7 @@ class TowerRush implements TowerRushIntention {
    * over in the same update.
    */
   public update({ beliefs, updateChild }: TowerRushUpdateArgs) {
-    if (!this.interval.claim({ now: beliefs.commonBeliefs.time })) {
+    if (!this.interval.claim({ now: beliefs.time })) {
       return;
     }
 

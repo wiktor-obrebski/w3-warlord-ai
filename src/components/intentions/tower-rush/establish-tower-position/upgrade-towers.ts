@@ -4,7 +4,7 @@ import type { UnitId } from '../../../../contracts/ids';
 import type { OrderQueue } from '../../../../contracts/orders';
 import type { DecisionRecorder } from '../../../../contracts/record';
 import { Point, Vector } from '@lib/math';
-import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
+import type { Beliefs } from '../../../../contracts/beliefs';
 import { completedLumberMill, positionOf } from '../tower-rush.assessments';
 
 export { GUARD_TOWER_UPGRADE_GOLD_COST, updateUpgradeTowers };
@@ -12,7 +12,7 @@ export { GUARD_TOWER_UPGRADE_GOLD_COST, updateUpgradeTowers };
 const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
 
 interface UpdateUpgradeTowersArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   towerPositions: readonly Point[];
   actorControl: ActorControl;
   orders: OrderQueue;
@@ -36,7 +36,7 @@ function updateUpgradeTowers({
   const towers = towerPositions.map((position) =>
     plannedTowerAt({ position, beliefs })
   );
-  const budget = { gold: beliefs.gold, lumber: beliefs.lumber };
+  const budget = { gold: beliefs.self.gold, lumber: beliefs.self.lumber };
 
   for (const tower of towers) {
     if (
@@ -77,14 +77,14 @@ interface PlannedTower {
 
 interface PlannedTowerAtArgs {
   position: Point;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 function plannedTowerAt({
   position,
   beliefs,
 }: PlannedTowerAtArgs): PlannedTower {
-  const unit = [...beliefs.scoutTowers, ...beliefs.guardTowers].find(
+  const unit = [...beliefs.self.scoutTowers, ...beliefs.self.guardTowers].find(
     (tower) =>
       new Vector({
         start: position,
@@ -102,7 +102,7 @@ function plannedTowerAt({
 
 interface CalculateTowerCurrentStateArgs {
   tower: UnitId;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 // Upgrading is checked before the unit type, which may already read as the
@@ -111,15 +111,15 @@ function calculateTowerCurrentState({
   tower,
   beliefs,
 }: CalculateTowerCurrentStateArgs): TOWER_STATE {
-  if (beliefs.buildingsUnderConstruction.includes(tower)) {
+  if (beliefs.self.buildingsUnderConstruction.includes(tower)) {
     return TOWER_STATE.UNDER_CONSTRUCTION;
   }
 
-  if (beliefs.buildingsUpgrading.includes(tower)) {
+  if (beliefs.self.buildingsUpgrading.includes(tower)) {
     return TOWER_STATE.UPGRADING;
   }
 
-  return beliefs.guardTowers.includes(tower)
+  return beliefs.self.guardTowers.includes(tower)
     ? TOWER_STATE.GUARD_TOWER
     : TOWER_STATE.SCOUT_TOWER;
 }

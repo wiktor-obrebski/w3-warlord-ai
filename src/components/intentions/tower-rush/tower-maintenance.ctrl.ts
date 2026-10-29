@@ -1,13 +1,12 @@
 import type { ActorControl } from '../../../contracts/actor-control';
 import type {
   AssembledWarlordComponent,
-  WarlordBeliefs,
   WarlordController,
 } from '../../../contracts/component';
 import type { UnitId } from '../../../contracts/ids';
 import type { OrderQueue } from '../../../contracts/orders';
 import type { DecisionRecorder } from '../../../contracts/record';
-import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
+import type { Beliefs } from '../../../contracts/beliefs';
 import { TowerRushState } from './tower-rush.state';
 import {
   controlForwardPeasants,
@@ -31,10 +30,7 @@ interface AssembleTowerMaintenanceControllerArgs {
 function assembleTowerMaintenanceController({
   rush,
   capabilities,
-}: AssembleTowerMaintenanceControllerArgs): AssembledWarlordComponent<
-  WarlordController<TowerRushCommonBeliefs>,
-  TowerRushCommonBeliefs
-> {
+}: AssembleTowerMaintenanceControllerArgs): AssembledWarlordComponent<WarlordController> {
   return {
     component: new TowerMaintenanceController({ rush, capabilities }),
     children: [],
@@ -59,7 +55,7 @@ interface TowerMaintenanceControllerConstructorArgs {
 }
 
 interface TowerMaintenanceControllerUpdateArgs {
-  beliefs: WarlordBeliefs<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 /**
@@ -68,7 +64,7 @@ interface TowerMaintenanceControllerUpdateArgs {
  * tower is built, so a tower's life fraction reflects damage, not build
  * progress.
  */
-class TowerMaintenanceController implements WarlordController<TowerRushCommonBeliefs> {
+class TowerMaintenanceController implements WarlordController {
   private readonly rush: TowerRushState;
   private readonly capabilities: TowerMaintenanceControllerCapabilities;
   // The tower the forward Peasants are repairing.
@@ -82,17 +78,15 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
     this.capabilities = capabilities;
   }
 
-  public update({
-    beliefs: { commonBeliefs: beliefs },
-  }: TowerMaintenanceControllerUpdateArgs) {
-    const enemyMain = beliefs.enemyStartPosition;
+  public update({ beliefs }: TowerMaintenanceControllerUpdateArgs) {
+    const enemyMain = beliefs.enemy.startPosition;
 
     if (!enemyMain) {
       throw new Error('Tower rush: enemy start position not found.');
     }
 
     const { actorControl, orders, recorder } = this.capabilities;
-    const towers = [...beliefs.scoutTowers, ...beliefs.guardTowers];
+    const towers = [...beliefs.self.scoutTowers, ...beliefs.self.guardTowers];
     const previousTarget = this.repairTarget;
     const repairTarget = chooseRepairTarget({
       towers,
@@ -116,7 +110,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
       actorControl,
     })) {
       if (repairTarget) {
-        if (targetChanged || !beliefs.repairingUnits.includes(worker)) {
+        if (targetChanged || !beliefs.self.repairingUnits.includes(worker)) {
           orderRepair({
             worker,
             tower: repairTarget,
@@ -145,7 +139,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
 interface ChooseRepairTargetArgs {
   towers: readonly UnitId[];
   currentRepairTarget: UnitId | undefined;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 function chooseRepairTarget({
@@ -207,7 +201,7 @@ function orderRepair({ worker, tower, rush, orders }: OrderRepairArgs) {
 
 interface DescribeTowerArgs {
   tower: UnitId;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 function describeTower({ tower, beliefs }: DescribeTowerArgs): string {

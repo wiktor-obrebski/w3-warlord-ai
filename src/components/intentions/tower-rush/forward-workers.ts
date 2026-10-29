@@ -3,7 +3,7 @@ import type { ActorControl } from '../../../contracts/actor-control';
 import type { UnitId } from '../../../contracts/ids';
 import type { OrderQueue } from '../../../contracts/orders';
 import type { DecisionRecorder } from '../../../contracts/record';
-import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
+import type { Beliefs } from '../../../contracts/beliefs';
 import { TowerRushState } from './tower-rush.state';
 import { closestUnit, positionOf } from './tower-rush.assessments';
 
@@ -13,7 +13,7 @@ interface HideBehindClosestTowerArgs {
   worker: UnitId;
   towers: readonly UnitId[];
   enemyMain: Point;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   orders: OrderQueue;
   recorder: DecisionRecorder;
@@ -67,7 +67,7 @@ function forgetSentToSafety({ worker, rush }: ForgetSentToSafetyArgs) {
 }
 
 interface ControlForwardPeasantsArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   actorControl: ActorControl;
 }
@@ -88,7 +88,7 @@ function controlForwardPeasants({
   const controlled: UnitId[] = [];
 
   for (const worker of rush.forwardWorkers) {
-    if (!beliefs.peasants.includes(worker)) {
+    if (!beliefs.self.peasants.includes(worker)) {
       continue;
     }
 

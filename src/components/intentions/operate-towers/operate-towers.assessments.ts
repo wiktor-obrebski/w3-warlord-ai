@@ -1,6 +1,6 @@
 import type { UnitId } from '../../../contracts/ids';
 import type { VisibleEnemy } from '../../../contracts/world';
-import type { OperateTowersCommonBeliefs } from './operate-towers.common-beliefs';
+import type { Beliefs } from '../../../contracts/beliefs';
 
 export { TARGET_PRIORITY, type RankedTarget, rankTowerTargets };
 
@@ -23,7 +23,7 @@ interface RankedTarget {
 }
 
 interface RankTowerTargetsArgs {
-  beliefs: Readonly<OperateTowersCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 /**
@@ -33,7 +33,7 @@ interface RankTowerTargetsArgs {
 function rankTowerTargets({ beliefs }: RankTowerTargetsArgs): RankedTarget[] {
   const ranked: RankedTarget[] = [];
 
-  for (const enemy of beliefs.visibleEnemies) {
+  for (const enemy of beliefs.enemy.visibleUnits) {
     const priority = targetPriority({ enemy, beliefs });
 
     if (priority !== undefined) {
@@ -52,7 +52,7 @@ function rankTowerTargets({ beliefs }: RankTowerTargetsArgs): RankedTarget[] {
 
 interface TargetPriorityArgs {
   enemy: VisibleEnemy;
-  beliefs: Readonly<OperateTowersCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 // Melee, ranged and siege are independent properties, so the first matching
@@ -69,9 +69,10 @@ function targetPriority({
 
   const attackTarget = recentAttackTarget({ beliefs, attacker: enemy.unit });
   const attacksPeasant =
-    attackTarget !== undefined && beliefs.peasants.includes(attackTarget);
+    attackTarget !== undefined && beliefs.self.peasants.includes(attackTarget);
   const attacksTower =
-    attackTarget !== undefined && beliefs.guardTowers.includes(attackTarget);
+    attackTarget !== undefined &&
+    beliefs.self.guardTowers.includes(attackTarget);
   const towerAttackPriority = attacksTower
     ? attackingTowerPriority({ enemy })
     : undefined;
@@ -123,7 +124,7 @@ function attackingTowerPriority({
 }
 
 interface RecentAttackTargetArgs {
-  beliefs: Readonly<OperateTowersCommonBeliefs>;
+  beliefs: Beliefs;
   attacker: UnitId;
 }
 
@@ -132,6 +133,7 @@ function recentAttackTarget({
   beliefs,
   attacker,
 }: RecentAttackTargetArgs): UnitId | undefined {
-  return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
-    ?.attackedUnit;
+  return beliefs.self.recentAttacks.find(
+    (attack) => attack.attacker === attacker
+  )?.attackedUnit;
 }

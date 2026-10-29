@@ -2,14 +2,13 @@ import * as W3HumanApi from '@lib/warcraft3-api/human';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type {
   AssembledWarlordComponent,
-  WarlordBeliefs,
   WarlordController,
 } from '../../../contracts/component';
 import type { UnitId } from '../../../contracts/ids';
 import type { OrderQueue, OrderTarget } from '../../../contracts/orders';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
-import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
+import type { Beliefs } from '../../../contracts/beliefs';
 import { HOME_RESOURCE, TowerRushState } from './tower-rush.state';
 import { lumberDestructablesByPreference } from './tower-rush.assessments';
 import { GUARD_TOWER_UPGRADE_GOLD_COST } from './establish-tower-position/upgrade-towers';
@@ -24,10 +23,7 @@ interface AssembleTowerRushEconomyControllerArgs {
 function assembleTowerRushEconomyController({
   rush,
   capabilities,
-}: AssembleTowerRushEconomyControllerArgs): AssembledWarlordComponent<
-  WarlordController<TowerRushCommonBeliefs>,
-  TowerRushCommonBeliefs
-> {
+}: AssembleTowerRushEconomyControllerArgs): AssembledWarlordComponent<WarlordController> {
   return {
     component: new TowerRushEconomyController({ rush, capabilities }),
     children: [],
@@ -36,7 +32,7 @@ function assembleTowerRushEconomyController({
 
 interface TrainPeasantArgs {
   townHall: UnitId;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   orders: OrderQueue;
   recorder: DecisionRecorder;
@@ -112,7 +108,7 @@ interface TowerRushEconomyControllerConstructorArgs {
 }
 
 interface TowerRushEconomyControllerUpdateArgs {
-  beliefs: WarlordBeliefs<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 /**
@@ -120,7 +116,7 @@ interface TowerRushEconomyControllerUpdateArgs {
  * worker are requested on each update, so they stay controlled for as long as
  * the economy runs; one taken over meanwhile is left alone.
  */
-class TowerRushEconomyController implements WarlordController<TowerRushCommonBeliefs> {
+class TowerRushEconomyController implements WarlordController {
   private readonly rush: TowerRushState;
   private readonly capabilities: TowerRushEconomyControllerCapabilities;
 
@@ -132,17 +128,15 @@ class TowerRushEconomyController implements WarlordController<TowerRushCommonBel
     this.capabilities = capabilities;
   }
 
-  public update({
-    beliefs: { commonBeliefs: beliefs },
-  }: TowerRushEconomyControllerUpdateArgs) {
+  public update({ beliefs }: TowerRushEconomyControllerUpdateArgs) {
     const { actorControl, orders, probes, recorder } = this.capabilities;
     const townHall =
-      beliefs.townHall &&
+      beliefs.self.townHall &&
       actorControl.request({
-        actor: beliefs.townHall,
+        actor: beliefs.self.townHall,
         request: 'normal',
       })
-        ? beliefs.townHall
+        ? beliefs.self.townHall
         : undefined;
 
     forgetDeadWorkers({ beliefs, rush: this.rush });
@@ -174,21 +168,21 @@ class TowerRushEconomyController implements WarlordController<TowerRushCommonBel
 }
 
 interface ForgetDeadWorkersArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
 }
 
 function forgetDeadWorkers({ beliefs, rush }: ForgetDeadWorkersArgs) {
   rush.goldWorkers = rush.goldWorkers.filter((worker) =>
-    beliefs.peasants.includes(worker)
+    beliefs.self.peasants.includes(worker)
   );
   rush.lumberWorkers = rush.lumberWorkers.filter((worker) =>
-    beliefs.peasants.includes(worker)
+    beliefs.self.peasants.includes(worker)
   );
 }
 
 interface AssignNewHomeWorkersArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   townHall: UnitId | undefined;
   actorControl: ActorControl;
@@ -209,7 +203,7 @@ function assignNewHomeWorkers({
   probes,
   recorder,
 }: AssignNewHomeWorkersArgs) {
-  for (const peasant of beliefs.peasants) {
+  for (const peasant of beliefs.self.peasants) {
     if (isAssignedWorker({ peasant, rush })) {
       continue;
     }
@@ -229,7 +223,7 @@ function assignNewHomeWorkers({
     });
 
     if (
-      !beliefs.harvestingUnits.includes(peasant) &&
+      !beliefs.self.harvestingUnits.includes(peasant) &&
       actorControl.request({ actor: peasant, request: 'normal' })
     ) {
       orderHarvest({
@@ -245,7 +239,7 @@ function assignNewHomeWorkers({
 }
 
 interface FinishPeasantTrainingArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   townHall: UnitId | undefined;
   orders: OrderQueue;
@@ -316,7 +310,7 @@ function describeWorkers({ rush }: { rush: TowerRushState }): string {
 }
 
 interface ReturnIdleWorkersToTheirResourceArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   actorControl: ActorControl;
   orders: OrderQueue;
@@ -335,7 +329,7 @@ function returnIdleWorkersToTheirResource({
   // Requested before checking idleness, so busy workers stay controlled too.
   const isReturning = ({ worker }: { worker: UnitId }) =>
     actorControl.request({ actor: worker, request: 'normal' }) &&
-    beliefs.idleUnits.includes(worker);
+    beliefs.self.idleUnits.includes(worker);
 
   for (const worker of rush.goldWorkers) {
     if (isReturning({ worker })) {
@@ -351,7 +345,7 @@ function returnIdleWorkersToTheirResource({
 }
 
 interface MaintainPeasantProductionArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   townHall: UnitId | undefined;
   orders: OrderQueue;
@@ -373,14 +367,15 @@ function maintainPeasantProduction({
     homeWorkersMissing &&
     canQueuePeasant({ beliefs, rush }) &&
     townHall &&
-    beliefs.gold - goldReservedForUpgrades({ beliefs, rush }) >= PeasantGoldCost
+    beliefs.self.gold - goldReservedForUpgrades({ beliefs, rush }) >=
+      PeasantGoldCost
   ) {
     trainPeasant({ townHall, beliefs, rush, orders, recorder });
   }
 }
 
 interface CanQueuePeasantArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
 }
 
@@ -400,7 +395,7 @@ function canQueuePeasant({ beliefs, rush }: CanQueuePeasantArgs): boolean {
 }
 
 interface GoldReservedForUpgradesArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
 }
 
@@ -414,8 +409,8 @@ function goldReservedForUpgrades({
     return 0;
   }
 
-  const towersAwaitingUpgrade = beliefs.scoutTowers.filter(
-    (tower) => !beliefs.buildingsUpgrading.includes(tower)
+  const towersAwaitingUpgrade = beliefs.self.scoutTowers.filter(
+    (tower) => !beliefs.self.buildingsUpgrading.includes(tower)
   );
 
   return towersAwaitingUpgrade.length * GUARD_TOWER_UPGRADE_GOLD_COST;
@@ -424,7 +419,7 @@ function goldReservedForUpgrades({
 interface SetRallyArgs {
   townHall: UnitId;
   resource: HOME_RESOURCE;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   orders: OrderQueue;
 }
 
@@ -443,7 +438,7 @@ function setRally({ townHall, resource, beliefs, orders }: SetRallyArgs) {
 interface RallyTargetArgs {
   townHall: UnitId;
   resource: HOME_RESOURCE;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 // The rallied destructable is not checked to be a tree; a Peasant rallied to
@@ -456,11 +451,11 @@ function rallyTarget({
   beliefs,
 }: RallyTargetArgs): OrderTarget {
   if (resource === HOME_RESOURCE.GOLD) {
-    if (!beliefs.homeGoldMine) {
+    if (!beliefs.self.homeGoldMine) {
       throw new Error('Tower rush: home gold mine not found.');
     }
 
-    return { unit: beliefs.homeGoldMine.unit };
+    return { unit: beliefs.self.homeGoldMine.unit };
   }
 
   const nearest = lumberDestructablesByPreference({
@@ -491,7 +486,7 @@ function isAssignedWorker({ peasant, rush }: IsAssignedWorkerArgs): boolean {
 interface OrderHarvestArgs {
   worker: UnitId;
   resource: HOME_RESOURCE;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   orders: OrderQueue;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
@@ -514,12 +509,12 @@ function orderHarvest({
 
 interface OrderHarvestGoldArgs {
   worker: UnitId;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   orders: OrderQueue;
 }
 
 function orderHarvestGold({ worker, beliefs, orders }: OrderHarvestGoldArgs) {
-  if (!beliefs.homeGoldMine) {
+  if (!beliefs.self.homeGoldMine) {
     throw new Error('Tower rush: home gold mine not found.');
   }
 
@@ -528,7 +523,7 @@ function orderHarvestGold({ worker, beliefs, orders }: OrderHarvestGoldArgs) {
       kind: 'target',
       unit: worker,
       orderString: 'harvest',
-      target: { unit: beliefs.homeGoldMine.unit },
+      target: { unit: beliefs.self.homeGoldMine.unit },
       reason: 'Tower rush: gold worker harvests gold',
     },
   });
@@ -536,7 +531,7 @@ function orderHarvestGold({ worker, beliefs, orders }: OrderHarvestGoldArgs) {
 
 interface OrderHarvestPreferredTreeArgs {
   worker: UnitId;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }

@@ -1,7 +1,7 @@
 import type { DesireSupportId } from '@lib/bdi';
+import type { Beliefs } from '../../../contracts/beliefs';
 import type {
   AssembledWarlordComponent,
-  WarlordBeliefs,
   WarlordIntention,
 } from '../../../contracts/component';
 import type {
@@ -12,7 +12,6 @@ import type {
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { Strategy } from '../../../contracts/strategy';
 import { UpdateInterval } from '../update-interval';
-import type { AdaptStrategyCommonBeliefs } from './adapt-strategy.common-beliefs';
 import { preferredStrategy } from './adapt-strategy.assessments';
 
 export { assembleAdaptStrategyIntention, type AdaptStrategyCapabilities };
@@ -26,19 +25,9 @@ interface AssembleAdaptStrategyIntentionArgs {
   capabilities: AdaptStrategyCapabilities;
 }
 
-/**
- * Assembles strategy adaptation for a bot whose Common Beliefs are
- * `TCommonBeliefs`, which must provide what adapting the strategy needs to
- * know.
- */
-function assembleAdaptStrategyIntention<
-  TCommonBeliefs extends AdaptStrategyCommonBeliefs,
->({
+function assembleAdaptStrategyIntention({
   capabilities,
-}: AssembleAdaptStrategyIntentionArgs): AssembledWarlordComponent<
-  WarlordIntention<TCommonBeliefs>,
-  TCommonBeliefs
-> {
+}: AssembleAdaptStrategyIntentionArgs): AssembledWarlordComponent<WarlordIntention> {
   return {
     component: new AdaptStrategyIntention({ capabilities }),
     children: [],
@@ -56,7 +45,7 @@ interface AdaptStrategyIntentionConstructorArgs {
 }
 
 interface AdaptStrategyIntentionUpdateArgs {
-  beliefs: WarlordBeliefs<AdaptStrategyCommonBeliefs>;
+  beliefs: Beliefs;
 }
 
 /**
@@ -64,7 +53,7 @@ interface AdaptStrategyIntentionUpdateArgs {
  * is worth executing and supports the Desire to execute it. It never adopts
  * a strategy itself; Deliberation decides which strategy the bot commits to.
  */
-class AdaptStrategyIntention implements WarlordIntention<AdaptStrategyCommonBeliefs> {
+class AdaptStrategyIntention implements WarlordIntention {
   private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
   private readonly capabilities: AdaptStrategyCapabilities;
   // Undefined until the first assessment.
@@ -76,13 +65,11 @@ class AdaptStrategyIntention implements WarlordIntention<AdaptStrategyCommonBeli
   }
 
   public update({ beliefs }: AdaptStrategyIntentionUpdateArgs) {
-    if (!this.interval.claim({ now: beliefs.commonBeliefs.time })) {
+    if (!this.interval.claim({ now: beliefs.time })) {
       return;
     }
 
-    const { strategy, reason } = preferredStrategy({
-      beliefs: beliefs.commonBeliefs,
-    });
+    const { strategy, reason } = preferredStrategy({ beliefs });
 
     if (strategy === this.preferred) {
       if (this.supportId !== null) {

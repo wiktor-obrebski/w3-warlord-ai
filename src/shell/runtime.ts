@@ -53,7 +53,7 @@ function startRuntime({ bot, logger, recordLogger }: StartRuntimeArgs) {
     // Delivered once: if the step fails, the next one must not get them again.
     refusedOrders = [];
 
-    if (observations.world.enemyPlayersPlaying === 0) {
+    if (observations.world.enemy.playersPlaying === 0) {
       stopLoop({ loop, log });
       return;
     }

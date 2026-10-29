@@ -5,7 +5,7 @@ import type { OrderQueue } from '../../../../contracts/orders';
 import type { WarcraftProbes } from '../../../../contracts/probes';
 import type { DecisionRecorder } from '../../../../contracts/record';
 import { Point, Vector } from '@lib/math';
-import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
+import type { Beliefs } from '../../../../contracts/beliefs';
 import { TowerRushState } from '../tower-rush.state';
 import { positionOf } from '../tower-rush.assessments';
 import { trainPeasant } from '../tower-rush-economy.ctrl';
@@ -13,7 +13,7 @@ import { trainPeasant } from '../tower-rush-economy.ctrl';
 export { updateStart };
 
 interface UpdateStartArgs {
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   rush: TowerRushState;
   actorControl: ActorControl;
   orders: OrderQueue;
@@ -29,7 +29,8 @@ function updateStart({
   probes,
   recorder,
 }: UpdateStartArgs) {
-  const { townHall, enemyMainGoldMine, homeGoldMine } = beliefs;
+  const { townHall, homeGoldMine } = beliefs.self;
+  const enemyMainGoldMine = beliefs.enemy.mainGoldMine;
 
   if (!townHall) {
     throw new Error('Tower rush start: Town Hall not found.');
@@ -44,20 +45,20 @@ function updateStart({
   }
 
   const [lumberMillBuilder, homeWorker] =
-    beliefs.peasants.slice(ForwardWorkerCount);
+    beliefs.self.peasants.slice(ForwardWorkerCount);
 
   if (!lumberMillBuilder || !homeWorker) {
     throw new Error(
-      `Tower rush start: expected ${StartingPeasantCount} Peasants, found ${beliefs.peasants.length}.`
+      `Tower rush start: expected ${StartingPeasantCount} Peasants, found ${beliefs.self.peasants.length}.`
     );
   }
 
-  rush.forwardWorkers = beliefs.peasants.slice(0, ForwardWorkerCount);
+  rush.forwardWorkers = beliefs.self.peasants.slice(0, ForwardWorkerCount);
   rush.goldWorkers = [homeWorker];
   rush.lumberWorkers = [lumberMillBuilder];
 
   // Nothing else has had a chance to claim the starting units yet.
-  for (const actor of [...beliefs.peasants, townHall]) {
+  for (const actor of [...beliefs.self.peasants, townHall]) {
     if (!actorControl.request({ actor, request: 'normal' })) {
       throw new Error(
         'Tower rush start: a starting unit is already controlled.'
@@ -110,7 +111,7 @@ interface OrderLumberMillArgs {
   builder: UnitId;
   hall: Point;
   mine: Point;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -200,7 +201,7 @@ function lumberMillCandidates({
 
 interface TreePositionsArgs {
   builder: UnitId;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  beliefs: Beliefs;
   probes: WarcraftProbes;
 }
 
@@ -212,7 +213,7 @@ function treePositions({
   beliefs,
   probes,
 }: TreePositionsArgs): Point[] {
-  return beliefs.destructablesNearHomeByDistance
+  return beliefs.self.destructablesNearHomeByDistance
     .filter(({ destructable }) =>
       probes.tryHarvest({ unit: builder, destructable })
     )

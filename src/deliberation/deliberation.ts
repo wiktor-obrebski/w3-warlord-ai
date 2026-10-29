@@ -1,6 +1,6 @@
 import { Deliberation } from '@lib/bdi';
 import type { Random } from '@lib/math';
-import { CommonBeliefs } from '../beliefs/common.beliefs';
+import type { Beliefs } from '../contracts/beliefs';
 import type {
   AssembledWarlordComponent,
   WarlordIntention,
@@ -14,7 +14,6 @@ import type { ActorControl } from '../contracts/actor-control';
 import type { OrderQueue } from '../contracts/orders';
 import type { WarcraftProbes } from '../contracts/probes';
 import type { DecisionRecorder } from '../contracts/record';
-import type { Strategy } from '../contracts/strategy';
 import {
   assembleAdaptStrategyIntention,
   AdaptStrategyCapabilities,
@@ -36,19 +35,7 @@ import {
 export { type AssembledIntention, createDeliberation };
 
 /** An Intention as its assemble function builds it. */
-type AssembledIntention = AssembledWarlordComponent<
-  WarlordIntention<CommonBeliefs, unknown>,
-  CommonBeliefs
->;
-
-interface WarlordDeliberation extends Deliberation<
-  CommonBeliefs,
-  WarlordDesire,
-  AssembledIntention
-> {
-  /** The strategy the latest deliberation committed to, if any. */
-  currentStrategy(): Strategy | null;
-}
+type AssembledIntention = AssembledWarlordComponent<WarlordIntention>;
 
 interface CreateDeliberationArgs {
   actorControl: ActorControl;
@@ -84,7 +71,11 @@ function createDeliberation({
   probes,
   recorder,
   random,
-}: CreateDeliberationArgs): WarlordDeliberation {
+}: CreateDeliberationArgs): Deliberation<
+  Beliefs,
+  WarlordDesire,
+  AssembledIntention
+> {
   const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
     actorControl,
     orders,
@@ -110,10 +101,7 @@ function createDeliberation({
   };
   let workerSafety: AssembledIntention | null = null;
   let adaptStrategy: AssembledIntention | null = null;
-  let towerRush: AssembledWarlordComponent<
-    TowerRushIntention<CommonBeliefs>,
-    CommonBeliefs
-  > | null = null;
+  let towerRush: AssembledWarlordComponent<TowerRushIntention> | null = null;
   let operateTowers: AssembledIntention | null = null;
 
   return {
@@ -144,7 +132,7 @@ function createDeliberation({
         intention: workerSafety,
         desireKind: 'ProtectEconomicAssets',
         adopt: () =>
-          assembleMaintainWorkerSafetyIntention<CommonBeliefs>({
+          assembleMaintainWorkerSafetyIntention({
             capabilities: workerSafetyCapabilitiesProvider,
           }),
       });
@@ -152,7 +140,7 @@ function createDeliberation({
         intention: adaptStrategy,
         desireKind: 'MaintainEffectiveStrategy',
         adopt: () =>
-          assembleAdaptStrategyIntention<CommonBeliefs>({
+          assembleAdaptStrategyIntention({
             capabilities: adaptStrategyCapabilitiesProvider,
           }),
       });
@@ -160,7 +148,7 @@ function createDeliberation({
         intention: towerRush,
         desireKind: 'ExecuteTowerRushStrategy',
         adopt: () =>
-          assembleTowerRushIntention<CommonBeliefs>({
+          assembleTowerRushIntention({
             capabilities: towerRushCapabilitiesProvider,
           }),
       });
@@ -169,7 +157,7 @@ function createDeliberation({
         desireKind: 'UseMilitaryAssetsEffectively',
         adopt: () =>
           towerRush?.component.positionEstablished
-            ? assembleOperateTowersIntention<CommonBeliefs>({
+            ? assembleOperateTowersIntention({
                 capabilities: operateTowersCapabilitiesProvider,
               })
             : null,
@@ -194,10 +182,6 @@ function createDeliberation({
       }
 
       return { intentions: active };
-    },
-
-    currentStrategy() {
-      return towerRush !== null ? 'TowerRush' : null;
     },
   };
 }
