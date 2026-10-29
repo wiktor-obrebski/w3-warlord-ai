@@ -9,6 +9,18 @@ declare module '@lib/warcraft3-api/warlord' {
   export function guard(callback: () => void): () => void;
 
   /**
+   * Registers the function called with every error the wrapper reports
+   * in-game, from the startup `xpcall` and from callbacks wrapped with
+   * `guard`, as the message shown: source-mapped to the TypeScript file and
+   * line where the map is available. Errors before registration are only
+   * shown. A later call replaces the listener. An error raised by the
+   * listener itself is shown but never passed back to it.
+   *
+   * @note Provided by `runtime/runtime-template.lua`, not Warcraft.
+   */
+  export function setErrorListener(listener: (message: string) => void): void;
+
+  /**
    * Real-world time as the decimal digits of milliseconds since the Unix
    * epoch, or `undefined` when Warcraft's Lua offers no wall clock. Text,
    * because Warcraft's Lua integers are 32-bit and cannot hold the number.

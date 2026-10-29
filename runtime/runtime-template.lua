@@ -68,14 +68,35 @@ function WarlordRunBundle(warlord_computer_player)
         ))
     end
 
+    local function showError(message)
+        DisplayTimedTextToPlayer(Player(0), 0, 0, 60, "ERROR: " .. message)
+    end
+
+    -- The bundle may listen to the errors runProtected reports, e.g. to log
+    -- them. A listener's own error is shown, but never passed back to it.
+    -- Declared for TypeScript in @lib/warcraft3-api/warlord.
+    local errorListener = nil
+
+    environment.setErrorListener = function(listener)
+        errorListener = listener
+    end
+
     local function runProtected(callback, ...)
         local ok, result = xpcall(callback, describeError, ...)
 
         if not ok then
-            DisplayTimedTextToPlayer(
-                Player(0), 0, 0, 60,
-                "ERROR: " .. tostring(result)
-            )
+            local message = tostring(result)
+
+            showError(message)
+
+            if errorListener ~= nil then
+                local listened, listenerError =
+                    xpcall(errorListener, describeError, message)
+
+                if not listened then
+                    showError(tostring(listenerError))
+                end
+            end
         end
     end
 

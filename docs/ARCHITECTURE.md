@@ -48,7 +48,7 @@ TypeScript provides static typing, modules, structured data, reusable abstractio
 
 The runtime is Warcraft, not Node.js or a browser. Runtime dependencies must work with TSTL and the Lua facilities exposed by Warcraft. Build tooling runs outside the game.
 
-- **Runtime wrapper:** the maintained Lua template, `runtime/runtime-template.lua`, that embeds the bundle in a map script, sandboxes one bundle instance per bot, and provides globals such as `guard` and the wall clock.
+- **Runtime wrapper:** the maintained Lua template, `runtime/runtime-template.lua`, that embeds the bundle in a map script, sandboxes one bundle instance per bot, and provides globals such as `guard`, an error listener, and the wall clock.
 - **Compatibility layer:** scoped, manually maintained declarations of the Warcraft natives the project uses (`@lib/warcraft3-api`), compiled to plain global calls by the project's TSTL plugin. A declaration alone does not prove runtime support.
 
 ### Game integration
@@ -62,7 +62,7 @@ A small game integration layer should provide:
 - error reporting and source-location mapping;
 - project-defined interfaces that can be substituted in tests.
 
-Map timers, triggers, and callbacks are available. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting.
+Map timers, triggers, and callbacks are available. Timer and trigger callbacks are wrapped with `WarlordApi.guard` for error reporting: the wrapper shows every error it catches, at startup or in a guarded callback, in-game with a source-mapped location, and passes the same message to the bundle's error listener, which logs it once logging has started.
 
 Do not assume a usable implicit AI-player context. Our map-script probes did not establish useful behavior for player-paramless AI functions such as `GetUnitCount` and `GetAiPlayer`. Prefer explicit player/unit APIs and maintained bot state. Native declarations alone do not establish runtime compatibility.
 
@@ -80,7 +80,7 @@ Installation and test-only code with access beyond normal gameplay, such as repl
 
 ### Logging
 
-Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/shell/logging.ts` holds the logging configuration and creates two loggers: the bot's root logger, and the decision record's logger, whose session is the root session with a `-record` suffix, so the record lands in files of its own. Both add `gameTime` to every record and write to the library's preload transport, given the preload natives. A timer flushes them every half game second, writing batch files synchronously on the game thread. The decision record is, for now, the notes the components make during a step of the mind; after each step the runtime shows them in-game and writes them, with the step's orders, to the record's log. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
+Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/shell/logging.ts` holds the logging configuration and creates two loggers: the bot's root logger, and the decision record's logger, whose session is the root session with a `-record` suffix, so the record lands in files of its own. Both add `gameTime` to every record and write to the library's preload transport, given the preload natives. A timer flushes them every half game second, writing batch files synchronously on the game thread. The decision record is, for now, the notes the components make during a step of the mind; after each step the runtime shows them in-game and writes them, with the step's orders, to the record's log. Every error the runtime wrapper catches once logging has started goes to the root log as `Uncaught error`, with the message shown in-game as `err`. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
 
 ### Debug mode and diagnostic artifacts
 

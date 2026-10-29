@@ -34,7 +34,8 @@ const RecordSessionSuffix = '-record';
  * Creates the bot's root logger and the decision record's logger, and
  * flushes their records every half game second to `CustomMapData/WarlordLogs`,
  * where `bin/collect-logs` picks them up. Every record carries `gameTime`, in
- * game seconds.
+ * game seconds. From then on, every error the runtime wrapper shows in-game
+ * is logged too.
  *
  * The session, named after the start time and the bot's player, keeps the
  * logs of every game and bot apart, and the record's session adds a suffix to
@@ -68,6 +69,9 @@ function startLogging({ bot }: { bot: W3PlayerApi.player }): BotLoggers {
       logger.flush();
       recordLogger.flush();
     })
+  );
+  WarlordApi.setErrorListener((message) =>
+    logger.error({ err: message }, 'Uncaught error')
   );
 
   return { logger, recordLogger };
