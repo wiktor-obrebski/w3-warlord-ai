@@ -1,8 +1,7 @@
 import { PlanStatus } from '@lib/bdi';
-import type { Logger } from '@lib/logger';
 import { Point } from '@lib/math';
-import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
+import type { DecisionRecorder } from '../../../../contracts/record';
 import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
@@ -57,7 +56,7 @@ enum STEP {
 
 interface EstablishTowerPositionPlanCapabilities {
   readonly actorControl: ActorControl;
-  readonly logger: Logger;
+  readonly recorder: DecisionRecorder;
 }
 
 interface EstablishTowerPositionConstructorArgs {
@@ -72,7 +71,6 @@ interface EstablishTowerPositionUpdateArgs {
 class EstablishTowerPosition implements EstablishTowerPositionPlan {
   private readonly rush: TowerRushState;
   private readonly capabilities: EstablishTowerPositionPlanCapabilities;
-  private readonly log: Logger;
   private currentStatus: PlanStatus = 'running';
   private step = STEP.START;
   private readonly moveForward = createMoveForwardState();
@@ -86,7 +84,6 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   }: EstablishTowerPositionConstructorArgs) {
     this.rush = rush;
     this.capabilities = capabilities;
-    this.log = capabilities.logger.child({ plan: 'EstablishTowerPosition' });
   }
 
   public get status(): PlanStatus {
@@ -104,11 +101,11 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
       throw new Error('Establish tower position: updated after it ended.');
     }
 
-    const { actorControl } = this.capabilities;
+    const { actorControl, recorder } = this.capabilities;
 
     switch (this.step) {
       case STEP.START:
-        updateStart({ beliefs, rush: this.rush, actorControl });
+        updateStart({ beliefs, rush: this.rush, actorControl, recorder });
         this.advanceTo({ nextStep: STEP.MOVE_FORWARD });
         break;
 
@@ -119,6 +116,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
             rush: this.rush,
             moveForwardState: this.moveForward,
             actorControl,
+            recorder,
           }).arrived
         ) {
           this.advanceTo({ nextStep: STEP.BUILD_TOWERS });
@@ -131,6 +129,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
           rush: this.rush,
           buildTowersState: this.buildTowers,
           actorControl,
+          recorder,
         });
 
         if (towerPositions) {
@@ -146,6 +145,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
             beliefs,
             towerPositions: this.towerPositions,
             actorControl,
+            recorder,
           }).allUpgraded
         ) {
           this.succeed();
@@ -167,7 +167,9 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
   private reportPhaseChange({ to }: { to: string }) {
     const from = STEP[this.step];
 
-    debug({ message: `Establish tower position: ${from} -> ${to}` });
-    this.log.info({ from, to }, 'Tower rush phase changed');
+    this.capabilities.recorder.note({
+      message: `Establish tower position: ${from} -> ${to}`,
+      fields: { from, to },
+    });
   }
 }

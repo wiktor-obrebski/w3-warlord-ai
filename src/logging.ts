@@ -9,10 +9,17 @@ import {
   type LogLevelName,
   type PreloadNatives,
 } from '@lib/logger';
-import { readGameClock, startGameClock } from './beliefs/game-clock';
+import { GameClock, readGameClock, startGameClock } from './beliefs/game-clock';
 import { debug } from './debug';
 
-export { startLogging };
+export { type BotLoggers, startLogging };
+
+interface BotLoggers {
+  // The bot's root logger.
+  readonly logger: Logger;
+  // The decision record's logger, writing to files of its own.
+  readonly recordLogger: Logger;
+}
 
 const LoggingEnabled = true;
 const LogLevel: LogLevelName = 'debug';
@@ -21,33 +28,68 @@ const BatchSize = 256;
 const FlushIntervalSeconds = 0.5;
 // Relative to Warcraft's CustomMapData folder.
 const LogDirectory = 'WarlordLogs';
+const RecordSessionSuffix = '-record';
 
 /**
- * Creates the bot's root logger and flushes its records every half game
- * second to `CustomMapData/WarlordLogs`, where `bin/collect-logs` picks them
- * up. Every record carries `gameTime`, in game seconds.
+ * Creates the bot's root logger and the decision record's logger, and
+ * flushes their records every half game second to `CustomMapData/WarlordLogs`,
+ * where `bin/collect-logs` picks them up. Every record carries `gameTime`, in
+ * game seconds.
  *
  * The session, named after the start time and the bot's player, keeps the
- * logs of every game and bot apart; without a wall clock there is no
- * unique name, and logging stays off.
+ * logs of every game and bot apart, and the record's session adds a suffix to
+ * it; without a wall clock there is no unique name, and logging stays off.
  */
-function startLogging({ bot }: { bot: W3PlayerApi.player }): Logger {
+function startLogging({ bot }: { bot: W3PlayerApi.player }): BotLoggers {
   if (!LoggingEnabled) {
-    return createLogger({ enabled: false });
+    return disabledLoggers();
   }
 
   const startedAt = WarlordApi.readWallClockMillisecondsText();
 
   if (startedAt === undefined) {
     debug({ message: 'Logging is off: Lua offers no wall clock.' });
-    return createLogger({ enabled: false });
+    return disabledLoggers();
   }
 
   const clock = startGameClock();
-  const logger = createLogger({
+  const session = `${startedAt}-p${W3PlayerApi.GetPlayerId(bot)}`;
+  const logger = createBotLogger({ session, clock });
+  const recordLogger = createBotLogger({
+    session: `${session}${RecordSessionSuffix}`,
+    clock,
+  });
+
+  W3TimerApi.TimerStart(
+    W3TimerApi.CreateTimer(),
+    FlushIntervalSeconds,
+    true,
+    WarlordApi.guard(() => {
+      logger.flush();
+      recordLogger.flush();
+    })
+  );
+
+  return { logger, recordLogger };
+}
+
+function disabledLoggers(): BotLoggers {
+  return {
+    logger: createLogger({ enabled: false }),
+    recordLogger: createLogger({ enabled: false }),
+  };
+}
+
+interface CreateBotLoggerArgs {
+  session: string;
+  clock: GameClock;
+}
+
+function createBotLogger({ session, clock }: CreateBotLoggerArgs): Logger {
+  return createLogger({
     level: LogLevel,
     transport: createPreloadTransport({ natives: WarcraftPreloadNatives })({
-      session: `${startedAt}-p${W3PlayerApi.GetPlayerId(bot)}`,
+      session,
       directory: LogDirectory,
     }),
     bufferCapacity: BufferCapacity,
@@ -56,15 +98,6 @@ function startLogging({ bot }: { bot: W3PlayerApi.player }): Logger {
     mixin: () => ({ gameTime: readGameClock({ clock }) }),
     readClockSeconds: () => WarlordApi.readClockSeconds(),
   });
-
-  W3TimerApi.TimerStart(
-    W3TimerApi.CreateTimer(),
-    FlushIntervalSeconds,
-    true,
-    WarlordApi.guard(() => logger.flush())
-  );
-
-  return logger;
 }
 
 const WarcraftPreloadNatives: PreloadNatives = {

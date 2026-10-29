@@ -2,8 +2,8 @@ import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as W3MathApi from '@lib/warcraft3-api/math';
 import * as W3TerrainApi from '@lib/warcraft3-api/terrain';
 import { Point, Vector } from '@lib/math';
-import { debug } from '../../../debug';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { DecisionRecorder } from '../../../contracts/record';
 import type { OwnUnit } from '../../../contracts/world';
 import type {
   AssembledWarlordComponent,
@@ -56,6 +56,7 @@ interface FleeRound {
 
 interface WorkerSafetyControllerCapabilities {
   readonly actorControl: ActorControl;
+  readonly recorder: DecisionRecorder;
 }
 
 interface WorkerSafetyControllerConstructorArgs {
@@ -128,6 +129,7 @@ class WorkerSafetyController implements WarlordController<
     worker,
     beliefs,
   }: WorkerSafetyControllerProtectWorkerArgs) {
+    const { recorder } = this.capabilities;
     const isAttacked = isRecentlyAttacked({
       beliefs,
       attackedUnit: worker.unit,
@@ -136,7 +138,7 @@ class WorkerSafetyController implements WarlordController<
 
     if (round) {
       if (!isAttacked && fledHalfway({ worker, round })) {
-        stopFleeing({ worker });
+        stopFleeing({ worker, recorder });
       } else if (!fleeRoundFinished({ worker, round })) {
         return;
       }
@@ -144,12 +146,14 @@ class WorkerSafetyController implements WarlordController<
       this.fleeRounds.delete(worker.unit);
 
       if (!isAttacked) {
-        debug({ message: 'Worker safety: worker is no longer attacked.' });
+        recorder.note({
+          message: 'Worker safety: worker is no longer attacked.',
+        });
       }
     }
 
     if (isAttacked) {
-      const nextRound = startFleeRound({ worker, beliefs });
+      const nextRound = startFleeRound({ worker, beliefs, recorder });
 
       if (nextRound) {
         this.fleeRounds.set(worker.unit, nextRound);
@@ -203,27 +207,38 @@ function fledHalfway({ worker, round }: FledHalfwayArgs): boolean {
   );
 }
 
+interface StopFleeingArgs {
+  worker: OwnUnit;
+  recorder: DecisionRecorder;
+}
+
 // Left moving, the worker would run the rest of the way while other code
 // already treats it as no longer fleeing.
-function stopFleeing({ worker }: { worker: OwnUnit }) {
+function stopFleeing({ worker, recorder }: StopFleeingArgs) {
   if (!worker.isIdle && !W3UnitApi.IssueImmediateOrder(worker.unit, 'stop')) {
-    debug({ message: 'Worker safety: stop order rejected.' });
+    recorder.note({ message: 'Worker safety: stop order rejected.' });
   }
 }
 
 interface StartFleeRoundArgs {
   worker: OwnUnit;
   beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  recorder: DecisionRecorder;
 }
 
 function startFleeRound({
   worker,
   beliefs,
+  recorder,
 }: StartFleeRoundArgs): FleeRound | undefined {
   const threats = nearbyThreats({ beliefs, position: worker.position });
   const threat = threatCenter({ beliefs, worker });
   const awayAngle = threat && angleAwayFrom({ threat, from: worker.position });
-  const destination = fleeDestination({ from: worker.position, awayAngle });
+  const destination = fleeDestination({
+    from: worker.position,
+    awayAngle,
+    recorder,
+  });
 
   if (
     !W3UnitApi.IssuePointOrder(
@@ -233,11 +248,11 @@ function startFleeRound({
       destination.y
     )
   ) {
-    debug({ message: 'Worker safety: flee order rejected.' });
+    recorder.note({ message: 'Worker safety: flee order rejected.' });
     return undefined;
   }
 
-  debug({
+  recorder.note({
     message: `Worker safety: attacked worker flees from ${threats.length} nearby enemies.`,
   });
 
@@ -247,6 +262,7 @@ function startFleeRound({
 interface FleeDestinationArgs {
   from: Point;
   awayAngle: number | undefined;
+  recorder: DecisionRecorder;
 }
 
 // A worker standing still is easily killed, so it always runs somewhere.
@@ -254,7 +270,11 @@ interface FleeDestinationArgs {
 // run from, e.g. when the attacker is not visible, the search starts from a
 // random one. When no direction is walkable, a random one is taken anyway
 // and Warcraft moves the worker as close to it as it can.
-function fleeDestination({ from, awayAngle }: FleeDestinationArgs): Point {
+function fleeDestination({
+  from,
+  awayAngle,
+  recorder,
+}: FleeDestinationArgs): Point {
   const preferredAngle = awayAngle ?? W3MathApi.GetRandomReal(0, Math.PI * 2);
 
   for (const offset of FleeAngleOffsets) {
@@ -266,7 +286,7 @@ function fleeDestination({ from, awayAngle }: FleeDestinationArgs): Point {
 
     if (isWalkable({ point: candidate })) {
       if (offset !== 0) {
-        debug({
+        recorder.note({
           message: `Worker safety: straight away is blocked; fleeing ${Math.floor((offset * 180) / Math.PI)} degrees off.`,
         });
       }
@@ -275,7 +295,7 @@ function fleeDestination({ from, awayAngle }: FleeDestinationArgs): Point {
     }
   }
 
-  debug({
+  recorder.note({
     message: 'Worker safety: no walkable flee direction; fleeing at random.',
   });
 

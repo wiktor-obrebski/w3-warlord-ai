@@ -1,6 +1,6 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
-import { debug } from '../../../debug';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { DecisionRecorder } from '../../../contracts/record';
 import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
@@ -41,6 +41,7 @@ interface TowerTarget {
 
 interface TowerTargetSelectionControllerCapabilities {
   readonly actorControl: ActorControl;
+  readonly recorder: DecisionRecorder;
 }
 
 interface TowerTargetSelectionControllerConstructorArgs {
@@ -123,7 +124,7 @@ class TowerTargetSelectionController implements WarlordController<OperateTowersC
 
       if (W3UnitApi.IssueTargetOrder(tower, 'attack', enemy.unit)) {
         this.rememberTowerTarget({ tower, attackTarget: enemy.unit });
-        debug({
+        this.capabilities.recorder.note({
           message: `Operate towers: Guard Tower attacks ${TARGET_PRIORITY[priority]} target with ${Math.floor(enemy.life)} life.`,
         });
         return;

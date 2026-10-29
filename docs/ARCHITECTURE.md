@@ -18,7 +18,7 @@ The code is being migrated to Chain of Command in phases. Until the migration en
 | Phase | Content                                                                                        | Status      |
 | ----- | ---------------------------------------------------------------------------------------------- | ----------- |
 | 0     | The architecture documents are adopted                                                         | done        |
-| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | not started |
+| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | in progress |
 | 2     | One world model in Beliefs                                                                     | not started |
 | 3     | Desires, Deliberation, Intention kinds                                                         | not started |
 | 4     | Unit Behaviors, Allocation, Directives                                                         | not started |
@@ -73,7 +73,7 @@ Installation and test-only code with access beyond normal gameplay, such as repl
 
 ### Logging
 
-Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/logging.ts` holds the logging configuration and creates the bot's root logger, which adds `gameTime` to every record and writes to the library's preload transport, given the preload natives. A timer flushes the logger every half game second, writing a batch file synchronously on the game thread. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
+Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/logging.ts` holds the logging configuration and creates two loggers: the bot's root logger, and the decision record's logger, whose session is the root session with a `-record` suffix, so the record lands in files of its own. Both add `gameTime` to every record and write to the library's preload transport, given the preload natives. A timer flushes them every half game second, writing batch files synchronously on the game thread. The decision record is, for now, the notes the components make while the runtime runs them; at the end of each tick the runtime shows them in-game and writes them to the record's log. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
 
 ### Debug mode and diagnostic artifacts
 
@@ -158,4 +158,4 @@ Which modules may import which, to be enforced by an architecture linter later:
 - From outside a component module, only its `*.api.ts` file is imported. Components never import other component modules or `capabilities/`: a reusable Plan or Controller, like any capability, reaches an Intention through its Capabilities.
 - Only `privileged/` imports `@lib/warcraft3-api/privileged`.
 - No import cycles other than type-only imports.
-- Temporary exceptions: component modules may still import `debug.ts`, and Intention modules `components/intentions/update-interval.ts`.
+- Temporary exception: Intention modules may still import `components/intentions/update-interval.ts`.

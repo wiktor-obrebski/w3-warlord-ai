@@ -6,6 +6,7 @@ import type { Logger } from '@lib/logger';
 import { debug } from './debug';
 import type { WarlordUpdateChild } from './contracts/component';
 import type { WarlordDesire } from './contracts/desires';
+import type { DecisionRecorder, RecordNote } from './contracts/record';
 import type { Strategy } from './contracts/strategy';
 import { createActorControl } from './capabilities/actor-control/actor-control';
 import {
@@ -25,6 +26,7 @@ const TickSeconds = 0.1;
 interface StartRuntimeArgs {
   bot: W3PlayerApi.player;
   logger: Logger;
+  recordLogger: Logger;
 }
 
 /**
@@ -43,10 +45,17 @@ interface StartRuntimeArgs {
  * it. Every Plan and Controller update runs through the actor control
  * arbiter, whose actor control, given to every component as a capability,
  * then acts for it. At the end of the tick, components gone from the tree
- * lose their Scoped Beliefs, control, and desire supports.
+ * lose their Scoped Beliefs, control, and desire supports, and the notes of
+ * the tick's decision record are shown in-game and written to its log.
  */
-function startRuntime({ bot, logger }: StartRuntimeArgs) {
+function startRuntime({ bot, logger, recordLogger }: StartRuntimeArgs) {
   const log = logger.child({ component: 'Runtime' });
+  let notes: RecordNote[] = [];
+  const recorder: DecisionRecorder = {
+    note(note) {
+      notes.push(note);
+    },
+  };
   let currentStrategy: Strategy | null = null;
   const beliefs = createBeliefsRuntime({
     commonModel: createCommonBeliefsModel({
@@ -59,7 +68,7 @@ function startRuntime({ bot, logger }: StartRuntimeArgs) {
   const deliberation = createDeliberation({
     actorControl: arbiter.actorControl,
     desireExpression: optionGeneration.desireExpression,
-    logger,
+    recorder,
   });
   const loop = W3TimerApi.CreateTimer();
   let desires: readonly WarlordDesire[] = [];
@@ -84,7 +93,7 @@ function startRuntime({ bot, logger }: StartRuntimeArgs) {
     const previousDesires = desires;
 
     ({ desires } = optionGeneration.generate({ now }));
-    reportDesireChanges({ previousDesires, desires, log });
+    reportDesireChanges({ previousDesires, desires, recorder });
 
     ({ intentions } = deliberation.deliberate({
       beliefs: commonBeliefs,
@@ -110,6 +119,9 @@ function startRuntime({ bot, logger }: StartRuntimeArgs) {
 
     arbiter.releaseInactive({ activeSources: managedComponents });
     optionGeneration.releaseInactive({ activeSources: managedComponents });
+
+    writeRecord({ notes, recordLogger });
+    notes = [];
   };
 
   W3TimerApi.TimerStart(loop, TickSeconds, true, WarlordApi.guard(tick));
@@ -133,25 +145,41 @@ function stopLoop({ loop, log }: StopLoopArgs) {
 interface ReportDesireChangesArgs {
   previousDesires: readonly WarlordDesire[];
   desires: readonly WarlordDesire[];
-  log: Logger;
+  recorder: DecisionRecorder;
 }
 
 function reportDesireChanges({
   previousDesires,
   desires,
-  log,
+  recorder,
 }: ReportDesireChangesArgs) {
   for (const desire of previousDesires) {
     if (!desires.includes(desire)) {
-      debug({ message: `Desire gone: ${desire.id}` });
-      log.info({ desire: desire.id }, 'Desire gone');
+      recorder.note({
+        message: `Desire gone: ${desire.id}`,
+        fields: { desire: desire.id },
+      });
     }
   }
 
   for (const desire of desires) {
     if (!previousDesires.includes(desire)) {
-      debug({ message: `Desire appeared: ${desire.id}` });
-      log.info({ desire: desire.id }, 'Desire appeared');
+      recorder.note({
+        message: `Desire appeared: ${desire.id}`,
+        fields: { desire: desire.id },
+      });
     }
+  }
+}
+
+interface WriteRecordArgs {
+  notes: readonly RecordNote[];
+  recordLogger: Logger;
+}
+
+function writeRecord({ notes, recordLogger }: WriteRecordArgs) {
+  for (const { message, fields } of notes) {
+    debug({ message });
+    recordLogger.info(fields ?? {}, message);
   }
 }

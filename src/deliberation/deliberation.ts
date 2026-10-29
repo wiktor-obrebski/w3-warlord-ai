@@ -1,5 +1,4 @@
 import { Deliberation } from '@lib/bdi';
-import type { Logger } from '@lib/logger';
 import { CommonBeliefs } from '../beliefs/common.beliefs';
 import type {
   AssembledWarlordComponent,
@@ -11,6 +10,7 @@ import type {
   WarlordDesireOutcome,
 } from '../contracts/desires';
 import type { ActorControl } from '../contracts/actor-control';
+import type { DecisionRecorder } from '../contracts/record';
 import type { Strategy } from '../contracts/strategy';
 import {
   assembleAdaptStrategyIntention,
@@ -50,7 +50,7 @@ interface WarlordDeliberation extends Deliberation<
 interface CreateDeliberationArgs {
   actorControl: ActorControl;
   desireExpression: WarlordDesireExpression;
-  logger: Logger;
+  recorder: DecisionRecorder;
 }
 
 /**
@@ -74,20 +74,23 @@ interface CreateDeliberationArgs {
 function createDeliberation({
   actorControl,
   desireExpression,
-  logger,
+  recorder,
 }: CreateDeliberationArgs): WarlordDeliberation {
   const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
     actorControl,
+    recorder,
   };
   const adaptStrategyCapabilitiesProvider: AdaptStrategyCapabilities = {
     desireExpression,
+    recorder,
   };
   const towerRushCapabilitiesProvider: TowerRushCapabilities = {
     actorControl,
-    logger,
+    recorder,
   };
   const operateTowersCapabilitiesProvider: OperateTowersCapabilities = {
     actorControl,
+    recorder,
   };
   let workerSafety: AssembledIntention | null = null;
   let adaptStrategy: AssembledIntention | null = null;

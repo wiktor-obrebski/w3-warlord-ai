@@ -1,7 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
-import { debug } from '../../../debug';
 import { Point, Vector } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { DecisionRecorder } from '../../../contracts/record';
 import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { TowerRushState } from './tower-rush.state';
 import { closestUnit, positionOf } from './tower-rush.assessments';
@@ -14,6 +14,7 @@ interface HideBehindClosestTowerArgs {
   enemyMain: Point;
   beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
+  recorder: DecisionRecorder;
 }
 
 function hideBehindClosestTower({
@@ -22,6 +23,7 @@ function hideBehindClosestTower({
   enemyMain,
   beliefs,
   rush,
+  recorder,
 }: HideBehindClosestTowerArgs) {
   const shelter = closestUnit({ beliefs, units: towers, to: worker });
 
@@ -36,9 +38,11 @@ function hideBehindClosestTower({
 
   if (W3UnitApi.IssuePointOrder(worker, 'move', spot.x, spot.y)) {
     rush.forwardWorkersSentToSafety.push(worker);
-    debug({ message: 'Tower rush: forward Peasant hides behind a tower.' });
+    recorder.note({
+      message: 'Tower rush: forward Peasant hides behind a tower.',
+    });
   } else {
-    debug({ message: 'Tower rush: move to safety rejected.' });
+    recorder.note({ message: 'Tower rush: move to safety rejected.' });
   }
 }
 

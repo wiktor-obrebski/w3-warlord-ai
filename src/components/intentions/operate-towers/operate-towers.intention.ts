@@ -9,6 +9,7 @@ import type {
   WarlordUpdateChild,
 } from '../../../contracts/component';
 import type { WarlordDesire } from '../../../contracts/desires';
+import type { DecisionRecorder } from '../../../contracts/record';
 import { UpdateInterval } from '../update-interval';
 import type { OperateTowersCommonBeliefs } from './operate-towers.common-beliefs';
 import { assembleTowerTargetSelectionController } from './tower-target-selection.ctrl';
@@ -17,6 +18,7 @@ export { assembleOperateTowersIntention, type OperateTowersCapabilities };
 
 interface OperateTowersCapabilities {
   readonly actorControl: ActorControl;
+  readonly recorder: DecisionRecorder;
 }
 
 interface AssembleOperateTowersIntentionArgs {
@@ -44,7 +46,10 @@ function assembleOperateTowersIntention<
         children,
         assemble: () =>
           assembleTowerTargetSelectionController({
-            capabilities: { actorControl: capabilities.actorControl },
+            capabilities: {
+              actorControl: capabilities.actorControl,
+              recorder: capabilities.recorder,
+            },
           }),
       }),
     }),

@@ -9,6 +9,7 @@ import type {
   WarlordUpdateChild,
 } from '../../../contracts/component';
 import type { WarlordDesire } from '../../../contracts/desires';
+import type { DecisionRecorder } from '../../../contracts/record';
 import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import { assembleWorkerSafetyController } from './worker-safety.ctrl';
 import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
@@ -20,6 +21,7 @@ export {
 
 interface MaintainWorkerSafetyCapabilities {
   readonly actorControl: ActorControl;
+  readonly recorder: DecisionRecorder;
 }
 
 interface AssembleMaintainWorkerSafetyIntentionArgs {
@@ -46,7 +48,10 @@ function assembleMaintainWorkerSafetyIntention<
         children,
         assemble: () =>
           assembleWorkerSafetyController({
-            capabilities: { actorControl: capabilities.actorControl },
+            capabilities: {
+              actorControl: capabilities.actorControl,
+              recorder: capabilities.recorder,
+            },
           }),
       }),
     }),

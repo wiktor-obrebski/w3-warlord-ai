@@ -23,7 +23,7 @@ function main(computerPlayer: W3PlayerApi.player) {
 }
 
 function play({ bot }: { bot: W3PlayerApi.player }) {
-  const logger = startLogging({ bot });
+  const { logger, recordLogger } = startLogging({ bot });
   const botPlayerId = W3PlayerApi.GetPlayerId(bot);
 
   debug({ message: `Bot player id: ${botPlayerId}` });
@@ -33,7 +33,7 @@ function play({ bot }: { bot: W3PlayerApi.player }) {
     startDebugMode({ bot });
   }
 
-  startRuntime({ bot, logger });
+  startRuntime({ bot, logger, recordLogger });
 }
 
 function startDebugMode({ bot }: { bot: W3PlayerApi.player }) {

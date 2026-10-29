@@ -1,7 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as W3HumanApi from '@lib/warcraft3-api/human';
-import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
+import type { DecisionRecorder } from '../../../../contracts/record';
 import { Point, Vector } from '@lib/math';
 import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { TowerRushState } from '../tower-rush.state';
@@ -14,9 +14,15 @@ interface UpdateStartArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   actorControl: ActorControl;
+  recorder: DecisionRecorder;
 }
 
-function updateStart({ beliefs, rush, actorControl }: UpdateStartArgs) {
+function updateStart({
+  beliefs,
+  rush,
+  actorControl,
+  recorder,
+}: UpdateStartArgs) {
   const { townHall, enemyMainGoldMine, homeGoldMine } = beliefs;
 
   if (!townHall) {
@@ -62,9 +68,10 @@ function updateStart({ beliefs, rush, actorControl }: UpdateStartArgs) {
     hall: positionOf({ beliefs, unit: townHall }),
     mine: homeGoldMine.position,
     beliefs,
+    recorder,
   });
   W3UnitApi.IssueTargetOrder(homeWorker, 'harvest', homeGoldMine.unit);
-  trainPeasant({ townHall, beliefs, rush });
+  trainPeasant({ townHall, beliefs, rush, recorder });
 }
 
 const StartingPeasantCount = 5;
@@ -82,6 +89,7 @@ interface OrderLumberMillArgs {
   hall: Point;
   mine: Point;
   beliefs: Readonly<TowerRushCommonBeliefs>;
+  recorder: DecisionRecorder;
 }
 
 // Spots are tried from the one closest to both the Town Hall and a tree;
@@ -93,6 +101,7 @@ function orderLumberMill({
   hall,
   mine,
   beliefs,
+  recorder,
 }: OrderLumberMillArgs) {
   const trees = treePositions({ builder, beliefs });
   const sites = lumberMillCandidates({ hall, mine })
@@ -115,14 +124,16 @@ function orderLumberMill({
     );
 
     if (accepted) {
-      debug({
+      recorder.note({
         message: `Tower rush start: Lumber Mill ordered ${Math.floor(site.hallDistance)} from the Town Hall and ${Math.floor(site.treeDistance)} from a tree.`,
       });
       return;
     }
   }
 
-  debug({ message: 'Tower rush start: all Lumber Mill locations rejected.' });
+  recorder.note({
+    message: 'Tower rush start: all Lumber Mill locations rejected.',
+  });
 }
 
 interface LumberMillCandidatesArgs {

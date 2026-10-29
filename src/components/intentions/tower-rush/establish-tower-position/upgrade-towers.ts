@@ -1,7 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as W3HumanApi from '@lib/warcraft3-api/human';
-import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
+import type { DecisionRecorder } from '../../../../contracts/record';
 import { Point, Vector } from '@lib/math';
 import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { completedLumberMill, positionOf } from '../tower-rush.assessments';
@@ -14,6 +14,7 @@ interface UpdateUpgradeTowersArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
   towerPositions: readonly Point[];
   actorControl: ActorControl;
+  recorder: DecisionRecorder;
 }
 
 /**
@@ -27,6 +28,7 @@ function updateUpgradeTowers({
   beliefs,
   towerPositions,
   actorControl,
+  recorder,
 }: UpdateUpgradeTowersArgs): { allUpgraded: boolean } {
   const towers = towerPositions.map((position) =>
     plannedTowerAt({ position, beliefs })
@@ -41,7 +43,7 @@ function updateUpgradeTowers({
       canAffordGuardTower({ budget }) &&
       actorControl.request({ actor: tower.unit, request: 'normal' })
     ) {
-      orderGuardTower({ tower: tower.unit, budget });
+      orderGuardTower({ tower: tower.unit, budget, recorder });
     }
   }
 
@@ -133,20 +135,23 @@ function canAffordGuardTower({ budget }: CanAffordGuardTowerArgs) {
 interface OrderGuardTowerArgs {
   tower: W3UnitApi.unit;
   budget: { gold: number; lumber: number };
+  recorder: DecisionRecorder;
 }
 
 // Believed resources do not reflect orders issued this tick, so the budget
 // is reduced locally to avoid ordering upgrades that cannot be paid for.
-function orderGuardTower({ tower, budget }: OrderGuardTowerArgs) {
+function orderGuardTower({ tower, budget, recorder }: OrderGuardTowerArgs) {
   if (
     W3UnitApi.IssueImmediateOrderById(tower, W3HumanApi.Building.GUARD_TOWER)
   ) {
-    debug({
+    recorder.note({
       message: `Tower rush: Guard Tower upgrade ordered (gold ${budget.gold}, lumber ${budget.lumber}).`,
     });
     budget.gold -= GUARD_TOWER_UPGRADE_GOLD_COST;
     budget.lumber -= GuardTowerUpgradeLumberCost;
   } else {
-    debug({ message: 'Tower rush: Guard Tower upgrade order rejected.' });
+    recorder.note({
+      message: 'Tower rush: Guard Tower upgrade order rejected.',
+    });
   }
 }

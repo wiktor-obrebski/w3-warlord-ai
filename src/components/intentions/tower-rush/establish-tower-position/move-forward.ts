@@ -1,7 +1,7 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Vector } from '@lib/math';
-import { debug } from '../../../../debug';
 import type { ActorControl } from '../../../../contracts/actor-control';
+import type { DecisionRecorder } from '../../../../contracts/record';
 import type { GoldMine } from '../../../../contracts/world';
 import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { TowerRushState } from '../tower-rush.state';
@@ -23,6 +23,7 @@ interface UpdateMoveForwardArgs {
   rush: TowerRushState;
   moveForwardState: MoveForwardState;
   actorControl: ActorControl;
+  recorder: DecisionRecorder;
 }
 
 /** Returns whether the forward workers `arrived` as Peasants again. */
@@ -31,6 +32,7 @@ function updateMoveForward({
   rush,
   moveForwardState,
   actorControl,
+  recorder,
 }: UpdateMoveForwardArgs): { arrived: boolean } {
   const destination = beliefs.enemyMainGoldMine;
 
@@ -49,6 +51,7 @@ function updateMoveForward({
     beliefs,
     moveForwardState,
     controlled,
+    recorder,
   });
   sendNewMilitiaToEnemy({
     destination,
@@ -106,6 +109,7 @@ interface HoldArrivedMilitiaArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
   moveForwardState: MoveForwardState;
   controlled: readonly W3UnitApi.unit[];
+  recorder: DecisionRecorder;
 }
 
 // Idle Militia acquire and chase nearby enemies on their own, which would
@@ -115,6 +119,7 @@ function holdArrivedMilitia({
   beliefs,
   moveForwardState,
   controlled,
+  recorder,
 }: HoldArrivedMilitiaArgs) {
   for (const worker of moveForwardState.forwardWorkersSentToEnemy) {
     if (
@@ -129,7 +134,7 @@ function holdArrivedMilitia({
       if (W3UnitApi.IssueImmediateOrder(worker, 'holdposition')) {
         moveForwardState.forwardWorkersHoldingPosition.push(worker);
       } else {
-        debug({ message: 'Tower rush: hold position order rejected.' });
+        recorder.note({ message: 'Tower rush: hold position order rejected.' });
       }
     }
   }

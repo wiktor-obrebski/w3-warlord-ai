@@ -1,5 +1,4 @@
 import { ChildFactory, ChildHandle, childFactory } from '@lib/bdi';
-import type { Logger } from '@lib/logger';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type {
   AssembledChildren,
@@ -10,6 +9,7 @@ import type {
   WarlordUpdateChild,
 } from '../../../contracts/component';
 import type { WarlordDesire } from '../../../contracts/desires';
+import type { DecisionRecorder } from '../../../contracts/record';
 import { UpdateInterval } from '../update-interval';
 import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { createTowerRushState } from './tower-rush.state';
@@ -28,7 +28,7 @@ export {
 
 interface TowerRushCapabilities {
   readonly actorControl: ActorControl;
-  readonly logger: Logger;
+  readonly recorder: DecisionRecorder;
 }
 
 interface TowerRushIntention<
@@ -56,7 +56,7 @@ function assembleTowerRushIntention<
 > {
   const rush = createTowerRushState();
   const children: AssembledChildren<TCommonBeliefs> = [];
-  const logger = capabilities.logger.child({ intention: 'TowerRush' });
+  const { actorControl, recorder } = capabilities;
 
   return {
     component: new TowerRush({
@@ -66,7 +66,7 @@ function assembleTowerRushIntention<
           assemble: () =>
             assembleEstablishTowerPositionPlan({
               rush,
-              capabilities: { actorControl: capabilities.actorControl, logger },
+              capabilities: { actorControl, recorder },
             }),
         }),
         createEconomyController: childFactory({
@@ -74,7 +74,7 @@ function assembleTowerRushIntention<
           assemble: () =>
             assembleTowerRushEconomyController({
               rush,
-              capabilities: { actorControl: capabilities.actorControl },
+              capabilities: { actorControl, recorder },
             }),
         }),
         createTowerMaintenanceController: childFactory({
@@ -82,7 +82,7 @@ function assembleTowerRushIntention<
           assemble: () =>
             assembleTowerMaintenanceController({
               rush,
-              capabilities: { actorControl: capabilities.actorControl },
+              capabilities: { actorControl, recorder },
             }),
         }),
       },

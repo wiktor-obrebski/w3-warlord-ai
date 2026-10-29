@@ -1,5 +1,4 @@
 import type { DesireSupportId } from '@lib/bdi';
-import { debug } from '../../../debug';
 import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
@@ -10,6 +9,7 @@ import type {
   WarlordDesireExpression,
   WarlordDesireOutcome,
 } from '../../../contracts/desires';
+import type { DecisionRecorder } from '../../../contracts/record';
 import type { Strategy } from '../../../contracts/strategy';
 import { UpdateInterval } from '../update-interval';
 import type { AdaptStrategyCommonBeliefs } from './adapt-strategy.common-beliefs';
@@ -19,6 +19,7 @@ export { assembleAdaptStrategyIntention, type AdaptStrategyCapabilities };
 
 interface AdaptStrategyCapabilities {
   readonly desireExpression: WarlordDesireExpression;
+  readonly recorder: DecisionRecorder;
 }
 
 interface AssembleAdaptStrategyIntentionArgs {
@@ -90,7 +91,9 @@ class AdaptStrategyIntention implements WarlordIntention<AdaptStrategyCommonBeli
       return;
     }
 
-    debug({ message: `Adapt strategy: prefers ${preferred ?? 'none'}.` });
+    this.capabilities.recorder.note({
+      message: `Adapt strategy: prefers ${preferred ?? 'none'}.`,
+    });
     this.preferred = preferred;
     this.supportPreferred();
   }

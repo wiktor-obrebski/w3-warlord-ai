@@ -1,11 +1,11 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
-import { debug } from '../../../debug';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
 } from '../../../contracts/component';
+import type { DecisionRecorder } from '../../../contracts/record';
 import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { TowerRushState } from './tower-rush.state';
 import {
@@ -48,6 +48,7 @@ const RepairSwitchLifeFraction = 0.8;
 
 interface TowerMaintenanceControllerCapabilities {
   readonly actorControl: ActorControl;
+  readonly recorder: DecisionRecorder;
 }
 
 interface TowerMaintenanceControllerConstructorArgs {
@@ -88,6 +89,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
       throw new Error('Tower rush: enemy start position not found.');
     }
 
+    const { actorControl, recorder } = this.capabilities;
     const towers = [...beliefs.scoutTowers, ...beliefs.guardTowers];
     const previousTarget = this.repairTarget;
     const repairTarget = chooseRepairTarget({
@@ -99,7 +101,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
     this.repairTarget = repairTarget;
 
     if (targetChanged) {
-      debug({
+      recorder.note({
         message: repairTarget
           ? `Tower rush: repairing ${describeTower({ tower: repairTarget, beliefs })}.`
           : 'Tower rush: no tower needs repair.',
@@ -109,7 +111,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
     for (const worker of controlForwardPeasants({
       beliefs,
       rush: this.rush,
-      actorControl: this.capabilities.actorControl,
+      actorControl,
     })) {
       if (repairTarget) {
         if (targetChanged || !beliefs.repairingUnits.includes(worker)) {
@@ -118,6 +120,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
             tower: repairTarget,
             beliefs,
             rush: this.rush,
+            recorder,
           });
         }
       } else if (
@@ -130,6 +133,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
           enemyMain,
           beliefs,
           rush: this.rush,
+          recorder,
         });
       }
     }
@@ -182,13 +186,20 @@ interface OrderRepairArgs {
   tower: W3UnitApi.unit;
   beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
+  recorder: DecisionRecorder;
 }
 
-function orderRepair({ worker, tower, beliefs, rush }: OrderRepairArgs) {
+function orderRepair({
+  worker,
+  tower,
+  beliefs,
+  rush,
+  recorder,
+}: OrderRepairArgs) {
   if (W3UnitApi.IssueTargetOrder(worker, 'repair', tower)) {
     forgetSentToSafety({ worker, rush });
   } else {
-    debug({
+    recorder.note({
       message: `Tower rush: repair order rejected for ${describeTower({ tower, beliefs })}.`,
     });
   }
