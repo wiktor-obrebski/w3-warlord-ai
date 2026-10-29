@@ -1,6 +1,6 @@
 # Research: Introduction to the Proposed Architecture
 
-Status: a tutorial introduction to the proposed architecture (second iteration) described in the architecture document, [`rts-behavior-architecture.md`](rts-behavior-architecture.md). The proposed architecture is not the adopted one; that remains [`ARCHITECTURE.md`](../ARCHITECTURE.md). Where this introduction and the architecture document disagree, the architecture document is right.
+Status: a tutorial introduction to the proposed architecture (second iteration) described in the architecture document, [`rts-behavior-architecture.md`](rts-behavior-architecture.md). [`ARCHITECTURE.md`](../ARCHITECTURE.md) links the adopted architecture, which grew from it. Where this introduction and the architecture document disagree, the architecture document is right.
 
 This introduction builds the proposed architecture up one idea at a time, following one moment of one game. It explains what each part is for and how the parts work together, and links to the architecture document for the exact rules. It assumes you know TypeScript and the basics of Warcraft III, but not BDI. Terms of the architecture are set in _**bold italics**_; [the glossary](#17-glossary) defines them.
 

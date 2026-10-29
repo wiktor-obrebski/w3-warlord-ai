@@ -1,6 +1,6 @@
 # Research: Architecture for Full RTS Gameplay
 
-Status: a proposed architecture, for discussion; second iteration (18 October 2026). It is not the adopted architecture; that remains [`ARCHITECTURE.md`](../ARCHITECTURE.md), summarized together with the current implementation in [`ARCHITECTURE_SITEMAP.md`](../ARCHITECTURE_SITEMAP.md). The first iteration is in the Git history of this file.
+Status: a proposed architecture, for discussion; second iteration (18 October 2026). [`ARCHITECTURE.md`](../ARCHITECTURE.md) links the adopted architecture, which grew from it. The first iteration is in the Git history of this file.
 
 Companions:
 
