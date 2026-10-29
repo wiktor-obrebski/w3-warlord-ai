@@ -6,6 +6,7 @@ export {
   type OwnUnit,
   type VisibleEnemy,
   type GoldMine,
+  type StartLocation,
   type HomeDestructable,
   type ObservedAttack,
 };
@@ -37,6 +38,12 @@ interface VisibleEnemy {
 interface GoldMine {
   readonly unit: UnitId;
   readonly position: Point;
+}
+
+// A start location of the map, with the gold mine closest to it.
+interface StartLocation {
+  readonly position: Point;
+  readonly goldMine?: GoldMine;
 }
 
 interface HomeDestructable {

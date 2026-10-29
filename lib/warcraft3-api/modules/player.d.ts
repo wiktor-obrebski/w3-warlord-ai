@@ -117,6 +117,18 @@ declare module '@lib/warcraft3-api/player' {
   /**
    * Returns: integer
    *
+   * @ai-generated Returns the number of players the map defines in its
+   *   configuration (`SetPlayers`). Melee maps define one start location per
+   *   player, numbered from 0.
+   *
+   * @note Not verified in-game.
+   * @patch 1.00
+   */
+  export function GetPlayers(): number;
+
+  /**
+   * Returns: integer
+   *
    * Returns an integer representation of a player's start location. If the player
    * has a start location on the map (regardless of whether that player slot is filled),
    * it will return the player's ID (e.g. Player 1 (red) will return 0, Player 2 (blue)

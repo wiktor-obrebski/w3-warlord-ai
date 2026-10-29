@@ -15,19 +15,19 @@ This document covers what they don't: how far the code has been migrated to the 
 
 The code is being migrated to Chain of Command in phases. Until the migration ends, parts of the first-iteration framework, documented in [`@lib/bdi`](../lib/bdi/README.md), run inside the bot.
 
-| Phase | Content                                                                                        | Status      |
-| ----- | ---------------------------------------------------------------------------------------------- | ----------- |
-| 0     | The architecture documents are adopted                                                         | done        |
-| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | in progress |
-| 2     | One world model in Beliefs                                                                     | not started |
-| 3     | Desires, Deliberation, Intention kinds                                                         | not started |
-| 4     | Unit Behaviors, Allocation, Directives                                                         | not started |
-| 5     | Clean-up                                                                                       | not started |
+| Phase | Content                                                                                        | Status                           |
+| ----- | ---------------------------------------------------------------------------------------------- | -------------------------------- |
+| 0     | The architecture documents are adopted                                                         | done                             |
+| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done, awaiting the in-game check |
+| 2     | One world model in Beliefs                                                                     | not started                      |
+| 3     | Desires, Deliberation, Intention kinds                                                         | not started                      |
+| 4     | Unit Behaviors, Allocation, Directives                                                         | not started                      |
+| 5     | Clean-up                                                                                       | not started                      |
 
 The bot's behaviors today, as first-iteration Intentions:
 
 - **MaintainWorkerSafety:** attacked workers flee from the nearby enemy force, taking control of the worker from whatever controlled it.
-- **AdaptStrategy:** prefers the tower rush when the bot plays Human.
+- **AdaptStrategy:** prefers the tower rush when the bot plays Human and knows where the enemy started. It knows that only on maps with a single start location besides its own, since it does not read which start location the enemy got.
 - **TowerRush:** the Human tower rush. Three of the starting Peasants go forward as Militia, build Scout Towers next to the enemy main, and upgrade them to Guard Towers; the rest of the workers run the home economy; the forward Peasants then repair the towers and hide behind them.
 - **OperateTowers:** once the tower position stands, Guard Towers focus their fire by target priority.
 

@@ -1,3 +1,4 @@
+import type { Point } from '@lib/math';
 import type { Race } from '../../../contracts/world';
 
 export { type AdaptStrategyCommonBeliefs };
@@ -6,4 +7,5 @@ export { type AdaptStrategyCommonBeliefs };
 interface AdaptStrategyCommonBeliefs {
   readonly time: number;
   readonly ownRace: Race;
+  readonly enemyStartPosition?: Point;
 }

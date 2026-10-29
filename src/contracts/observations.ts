@@ -7,6 +7,7 @@ import type {
   ObservedAttack,
   OwnUnit,
   Race,
+  StartLocation,
   VisibleEnemy,
 } from './world';
 
@@ -26,7 +27,9 @@ interface ObservedWorld {
   readonly time: number;
   readonly ownRace: Race;
   readonly ownStartPosition: Point;
-  readonly enemyStartPosition?: Point;
+  // Every start location of the map but the bot's own; which of them the
+  // enemies started at is not observed.
+  readonly otherStartLocations: readonly StartLocation[];
   // Enemy players still in the game; a defeated player is no longer counted.
   readonly enemyPlayersPlaying: number;
 
@@ -56,6 +59,5 @@ interface ObservedWorld {
   readonly gold: number;
   readonly lumber: number;
   readonly homeGoldMine?: GoldMine;
-  readonly enemyMainGoldMine?: GoldMine;
   readonly destructablesNearHomeByDistance: readonly HomeDestructable[];
 }

@@ -1,7 +1,12 @@
 import { CommonBeliefsModel } from '@lib/bdi';
+import type { Point } from '@lib/math';
 import type { Observations, ObservedWorld } from '../contracts/observations';
 import type { Strategy } from '../contracts/strategy';
-import type { ObservedAttack } from '../contracts/world';
+import type {
+  GoldMine,
+  ObservedAttack,
+  StartLocation,
+} from '../contracts/world';
 
 export { type CommonObservation, type CommonBeliefs, createCommonBeliefsModel };
 
@@ -13,10 +18,14 @@ interface CommonObservation {
 
 /**
  * Game knowledge broadly useful to the bot: the currently observed world,
- * the attacks on the bot's units it still remembers, and the strategy it has
- * committed to.
+ * where the enemy started, the attacks on the bot's units it still
+ * remembers, and the strategy it has committed to.
  */
 interface CommonBeliefs extends ObservedWorld {
+  // Known only when the map has a single start location besides the bot's
+  // own: then the enemy can only have started there.
+  readonly enemyStartPosition?: Point;
+  readonly enemyMainGoldMine?: GoldMine;
   // The latest attack of each visible attacker, and every attack by an
   // unseen one, while still recent; oldest first.
   readonly recentAttacks: readonly ObservedAttack[];
@@ -51,8 +60,14 @@ function createCommonBeliefsModel({
     },
 
     revise({ previous, observation }) {
+      const enemyStart = inferEnemyStart({
+        otherStartLocations: observation.world.otherStartLocations,
+      });
+
       return {
         ...observation.world,
+        enemyStartPosition: enemyStart?.position,
+        enemyMainGoldMine: enemyStart?.goldMine,
         currentStrategy: observation.currentStrategy,
         recentAttacks: reviseRecentAttacks({
           previous: previous?.recentAttacks ?? [],
@@ -62,6 +77,16 @@ function createCommonBeliefsModel({
       };
     },
   };
+}
+
+interface InferEnemyStartArgs {
+  otherStartLocations: readonly StartLocation[];
+}
+
+function inferEnemyStart({
+  otherStartLocations,
+}: InferEnemyStartArgs): StartLocation | undefined {
+  return otherStartLocations.length === 1 ? otherStartLocations[0] : undefined;
 }
 
 // Warcraft offers no way to read whom a unit is attacking, so attacks are

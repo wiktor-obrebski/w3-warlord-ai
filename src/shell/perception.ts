@@ -19,6 +19,7 @@ import type {
   ObservedAttack,
   OwnUnit,
   Race,
+  StartLocation,
   VisibleEnemy,
 } from '../contracts/world';
 import {
@@ -168,10 +169,11 @@ function observeWorld({
   clock,
   handles,
 }: ObserveWorldArgs): ObservedWorld {
-  const ownStartPosition = startPositionOf({ whichPlayer: bot });
+  const ownStartLocation = W3PlayerApi.GetPlayerStartLocation(bot);
+  const ownStartPosition = startLocationPosition({
+    startLocation: ownStartLocation,
+  });
   const enemies = enemyPlayers({ bot });
-  const enemy = enemies[0];
-  const enemyStartPosition = enemy && startPositionOf({ whichPlayer: enemy });
 
   const ownUnits = new Map<UnitId, OwnUnit>();
   const workers: OwnUnit[] = [];
@@ -268,7 +270,7 @@ function observeWorld({
     time: readGameClock({ clock }),
     ownRace: raceOf({ whichPlayer: bot }),
     ownStartPosition,
-    enemyStartPosition,
+    otherStartLocations: otherStartLocations({ ownStartLocation, handles }),
     enemyPlayersPlaying: enemies.length,
     ownUnits,
     workers,
@@ -295,11 +297,6 @@ function observeWorld({
       W3PlayerApi.PLAYER_STATE_RESOURCE_LUMBER
     ),
     homeGoldMine: findClosestGoldMine({ position: ownStartPosition, handles }),
-    // Gold mine placement is static map knowledge, visible to any player
-    // before scouting, so reading it under fog is fair.
-    enemyMainGoldMine:
-      enemyStartPosition &&
-      findClosestGoldMine({ position: enemyStartPosition, handles }),
     destructablesNearHomeByDistance: destructablesByDistance({
       position: ownStartPosition,
       radius: HomeDestructableSearchRadius,
@@ -329,17 +326,47 @@ function unitPosition({ unit }: { unit: W3UnitApi.unit }): Point {
   });
 }
 
-interface StartPositionOfArgs {
-  whichPlayer: W3PlayerApi.player;
-}
-
-function startPositionOf({ whichPlayer }: StartPositionOfArgs): Point {
-  const startLocation = W3PlayerApi.GetPlayerStartLocation(whichPlayer);
-
+function startLocationPosition({
+  startLocation,
+}: {
+  startLocation: number;
+}): Point {
   return new Point({
     x: W3LocationApi.GetStartLocationX(startLocation),
     y: W3LocationApi.GetStartLocationY(startLocation),
   });
+}
+
+interface OtherStartLocationsArgs {
+  ownStartLocation: number;
+  handles: ObservedHandles;
+}
+
+// The map's start locations and their gold mines are static map knowledge,
+// shown to every player before scouting, so reading them under fog is fair.
+// Which start location an enemy got is not read.
+function otherStartLocations({
+  ownStartLocation,
+  handles,
+}: OtherStartLocationsArgs): StartLocation[] {
+  const locations: StartLocation[] = [];
+
+  for (
+    let startLocation = 0;
+    startLocation < W3PlayerApi.GetPlayers();
+    startLocation++
+  ) {
+    if (startLocation !== ownStartLocation) {
+      const position = startLocationPosition({ startLocation });
+
+      locations.push({
+        position,
+        goldMine: findClosestGoldMine({ position, handles }),
+      });
+    }
+  }
+
+  return locations;
 }
 
 // Race handles are constant, so they compare by identity.

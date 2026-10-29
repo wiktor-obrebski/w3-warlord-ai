@@ -67,7 +67,8 @@ interface AdaptStrategyIntentionUpdateArgs {
 class AdaptStrategyIntention implements WarlordIntention<AdaptStrategyCommonBeliefs> {
   private readonly interval = new UpdateInterval({ seconds: UpdateSeconds });
   private readonly capabilities: AdaptStrategyCapabilities;
-  private preferred: Strategy | null = null;
+  // Undefined until the first assessment.
+  private preferred: Strategy | null | undefined;
   private supportId: DesireSupportId | null = null;
 
   public constructor({ capabilities }: AdaptStrategyIntentionConstructorArgs) {
@@ -79,9 +80,11 @@ class AdaptStrategyIntention implements WarlordIntention<AdaptStrategyCommonBeli
       return;
     }
 
-    const preferred = preferredStrategy({ beliefs: beliefs.commonBeliefs });
+    const { strategy, reason } = preferredStrategy({
+      beliefs: beliefs.commonBeliefs,
+    });
 
-    if (preferred === this.preferred) {
+    if (strategy === this.preferred) {
       if (this.supportId !== null) {
         this.capabilities.desireExpression.support({
           supportId: this.supportId,
@@ -92,20 +95,20 @@ class AdaptStrategyIntention implements WarlordIntention<AdaptStrategyCommonBeli
     }
 
     this.capabilities.recorder.note({
-      message: `Adapt strategy: prefers ${preferred ?? 'none'}.`,
+      message: `Adapt strategy: prefers ${strategy ?? 'none'} (${reason}).`,
     });
-    this.preferred = preferred;
-    this.supportPreferred();
+    this.preferred = strategy;
+    this.supportPreferred({ strategy });
   }
 
   public assessCommitment({ desire }: { desire: WarlordDesire | null }) {
     return desire !== null;
   }
 
-  private supportPreferred() {
+  private supportPreferred({ strategy }: { strategy: Strategy | null }) {
     const { desireExpression } = this.capabilities;
 
-    if (this.preferred === null) {
+    if (strategy === null) {
       if (this.supportId !== null) {
         desireExpression.withdraw({ supportId: this.supportId });
       }
@@ -115,7 +118,7 @@ class AdaptStrategyIntention implements WarlordIntention<AdaptStrategyCommonBeli
     }
 
     const expression = {
-      outcome: ExecuteStrategyOutcomes[this.preferred],
+      outcome: ExecuteStrategyOutcomes[strategy],
       importance: StrategyImportance,
       refreshSeconds: UpdateSeconds,
     };
