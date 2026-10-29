@@ -12,12 +12,7 @@ import type {
 } from '../../../contracts/component';
 import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import {
-  WorkerSafetyBeliefs,
-  workerSafetyBeliefsModel,
-} from './worker-safety.beliefs';
-import {
   isRecentlyAttacked,
-  needsAttackProtection,
   nearbyThreats,
   threatCenter,
 } from './worker-safety.assessments';
@@ -31,16 +26,17 @@ interface AssembleWorkerSafetyControllerArgs {
 function assembleWorkerSafetyController({
   capabilities,
 }: AssembleWorkerSafetyControllerArgs): AssembledWarlordComponent<
-  WarlordController<MaintainWorkerSafetyCommonBeliefs, WorkerSafetyBeliefs>,
+  WarlordController<MaintainWorkerSafetyCommonBeliefs>,
   MaintainWorkerSafetyCommonBeliefs
 > {
   return {
     component: new WorkerSafetyController({ capabilities }),
-    beliefsModel: workerSafetyBeliefsModel,
     children: [],
   };
 }
 
+// A worker unattacked for this long is safe again.
+const SafeAfterAttackSeconds = 1;
 const FleeRoundDistance = 300;
 const FleeDestinationReachedDistance = 32;
 const FleeAngleStep = Math.PI / 6;
@@ -67,10 +63,11 @@ interface WorkerSafetyControllerConstructorArgs {
 }
 
 interface WorkerSafetyControllerUpdateArgs {
-  beliefs: WarlordBeliefs<
-    MaintainWorkerSafetyCommonBeliefs,
-    WorkerSafetyBeliefs
-  >;
+  beliefs: WarlordBeliefs<MaintainWorkerSafetyCommonBeliefs>;
+}
+
+interface WorkerSafetyControllerRememberAttacksArgs {
+  beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
 }
 
 interface WorkerSafetyControllerProtectWorkerArgs {
@@ -83,32 +80,33 @@ interface WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs {
 }
 
 /**
- * Attacked workers run away from the nearby enemy force. When each worker was
- * last attacked is kept in the controller's Scoped Beliefs.
+ * Attacked workers run away from the nearby enemy force.
  *
  * From the first attack until the worker is safe again, worker safety holds
  * preemptive control of it, taking it from whatever controlled it before, and
  * releases it by no longer requesting it. While recovering, the worker is not
  * ordered at all.
  */
-class WorkerSafetyController implements WarlordController<
-  MaintainWorkerSafetyCommonBeliefs,
-  WorkerSafetyBeliefs
-> {
+class WorkerSafetyController implements WarlordController<MaintainWorkerSafetyCommonBeliefs> {
   private readonly capabilities: WorkerSafetyControllerCapabilities;
   private readonly fleeRounds = new Map<UnitId, FleeRound>();
+  // When each worker attacked within the last SafeAfterAttackSeconds was
+  // last attacked.
+  private readonly lastAttackedAt = new Map<UnitId, number>();
 
   public constructor({ capabilities }: WorkerSafetyControllerConstructorArgs) {
     this.capabilities = capabilities;
   }
 
   public update({
-    beliefs: { commonBeliefs: beliefs, scopedBeliefs },
+    beliefs: { commonBeliefs: beliefs },
   }: WorkerSafetyControllerUpdateArgs) {
+    this.rememberAttacks({ beliefs });
+
     for (const worker of beliefs.workers) {
       const isUnsafe =
         this.fleeRounds.has(worker.unit) ||
-        needsAttackProtection({ beliefs: scopedBeliefs, worker: worker.unit });
+        this.lastAttackedAt.has(worker.unit);
 
       if (
         isUnsafe &&
@@ -122,6 +120,30 @@ class WorkerSafetyController implements WarlordController<
     }
 
     this.forgetFleeRoundsOfLostWorkers({ beliefs });
+  }
+
+  // A dead worker's entry is left to expire like any other: ids are never
+  // reused, so it cannot mark another worker.
+  private rememberAttacks({
+    beliefs,
+  }: WorkerSafetyControllerRememberAttacksArgs) {
+    for (const worker of beliefs.workers) {
+      if (isRecentlyAttacked({ beliefs, attackedUnit: worker.unit })) {
+        this.lastAttackedAt.set(worker.unit, beliefs.time);
+      }
+    }
+
+    const safeAgain: UnitId[] = [];
+
+    for (const [worker, attackedAt] of this.lastAttackedAt) {
+      if (beliefs.time - attackedAt >= SafeAfterAttackSeconds) {
+        safeAgain.push(worker);
+      }
+    }
+
+    for (const worker of safeAgain) {
+      this.lastAttackedAt.delete(worker);
+    }
   }
 
   // Each flee round runs to a destination kept until the round ends, so the

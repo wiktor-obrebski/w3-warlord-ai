@@ -15,7 +15,6 @@ import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import { assembleWorkerSafetyController } from './worker-safety.ctrl';
-import { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
 export {
   assembleMaintainWorkerSafetyIntention,
@@ -68,10 +67,8 @@ function assembleMaintainWorkerSafetyIntention<
   };
 }
 
-type WorkerSafetyController = WarlordController<
-  MaintainWorkerSafetyCommonBeliefs,
-  WorkerSafetyBeliefs
->;
+type WorkerSafetyController =
+  WarlordController<MaintainWorkerSafetyCommonBeliefs>;
 
 interface MaintainWorkerSafetyIntentionConstructorArgs {
   createWorkerSafetyController: ChildFactory<WorkerSafetyController>;

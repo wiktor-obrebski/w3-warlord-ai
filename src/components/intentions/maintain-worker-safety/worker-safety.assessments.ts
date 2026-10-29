@@ -2,30 +2,8 @@ import { Point, Vector } from '@lib/math';
 import type { UnitId } from '../../../contracts/ids';
 import type { OwnUnit, VisibleEnemy } from '../../../contracts/world';
 import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
-import type { WorkerSafetyBeliefs } from './worker-safety.beliefs';
 
-export {
-  needsAttackProtection,
-  nearbyThreats,
-  threatCenter,
-  isRecentlyAttacked,
-};
-
-interface NeedsAttackProtectionArgs {
-  beliefs: Readonly<WorkerSafetyBeliefs>;
-  worker: UnitId;
-}
-
-/**
- * Whether the worker is attacked, or was attacked too recently to be safe
- * again.
- */
-function needsAttackProtection({
-  beliefs,
-  worker,
-}: NeedsAttackProtectionArgs): boolean {
-  return beliefs.lastAttackedAt.has(worker);
-}
+export { nearbyThreats, threatCenter, isRecentlyAttacked };
 
 interface NearbyThreatsArgs {
   beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
