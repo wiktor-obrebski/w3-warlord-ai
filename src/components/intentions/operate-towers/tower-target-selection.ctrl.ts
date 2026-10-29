@@ -1,5 +1,6 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { UnitId } from '../../../contracts/ids';
+import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type {
   AssembledWarlordComponent,
@@ -35,12 +36,13 @@ function assembleTowerTargetSelectionController({
 const GuardTowerAttackRange = 700;
 
 interface TowerTarget {
-  tower: W3UnitApi.unit;
-  attackTarget: W3UnitApi.unit;
+  tower: UnitId;
+  attackTarget: UnitId;
 }
 
 interface TowerTargetSelectionControllerCapabilities {
   readonly actorControl: ActorControl;
+  readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
 }
 
@@ -53,14 +55,14 @@ interface TowerTargetSelectionControllerUpdateArgs {
 }
 
 interface TowerTargetSelectionControllerAttackBestTargetInRangeArgs {
-  tower: W3UnitApi.unit;
+  tower: UnitId;
   rankedTargets: readonly RankedTarget[];
   beliefs: Readonly<OperateTowersCommonBeliefs>;
 }
 
 interface TowerTargetSelectionControllerRememberTowerTargetArgs {
-  tower: W3UnitApi.unit;
-  attackTarget: W3UnitApi.unit;
+  tower: UnitId;
+  attackTarget: UnitId;
 }
 
 /**
@@ -108,13 +110,20 @@ class TowerTargetSelectionController implements WarlordController<OperateTowersC
     rankedTargets,
     beliefs,
   }: TowerTargetSelectionControllerAttackBestTargetInRangeArgs) {
+    const { probes } = this.capabilities;
     const currentAttackTarget = this.towerTargets.find(
       (towerTarget) => towerTarget.tower === tower
     )?.attackTarget;
     const towerBusy = !beliefs.idleUnits.includes(tower);
 
     for (const { enemy, priority } of rankedTargets) {
-      if (!W3UnitApi.IsUnitInRange(tower, enemy.unit, GuardTowerAttackRange)) {
+      if (
+        !probes.isInRange({
+          unit: tower,
+          target: enemy.unit,
+          range: GuardTowerAttackRange,
+        })
+      ) {
         continue;
       }
 
@@ -122,7 +131,7 @@ class TowerTargetSelectionController implements WarlordController<OperateTowersC
         return;
       }
 
-      if (W3UnitApi.IssueTargetOrder(tower, 'attack', enemy.unit)) {
+      if (probes.tryAttack({ unit: tower, target: enemy.unit })) {
         this.rememberTowerTarget({ tower, attackTarget: enemy.unit });
         this.capabilities.recorder.note({
           message: `Operate towers: Guard Tower attacks ${TARGET_PRIORITY[priority]} target with ${Math.floor(enemy.life)} life.`,
@@ -142,7 +151,7 @@ class TowerTargetSelectionController implements WarlordController<OperateTowersC
     this.towerTargets.push({ tower, attackTarget });
   }
 
-  private forgetTowerTarget({ tower }: { tower: W3UnitApi.unit }) {
+  private forgetTowerTarget({ tower }: { tower: UnitId }) {
     this.towerTargets = this.towerTargets.filter(
       (towerTarget) => towerTarget.tower !== tower
     );

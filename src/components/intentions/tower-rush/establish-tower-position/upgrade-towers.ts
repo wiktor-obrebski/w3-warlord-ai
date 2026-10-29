@@ -1,6 +1,7 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import type { ActorControl } from '../../../../contracts/actor-control';
+import type { UnitId } from '../../../../contracts/ids';
+import type { OrderQueue } from '../../../../contracts/orders';
 import type { DecisionRecorder } from '../../../../contracts/record';
 import { Point, Vector } from '@lib/math';
 import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
@@ -14,6 +15,7 @@ interface UpdateUpgradeTowersArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
   towerPositions: readonly Point[];
   actorControl: ActorControl;
+  orders: OrderQueue;
   recorder: DecisionRecorder;
 }
 
@@ -28,6 +30,7 @@ function updateUpgradeTowers({
   beliefs,
   towerPositions,
   actorControl,
+  orders,
   recorder,
 }: UpdateUpgradeTowersArgs): { allUpgraded: boolean } {
   const towers = towerPositions.map((position) =>
@@ -43,7 +46,7 @@ function updateUpgradeTowers({
       canAffordGuardTower({ budget }) &&
       actorControl.request({ actor: tower.unit, request: 'normal' })
     ) {
-      orderGuardTower({ tower: tower.unit, budget, recorder });
+      orderGuardTower({ tower: tower.unit, budget, orders, recorder });
     }
   }
 
@@ -68,7 +71,7 @@ enum TOWER_STATE {
 }
 
 interface PlannedTower {
-  unit?: W3UnitApi.unit;
+  unit?: UnitId;
   towerStatus: TOWER_STATE;
 }
 
@@ -98,7 +101,7 @@ function plannedTowerAt({
 }
 
 interface CalculateTowerCurrentStateArgs {
-  tower: W3UnitApi.unit;
+  tower: UnitId;
   beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
@@ -133,25 +136,32 @@ function canAffordGuardTower({ budget }: CanAffordGuardTowerArgs) {
 }
 
 interface OrderGuardTowerArgs {
-  tower: W3UnitApi.unit;
+  tower: UnitId;
   budget: { gold: number; lumber: number };
+  orders: OrderQueue;
   recorder: DecisionRecorder;
 }
 
 // Believed resources do not reflect orders issued this tick, so the budget
-// is reduced locally to avoid ordering upgrades that cannot be paid for.
-function orderGuardTower({ tower, budget, recorder }: OrderGuardTowerArgs) {
-  if (
-    W3UnitApi.IssueImmediateOrderById(tower, W3HumanApi.Building.GUARD_TOWER)
-  ) {
-    recorder.note({
-      message: `Tower rush: Guard Tower upgrade ordered (gold ${budget.gold}, lumber ${budget.lumber}).`,
-    });
-    budget.gold -= GUARD_TOWER_UPGRADE_GOLD_COST;
-    budget.lumber -= GuardTowerUpgradeLumberCost;
-  } else {
-    recorder.note({
-      message: 'Tower rush: Guard Tower upgrade order rejected.',
-    });
-  }
+// is reduced locally to avoid ordering upgrades that cannot be paid for. A
+// refused upgrade leaves a Scout Tower, which the next update orders again.
+function orderGuardTower({
+  tower,
+  budget,
+  orders,
+  recorder,
+}: OrderGuardTowerArgs) {
+  orders.queue({
+    order: {
+      kind: 'immediateById',
+      unit: tower,
+      orderId: W3HumanApi.Building.GUARD_TOWER,
+      reason: 'Tower rush: Guard Tower upgrade',
+    },
+  });
+  recorder.note({
+    message: `Tower rush: Guard Tower upgrade ordered (gold ${budget.gold}, lumber ${budget.lumber}).`,
+  });
+  budget.gold -= GUARD_TOWER_UPGRADE_GOLD_COST;
+  budget.lumber -= GuardTowerUpgradeLumberCost;
 }

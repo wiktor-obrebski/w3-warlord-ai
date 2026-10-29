@@ -1,5 +1,5 @@
-import type * as W3UnitApi from '@lib/warcraft3-api/unit';
 import type { Point } from '@lib/math';
+import type { UnitId } from '../../../contracts/ids';
 import type {
   GoldMine,
   HomeDestructable,
@@ -17,20 +17,20 @@ interface TowerRushCommonBeliefs {
   readonly ownStartPosition: Point;
   readonly enemyStartPosition?: Point;
 
-  readonly ownUnits: ReadonlyMap<W3UnitApi.unit, OwnUnit>;
-  readonly townHall?: W3UnitApi.unit;
-  readonly peasants: readonly W3UnitApi.unit[];
-  readonly militia: readonly W3UnitApi.unit[];
-  readonly idleUnits: readonly W3UnitApi.unit[];
-  readonly harvestingUnits: readonly W3UnitApi.unit[];
-  readonly holdingPositionUnits: readonly W3UnitApi.unit[];
-  readonly repairingUnits: readonly W3UnitApi.unit[];
-  readonly scoutTowerBuildOrderUnits: readonly W3UnitApi.unit[];
-  readonly scoutTowers: readonly W3UnitApi.unit[];
-  readonly guardTowers: readonly W3UnitApi.unit[];
-  readonly lumberMills: readonly W3UnitApi.unit[];
-  readonly buildingsUnderConstruction: readonly W3UnitApi.unit[];
-  readonly buildingsUpgrading: readonly W3UnitApi.unit[];
+  readonly ownUnits: ReadonlyMap<UnitId, OwnUnit>;
+  readonly townHall?: UnitId;
+  readonly peasants: readonly UnitId[];
+  readonly militia: readonly UnitId[];
+  readonly idleUnits: readonly UnitId[];
+  readonly harvestingUnits: readonly UnitId[];
+  readonly holdingPositionUnits: readonly UnitId[];
+  readonly repairingUnits: readonly UnitId[];
+  readonly scoutTowerBuildOrderUnits: readonly UnitId[];
+  readonly scoutTowers: readonly UnitId[];
+  readonly guardTowers: readonly UnitId[];
+  readonly lumberMills: readonly UnitId[];
+  readonly buildingsUnderConstruction: readonly UnitId[];
+  readonly buildingsUpgrading: readonly UnitId[];
 
   readonly gold: number;
   readonly lumber: number;

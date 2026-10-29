@@ -1,7 +1,8 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
-import * as W3TerrainApi from '@lib/warcraft3-api/terrain';
 import { Point, Random, Vector } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { UnitId } from '../../../contracts/ids';
+import type { OrderQueue } from '../../../contracts/orders';
+import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { OwnUnit } from '../../../contracts/world';
 import type {
@@ -55,6 +56,8 @@ interface FleeRound {
 
 interface WorkerSafetyControllerCapabilities {
   readonly actorControl: ActorControl;
+  readonly orders: OrderQueue;
+  readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
   readonly random: Random;
 }
@@ -93,7 +96,7 @@ class WorkerSafetyController implements WarlordController<
   WorkerSafetyBeliefs
 > {
   private readonly capabilities: WorkerSafetyControllerCapabilities;
-  private readonly fleeRounds = new Map<W3UnitApi.unit, FleeRound>();
+  private readonly fleeRounds = new Map<UnitId, FleeRound>();
 
   public constructor({ capabilities }: WorkerSafetyControllerConstructorArgs) {
     this.capabilities = capabilities;
@@ -129,7 +132,7 @@ class WorkerSafetyController implements WarlordController<
     worker,
     beliefs,
   }: WorkerSafetyControllerProtectWorkerArgs) {
-    const { recorder, random } = this.capabilities;
+    const { orders, probes, recorder, random } = this.capabilities;
     const isAttacked = isRecentlyAttacked({
       beliefs,
       attackedUnit: worker.unit,
@@ -138,7 +141,7 @@ class WorkerSafetyController implements WarlordController<
 
     if (round) {
       if (!isAttacked && fledHalfway({ worker, round })) {
-        stopFleeing({ worker, recorder });
+        stopFleeing({ worker, orders });
       } else if (!fleeRoundFinished({ worker, round })) {
         return;
       }
@@ -153,18 +156,34 @@ class WorkerSafetyController implements WarlordController<
     }
 
     if (isAttacked) {
-      const nextRound = startFleeRound({ worker, beliefs, recorder, random });
+      const nextRound = nextFleeRound({
+        worker,
+        beliefs,
+        probes,
+        recorder,
+        random,
+      });
 
-      if (nextRound) {
-        this.fleeRounds.set(worker.unit, nextRound);
-      }
+      this.fleeRounds.set(worker.unit, nextRound);
+      orders.queue({
+        order: {
+          kind: 'point',
+          unit: worker.unit,
+          orderString: 'move',
+          point: nextRound.destination,
+          reason: 'Worker safety: attacked worker flees',
+        },
+        onRefused: () => {
+          this.fleeRounds.delete(worker.unit);
+        },
+      });
     }
   }
 
   private forgetFleeRoundsOfLostWorkers({
     beliefs,
   }: WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs) {
-    const lostWorkers: W3UnitApi.unit[] = [];
+    const lostWorkers: UnitId[] = [];
 
     for (const worker of this.fleeRounds.keys()) {
       if (
@@ -209,51 +228,49 @@ function fledHalfway({ worker, round }: FledHalfwayArgs): boolean {
 
 interface StopFleeingArgs {
   worker: OwnUnit;
-  recorder: DecisionRecorder;
+  orders: OrderQueue;
 }
 
 // Left moving, the worker would run the rest of the way while other code
 // already treats it as no longer fleeing.
-function stopFleeing({ worker, recorder }: StopFleeingArgs) {
-  if (!worker.isIdle && !W3UnitApi.IssueImmediateOrder(worker.unit, 'stop')) {
-    recorder.note({ message: 'Worker safety: stop order rejected.' });
+function stopFleeing({ worker, orders }: StopFleeingArgs) {
+  if (!worker.isIdle) {
+    orders.queue({
+      order: {
+        kind: 'immediate',
+        unit: worker.unit,
+        orderString: 'stop',
+        reason: 'Worker safety: worker safe again stops fleeing',
+      },
+    });
   }
 }
 
-interface StartFleeRoundArgs {
+interface NextFleeRoundArgs {
   worker: OwnUnit;
   beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
+  probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
 }
 
-function startFleeRound({
+function nextFleeRound({
   worker,
   beliefs,
+  probes,
   recorder,
   random,
-}: StartFleeRoundArgs): FleeRound | undefined {
+}: NextFleeRoundArgs): FleeRound {
   const threats = nearbyThreats({ beliefs, position: worker.position });
   const threat = threatCenter({ beliefs, worker });
   const awayAngle = threat && angleAwayFrom({ threat, from: worker.position });
   const destination = fleeDestination({
     from: worker.position,
     awayAngle,
+    probes,
     recorder,
     random,
   });
-
-  if (
-    !W3UnitApi.IssuePointOrder(
-      worker.unit,
-      'move',
-      destination.x,
-      destination.y
-    )
-  ) {
-    recorder.note({ message: 'Worker safety: flee order rejected.' });
-    return undefined;
-  }
 
   recorder.note({
     message: `Worker safety: attacked worker flees from ${threats.length} nearby enemies.`,
@@ -265,6 +282,7 @@ function startFleeRound({
 interface FleeDestinationArgs {
   from: Point;
   awayAngle: number | undefined;
+  probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
 }
@@ -277,6 +295,7 @@ interface FleeDestinationArgs {
 function fleeDestination({
   from,
   awayAngle,
+  probes,
   recorder,
   random,
 }: FleeDestinationArgs): Point {
@@ -289,7 +308,7 @@ function fleeDestination({
       distance: FleeRoundDistance,
     });
 
-    if (isWalkable({ point: candidate })) {
+    if (probes.isWalkable({ point: candidate })) {
       if (offset !== 0) {
         recorder.note({
           message: `Worker safety: straight away is blocked; fleeing ${Math.floor((offset * 180) / Math.PI)} degrees off.`,
@@ -309,20 +328,6 @@ function fleeDestination({
     angle: random.real({ min: 0, max: Math.PI * 2 }),
     distance: FleeRoundDistance,
   });
-}
-
-/**
- * Whether ground units can walk at the point. Terrain pathing is static map
- * knowledge, so reading it is fair. Units standing there are not considered.
- */
-function isWalkable({ point }: { point: Point }): boolean {
-  // IsTerrainPathable is inverted: it returns false where the pathing type
-  // is set, i.e. where the point is walkable.
-  return !W3TerrainApi.IsTerrainPathable(
-    point.x,
-    point.y,
-    W3TerrainApi.PATHING_TYPE_WALKABILITY
-  );
 }
 
 interface AngleAwayFromArgs {

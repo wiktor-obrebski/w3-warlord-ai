@@ -31,6 +31,13 @@ The bot's behaviors today, as first-iteration Intentions:
 - **TowerRush:** the Human tower rush. Three of the starting Peasants go forward as Militia, build Scout Towers next to the enemy main, and upgrade them to Guard Towers; the rest of the workers run the home economy; the forward Peasants then repair the towers and hide behind them.
 - **OperateTowers:** once the tower position stands, Guard Towers focus their fire by target priority.
 
+They run inside the mind, behind the two boundaries. Every 0.1 s, `src/shell/runtime.ts` takes Perception's observations, steps the mind, hands the orders the step returns to the order executor, and writes the step's decision record. Units and destructables are named by ids; only the shell holds Warcraft handles. An order Warcraft refuses reaches the mind with the next observations, and the component that gave it can correct its own state. Randomness comes from one generator, seeded once from Warcraft's synchronized generator.
+
+Two temporary exceptions remain, for later phases to remove:
+
+- **Probes.** The mind still makes some Warcraft calls directly, through the `WarcraftProbes` the shell gives it: the orders whose acceptance is a test (Lumber Mill and Scout Tower placement, the tree-test harvests, tower targeting's fallback to the next target) and two static reads (`IsTerrainPathable` and `IsUnitInRange`). A probe orders its unit at once, so the mind refuses one for a unit that already has an order queued in the same step.
+- **Knowledge** is a stub. Static facts, such as the start locations, the gold mines, and the trees near home, still come from Perception.
+
 ## Runtime environment and TypeScriptToLua
 
 The bot executes as a **Lua map script** inside Warcraft III. It is developed primarily in **TypeScript** and compiled with **TypeScriptToLua (TSTL)**, targeting Lua 5.3.
@@ -73,7 +80,7 @@ Installation and test-only code with access beyond normal gameplay, such as repl
 
 ### Logging
 
-Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/shell/logging.ts` holds the logging configuration and creates two loggers: the bot's root logger, and the decision record's logger, whose session is the root session with a `-record` suffix, so the record lands in files of its own. Both add `gameTime` to every record and write to the library's preload transport, given the preload natives. A timer flushes them every half game second, writing batch files synchronously on the game thread. The decision record is, for now, the notes the components make while the runtime runs them; at the end of each tick the runtime shows them in-game and writes them to the record's log. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
+Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/shell/logging.ts` holds the logging configuration and creates two loggers: the bot's root logger, and the decision record's logger, whose session is the root session with a `-record` suffix, so the record lands in files of its own. Both add `gameTime` to every record and write to the library's preload transport, given the preload natives. A timer flushes them every half game second, writing batch files synchronously on the game thread. The decision record is, for now, the notes the components make during a step of the mind; after each step the runtime shows them in-game and writes them, with the step's orders, to the record's log. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
 
 ### Debug mode and diagnostic artifacts
 
@@ -122,9 +129,11 @@ The bot should therefore support resetting its logical state and releasing or un
 ```text
 src/
 ├─ main.ts        startup: installs the bot player, debug mode, logging, starts the runtime
-├─ shell/         what runs the bot inside Warcraft: the bot loop (runtime.ts), logging, debug output, the game clock
-├─ contracts/     type-only domain vocabulary shared across layers: Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
-├─ beliefs/       common belief model, observing Warcraft state for decisions
+├─ shell/         the only code touching Warcraft: the bot loop (runtime.ts), Perception, the order executor, the probes, logging, debug output, the game clock
+├─ mind/          the mind, running the first-iteration framework below, and the orders it gives
+├─ knowledge/     the Knowledge type, a stub so far
+├─ contracts/     type-only vocabulary shared across layers: ids, observations, orders, probes, the decision record, Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
+├─ beliefs/       the Common Beliefs model, revised from the observations
 ├─ desires/       the bot's Option Generation, its permanent Desires, and outcome identity
 ├─ deliberation/  creates, retains, and drops Intentions
 ├─ components/
@@ -137,21 +146,24 @@ src/
 
 Which modules may import which, to be enforced by an architecture linter later:
 
-| Module                                                           | May import                                                                                  |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `lib/**`                                                         | nothing from `src/`                                                                         |
-| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                         |
-| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`, `shell/game-clock.ts`                                  |
-| `desires/`                                                       | `@lib/bdi`, `contracts/`                                                                    |
-| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                     |
-| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                     |
-| `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                     |
-| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`                   |
-| `shell/`                                                         | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/`, `shell/` |
-| `main.ts`                                                        | `@lib/**`, `shell/`, `privileged/`                                                          |
-| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                     |
+| Module                                                           | May import                                                                                               |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `lib/**`                                                         | nothing from `src/`                                                                                      |
+| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                                      |
+| `knowledge/`                                                     | `@lib/**`, `contracts/`                                                                                  |
+| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                                                      |
+| `desires/`                                                       | `@lib/bdi`, `contracts/`                                                                                 |
+| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                                  |
+| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                                  |
+| `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                                  |
+| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`                                |
+| `mind/`                                                          | `@lib/**`, `contracts/`, `knowledge/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/`, `mind/` |
+| `shell/`                                                         | `@lib/**`, `contracts/`, `knowledge/`, `mind/mind.ts`, `shell/`                                          |
+| `main.ts`                                                        | `@lib/**`, `shell/`, `privileged/`                                                                       |
+| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                                  |
 
 - Contracts are imported with `import type`.
+- Only `shell/`, `privileged/`, and `main.ts` import `@lib/warcraft3-api`; elsewhere, `@lib/**` excludes it. The race modules (`human`, `neutral`, `nightelf`, `orc`, `undead`) are the exception: their rawcodes are compile-time constants. Lint enforces this.
 - From outside a component module, only its `*.api.ts` file is imported. Components never import other component modules or `capabilities/`: a reusable Plan or Controller, like any capability, reaches an Intention through its Capabilities.
 - Only `privileged/` imports `@lib/warcraft3-api/privileged`.
 - No import cycles other than type-only imports.

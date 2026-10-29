@@ -7,6 +7,6 @@ The outcomes the bot currently considers desirable, and the Option Generation th
 
 The outcome types themselves are contracts (`contracts/desires.ts`).
 
-The runtime creates the Option Generation, generates the current Desires at the start of every tick, and passes them to Deliberation. It runs every Intention update through the Option Generation, whose desire expression reaches Intentions as a capability through Deliberation, and it withdraws the supports of Intentions that left the component tree.
+The mind creates the Option Generation, generates the current Desires at the start of every step, and passes them to Deliberation. It runs every Intention update through the Option Generation, whose desire expression reaches Intentions as a capability through Deliberation, and it withdraws the supports of Intentions that left the component tree.
 
 Option Generation decides what is worth pursuing, never what the bot commits to; that is Deliberation's decision.

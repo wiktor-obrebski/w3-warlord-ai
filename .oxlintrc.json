@@ -23,5 +23,36 @@
       }
     ],
     "no-debugger": "error"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@lib/warcraft3-api/*",
+                  "!@lib/warcraft3-api/human",
+                  "!@lib/warcraft3-api/neutral",
+                  "!@lib/warcraft3-api/nightelf",
+                  "!@lib/warcraft3-api/orc",
+                  "!@lib/warcraft3-api/undead"
+                ],
+                "message": "Only the shell, privileged code, and main.ts touch Warcraft; the mind gets what it needs from Perception, the order executor, or the probes. The race modules' rawcodes are compile-time constants and stay allowed."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shell/**", "src/privileged/**", "src/main.ts"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }

@@ -11,6 +11,8 @@ import type {
   WarlordDesireOutcome,
 } from '../contracts/desires';
 import type { ActorControl } from '../contracts/actor-control';
+import type { OrderQueue } from '../contracts/orders';
+import type { WarcraftProbes } from '../contracts/probes';
 import type { DecisionRecorder } from '../contracts/record';
 import type { Strategy } from '../contracts/strategy';
 import {
@@ -51,6 +53,8 @@ interface WarlordDeliberation extends Deliberation<
 interface CreateDeliberationArgs {
   actorControl: ActorControl;
   desireExpression: WarlordDesireExpression;
+  orders: OrderQueue;
+  probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
 }
@@ -76,11 +80,15 @@ interface CreateDeliberationArgs {
 function createDeliberation({
   actorControl,
   desireExpression,
+  orders,
+  probes,
   recorder,
   random,
 }: CreateDeliberationArgs): WarlordDeliberation {
   const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
     actorControl,
+    orders,
+    probes,
     recorder,
     random,
   };
@@ -90,11 +98,14 @@ function createDeliberation({
   };
   const towerRushCapabilitiesProvider: TowerRushCapabilities = {
     actorControl,
+    orders,
+    probes,
     recorder,
     random,
   };
   const operateTowersCapabilitiesProvider: OperateTowersCapabilities = {
     actorControl,
+    probes,
     recorder,
   };
   let workerSafety: AssembledIntention | null = null;

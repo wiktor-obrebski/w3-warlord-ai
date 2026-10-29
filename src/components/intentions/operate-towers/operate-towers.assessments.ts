@@ -1,4 +1,4 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
+import type { UnitId } from '../../../contracts/ids';
 import type { VisibleEnemy } from '../../../contracts/world';
 import type { OperateTowersCommonBeliefs } from './operate-towers.common-beliefs';
 
@@ -124,14 +124,14 @@ function attackingTowerPriority({
 
 interface RecentAttackTargetArgs {
   beliefs: Readonly<OperateTowersCommonBeliefs>;
-  attacker: W3UnitApi.unit;
+  attacker: UnitId;
 }
 
 /** The bot's unit the attacker recently started an attack on, if any. */
 function recentAttackTarget({
   beliefs,
   attacker,
-}: RecentAttackTargetArgs): W3UnitApi.unit | undefined {
+}: RecentAttackTargetArgs): UnitId | undefined {
   return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
     ?.attackedUnit;
 }

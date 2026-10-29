@@ -1,4 +1,14 @@
-export { type RecordNote, type RecordNoteFields, type DecisionRecorder };
+export {
+  type DecisionRecord,
+  type RecordNote,
+  type RecordNoteFields,
+  type DecisionRecorder,
+};
+
+/** What the mind decided in one step, and why. */
+interface DecisionRecord {
+  readonly notes: readonly RecordNote[];
+}
 
 /**
  * A decision and why, as the first-iteration components put it in words; for

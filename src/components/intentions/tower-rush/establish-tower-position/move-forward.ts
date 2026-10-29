@@ -1,7 +1,7 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Vector } from '@lib/math';
 import type { ActorControl } from '../../../../contracts/actor-control';
-import type { DecisionRecorder } from '../../../../contracts/record';
+import type { UnitId } from '../../../../contracts/ids';
+import type { OrderQueue } from '../../../../contracts/orders';
 import type { GoldMine } from '../../../../contracts/world';
 import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { TowerRushState } from '../tower-rush.state';
@@ -10,8 +10,8 @@ import { positionOf } from '../tower-rush.assessments';
 export { type MoveForwardState, createMoveForwardState, updateMoveForward };
 
 interface MoveForwardState {
-  forwardWorkersSentToEnemy: W3UnitApi.unit[];
-  forwardWorkersHoldingPosition: W3UnitApi.unit[];
+  forwardWorkersSentToEnemy: UnitId[];
+  forwardWorkersHoldingPosition: UnitId[];
 }
 
 function createMoveForwardState(): MoveForwardState {
@@ -23,7 +23,7 @@ interface UpdateMoveForwardArgs {
   rush: TowerRushState;
   moveForwardState: MoveForwardState;
   actorControl: ActorControl;
-  recorder: DecisionRecorder;
+  orders: OrderQueue;
 }
 
 /** Returns whether the forward workers `arrived` as Peasants again. */
@@ -32,7 +32,7 @@ function updateMoveForward({
   rush,
   moveForwardState,
   actorControl,
-  recorder,
+  orders,
 }: UpdateMoveForwardArgs): { arrived: boolean } {
   const destination = beliefs.enemyMainGoldMine;
 
@@ -51,13 +51,14 @@ function updateMoveForward({
     beliefs,
     moveForwardState,
     controlled,
-    recorder,
+    orders,
   });
   sendNewMilitiaToEnemy({
     destination,
     beliefs,
     moveForwardState,
     controlled,
+    orders,
   });
 
   return {
@@ -76,7 +77,8 @@ interface SendNewMilitiaToEnemyArgs {
   destination: GoldMine;
   beliefs: Readonly<TowerRushCommonBeliefs>;
   moveForwardState: MoveForwardState;
-  controlled: readonly W3UnitApi.unit[];
+  controlled: readonly UnitId[];
+  orders: OrderQueue;
 }
 
 // Warcraft scripts cannot queue orders, so a move issued together with the
@@ -87,18 +89,22 @@ function sendNewMilitiaToEnemy({
   beliefs,
   moveForwardState,
   controlled,
+  orders,
 }: SendNewMilitiaToEnemyArgs) {
   for (const worker of controlled) {
     if (
       beliefs.militia.includes(worker) &&
       !moveForwardState.forwardWorkersSentToEnemy.includes(worker)
     ) {
-      W3UnitApi.IssuePointOrder(
-        worker,
-        'move',
-        destination.position.x,
-        destination.position.y
-      );
+      orders.queue({
+        order: {
+          kind: 'point',
+          unit: worker,
+          orderString: 'move',
+          point: destination.position,
+          reason: 'Tower rush: forward Militia moves to the enemy main',
+        },
+      });
       moveForwardState.forwardWorkersSentToEnemy.push(worker);
     }
   }
@@ -108,8 +114,8 @@ interface HoldArrivedMilitiaArgs {
   destination: GoldMine;
   beliefs: Readonly<TowerRushCommonBeliefs>;
   moveForwardState: MoveForwardState;
-  controlled: readonly W3UnitApi.unit[];
-  recorder: DecisionRecorder;
+  controlled: readonly UnitId[];
+  orders: OrderQueue;
 }
 
 // Idle Militia acquire and chase nearby enemies on their own, which would
@@ -119,7 +125,7 @@ function holdArrivedMilitia({
   beliefs,
   moveForwardState,
   controlled,
-  recorder,
+  orders,
 }: HoldArrivedMilitiaArgs) {
   for (const worker of moveForwardState.forwardWorkersSentToEnemy) {
     if (
@@ -131,11 +137,21 @@ function holdArrivedMilitia({
         end: destination.position,
       }).length <= ArrivalRadius
     ) {
-      if (W3UnitApi.IssueImmediateOrder(worker, 'holdposition')) {
-        moveForwardState.forwardWorkersHoldingPosition.push(worker);
-      } else {
-        recorder.note({ message: 'Tower rush: hold position order rejected.' });
-      }
+      orders.queue({
+        order: {
+          kind: 'immediate',
+          unit: worker,
+          orderString: 'holdposition',
+          reason: 'Tower rush: arrived Militia holds position',
+        },
+        onRefused: () => {
+          moveForwardState.forwardWorkersHoldingPosition =
+            moveForwardState.forwardWorkersHoldingPosition.filter(
+              (holding) => holding !== worker
+            );
+        },
+      });
+      moveForwardState.forwardWorkersHoldingPosition.push(worker);
     }
   }
 }

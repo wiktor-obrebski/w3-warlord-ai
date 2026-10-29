@@ -1,6 +1,8 @@
 import { PlanStatus } from '@lib/bdi';
 import { Point, Random } from '@lib/math';
 import type { ActorControl } from '../../../../contracts/actor-control';
+import type { OrderQueue } from '../../../../contracts/orders';
+import type { WarcraftProbes } from '../../../../contracts/probes';
 import type { DecisionRecorder } from '../../../../contracts/record';
 import type {
   AssembledWarlordComponent,
@@ -56,6 +58,8 @@ enum STEP {
 
 interface EstablishTowerPositionPlanCapabilities {
   readonly actorControl: ActorControl;
+  readonly orders: OrderQueue;
+  readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
   readonly random: Random;
 }
@@ -102,11 +106,19 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
       throw new Error('Establish tower position: updated after it ended.');
     }
 
-    const { actorControl, recorder, random } = this.capabilities;
+    const { actorControl, orders, probes, recorder, random } =
+      this.capabilities;
 
     switch (this.step) {
       case STEP.START:
-        updateStart({ beliefs, rush: this.rush, actorControl, recorder });
+        updateStart({
+          beliefs,
+          rush: this.rush,
+          actorControl,
+          orders,
+          probes,
+          recorder,
+        });
         this.advanceTo({ nextStep: STEP.MOVE_FORWARD });
         break;
 
@@ -117,7 +129,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
             rush: this.rush,
             moveForwardState: this.moveForward,
             actorControl,
-            recorder,
+            orders,
           }).arrived
         ) {
           this.advanceTo({ nextStep: STEP.BUILD_TOWERS });
@@ -130,6 +142,8 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
           rush: this.rush,
           buildTowersState: this.buildTowers,
           actorControl,
+          orders,
+          probes,
           recorder,
           random,
         });
@@ -147,6 +161,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
             beliefs,
             towerPositions: this.towerPositions,
             actorControl,
+            orders,
             recorder,
           }).allUpgraded
         ) {

@@ -10,6 +10,8 @@ import type {
   WarlordUpdateChild,
 } from '../../../contracts/component';
 import type { WarlordDesire } from '../../../contracts/desires';
+import type { OrderQueue } from '../../../contracts/orders';
+import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import { assembleWorkerSafetyController } from './worker-safety.ctrl';
@@ -22,6 +24,8 @@ export {
 
 interface MaintainWorkerSafetyCapabilities {
   readonly actorControl: ActorControl;
+  readonly orders: OrderQueue;
+  readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
   readonly random: Random;
 }
@@ -52,6 +56,8 @@ function assembleMaintainWorkerSafetyIntention<
           assembleWorkerSafetyController({
             capabilities: {
               actorControl: capabilities.actorControl,
+              orders: capabilities.orders,
+              probes: capabilities.probes,
               recorder: capabilities.recorder,
               random: capabilities.random,
             },

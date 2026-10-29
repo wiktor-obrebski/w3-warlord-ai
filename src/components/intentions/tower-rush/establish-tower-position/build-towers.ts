@@ -1,7 +1,9 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { Point, Random, Vector } from '@lib/math';
 import type { ActorControl } from '../../../../contracts/actor-control';
+import type { UnitId } from '../../../../contracts/ids';
+import type { OrderQueue } from '../../../../contracts/orders';
+import type { WarcraftProbes } from '../../../../contracts/probes';
 import type { DecisionRecorder } from '../../../../contracts/record';
 import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
 import { TowerRushState } from '../tower-rush.state';
@@ -38,6 +40,8 @@ interface UpdateBuildTowersArgs {
   rush: TowerRushState;
   buildTowersState: BuildTowersState;
   actorControl: ActorControl;
+  orders: OrderQueue;
+  probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
 }
@@ -57,6 +61,8 @@ function updateBuildTowers({
   rush,
   buildTowersState,
   actorControl,
+  orders,
+  probes,
   recorder,
   random,
 }: UpdateBuildTowersArgs): { towerPositions: Point[] | undefined } {
@@ -127,6 +133,7 @@ function updateBuildTowers({
         },
         beliefs,
         buildTowersState,
+        probes,
         recorder,
         random,
       });
@@ -141,13 +148,20 @@ function updateBuildTowers({
             enemyMain,
             beliefs,
             rush,
+            orders,
             recorder,
           });
         }
       }
     } else {
       for (const worker of freeWorkers) {
-        helpUnfinishedTower({ worker, beliefs, buildTowersState, recorder });
+        helpUnfinishedTower({
+          worker,
+          beliefs,
+          buildTowersState,
+          orders,
+          recorder,
+        });
       }
     }
   }
@@ -198,13 +212,13 @@ const MaxBuildProgressWorthHelping = 0.5;
 const ReserveUpgradeGoldLifeFraction = 0.5;
 
 interface TowerSite {
-  builder: W3UnitApi.unit;
+  builder: UnitId;
   position: Point;
 }
 
 interface TowerHelper {
-  builder: W3UnitApi.unit;
-  tower: W3UnitApi.unit;
+  builder: UnitId;
+  tower: UnitId;
 }
 
 interface PlacementRules {
@@ -215,7 +229,7 @@ interface PlacementRules {
 }
 
 interface BusyNonBuilderArgs {
-  controlledWorkers: readonly W3UnitApi.unit[];
+  controlledWorkers: readonly UnitId[];
   buildTowersState: BuildTowersState;
   recorder: DecisionRecorder;
 }
@@ -228,7 +242,7 @@ function busyNonBuilder({
   controlledWorkers,
   buildTowersState,
   recorder,
-}: BusyNonBuilderArgs): W3UnitApi.unit | undefined {
+}: BusyNonBuilderArgs): UnitId | undefined {
   const builders = buildTowersState.pendingTowerSites.map(
     (site) => site.builder
   );
@@ -247,9 +261,10 @@ function busyNonBuilder({
 }
 
 interface HelpUnfinishedTowerArgs {
-  worker: W3UnitApi.unit;
+  worker: UnitId;
   beliefs: Readonly<TowerRushCommonBeliefs>;
   buildTowersState: BuildTowersState;
+  orders: OrderQueue;
   recorder: DecisionRecorder;
 }
 
@@ -259,6 +274,7 @@ function helpUnfinishedTower({
   worker,
   beliefs,
   buildTowersState,
+  orders,
   recorder,
 }: HelpUnfinishedTowerArgs) {
   const unfinished = beliefs.scoutTowers.filter((tower) =>
@@ -287,19 +303,31 @@ function helpUnfinishedTower({
     return;
   }
 
+  const help: TowerHelper = { builder: worker, tower };
+
   // Human Peasants help an unfinished building through the repair order.
-  if (W3UnitApi.IssueTargetOrder(worker, 'repair', tower)) {
-    buildTowersState.towerHelpers.push({ builder: worker, tower });
-    recorder.note({
-      message: `Tower rush: forward Peasant ${abandoned ? 'takes over' : 'helps'} a tower at ${Math.floor(constructionProgress({ beliefs, building: tower }) * 100)}% progress.`,
-    });
-  } else {
-    recorder.note({ message: 'Tower rush: repair order rejected.' });
-  }
+  orders.queue({
+    order: {
+      kind: 'target',
+      unit: worker,
+      orderString: 'repair',
+      target: { unit: tower },
+      reason: 'Tower rush: forward Peasant helps an unfinished tower',
+    },
+    onRefused: () => {
+      buildTowersState.towerHelpers = buildTowersState.towerHelpers.filter(
+        (helper) => helper !== help
+      );
+    },
+  });
+  buildTowersState.towerHelpers.push(help);
+  recorder.note({
+    message: `Tower rush: forward Peasant ${abandoned ? 'takes over' : 'helps'} a tower at ${Math.floor(constructionProgress({ beliefs, building: tower }) * 100)}% progress.`,
+  });
 }
 
 interface HasLivingBuilderArgs {
-  tower: W3UnitApi.unit;
+  tower: UnitId;
   beliefs: Readonly<TowerRushCommonBeliefs>;
   buildTowersState: BuildTowersState;
 }
@@ -420,10 +448,11 @@ function hasStartedTower({
 }
 
 interface OrderScoutTowerArgs {
-  worker: W3UnitApi.unit;
+  worker: UnitId;
   rules: PlacementRules;
   beliefs: Readonly<TowerRushCommonBeliefs>;
   buildTowersState: BuildTowersState;
+  probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
 }
@@ -435,6 +464,7 @@ function orderScoutTower({
   rules,
   beliefs,
   buildTowersState,
+  probes,
   recorder,
   random,
 }: OrderScoutTowerArgs) {
@@ -457,6 +487,7 @@ function orderScoutTower({
         worker,
         rules: searchRules,
         buildTowersState,
+        probes,
         random,
       }).accepted
     ) {
@@ -470,6 +501,7 @@ function orderScoutTower({
       worker,
       rules: searchRules,
       buildTowersState,
+      probes,
       random,
     });
 
@@ -520,9 +552,10 @@ let probeRejections = {
 };
 
 interface OrderScoutTowerNextToFirstTowerArgs {
-  worker: W3UnitApi.unit;
+  worker: UnitId;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
+  probes: WarcraftProbes;
   random: Random;
 }
 
@@ -530,6 +563,7 @@ function orderScoutTowerNextToFirstTower({
   worker,
   rules,
   buildTowersState,
+  probes,
   random,
 }: OrderScoutTowerNextToFirstTowerArgs): { accepted: boolean } {
   const firstTower = rules.occupied[0];
@@ -546,7 +580,13 @@ function orderScoutTowerNextToFirstTower({
     });
 
     if (
-      tryOrderScoutTower({ worker, position, rules, buildTowersState }).accepted
+      tryOrderScoutTower({
+        worker,
+        position,
+        rules,
+        buildTowersState,
+        probes,
+      }).accepted
     ) {
       return { accepted: true };
     }
@@ -556,9 +596,10 @@ function orderScoutTowerNextToFirstTower({
 }
 
 interface OrderScoutTowerNearMineArgs {
-  worker: W3UnitApi.unit;
+  worker: UnitId;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
+  probes: WarcraftProbes;
   random: Random;
 }
 
@@ -568,6 +609,7 @@ function orderScoutTowerNearMine({
   worker,
   rules,
   buildTowersState,
+  probes,
   random,
 }: OrderScoutTowerNearMineArgs): { distanceFromMine: number | undefined } {
   let distance = MinDistanceFromMine;
@@ -581,7 +623,13 @@ function orderScoutTowerNearMine({
     });
 
     if (
-      tryOrderScoutTower({ worker, position, rules, buildTowersState }).accepted
+      tryOrderScoutTower({
+        worker,
+        position,
+        rules,
+        buildTowersState,
+        probes,
+      }).accepted
     ) {
       return { distanceFromMine: distance };
     }
@@ -597,10 +645,11 @@ function orderScoutTowerNearMine({
 }
 
 interface TryOrderScoutTowerArgs {
-  worker: W3UnitApi.unit;
+  worker: UnitId;
   position: Point;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
+  probes: WarcraftProbes;
 }
 
 // IssueBuildOrderById returns false for blocked or unbuildable spots (but
@@ -611,6 +660,7 @@ function tryOrderScoutTower({
   position,
   rules,
   buildTowersState,
+  probes,
 }: TryOrderScoutTowerArgs): { accepted: boolean } {
   const distanceToEnemyMain = new Vector({
     start: rules.enemyMain,
@@ -640,12 +690,11 @@ function tryOrderScoutTower({
     !overlapsTower({ position, towers: rules.occupied });
   const accepted =
     passesRules &&
-    W3UnitApi.IssueBuildOrderById(
-      worker,
-      W3HumanApi.Building.SCOUT_TOWER,
-      position.x,
-      position.y
-    );
+    probes.tryBuild({
+      unit: worker,
+      building: W3HumanApi.Building.SCOUT_TOWER,
+      point: position,
+    });
 
   if (passesRules && !accepted) {
     probeRejections.warcraft++;

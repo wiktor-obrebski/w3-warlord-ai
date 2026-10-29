@@ -1,5 +1,5 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
+import type { UnitId } from '../../../contracts/ids';
 import type { OwnUnit, VisibleEnemy } from '../../../contracts/world';
 import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import type { WorkerSafetyBeliefs } from './worker-safety.beliefs';
@@ -13,7 +13,7 @@ export {
 
 interface NeedsAttackProtectionArgs {
   beliefs: Readonly<WorkerSafetyBeliefs>;
-  worker: W3UnitApi.unit;
+  worker: UnitId;
 }
 
 /**
@@ -82,7 +82,7 @@ function threatCenter({
 
 interface IsRecentlyAttackedArgs {
   beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
-  attackedUnit: W3UnitApi.unit;
+  attackedUnit: UnitId;
 }
 
 /** Whether any attacker recently started an attack on the bot's unit. */
@@ -119,14 +119,14 @@ function averagePosition({ enemies }: AveragePositionArgs): Point {
 
 interface RecentAttackTargetArgs {
   beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
-  attacker: W3UnitApi.unit;
+  attacker: UnitId;
 }
 
 /** The bot's unit the attacker recently started an attack on, if any. */
 function recentAttackTarget({
   beliefs,
   attacker,
-}: RecentAttackTargetArgs): W3UnitApi.unit | undefined {
+}: RecentAttackTargetArgs): UnitId | undefined {
   return beliefs.recentAttacks.find((attack) => attack.attacker === attacker)
     ?.attackedUnit;
 }

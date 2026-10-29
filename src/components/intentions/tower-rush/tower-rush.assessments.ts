@@ -1,5 +1,5 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
+import type { UnitId } from '../../../contracts/ids';
 import type { HomeDestructable, OwnUnit } from '../../../contracts/world';
 import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 
@@ -57,7 +57,7 @@ function rushTowersAtLeast({
 
 interface IsAvailableForwardPeasantArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
-  worker: W3UnitApi.unit;
+  worker: UnitId;
 }
 
 /**
@@ -79,7 +79,7 @@ function isAvailableForwardPeasant({
 
 interface LumberDestructablesByPreferenceArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
-  peasantOrigin: W3UnitApi.unit;
+  peasantOrigin: UnitId;
 }
 
 /**
@@ -117,7 +117,7 @@ function lumberDestructablesByPreference({
 
 interface OwnUnitArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
-  unit: W3UnitApi.unit;
+  unit: UnitId;
 }
 
 /** Throws for a unit not believed to be a living unit of the bot. */
@@ -133,7 +133,7 @@ function ownUnit({ beliefs, unit }: OwnUnitArgs): OwnUnit {
 
 interface PositionOfArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
-  unit: W3UnitApi.unit;
+  unit: UnitId;
 }
 
 function positionOf({ beliefs, unit }: PositionOfArgs): Point {
@@ -142,7 +142,7 @@ function positionOf({ beliefs, unit }: PositionOfArgs): Point {
 
 interface LifeFractionOfArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
-  unit: W3UnitApi.unit;
+  unit: UnitId;
 }
 
 function lifeFractionOf({ beliefs, unit }: LifeFractionOfArgs): number {
@@ -153,15 +153,15 @@ function lifeFractionOf({ beliefs, unit }: LifeFractionOfArgs): number {
 
 interface MostDamagedUnitArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
-  units: readonly W3UnitApi.unit[];
+  units: readonly UnitId[];
 }
 
 /** Of the bot's units, the one with the lowest life fraction. */
 function mostDamagedUnit({
   beliefs,
   units,
-}: MostDamagedUnitArgs): W3UnitApi.unit | undefined {
-  let mostDamaged: W3UnitApi.unit | undefined;
+}: MostDamagedUnitArgs): UnitId | undefined {
+  let mostDamaged: UnitId | undefined;
 
   for (const unit of units) {
     if (
@@ -178,7 +178,7 @@ function mostDamagedUnit({
 
 interface ConstructionProgressArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
-  building: W3UnitApi.unit;
+  building: UnitId;
 }
 
 /**
@@ -203,7 +203,7 @@ interface CompletedLumberMillArgs {
 
 function completedLumberMill({
   beliefs,
-}: CompletedLumberMillArgs): W3UnitApi.unit | undefined {
+}: CompletedLumberMillArgs): UnitId | undefined {
   return beliefs.lumberMills.find(
     (mill) => !beliefs.buildingsUnderConstruction.includes(mill)
   );
@@ -211,8 +211,8 @@ function completedLumberMill({
 
 interface ClosestUnitArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
-  units: readonly W3UnitApi.unit[];
-  to: W3UnitApi.unit;
+  units: readonly UnitId[];
+  to: UnitId;
 }
 
 /** Of the bot's units, the one closest to `to`. */
@@ -220,9 +220,9 @@ function closestUnit({
   beliefs,
   units,
   to,
-}: ClosestUnitArgs): W3UnitApi.unit | undefined {
+}: ClosestUnitArgs): UnitId | undefined {
   const origin = positionOf({ beliefs, unit: to });
-  let closest: W3UnitApi.unit | undefined;
+  let closest: UnitId | undefined;
   let closestDistance = Infinity;
 
   for (const unit of units) {

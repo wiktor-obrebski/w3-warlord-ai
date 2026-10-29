@@ -1,10 +1,11 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type {
   AssembledWarlordComponent,
   WarlordBeliefs,
   WarlordController,
 } from '../../../contracts/component';
+import type { UnitId } from '../../../contracts/ids';
+import type { OrderQueue } from '../../../contracts/orders';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { TowerRushState } from './tower-rush.state';
@@ -48,6 +49,7 @@ const RepairSwitchLifeFraction = 0.8;
 
 interface TowerMaintenanceControllerCapabilities {
   readonly actorControl: ActorControl;
+  readonly orders: OrderQueue;
   readonly recorder: DecisionRecorder;
 }
 
@@ -70,7 +72,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
   private readonly rush: TowerRushState;
   private readonly capabilities: TowerMaintenanceControllerCapabilities;
   // The tower the forward Peasants are repairing.
-  private repairTarget: W3UnitApi.unit | undefined;
+  private repairTarget: UnitId | undefined;
 
   public constructor({
     rush,
@@ -89,7 +91,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
       throw new Error('Tower rush: enemy start position not found.');
     }
 
-    const { actorControl, recorder } = this.capabilities;
+    const { actorControl, orders, recorder } = this.capabilities;
     const towers = [...beliefs.scoutTowers, ...beliefs.guardTowers];
     const previousTarget = this.repairTarget;
     const repairTarget = chooseRepairTarget({
@@ -118,9 +120,8 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
           orderRepair({
             worker,
             tower: repairTarget,
-            beliefs,
             rush: this.rush,
-            recorder,
+            orders,
           });
         }
       } else if (
@@ -133,6 +134,7 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
           enemyMain,
           beliefs,
           rush: this.rush,
+          orders,
           recorder,
         });
       }
@@ -141,8 +143,8 @@ class TowerMaintenanceController implements WarlordController<TowerRushCommonBel
 }
 
 interface ChooseRepairTargetArgs {
-  towers: readonly W3UnitApi.unit[];
-  currentRepairTarget: W3UnitApi.unit | undefined;
+  towers: readonly UnitId[];
+  currentRepairTarget: UnitId | undefined;
   beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 
@@ -150,8 +152,8 @@ function chooseRepairTarget({
   towers,
   currentRepairTarget,
   beliefs,
-}: ChooseRepairTargetArgs): W3UnitApi.unit | undefined {
-  const lifeFraction = ({ tower }: { tower: W3UnitApi.unit }) =>
+}: ChooseRepairTargetArgs): UnitId | undefined {
+  const lifeFraction = ({ tower }: { tower: UnitId }) =>
     lifeFractionOf({ beliefs, unit: tower });
   const currentStanding =
     currentRepairTarget !== undefined && towers.includes(currentRepairTarget);
@@ -182,31 +184,29 @@ function chooseRepairTarget({
 }
 
 interface OrderRepairArgs {
-  worker: W3UnitApi.unit;
-  tower: W3UnitApi.unit;
-  beliefs: Readonly<TowerRushCommonBeliefs>;
+  worker: UnitId;
+  tower: UnitId;
   rush: TowerRushState;
-  recorder: DecisionRecorder;
+  orders: OrderQueue;
 }
 
-function orderRepair({
-  worker,
-  tower,
-  beliefs,
-  rush,
-  recorder,
-}: OrderRepairArgs) {
-  if (W3UnitApi.IssueTargetOrder(worker, 'repair', tower)) {
-    forgetSentToSafety({ worker, rush });
-  } else {
-    recorder.note({
-      message: `Tower rush: repair order rejected for ${describeTower({ tower, beliefs })}.`,
-    });
-  }
+// A refused repair leaves the Peasant not repairing, so the next update
+// orders it again.
+function orderRepair({ worker, tower, rush, orders }: OrderRepairArgs) {
+  orders.queue({
+    order: {
+      kind: 'target',
+      unit: worker,
+      orderString: 'repair',
+      target: { unit: tower },
+      reason: 'Tower rush: forward Peasant repairs a tower',
+    },
+  });
+  forgetSentToSafety({ worker, rush });
 }
 
 interface DescribeTowerArgs {
-  tower: W3UnitApi.unit;
+  tower: UnitId;
   beliefs: Readonly<TowerRushCommonBeliefs>;
 }
 

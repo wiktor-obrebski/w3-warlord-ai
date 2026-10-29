@@ -1,5 +1,5 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { BeliefsModel } from '@lib/bdi';
+import type { UnitId } from '../../../contracts/ids';
 import type { MaintainWorkerSafetyCommonBeliefs } from './maintain-worker-safety.common-beliefs';
 import { isRecentlyAttacked } from './worker-safety.assessments';
 
@@ -8,7 +8,7 @@ export { type WorkerSafetyBeliefs, workerSafetyBeliefsModel };
 interface WorkerSafetyBeliefs {
   // When each worker attacked within the last SafeAfterAttackSeconds was
   // last attacked.
-  readonly lastAttackedAt: ReadonlyMap<W3UnitApi.unit, number>;
+  readonly lastAttackedAt: ReadonlyMap<UnitId, number>;
 }
 
 /**
@@ -28,7 +28,7 @@ const workerSafetyBeliefsModel: BeliefsModel<
   // the same object while no worker is under attack.
   revise({ previous, commonBeliefs }) {
     const known = previous?.lastAttackedAt ?? NoAttacks;
-    let revised: Map<W3UnitApi.unit, number> | undefined;
+    let revised: Map<UnitId, number> | undefined;
 
     for (const worker of commonBeliefs.workers) {
       if (
@@ -68,4 +68,4 @@ const workerSafetyBeliefsModel: BeliefsModel<
 // A worker unattacked for this long is safe again.
 const SafeAfterAttackSeconds = 1;
 
-const NoAttacks: ReadonlyMap<W3UnitApi.unit, number> = new Map();
+const NoAttacks: ReadonlyMap<UnitId, number> = new Map();

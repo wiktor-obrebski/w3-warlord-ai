@@ -1,6 +1,8 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import type { ActorControl } from '../../../../contracts/actor-control';
+import type { UnitId } from '../../../../contracts/ids';
+import type { OrderQueue } from '../../../../contracts/orders';
+import type { WarcraftProbes } from '../../../../contracts/probes';
 import type { DecisionRecorder } from '../../../../contracts/record';
 import { Point, Vector } from '@lib/math';
 import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
@@ -14,6 +16,8 @@ interface UpdateStartArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
   actorControl: ActorControl;
+  orders: OrderQueue;
+  probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
 
@@ -21,6 +25,8 @@ function updateStart({
   beliefs,
   rush,
   actorControl,
+  orders,
+  probes,
   recorder,
 }: UpdateStartArgs) {
   const { townHall, enemyMainGoldMine, homeGoldMine } = beliefs;
@@ -60,7 +66,14 @@ function updateStart({
   }
 
   for (const worker of rush.forwardWorkers) {
-    W3UnitApi.IssueImmediateOrder(worker, 'militia');
+    orders.queue({
+      order: {
+        kind: 'immediate',
+        unit: worker,
+        orderString: 'militia',
+        reason: 'Tower rush: forward worker answers the Call to Arms',
+      },
+    });
   }
 
   orderLumberMill({
@@ -68,10 +81,19 @@ function updateStart({
     hall: positionOf({ beliefs, unit: townHall }),
     mine: homeGoldMine.position,
     beliefs,
+    probes,
     recorder,
   });
-  W3UnitApi.IssueTargetOrder(homeWorker, 'harvest', homeGoldMine.unit);
-  trainPeasant({ townHall, beliefs, rush, recorder });
+  orders.queue({
+    order: {
+      kind: 'target',
+      unit: homeWorker,
+      orderString: 'harvest',
+      target: { unit: homeGoldMine.unit },
+      reason: 'Tower rush: home worker harvests gold',
+    },
+  });
+  trainPeasant({ townHall, beliefs, rush, orders, recorder });
 }
 
 const StartingPeasantCount = 5;
@@ -85,25 +107,27 @@ const MaxLumberMillDistance = 1200;
 const CandidateSpacing = 64;
 
 interface OrderLumberMillArgs {
-  builder: W3UnitApi.unit;
+  builder: UnitId;
   hall: Point;
   mine: Point;
   beliefs: Readonly<TowerRushCommonBeliefs>;
+  probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
 
 // Spots are tried from the one closest to both the Town Hall and a tree;
-// IssueBuildOrderById rejects blocked spots, so the order itself is the
-// placement test. Only the half facing away from the gold mine is searched
-// so the mill never stands in the way of gold workers.
+// Warcraft refuses a build order for a blocked spot, so the order itself is
+// the placement test. Only the half facing away from the gold mine is
+// searched so the mill never stands in the way of gold workers.
 function orderLumberMill({
   builder,
   hall,
   mine,
   beliefs,
+  probes,
   recorder,
 }: OrderLumberMillArgs) {
-  const trees = treePositions({ builder, beliefs });
+  const trees = treePositions({ builder, beliefs, probes });
   const sites = lumberMillCandidates({ hall, mine })
     .map((position) => ({
       position,
@@ -116,12 +140,11 @@ function orderLumberMill({
     );
 
   for (const site of sites) {
-    const accepted = W3UnitApi.IssueBuildOrderById(
-      builder,
-      W3HumanApi.Building.LUMBER_MILL,
-      site.position.x,
-      site.position.y
-    );
+    const accepted = probes.tryBuild({
+      unit: builder,
+      building: W3HumanApi.Building.LUMBER_MILL,
+      point: site.position,
+    });
 
     if (accepted) {
       recorder.note({
@@ -176,17 +199,22 @@ function lumberMillCandidates({
 }
 
 interface TreePositionsArgs {
-  builder: W3UnitApi.unit;
+  builder: UnitId;
   beliefs: Readonly<TowerRushCommonBeliefs>;
+  probes: WarcraftProbes;
 }
 
 // Beliefs cannot tell trees apart from other destructables, so a harvest
 // order is used as the test: Warcraft rejects it for non-trees. The builder's
 // build order replaces these test orders.
-function treePositions({ builder, beliefs }: TreePositionsArgs): Point[] {
+function treePositions({
+  builder,
+  beliefs,
+  probes,
+}: TreePositionsArgs): Point[] {
   return beliefs.destructablesNearHomeByDistance
     .filter(({ destructable }) =>
-      W3UnitApi.IssueTargetOrder(builder, 'harvest', destructable)
+      probes.tryHarvest({ unit: builder, destructable })
     )
     .map((tree) => tree.position);
 }

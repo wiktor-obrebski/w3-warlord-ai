@@ -1,6 +1,5 @@
-import type * as W3UnitApi from '@lib/warcraft3-api/unit';
-import type * as W3DestructableApi from '@lib/warcraft3-api/destructable';
 import type { Point } from '@lib/math';
+import type { DestructableId, UnitId } from './ids';
 
 export {
   type Race,
@@ -14,17 +13,16 @@ export {
 type Race = 'Human' | 'Orc' | 'Undead' | 'NightElf';
 
 interface OwnUnit {
-  readonly unit: W3UnitApi.unit;
+  readonly unit: UnitId;
   readonly position: Point;
   readonly life: number;
   readonly maxLife: number;
   readonly isIdle: boolean;
 }
 
-// The handle is only for targeting orders; reasoning reads the observed
-// properties, which are collected only while the unit is visible.
+// The observed properties are collected only while the unit is visible.
 interface VisibleEnemy {
-  readonly unit: W3UnitApi.unit;
+  readonly unit: UnitId;
   readonly position: Point;
   readonly life: number;
   readonly isMelee: boolean;
@@ -37,18 +35,19 @@ interface VisibleEnemy {
 }
 
 interface GoldMine {
-  readonly unit: W3UnitApi.unit;
+  readonly unit: UnitId;
   readonly position: Point;
 }
 
 interface HomeDestructable {
-  readonly destructable: W3DestructableApi.destructable;
+  readonly destructable: DestructableId;
   readonly position: Point;
 }
 
 interface ObservedAttack {
-  readonly attacker: W3UnitApi.unit;
-  readonly attackedUnit: W3UnitApi.unit;
+  // Null when the attacker was not visible as the attack started.
+  readonly attacker: UnitId | null;
+  readonly attackedUnit: UnitId;
   // Game seconds at which the attack started.
   readonly time: number;
 }

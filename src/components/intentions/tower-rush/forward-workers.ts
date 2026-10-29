@@ -1,6 +1,7 @@
-import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import { Point, Vector } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { UnitId } from '../../../contracts/ids';
+import type { OrderQueue } from '../../../contracts/orders';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
 import { TowerRushState } from './tower-rush.state';
@@ -9,11 +10,12 @@ import { closestUnit, positionOf } from './tower-rush.assessments';
 export { hideBehindClosestTower, forgetSentToSafety, controlForwardPeasants };
 
 interface HideBehindClosestTowerArgs {
-  worker: W3UnitApi.unit;
-  towers: readonly W3UnitApi.unit[];
+  worker: UnitId;
+  towers: readonly UnitId[];
   enemyMain: Point;
   beliefs: Readonly<TowerRushCommonBeliefs>;
   rush: TowerRushState;
+  orders: OrderQueue;
   recorder: DecisionRecorder;
 }
 
@@ -23,6 +25,7 @@ function hideBehindClosestTower({
   enemyMain,
   beliefs,
   rush,
+  orders,
   recorder,
 }: HideBehindClosestTowerArgs) {
   const shelter = closestUnit({ beliefs, units: towers, to: worker });
@@ -36,18 +39,24 @@ function hideBehindClosestTower({
     enemyMain,
   });
 
-  if (W3UnitApi.IssuePointOrder(worker, 'move', spot.x, spot.y)) {
-    rush.forwardWorkersSentToSafety.push(worker);
-    recorder.note({
-      message: 'Tower rush: forward Peasant hides behind a tower.',
-    });
-  } else {
-    recorder.note({ message: 'Tower rush: move to safety rejected.' });
-  }
+  orders.queue({
+    order: {
+      kind: 'point',
+      unit: worker,
+      orderString: 'move',
+      point: spot,
+      reason: 'Tower rush: forward Peasant hides behind a tower',
+    },
+    onRefused: () => forgetSentToSafety({ worker, rush }),
+  });
+  rush.forwardWorkersSentToSafety.push(worker);
+  recorder.note({
+    message: 'Tower rush: forward Peasant hides behind a tower.',
+  });
 }
 
 interface ForgetSentToSafetyArgs {
-  worker: W3UnitApi.unit;
+  worker: UnitId;
   rush: TowerRushState;
 }
 
@@ -75,8 +84,8 @@ function controlForwardPeasants({
   beliefs,
   rush,
   actorControl,
-}: ControlForwardPeasantsArgs): W3UnitApi.unit[] {
-  const controlled: W3UnitApi.unit[] = [];
+}: ControlForwardPeasantsArgs): UnitId[] {
+  const controlled: UnitId[] = [];
 
   for (const worker of rush.forwardWorkers) {
     if (!beliefs.peasants.includes(worker)) {

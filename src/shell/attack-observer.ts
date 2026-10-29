@@ -1,13 +1,27 @@
 import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3TriggerApi from '@lib/warcraft3-api/trigger';
+import * as W3UnitApi from '@lib/warcraft3-api/unit';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
-import type { ObservedAttack } from '../contracts/world';
-import { GameClock, readGameClock } from '../shell/game-clock';
+import { GameClock, readGameClock } from './game-clock';
 
-export { type AttackObserver, observeAttacksOn, takeObservedAttacks };
+export {
+  type AttackObserver,
+  type AttackEvent,
+  observeAttacksOn,
+  takeObservedAttacks,
+};
 
 interface AttackObserver {
-  pending: ObservedAttack[];
+  pending: AttackEvent[];
+}
+
+interface AttackEvent {
+  readonly attacker: W3UnitApi.unit;
+  // Whether the bot's player saw the attacker as the attack started.
+  readonly attackerVisible: boolean;
+  readonly attackedUnit: W3UnitApi.unit;
+  // Game seconds at which the attack started.
+  readonly time: number;
 }
 
 interface ObserveAttacksOnArgs {
@@ -34,7 +48,7 @@ function observeAttacksOn({
   );
   W3TriggerApi.TriggerAddAction(
     trigger,
-    WarlordApi.guard(() => recordAttack({ observer, clock }))
+    WarlordApi.guard(() => recordAttack({ observer, bot, clock }))
   );
 
   return observer;
@@ -47,7 +61,7 @@ interface TakeObservedAttacksArgs {
 /** The attacks started since they were last taken, oldest first. */
 function takeObservedAttacks({
   observer,
-}: TakeObservedAttacksArgs): readonly ObservedAttack[] {
+}: TakeObservedAttacksArgs): readonly AttackEvent[] {
   if (observer.pending.length === 0) {
     return NoAttacks;
   }
@@ -58,14 +72,15 @@ function takeObservedAttacks({
   return attacks;
 }
 
-const NoAttacks: readonly ObservedAttack[] = [];
+const NoAttacks: readonly AttackEvent[] = [];
 
 interface RecordAttackArgs {
   observer: AttackObserver;
+  bot: W3PlayerApi.player;
   clock: GameClock;
 }
 
-function recordAttack({ observer, clock }: RecordAttackArgs) {
+function recordAttack({ observer, bot, clock }: RecordAttackArgs) {
   const attacker = W3TriggerApi.GetAttacker();
   const attackedUnit = W3TriggerApi.GetTriggerUnit();
 
@@ -77,6 +92,7 @@ function recordAttack({ observer, clock }: RecordAttackArgs) {
 
   observer.pending.push({
     attacker,
+    attackerVisible: W3UnitApi.IsUnitVisible(attacker, bot),
     attackedUnit,
     time: readGameClock({ clock }),
   });

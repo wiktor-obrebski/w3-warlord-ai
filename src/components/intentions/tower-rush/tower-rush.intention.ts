@@ -10,6 +10,8 @@ import type {
   WarlordUpdateChild,
 } from '../../../contracts/component';
 import type { WarlordDesire } from '../../../contracts/desires';
+import type { OrderQueue } from '../../../contracts/orders';
+import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { UpdateInterval } from '../update-interval';
 import type { TowerRushCommonBeliefs } from './tower-rush.common-beliefs';
@@ -29,6 +31,8 @@ export {
 
 interface TowerRushCapabilities {
   readonly actorControl: ActorControl;
+  readonly orders: OrderQueue;
+  readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
   readonly random: Random;
 }
@@ -58,7 +62,7 @@ function assembleTowerRushIntention<
 > {
   const rush = createTowerRushState();
   const children: AssembledChildren<TCommonBeliefs> = [];
-  const { actorControl, recorder, random } = capabilities;
+  const { actorControl, orders, probes, recorder, random } = capabilities;
 
   return {
     component: new TowerRush({
@@ -68,7 +72,7 @@ function assembleTowerRushIntention<
           assemble: () =>
             assembleEstablishTowerPositionPlan({
               rush,
-              capabilities: { actorControl, recorder, random },
+              capabilities: { actorControl, orders, probes, recorder, random },
             }),
         }),
         createEconomyController: childFactory({
@@ -76,7 +80,7 @@ function assembleTowerRushIntention<
           assemble: () =>
             assembleTowerRushEconomyController({
               rush,
-              capabilities: { actorControl, recorder },
+              capabilities: { actorControl, orders, probes, recorder },
             }),
         }),
         createTowerMaintenanceController: childFactory({
@@ -84,7 +88,7 @@ function assembleTowerRushIntention<
           assemble: () =>
             assembleTowerMaintenanceController({
               rush,
-              capabilities: { actorControl, recorder },
+              capabilities: { actorControl, orders, recorder },
             }),
         }),
       },
