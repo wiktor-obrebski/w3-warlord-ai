@@ -256,7 +256,7 @@ Every entry above names a home for the response. These entries rest on parts tha
 - **Fine timing.** Last hits (1.13, 2.16, 4.8) and stepping out of Blizzard (6.16) need damage and spell prediction within a 0.1 s tick.
 - **Calibration.** Which commitment wins (1.4, 2.14, 2B.1, 4.1, 5.1, 6.19, 6.20) depends on _**ranks**_, _**weights**_, and _**interruption costs**_ that are not tuned yet, including where a threat stops being small.
 
-The architecture document's [risks and open questions](rts-behavior-architecture.md#10-risks-and-open-questions) cover each of these.
+The architecture document's [risks and open questions](rts-behavior-architecture.md#10-risks-and-open-questions) cover all of these except the enemy's whereabouts and intent, and fine timing.
 
 ## 4. The original scenarios
 

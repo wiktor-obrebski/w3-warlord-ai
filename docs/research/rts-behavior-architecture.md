@@ -30,7 +30,7 @@ That research confirmed the core of the first iteration and changed most of what
 
    This one boundary serves three purposes: fair information, testing, and explaining decisions.
 
-2. **Fixed phases per tick, and a _decision record_.** Each tick observes, revises _**Beliefs**_, deliberates and allocates on cadence, steps _**Intentions**_, decides per unit, and executes. No phase depends on another being updated first. Every phase records why it decided what it did.
+2. **Fixed phases per tick, and a _decision record_.** Each tick observes, revises _**Beliefs**_, deliberates and allocates about once a second, steps _**Intentions**_, decides per unit, and executes. No phase depends on another being updated first. Every phase records why it decided what it did.
 3. **Interpretation has explicit homes.** _**Beliefs**_ hold what was seen and what is probably true. _**Assessments**_ hold what it means for the bot, shared by every part that needs it, such as the threat to a base. An interpretation only one module needs stays private in that module, and how the game works is _**Knowledge**_.
 4. **_Desires_ are asked for, not pushed.** Each _**deliberation**_ cycle collects _**proposals**_ from three sources: _**concerns**_ (maintenance goals, in BDI terms), the committed strategy's _**playbook**_, and the active _**Intentions**_' _**requests**_. There are no support ids, refresh intervals, or staleness.
 5. **_Deliberation_ ranks, and commitment is explicit.** A _**Desire**_ has a _**rank**_ (a category) and a _**weight**_ (its value within that category, in gold):
@@ -162,7 +162,7 @@ onEveryTick(() => {
 | 2. Collect _**Desires**_                      | each _**deliberation**_ cycle (about 1 s), or early on urgent events | _**Beliefs**_, _**Assessments**_, active _**Intentions**_                        | _**Desires**_ with their _**proposals**_                              |
 | 3. Deliberate                                 | with phase 2                                                         | _**Beliefs**_, _**Assessments**_, _**Desires**_, _**Intentions**_                | _**Intentions**_ adopted, kept, paused, or finished; the _**agenda**_ |
 | 4. Allocate                                   | with phase 2, and when units appear or die                           | _**Beliefs**_, the _**agenda**_, _**needs**_                                     | each _**Intention**_'s force: units and money                         |
-| 5. Step _**Intentions**_                      | each _**Intention**_ at its cadence, in _**agenda**_ order           | _**Beliefs**_, _**Assessments**_, its force                                      | _**Directives**_                                                      |
+| 5. Step _**Intentions**_                      | each _**Intention**_ at its pace, in _**agenda**_ order              | _**Beliefs**_, _**Assessments**_, its force                                      | _**Directives**_                                                      |
 | 6. Decide per unit                            | every tick                                                           | _**Beliefs**_, _**Assessments**_, each unit's _**Directive**_, the unit's memory | orders                                                                |
 | 7. Record                                     | every tick                                                           | everything decided                                                               | the _**decision record**_                                             |
 
@@ -234,7 +234,7 @@ Which strategy the enemy follows is a claim about the world, so recognizing it i
 
 **How _Assessments_ work:**
 
-- They are computed like _**belief models**_: pure functions over plain data, revised in phase 1, right after the _**Beliefs**_ they read, each at its own cadence ([section 4.13](#413-timing)). Inference and _**Assessments**_ are one kind of module with two kinds of output, not two subsystems.
+- They are computed like _**belief models**_: pure functions over plain data, revised in phase 1, right after the _**Beliefs**_ they read, each at its own pace ([section 4.13](#413-timing)). Inference and _**Assessments**_ are one kind of module with two kinds of output, not two subsystems.
 - They are plain data, read-only to everything else. Like _**Beliefs**_, they never propose _**Desires**_: _**concerns**_, the _**playbook**_, and _**requests**_ read them and propose.
 - An _**assessment**_ keeps memory where it needs it. A base counts as threatened only once a threat has persisted, and stays so until it has clearly passed. That hysteresis lives in one place, not in every reader.
 - Each records its inputs, so the _**decision record**_ shows the whole chain, for example: "5 Footmen seen near the Wisps 2 s ago; strength 7.5 against 4.2 at home → serious threat to the main base → `DefendBase`, Emergency".
@@ -267,7 +267,7 @@ _**Desires**_ come from three sources, asked every _**deliberation**_ cycle:
 - A _**Desire**_ takes its best _**proposal**_: the highest _**rank**_, then the highest _**weight**_.
 - **Each proposer picks the _rank_ for the situation.**
   - The _**threat assessment**_ rates a threat lethal, serious, or small, and the _**base-safety concern**_ ranks it _**Survival**_, _**Emergency**_, or _**Game plan**_. A small threat, such as a lone Footman at the Wisps, competes by _**weight**_, so it cannot pull a hero off a more valuable commitment.
-  - A raid is usually an _**Opportunity**_, but the _**playbook**_ may rank pressing a beaten army as _**Game plan**_.
+  - A short-lived gain is usually an _**Opportunity**_, but the _**playbook**_ ranks the gains it plans for as _**Game plan**_, such as the raid its fast-expansion _**adaptation**_ proposes, or pressing a beaten army.
 - **Opportunities carry a _window_.** A _**proposal**_ for a short-lived gain states how long the chance lasts and how long pursuing it takes. A _**Desire**_ that can no longer fit its _**window**_, given travel time and the units available, gets _**weight**_ 0 instead of waiting for units.
 
 **_Weights_ are measured in gold.** A _**weight**_ says how far pursuing the outcome would move the balance between the two sides, net of its risk: killing an enemy Peasant is worth its cost plus the mining the enemy loses, and losing one of ours costs the same. _**Knowledge**_ supplies costs, income, and experience; _**Beliefs**_ and _**Assessments**_ supply what is at stake and the risk. Two refinements make gold a fair measure:
@@ -844,7 +844,7 @@ A behavior goes at the lowest level that has the information and the authority i
 | A local gain a group can take within its purpose, such as finishing a wounded camp            | _**Tactic**_ opportunities                                                                                  |
 | Another way of pursuing an _**Intention**_                                                    | a new _**plan**_ of the _**Intention kind**_                                                                |
 | A step or choice inside one way                                                               | that _**plan**_'s state machine                                                                             |
-| A new kind of outcome to pursue, such as an escort or a drop                                  | a new outcome kind and _**Intention kind**_                                                                 |
+| A new kind of goal, such as an escort or a drop                                               | a new outcome kind and _**Intention kind**_                                                                 |
 | Something any competent player wants in some situation                                        | a _**concern**_                                                                                             |
 | Something this game plan wants, or an _**adaptation**_ to the enemy                           | the _**playbook**_                                                                                          |
 | What should win a conflict                                                                    | a _**rank**_ or _**weight**_ consideration, or a _**pause condition**_                                      |
@@ -871,7 +871,7 @@ A behavior goes at the lowest level that has the information and the authority i
 | Intention (`update`, `assessCommitment`)                                          | _**Intention kinds**_ (conditions, _**plans**_, _**requests**_, _**failure policy**_) on one generic runtime |
 | Plan, Controller                                                                  | _**plans**_ and _**Tactics**_ (group Controllers)                                                            |
 | Actor Control                                                                     | _**Allocation**_ and _**Unit Behavior**_ _**reflexes**_                                                      |
-| `UpdateInterval`                                                                  | cadences of the tick phases                                                                                  |
+| `UpdateInterval`                                                                  | the paces of the tick's work                                                                                 |
 | Assessments (private `*.assessments.ts`)                                          | shared interpretations become _**Assessments**_; private ones stay in their modules as _**judgments**_       |
 | `debug` messages                                                                  | the _**decision record**_, in log files of its own, and the game log                                         |
 
@@ -908,7 +908,7 @@ Each step leaves a working bot and updates the architecture documents.
    - Worker safety becomes the worker _**reflex**_; tower targeting becomes the Guard Tower's _**task**_.
    - Then the first _**Tactics**_ (Travel, Skirmish), the _**combat estimate**_, and navigation over the map in _**Knowledge**_ and _**Beliefs**_.
 6. **Production.**
-   - The opening language.
+   - The opening book.
    - Production _**Intentions**_ with desired totals and jam detection.
    - Gates for tier pacing and upkeep.
 7. **The _enemy model_ and scouting.**

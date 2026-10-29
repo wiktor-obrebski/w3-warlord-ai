@@ -19,7 +19,7 @@ The bot must do the same under three constraints:
 The architecture is built on BDI:
 
 - _**Beliefs**_ are what the bot holds true: what it sees, remembers, and infers.
-- _**Desires**_ are what would be worth achieving now. Wanting is not committing; most _**Desires**_ are never acted on.
+- _**Desires**_ are what would be worth achieving now. Wanting is not committing: a _**Desire**_ does nothing by itself.
 - _**Intentions**_ are what the bot has committed to, and how it pursues each commitment.
 
 Between _**Beliefs**_ and _**Desires**_ sit _**Assessments**_: what the _**Beliefs**_ mean for the bot, such as whether a base is threatened. Like _**Beliefs**_, they are information; [section 5](#5-interpreting-assessments) explains them.
@@ -168,7 +168,7 @@ An _**Intention**_ is **relative to the reason it was adopted for**. When its _*
 
 - **conditions over _Beliefs_**: when the goal is achieved, when it is impossible, and when it must wait for now, its _**pause condition**_;
 - _**plans**_, the alternative ways to pursue it, each with a precondition and a preference;
-- _**requests**_: _**Desires**_ for its subgoals;
+- _**requests**_: _**Desires**_ for goals it depends on but does not pursue itself, such as an item for its hero;
 - **a _failure policy_**: how long a failed _**plan**_ is excluded, how many attempts are allowed, and then whether to retry later or fail.
 
 One small generic runtime chooses the _**plan**_ and handles failure, so kinds do not reimplement it. The raid's _**plan**_ might be "hit the workers": travel, kill the builders and Peasants, and leave before defenders arrive. The harassment's _**plan**_ is hit and run: search, engage, disengage, recover.
@@ -314,7 +314,7 @@ Put a behavior at the lowest level that has the information and the authority it
 | Workers flee from danger                                                          | a _**reflex**_ in the worker's _**Unit Behavior**_ |
 | The army kills Priests first                                                      | a _**Tactic**_'s kill order                        |
 | Creeping with the Ancient of War as a tank                                        | a _**plan**_ of the Creep _**Intention kind**_     |
-| A new kind of operation, such as an escort                                        | a new outcome kind and _**Intention kind**_        |
+| A new kind of goal, such as an escort                                             | a new outcome kind and _**Intention kind**_        |
 | Raiding when the enemy expands early                                              | an _**adaptation**_ in the _**playbook**_          |
 | Defending a threatened base, as any player would                                  | a _**concern**_                                    |
 | What a situation means, needed by several parts, such as a threat to an expansion | an _**Assessment**_                                |
@@ -348,7 +348,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - _**Decision record**_: what each step of the _**mind**_ returns besides its orders: every decision and why. It is written to log files of its own, and tests read it.
 - _**Default owner**_: the _**Intention**_ that receives units nobody asked for: RunEconomy for workers, Reserve for army units and heroes.
 - _**Deliberation**_: checks _**Intentions**_' conditions, adopts _**Intentions**_ for _**Desires**_, and orders the _**agenda**_.
-- _**Desire**_: an outcome worth pursuing, backed by one or more _**proposals**_. It commits to nothing, lasts while anyone proposes it, and gets at most one _**Intention**_.
+- _**Desire**_: an outcome worth pursuing, backed by one or more _**proposals**_. It commits to nothing, lasts while anyone proposes it, and has at most one _**Intention**_ at a time.
 - _**Directive**_: what is asked of one unit: a _**task**_, a _**role**_, _**latitude**_, and optionally where to stand and where to fall back.
 - _**Fingerprint**_: a sign of an enemy strategy in the _**strategy library**_: a small rule over what was seen and when, such as an early Town Hall away from the enemy's start.
 - _**Intention**_: a commitment to a _**Desire**_, pursued through _**plans**_ until it is achieved, becomes impossible, or is no longer wanted.
@@ -367,7 +367,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 - _**Proposal**_: one source backing one outcome: how strongly (a _**rank**_ and a _**weight**_) and why (a reason). _**Proposals**_ for the same outcome merge into one _**Desire**_.
 - _**Rank**_: a _**proposal**_'s category: _**Survival**_, _**Emergency**_, _**Game plan**_, _**Opportunity**_, or _**Background**_.
 - _**Reflex**_: a _**Unit Behavior**_ module that runs first and may override the _**Directive**_ to keep the unit alive.
-- _**Request**_: a _**Desire**_ proposed by an active _**Intention**_ for one of its subgoals.
+- _**Request**_: a _**Desire**_ an active _**Intention**_ proposes for a goal it depends on but does not pursue itself, such as an item for its hero.
 - _**Role**_: how a unit should play its _**task**_, such as Harasser or Tank.
 - _**Starved**_: the progress of an _**Intention**_ whose _**needs**_ go unmet. It keeps its state.
 - _**Strategy recognition**_: the inference that matches what was seen against a library of known enemy strategies, and gives the likeliest one or two with a confidence.

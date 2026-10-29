@@ -41,7 +41,7 @@ Everything between the two boundaries is plain TypeScript over plain data, so it
 | _**Unit Behaviors**_  | turn a unit's _**Directive**_ into one order each tick, _**reflexes**_ first               | deviate beyond their _**latitude**_, except to survive     |
 | _**Decision record**_ | holds every decision and why, returned with the orders                                     | leaves a decision without its reason                       |
 
-_**Desires**_ come from three sources: _**concerns**_, what any competent player keeps caring about; the _**playbook**_, the committed strategy as data; and _**requests**_, the subgoals of active _**Intentions**_.
+_**Desires**_ come from three sources: _**concerns**_, what any competent player keeps caring about; the _**playbook**_, the committed strategy as data; and _**requests**_, goals that active _**Intentions**_ depend on but do not pursue themselves.
 
 ## One tick
 
