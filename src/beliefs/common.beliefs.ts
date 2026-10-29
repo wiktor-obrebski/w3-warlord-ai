@@ -1,6 +1,6 @@
 import { CommonBeliefsModel } from '@lib/bdi';
 import type { Point } from '@lib/math';
-import type { Observations, ObservedWorld } from '../contracts/observations';
+import type { ObservedWorld } from '../contracts/observations';
 import type { Strategy } from '../contracts/strategy';
 import type {
   GoldMine,
@@ -35,8 +35,8 @@ interface CommonBeliefs extends ObservedWorld {
 }
 
 interface CreateCommonBeliefsModelArgs {
-  // The observations of the step being run.
-  readObservations: () => Observations;
+  // What Perception reported for the step being run.
+  readObservations: () => Pick<CommonObservation, 'world' | 'attacksStarted'>;
   // The bot's own strategy commitment, observed like the world.
   readCurrentStrategy: () => Strategy | null;
 }
