@@ -2,7 +2,7 @@
 
 **Chain of Command** is a BDI architecture for real-time strategy: how the WC3 Warlord AI knows, wants, commits, and acts. One _**mind**_ commands many units through a chain of command: commitments go down as constraints, and status comes back up.
 
-This is the short version of the [architecture](architecture.md), which has every rule and the reasons for it; where the two disagree, the architecture is right. Terms of the architecture are set in _**bold italics**_.
+This is the short version of the [architecture](architecture.md), which has every rule and the reasons for it; where the two disagree, the architecture is right. Terms of the architecture are set in _**bold italics**_; the [glossary](glossary.md) defines them.
 
 ## The shape
 
@@ -90,5 +90,6 @@ The full table, with the rule behind it, is in the [architecture](architecture.m
 - [Architecture](architecture.md): every rule, and why.
 - [Testability](architecture-testability.md): what makes the architecture easy to test.
 - [Risks](architecture-risks.md): where the architecture is still unproven or undecided.
+- [Glossary](glossary.md): every term, with the section that defines it.
 - [Research architecture document](../research/rts-behavior-architecture.md): walkthroughs and the roadmap.
 - [Ideas](../research/rts-ideas.md): techniques the architecture could use but does not depend on.

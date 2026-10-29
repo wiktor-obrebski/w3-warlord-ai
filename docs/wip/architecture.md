@@ -2,7 +2,7 @@
 
 **Chain of Command** is a BDI architecture for real-time strategy: how the WC3 Warlord AI knows, wants, commits, and acts. The [overview](architecture-overview.md) is its short version.
 
-[Testability](architecture-testability.md) and [risks](architecture-risks.md) have documents of their own. Terms of the architecture are set in _**bold italics**_.
+[Testability](architecture-testability.md) and [risks](architecture-risks.md) have documents of their own. Terms of the architecture are set in _**bold italics**_; the [glossary](glossary.md) defines them.
 
 ## 1. Summary
 

@@ -1,6 +1,6 @@
 # Architecture Risks and Open Questions
 
-Where **Chain of Command** is still unproven or undecided. It uses the terms of the [architecture](architecture.md), set in _**bold italics**_.
+Where **Chain of Command** is still unproven or undecided. It uses the terms of the [architecture](architecture.md), set in _**bold italics**_ and defined in the [glossary](glossary.md).
 
 1. **Calibration.** The _**agenda**_ is only as good as the _**ranks**_ and _**weights**_ feeding it. No formula picks good values, but tuning can be made safe:
    - _**Ranks**_ keep fixed meanings, so the hardest comparisons, such as a lethal threat against creeping, never come down to numbers.

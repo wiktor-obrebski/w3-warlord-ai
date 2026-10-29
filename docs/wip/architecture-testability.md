@@ -1,6 +1,6 @@
 # Architecture Testability
 
-How **Chain of Command** makes the bot easy to test. It uses the terms of the [architecture](architecture.md), set in _**bold italics**_.
+How **Chain of Command** makes the bot easy to test. It uses the terms of the [architecture](architecture.md), set in _**bold italics**_ and defined in the [glossary](glossary.md).
 
 The project asks for three kinds of tests. This document describes the properties of the architecture that make them easy, not a test plan.
 
