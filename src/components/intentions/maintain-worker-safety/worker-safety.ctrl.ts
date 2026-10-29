@@ -1,7 +1,6 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
-import * as W3MathApi from '@lib/warcraft3-api/math';
 import * as W3TerrainApi from '@lib/warcraft3-api/terrain';
-import { Point, Vector } from '@lib/math';
+import { Point, Random, Vector } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { OwnUnit } from '../../../contracts/world';
@@ -57,6 +56,7 @@ interface FleeRound {
 interface WorkerSafetyControllerCapabilities {
   readonly actorControl: ActorControl;
   readonly recorder: DecisionRecorder;
+  readonly random: Random;
 }
 
 interface WorkerSafetyControllerConstructorArgs {
@@ -129,7 +129,7 @@ class WorkerSafetyController implements WarlordController<
     worker,
     beliefs,
   }: WorkerSafetyControllerProtectWorkerArgs) {
-    const { recorder } = this.capabilities;
+    const { recorder, random } = this.capabilities;
     const isAttacked = isRecentlyAttacked({
       beliefs,
       attackedUnit: worker.unit,
@@ -153,7 +153,7 @@ class WorkerSafetyController implements WarlordController<
     }
 
     if (isAttacked) {
-      const nextRound = startFleeRound({ worker, beliefs, recorder });
+      const nextRound = startFleeRound({ worker, beliefs, recorder, random });
 
       if (nextRound) {
         this.fleeRounds.set(worker.unit, nextRound);
@@ -224,12 +224,14 @@ interface StartFleeRoundArgs {
   worker: OwnUnit;
   beliefs: Readonly<MaintainWorkerSafetyCommonBeliefs>;
   recorder: DecisionRecorder;
+  random: Random;
 }
 
 function startFleeRound({
   worker,
   beliefs,
   recorder,
+  random,
 }: StartFleeRoundArgs): FleeRound | undefined {
   const threats = nearbyThreats({ beliefs, position: worker.position });
   const threat = threatCenter({ beliefs, worker });
@@ -238,6 +240,7 @@ function startFleeRound({
     from: worker.position,
     awayAngle,
     recorder,
+    random,
   });
 
   if (
@@ -263,6 +266,7 @@ interface FleeDestinationArgs {
   from: Point;
   awayAngle: number | undefined;
   recorder: DecisionRecorder;
+  random: Random;
 }
 
 // A worker standing still is easily killed, so it always runs somewhere.
@@ -274,8 +278,9 @@ function fleeDestination({
   from,
   awayAngle,
   recorder,
+  random,
 }: FleeDestinationArgs): Point {
-  const preferredAngle = awayAngle ?? W3MathApi.GetRandomReal(0, Math.PI * 2);
+  const preferredAngle = awayAngle ?? random.real({ min: 0, max: Math.PI * 2 });
 
   for (const offset of FleeAngleOffsets) {
     const candidate = pointAt({
@@ -301,7 +306,7 @@ function fleeDestination({
 
   return pointAt({
     from,
-    angle: W3MathApi.GetRandomReal(0, Math.PI * 2),
+    angle: random.real({ min: 0, max: Math.PI * 2 }),
     distance: FleeRoundDistance,
   });
 }

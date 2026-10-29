@@ -1,7 +1,6 @@
 import * as W3UnitApi from '@lib/warcraft3-api/unit';
-import * as W3MathApi from '@lib/warcraft3-api/math';
 import * as W3HumanApi from '@lib/warcraft3-api/human';
-import { Point, Vector } from '@lib/math';
+import { Point, Random, Vector } from '@lib/math';
 import type { ActorControl } from '../../../../contracts/actor-control';
 import type { DecisionRecorder } from '../../../../contracts/record';
 import type { TowerRushCommonBeliefs } from '../tower-rush.common-beliefs';
@@ -40,6 +39,7 @@ interface UpdateBuildTowersArgs {
   buildTowersState: BuildTowersState;
   actorControl: ActorControl;
   recorder: DecisionRecorder;
+  random: Random;
 }
 
 /**
@@ -58,6 +58,7 @@ function updateBuildTowers({
   buildTowersState,
   actorControl,
   recorder,
+  random,
 }: UpdateBuildTowersArgs): { towerPositions: Point[] | undefined } {
   const enemyMain = beliefs.enemyStartPosition;
 
@@ -127,6 +128,7 @@ function updateBuildTowers({
         beliefs,
         buildTowersState,
         recorder,
+        random,
       });
     }
   } else if (towerPositions.length >= RUSH_TOWER_COUNT) {
@@ -423,6 +425,7 @@ interface OrderScoutTowerArgs {
   beliefs: Readonly<TowerRushCommonBeliefs>;
   buildTowersState: BuildTowersState;
   recorder: DecisionRecorder;
+  random: Random;
 }
 
 // Spots covering both the mine and the main hall are preferred; covering
@@ -433,6 +436,7 @@ function orderScoutTower({
   beliefs,
   buildTowersState,
   recorder,
+  random,
 }: OrderScoutTowerArgs) {
   probeRejections = {
     enemyMainTooClose: 0,
@@ -453,6 +457,7 @@ function orderScoutTower({
         worker,
         rules: searchRules,
         buildTowersState,
+        random,
       }).accepted
     ) {
       recorder.note({
@@ -465,6 +470,7 @@ function orderScoutTower({
       worker,
       rules: searchRules,
       buildTowersState,
+      random,
     });
 
     if (distanceFromMine !== undefined) {
@@ -517,12 +523,14 @@ interface OrderScoutTowerNextToFirstTowerArgs {
   worker: W3UnitApi.unit;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
+  random: Random;
 }
 
 function orderScoutTowerNextToFirstTower({
   worker,
   rules,
   buildTowersState,
+  random,
 }: OrderScoutTowerNextToFirstTowerArgs): { accepted: boolean } {
   const firstTower = rules.occupied[0];
 
@@ -534,6 +542,7 @@ function orderScoutTowerNextToFirstTower({
     const position = randomPointOnSquareAround({
       center: firstTower,
       halfSize: MinTowerCenterOffset,
+      random,
     });
 
     if (
@@ -550,6 +559,7 @@ interface OrderScoutTowerNearMineArgs {
   worker: W3UnitApi.unit;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
+  random: Random;
 }
 
 // Returns the distance from the mine at which the tower was ordered, if it
@@ -558,12 +568,17 @@ function orderScoutTowerNearMine({
   worker,
   rules,
   buildTowersState,
+  random,
 }: OrderScoutTowerNearMineArgs): { distanceFromMine: number | undefined } {
   let distance = MinDistanceFromMine;
   let rejections = 0;
 
   while (distance <= TowerReach) {
-    const position = randomPointAround({ center: rules.mine, distance });
+    const position = randomPointAround({
+      center: rules.mine,
+      distance,
+      random,
+    });
 
     if (
       tryOrderScoutTower({ worker, position, rules, buildTowersState }).accepted
@@ -646,10 +661,15 @@ function tryOrderScoutTower({
 interface RandomPointAroundArgs {
   center: Point;
   distance: number;
+  random: Random;
 }
 
-function randomPointAround({ center, distance }: RandomPointAroundArgs): Point {
-  const angle = W3MathApi.GetRandomReal(0, Math.PI * 2);
+function randomPointAround({
+  center,
+  distance,
+  random,
+}: RandomPointAroundArgs): Point {
+  const angle = random.real({ min: 0, max: Math.PI * 2 });
 
   return center.translate({
     vector: new Vector({ x: distance, y: 0 }).rotate({ angle }),
@@ -659,6 +679,7 @@ function randomPointAround({ center, distance }: RandomPointAroundArgs): Point {
 interface RandomPointOnSquareAroundArgs {
   center: Point;
   halfSize: number;
+  random: Random;
 }
 
 // A point on the square of the given half-size, so that a tower placed there
@@ -666,8 +687,9 @@ interface RandomPointOnSquareAroundArgs {
 function randomPointOnSquareAround({
   center,
   halfSize,
+  random,
 }: RandomPointOnSquareAroundArgs): Point {
-  const angle = W3MathApi.GetRandomReal(0, Math.PI * 2);
+  const angle = random.real({ min: 0, max: Math.PI * 2 });
   const direction = new Vector({ x: 1, y: 0 }).rotate({ angle });
   const scale =
     halfSize / Math.max(Math.abs(direction.x), Math.abs(direction.y));

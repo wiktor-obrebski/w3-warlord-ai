@@ -1,4 +1,5 @@
 import { ChildFactory, childFactory } from '@lib/bdi';
+import type { Random } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type {
   AssembledChildren,
@@ -22,6 +23,7 @@ export {
 interface MaintainWorkerSafetyCapabilities {
   readonly actorControl: ActorControl;
   readonly recorder: DecisionRecorder;
+  readonly random: Random;
 }
 
 interface AssembleMaintainWorkerSafetyIntentionArgs {
@@ -51,6 +53,7 @@ function assembleMaintainWorkerSafetyIntention<
             capabilities: {
               actorControl: capabilities.actorControl,
               recorder: capabilities.recorder,
+              random: capabilities.random,
             },
           }),
       }),

@@ -1,6 +1,6 @@
 # `@lib/math`
 
-Small, dependency-free 2D math primitives for the Warlord Warcraft III bot.
+Small, dependency-free math primitives for the Warlord Warcraft III bot: 2D points and vectors, and seeded random numbers.
 
 The library deliberately distinguishes **points** from **vectors**:
 
@@ -123,6 +123,18 @@ vector.rotate90Cw();
 `Vector` is immutable. Operations return new vectors rather than modifying the receiver. This follows FlattenJS's vector behavior and makes intermediate calculations easier to reason about in AI code.
 
 Angles are in radians. `slope` and `angleTo()` return values in the range `[0, 2π)`.
+
+## Seeded random numbers
+
+```ts
+const random = createSeededRandom({ seed });
+
+random.real({ min: 0, max: Math.PI * 2 });
+```
+
+`createSeededRandom` returns a `Random`: a Park-Miller "minimal standard" generator, so the same seed always gives the same numbers. `seed` is a whole number from 1 to `SEEDED_RANDOM_MAX_SEED` (2^31 - 2); any other seed throws. `real({ min, max })` returns a number from `min` to `max`.
+
+The generator keeps every intermediate value below 2^31 (Schrage's method), so it gives the same numbers in Node.js and in a Lua with 32-bit integers and single-precision floats.
 
 ## Floating-point comparisons
 

@@ -1,8 +1,10 @@
+import * as W3MathApi from '@lib/warcraft3-api/math';
 import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3TimerApi from '@lib/warcraft3-api/timer';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
 import { createBeliefsRuntime } from '@lib/bdi';
 import type { Logger } from '@lib/logger';
+import { SEEDED_RANDOM_MAX_SEED, createSeededRandom } from '@lib/math';
 import { debug } from './debug';
 import type { WarlordUpdateChild } from './contracts/component';
 import type { WarlordDesire } from './contracts/desires';
@@ -69,6 +71,11 @@ function startRuntime({ bot, logger, recordLogger }: StartRuntimeArgs) {
     actorControl: arbiter.actorControl,
     desireExpression: optionGeneration.desireExpression,
     recorder,
+    // Warcraft's own generator is synchronized between players, so seeding
+    // from it keeps multiplayer games in sync; the wall clock would not.
+    random: createSeededRandom({
+      seed: W3MathApi.GetRandomInt(1, SEEDED_RANDOM_MAX_SEED),
+    }),
   });
   const loop = W3TimerApi.CreateTimer();
   let desires: readonly WarlordDesire[] = [];

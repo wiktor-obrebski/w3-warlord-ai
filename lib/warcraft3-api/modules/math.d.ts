@@ -1,5 +1,28 @@
 declare module '@lib/warcraft3-api/math' {
   /**
+   * Returns: integer
+   *
+   * Returns a random integer in the range [lowBound, highBound] (inclusive).
+   * Bounds may be negative, but should be lowBound <= highBound.
+   * When lowBound==highBound, always returns that number.
+   *
+   * The behaviour is a bit surprising if lowBound > highBound. See `GetRandomReal`
+   * for a full description.
+   *
+   * @param lowBound (integer) The inclusive lower bound of the random number returned.
+   * @param highBound (integer) The inclusive higher bound of the random number returned.
+   *
+   * @bug If you call `GetRandomInt(INT_MIN, INT_MAX)` or `GetRandomInt(INT_MAX, INT_MIN)`
+   *   it will always return the same value, namely `INT_MIN` or `INT_MAX`.
+   * @note See <http://hiveworkshop.com/threads/random.286109#post-3073222> for an overview of the algorithm used.
+   * @note **Desyncs!** The random number generator is a global, shared resource.
+   *   Do not change its state in local blocks asynchronously.
+   * @note See: `GetRandomReal`, `SetRandomSeed`.
+   * @patch 1.00
+   */
+  export function GetRandomInt(lowBound: number, highBound: number): number;
+
+  /**
    * Returns: real
    *
    * When `lowBound<highBound` returns a real in range \[lowBound, highBound) that is: inclusive, exclusive.

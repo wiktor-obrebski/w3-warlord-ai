@@ -1,5 +1,5 @@
 import { PlanStatus } from '@lib/bdi';
-import { Point } from '@lib/math';
+import { Point, Random } from '@lib/math';
 import type { ActorControl } from '../../../../contracts/actor-control';
 import type { DecisionRecorder } from '../../../../contracts/record';
 import type {
@@ -57,6 +57,7 @@ enum STEP {
 interface EstablishTowerPositionPlanCapabilities {
   readonly actorControl: ActorControl;
   readonly recorder: DecisionRecorder;
+  readonly random: Random;
 }
 
 interface EstablishTowerPositionConstructorArgs {
@@ -101,7 +102,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
       throw new Error('Establish tower position: updated after it ended.');
     }
 
-    const { actorControl, recorder } = this.capabilities;
+    const { actorControl, recorder, random } = this.capabilities;
 
     switch (this.step) {
       case STEP.START:
@@ -130,6 +131,7 @@ class EstablishTowerPosition implements EstablishTowerPositionPlan {
           buildTowersState: this.buildTowers,
           actorControl,
           recorder,
+          random,
         });
 
         if (towerPositions) {

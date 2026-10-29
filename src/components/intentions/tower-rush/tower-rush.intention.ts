@@ -1,4 +1,5 @@
 import { ChildFactory, ChildHandle, childFactory } from '@lib/bdi';
+import type { Random } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type {
   AssembledChildren,
@@ -29,6 +30,7 @@ export {
 interface TowerRushCapabilities {
   readonly actorControl: ActorControl;
   readonly recorder: DecisionRecorder;
+  readonly random: Random;
 }
 
 interface TowerRushIntention<
@@ -56,7 +58,7 @@ function assembleTowerRushIntention<
 > {
   const rush = createTowerRushState();
   const children: AssembledChildren<TCommonBeliefs> = [];
-  const { actorControl, recorder } = capabilities;
+  const { actorControl, recorder, random } = capabilities;
 
   return {
     component: new TowerRush({
@@ -66,7 +68,7 @@ function assembleTowerRushIntention<
           assemble: () =>
             assembleEstablishTowerPositionPlan({
               rush,
-              capabilities: { actorControl, recorder },
+              capabilities: { actorControl, recorder, random },
             }),
         }),
         createEconomyController: childFactory({

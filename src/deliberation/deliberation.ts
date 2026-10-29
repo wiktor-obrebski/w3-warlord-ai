@@ -1,4 +1,5 @@
 import { Deliberation } from '@lib/bdi';
+import type { Random } from '@lib/math';
 import { CommonBeliefs } from '../beliefs/common.beliefs';
 import type {
   AssembledWarlordComponent,
@@ -51,6 +52,7 @@ interface CreateDeliberationArgs {
   actorControl: ActorControl;
   desireExpression: WarlordDesireExpression;
   recorder: DecisionRecorder;
+  random: Random;
 }
 
 /**
@@ -75,10 +77,12 @@ function createDeliberation({
   actorControl,
   desireExpression,
   recorder,
+  random,
 }: CreateDeliberationArgs): WarlordDeliberation {
   const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
     actorControl,
     recorder,
+    random,
   };
   const adaptStrategyCapabilitiesProvider: AdaptStrategyCapabilities = {
     desireExpression,
@@ -87,6 +91,7 @@ function createDeliberation({
   const towerRushCapabilitiesProvider: TowerRushCapabilities = {
     actorControl,
     recorder,
+    random,
   };
   const operateTowersCapabilitiesProvider: OperateTowersCapabilities = {
     actorControl,
