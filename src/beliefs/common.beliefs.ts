@@ -21,7 +21,7 @@ import type {
 } from '../contracts/world';
 import type { Strategy } from '../contracts/strategy';
 import { observeAttacksOn, takeObservedAttacks } from './attack-observer';
-import { GameClock, readGameClock, startGameClock } from './game-clock';
+import { GameClock, readGameClock, startGameClock } from '../shell/game-clock';
 
 export {
   type ObservedWorld,

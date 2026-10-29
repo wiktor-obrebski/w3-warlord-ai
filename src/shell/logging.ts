@@ -9,7 +9,7 @@ import {
   type LogLevelName,
   type PreloadNatives,
 } from '@lib/logger';
-import { GameClock, readGameClock, startGameClock } from './beliefs/game-clock';
+import { GameClock, readGameClock, startGameClock } from './game-clock';
 import { debug } from './debug';
 
 export { type BotLoggers, startLogging };

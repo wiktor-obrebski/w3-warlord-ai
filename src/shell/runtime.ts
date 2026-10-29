@@ -6,20 +6,20 @@ import { createBeliefsRuntime } from '@lib/bdi';
 import type { Logger } from '@lib/logger';
 import { SEEDED_RANDOM_MAX_SEED, createSeededRandom } from '@lib/math';
 import { debug } from './debug';
-import type { WarlordUpdateChild } from './contracts/component';
-import type { WarlordDesire } from './contracts/desires';
-import type { DecisionRecorder, RecordNote } from './contracts/record';
-import type { Strategy } from './contracts/strategy';
-import { createActorControl } from './capabilities/actor-control/actor-control';
+import type { WarlordUpdateChild } from '../contracts/component';
+import type { WarlordDesire } from '../contracts/desires';
+import type { DecisionRecorder, RecordNote } from '../contracts/record';
+import type { Strategy } from '../contracts/strategy';
+import { createActorControl } from '../capabilities/actor-control/actor-control';
 import {
   CommonBeliefs,
   createCommonBeliefsModel,
-} from './beliefs/common.beliefs';
-import { createDesires } from './desires/desires';
+} from '../beliefs/common.beliefs';
+import { createDesires } from '../desires/desires';
 import {
   createDeliberation,
   AssembledIntention,
-} from './deliberation/deliberation';
+} from '../deliberation/deliberation';
 
 export { startRuntime };
 

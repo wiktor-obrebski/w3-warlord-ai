@@ -73,7 +73,7 @@ Installation and test-only code with access beyond normal gameplay, such as repl
 
 ### Logging
 
-Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/logging.ts` holds the logging configuration and creates two loggers: the bot's root logger, and the decision record's logger, whose session is the root session with a `-record` suffix, so the record lands in files of its own. Both add `gameTime` to every record and write to the library's preload transport, given the preload natives. A timer flushes them every half game second, writing batch files synchronously on the game thread. The decision record is, for now, the notes the components make while the runtime runs them; at the end of each tick the runtime shows them in-game and writes them to the record's log. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
+Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/shell/logging.ts` holds the logging configuration and creates two loggers: the bot's root logger, and the decision record's logger, whose session is the root session with a `-record` suffix, so the record lands in files of its own. Both add `gameTime` to every record and write to the library's preload transport, given the preload natives. A timer flushes them every half game second, writing batch files synchronously on the game thread. The decision record is, for now, the notes the components make while the runtime runs them; at the end of each tick the runtime shows them in-game and writes them to the record's log. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
 
 ### Debug mode and diagnostic artifacts
 
@@ -122,8 +122,7 @@ The bot should therefore support resetting its logical state and releasing or un
 ```text
 src/
 ├─ main.ts        startup: installs the bot player, debug mode, logging, starts the runtime
-├─ runtime.ts     the bot loop
-├─ logging.ts     logging configuration, the root logger and its export
+├─ shell/         what runs the bot inside Warcraft: the bot loop (runtime.ts), logging, debug output, the game clock
 ├─ contracts/     type-only domain vocabulary shared across layers: Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
 ├─ beliefs/       common belief model, observing Warcraft state for decisions
 ├─ desires/       the bot's Option Generation, its permanent Desires, and outcome identity
@@ -138,21 +137,19 @@ src/
 
 Which modules may import which, to be enforced by an architecture linter later:
 
-| Module                                                           | May import                                                                                    |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `lib/**`                                                         | nothing from `src/`                                                                           |
-| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                           |
-| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                                           |
-| `desires/`                                                       | `@lib/bdi`, `contracts/`                                                                      |
-| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                       |
-| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                       |
-| `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                       |
-| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`                     |
-| `runtime.ts`                                                     | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/`, `debug.ts` |
-| `main.ts`                                                        | `@lib/**`, `runtime.ts`, `logging.ts`, `privileged/`, `debug.ts`                              |
-| `logging.ts`                                                     | `@lib/**`, `beliefs/game-clock.ts`, `debug.ts`                                                |
-| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                       |
-| `debug.ts`                                                       | `@lib/warcraft3-api/**`                                                                       |
+| Module                                                           | May import                                                                                  |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `lib/**`                                                         | nothing from `src/`                                                                         |
+| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                         |
+| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`, `shell/game-clock.ts`                                  |
+| `desires/`                                                       | `@lib/bdi`, `contracts/`                                                                    |
+| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                     |
+| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                     |
+| `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                     |
+| `deliberation/`                                                  | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `components/**/*.api.ts`                   |
+| `shell/`                                                         | `@lib/**`, `contracts/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/`, `shell/` |
+| `main.ts`                                                        | `@lib/**`, `shell/`, `privileged/`                                                          |
+| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                     |
 
 - Contracts are imported with `import type`.
 - From outside a component module, only its `*.api.ts` file is imported. Components never import other component modules or `capabilities/`: a reusable Plan or Controller, like any capability, reaches an Intention through its Capabilities.

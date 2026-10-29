@@ -1,9 +1,9 @@
 import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3TimerApi from '@lib/warcraft3-api/timer';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
-import { debug } from './debug';
-import { startLogging } from './logging';
-import { startRuntime } from './runtime';
+import { debug } from './shell/debug';
+import { startLogging } from './shell/logging';
+import { startRuntime } from './shell/runtime';
 import { installBotPlayer } from './privileged/install-bot-player';
 import { enableDebugMode, updateDebugMode } from './privileged/debug-mode';
 

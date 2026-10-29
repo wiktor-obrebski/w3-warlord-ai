@@ -2,7 +2,7 @@ import * as W3PlayerApi from '@lib/warcraft3-api/player';
 import * as W3TriggerApi from '@lib/warcraft3-api/trigger';
 import * as WarlordApi from '@lib/warcraft3-api/warlord';
 import type { ObservedAttack } from '../contracts/world';
-import { GameClock, readGameClock } from './game-clock';
+import { GameClock, readGameClock } from '../shell/game-clock';
 
 export { type AttackObserver, observeAttacksOn, takeObservedAttacks };
 
