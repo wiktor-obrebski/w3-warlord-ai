@@ -82,6 +82,8 @@ Every 0.1 s, the same phases run:
 | A new fact or inference                             | a _**belief model**_                                     |
 | How the game works                                  | _**Knowledge**_                                          |
 
+The full table, with the rule behind it, is in the [architecture](architecture.md#5-where-a-new-behavior-goes).
+
 ## Read next
 
 - [Introduction](../research/rts-architecture-introduction.md): the architecture built up one idea at a time, around one moment of one game.
