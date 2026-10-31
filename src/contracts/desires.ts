@@ -1,32 +1,40 @@
-import type { Desire, DesireExpressionProvider } from '@lib/bdi';
+import type { Desire, Proposal } from '@lib/chain-of-command';
 
 export {
-  type WarlordDesireOutcome,
+  type PlaybookName,
+  type ExecuteStrategy,
+  type EstablishTowerPosition,
+  type OperateTowers,
+  type WarlordOutcome,
+  type WarlordProposal,
   type WarlordDesire,
-  type WarlordDesireExpression,
 };
 
-/** Keep executing a strategy that suits the situation. */
-interface MaintainEffectiveStrategy {
-  readonly kind: 'MaintainEffectiveStrategy';
+/** A strategy the bot can commit to, written down as a playbook. */
+type PlaybookName = 'HumanTowerRush';
+
+/** Commit to a strategy and follow its playbook. */
+interface ExecuteStrategy {
+  readonly kind: 'ExecuteStrategy';
+  readonly playbook: PlaybookName;
 }
 
-/** Execute a Human tower rush. */
-interface ExecuteTowerRushStrategy {
-  readonly kind: 'ExecuteTowerRushStrategy';
+/**
+ * Guard Towers established next to the enemy main and kept repaired, funded
+ * by a home economy.
+ */
+interface EstablishTowerPosition {
+  readonly kind: 'EstablishTowerPosition';
 }
 
-/** Get the most out of the bot's military assets. */
-interface UseMilitaryAssetsEffectively {
-  readonly kind: 'UseMilitaryAssetsEffectively';
+/** Direct the fire of the bot's Guard Towers. */
+interface OperateTowers {
+  readonly kind: 'OperateTowers';
 }
 
 /** Every outcome the bot can desire. */
-type WarlordDesireOutcome =
-  | MaintainEffectiveStrategy
-  | ExecuteTowerRushStrategy
-  | UseMilitaryAssetsEffectively;
+type WarlordOutcome = ExecuteStrategy | EstablishTowerPosition | OperateTowers;
 
-type WarlordDesire = Desire<WarlordDesireOutcome>;
+type WarlordProposal = Proposal<WarlordOutcome>;
 
-type WarlordDesireExpression = DesireExpressionProvider<WarlordDesireOutcome>;
+type WarlordDesire = Desire<WarlordOutcome>;

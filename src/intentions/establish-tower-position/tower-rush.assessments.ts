@@ -1,0 +1,300 @@
+import { Point, Vector } from '@lib/math';
+import type { UnitId } from '../../contracts/ids';
+import type { HomeDestructable, OwnUnit } from '../../contracts/world';
+import type { Beliefs } from '../../contracts/beliefs';
+
+export {
+  RUSH_TOWER_COUNT,
+  allRushTowersBuilt,
+  rushTowersAtLeast,
+  isAvailableForwardPeasant,
+  lumberDestructablesByPreference,
+  ownUnit,
+  positionOf,
+  lifeFractionOf,
+  mostDamagedUnit,
+  constructionProgress,
+  completedLumberMill,
+  closestUnit,
+};
+
+const RUSH_TOWER_COUNT = 3;
+
+interface AllRushTowersBuiltArgs {
+  beliefs: Beliefs;
+}
+
+/** Whether every rush tower has been placed and finished construction. */
+function allRushTowersBuilt({ beliefs }: AllRushTowersBuiltArgs): boolean {
+  return (
+    beliefs.self.scoutTowers.length >= RUSH_TOWER_COUNT &&
+    beliefs.self.scoutTowers.every(
+      (tower) => !beliefs.self.buildingsUnderConstruction.includes(tower)
+    )
+  );
+}
+
+interface RushTowersAtLeastArgs {
+  beliefs: Beliefs;
+  lifeFraction: number;
+}
+
+/**
+ * Whether every rush tower has been placed and stands at or above the life
+ * fraction; during construction this tracks build progress.
+ */
+function rushTowersAtLeast({
+  beliefs,
+  lifeFraction,
+}: RushTowersAtLeastArgs): boolean {
+  return (
+    beliefs.self.scoutTowers.length >= RUSH_TOWER_COUNT &&
+    beliefs.self.scoutTowers.every(
+      (tower) => lifeFractionOf({ beliefs, unit: tower }) >= lifeFraction
+    )
+  );
+}
+
+interface IsAvailableForwardPeasantArgs {
+  beliefs: Beliefs;
+  worker: UnitId;
+}
+
+/**
+ * Whether the forward Peasant is free for a new order: idle, holding, or
+ * sent back to harvesting. Anything else means it is busy with an order of
+ * its own, such as building or repairing.
+ */
+function isAvailableForwardPeasant({
+  beliefs,
+  worker,
+}: IsAvailableForwardPeasantArgs): boolean {
+  return (
+    beliefs.self.peasants.includes(worker) &&
+    (beliefs.self.idleUnits.includes(worker) ||
+      beliefs.self.holdingPositionUnits.includes(worker) ||
+      beliefs.self.harvestingUnits.includes(worker))
+  );
+}
+
+interface LumberDestructablesByPreferenceArgs {
+  beliefs: Beliefs;
+  peasantOrigin: UnitId;
+}
+
+/**
+ * The destructables near home to harvest lumber from, best first.
+ *
+ * Near the finished Lumber Mill, where lumber is returned: of the few
+ * destructables nearest the mill, the one nearest the Peasant comes first,
+ * so the Peasant does not walk past good trees by the mill. Until the mill
+ * is finished, nearest home, where the Town Hall takes the lumber, preferring
+ * the side of the Hall away from the mill being built. Rallies and harvest
+ * orders share this order so a new Peasant ordered to harvest is not turned
+ * away from the tree it was rallied to.
+ */
+function lumberDestructablesByPreference({
+  beliefs,
+  peasantOrigin,
+}: LumberDestructablesByPreferenceArgs): readonly HomeDestructable[] {
+  const mill = completedLumberMill({ beliefs });
+
+  if (!mill) {
+    return destructablesAwayFromUnfinishedMill({ beliefs });
+  }
+
+  const nearestMill = sortByDistanceTo({
+    destructables: beliefs.self.destructablesNearHomeByDistance,
+    origin: positionOf({ beliefs, unit: mill }),
+  });
+  const candidates = sortByDistanceTo({
+    destructables: nearestMill.slice(0, MillTreeCandidates),
+    origin: positionOf({ beliefs, unit: peasantOrigin }),
+  });
+
+  return [...candidates, ...nearestMill.slice(MillTreeCandidates)];
+}
+
+interface OwnUnitArgs {
+  beliefs: Beliefs;
+  unit: UnitId;
+}
+
+/** Throws for a unit not believed to be a living unit of the bot. */
+function ownUnit({ beliefs, unit }: OwnUnitArgs): OwnUnit {
+  const believed = beliefs.self.units.get(unit);
+
+  if (!believed) {
+    throw new Error('Tower rush: not a living unit of the bot.');
+  }
+
+  return believed;
+}
+
+interface PositionOfArgs {
+  beliefs: Beliefs;
+  unit: UnitId;
+}
+
+function positionOf({ beliefs, unit }: PositionOfArgs): Point {
+  return ownUnit({ beliefs, unit }).position;
+}
+
+interface LifeFractionOfArgs {
+  beliefs: Beliefs;
+  unit: UnitId;
+}
+
+function lifeFractionOf({ beliefs, unit }: LifeFractionOfArgs): number {
+  const { life, maxLife } = ownUnit({ beliefs, unit });
+
+  return life / maxLife;
+}
+
+interface MostDamagedUnitArgs {
+  beliefs: Beliefs;
+  units: readonly UnitId[];
+}
+
+/** Of the bot's units, the one with the lowest life fraction. */
+function mostDamagedUnit({
+  beliefs,
+  units,
+}: MostDamagedUnitArgs): UnitId | undefined {
+  let mostDamaged: UnitId | undefined;
+
+  for (const unit of units) {
+    if (
+      !mostDamaged ||
+      lifeFractionOf({ beliefs, unit }) <
+        lifeFractionOf({ beliefs, unit: mostDamaged })
+    ) {
+      mostDamaged = unit;
+    }
+  }
+
+  return mostDamaged;
+}
+
+interface ConstructionProgressArgs {
+  beliefs: Beliefs;
+  building: UnitId;
+}
+
+/**
+ * Warcraft exposes no construction progress, but a building's life rises
+ * linearly from a fraction of its maximum while it is built. A damaged
+ * finished building reads as low progress too.
+ */
+function constructionProgress({
+  beliefs,
+  building,
+}: ConstructionProgressArgs): number {
+  return (
+    (lifeFractionOf({ beliefs, unit: building }) -
+      ConstructionStartLifeFraction) /
+    (1 - ConstructionStartLifeFraction)
+  );
+}
+
+interface CompletedLumberMillArgs {
+  beliefs: Beliefs;
+}
+
+function completedLumberMill({
+  beliefs,
+}: CompletedLumberMillArgs): UnitId | undefined {
+  return beliefs.self.lumberMills.find(
+    (mill) => !beliefs.self.buildingsUnderConstruction.includes(mill)
+  );
+}
+
+interface ClosestUnitArgs {
+  beliefs: Beliefs;
+  units: readonly UnitId[];
+  to: UnitId;
+}
+
+/** Of the bot's units, the one closest to `to`. */
+function closestUnit({
+  beliefs,
+  units,
+  to,
+}: ClosestUnitArgs): UnitId | undefined {
+  const origin = positionOf({ beliefs, unit: to });
+  let closest: UnitId | undefined;
+  let closestDistance = Infinity;
+
+  for (const unit of units) {
+    const distance = new Vector({
+      start: origin,
+      end: positionOf({ beliefs, unit }),
+    }).length;
+
+    if (distance < closestDistance) {
+      closest = unit;
+      closestDistance = distance;
+    }
+  }
+
+  return closest;
+}
+
+const MillTreeCandidates = 4;
+// Assumed, not verified in-game.
+const ConstructionStartLifeFraction = 0.1;
+
+interface SortByDistanceToArgs {
+  destructables: readonly HomeDestructable[];
+  origin: Point;
+}
+
+function sortByDistanceTo({
+  destructables,
+  origin,
+}: SortByDistanceToArgs): HomeDestructable[] {
+  return destructables
+    .map((destructable) => ({
+      destructable,
+      distance: new Vector({ start: origin, end: destructable.position })
+        .length,
+    }))
+    .sort((a, b) => a.distance - b.distance)
+    .map((withDistance) => withDistance.destructable);
+}
+
+interface IsAwayFromMillArgs {
+  destructable: HomeDestructable;
+}
+
+interface DestructablesAwayFromUnfinishedMillArgs {
+  beliefs: Beliefs;
+}
+
+// Nearest home first, with those on the far side of the Hall from the mill
+// ahead of the rest. Before the mill is placed, simply nearest home.
+function destructablesAwayFromUnfinishedMill({
+  beliefs,
+}: DestructablesAwayFromUnfinishedMillArgs): readonly HomeDestructable[] {
+  const mill = beliefs.self.lumberMills[0];
+
+  if (!mill) {
+    return beliefs.self.destructablesNearHomeByDistance;
+  }
+
+  const hall = beliefs.self.startPosition;
+  const toMill = new Vector({
+    start: hall,
+    end: positionOf({ beliefs, unit: mill }),
+  });
+  const isAwayFromMill = ({ destructable }: IsAwayFromMillArgs) =>
+    new Vector({ start: hall, end: destructable.position }).dot({
+      vector: toMill,
+    }) < 0;
+  const nearHome = beliefs.self.destructablesNearHomeByDistance;
+
+  return [
+    ...nearHome.filter((destructable) => isAwayFromMill({ destructable })),
+    ...nearHome.filter((destructable) => !isAwayFromMill({ destructable })),
+  ];
+}

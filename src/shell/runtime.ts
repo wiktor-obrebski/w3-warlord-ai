@@ -42,7 +42,6 @@ function startRuntime({ bot, logger, recordLogger }: StartRuntimeArgs) {
       seed: W3MathApi.GetRandomInt(1, SEEDED_RANDOM_MAX_SEED),
     }),
     probes: createWarcraftProbes({ perception }),
-    tickSeconds: TickSeconds,
   });
   const loop = W3TimerApi.CreateTimer();
   let refusedOrders: readonly OrderTicket[] = [];

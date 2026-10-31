@@ -1,30 +1,17 @@
-import type { OptionGeneration } from '@lib/bdi';
-import type { WarlordDesireOutcome } from '../contracts/desires';
-import { createOptionGeneration } from './option-generation';
+import type { WarlordOutcome } from '../contracts/desires';
 
-export { createDesires };
-
-interface CreateDesiresArgs {
-  /** How often, in game seconds, the runtime updates Intentions. */
-  tickSeconds: number;
-}
+export { identifyOutcome };
 
 /**
- * Creates the bot's Option Generation, which keeps its permanent Desires and
- * the Desires its Intentions express.
+ * The identity of an outcome, its kind and its arguments, which also names
+ * its Desire and Intention in the decision record.
  */
-function createDesires({
-  tickSeconds,
-}: CreateDesiresArgs): OptionGeneration<WarlordDesireOutcome> {
-  return createOptionGeneration({
-    // No outcome has parameters yet, so its kind is its whole identity.
-    identify: ({ outcome }) => outcome.kind,
-    permanentDesires: PermanentDesires,
-    tickSeconds,
-  });
+function identifyOutcome({ outcome }: { outcome: WarlordOutcome }): string {
+  switch (outcome.kind) {
+    case 'ExecuteStrategy':
+      return `ExecuteStrategy{${outcome.playbook}}`;
+    case 'EstablishTowerPosition':
+    case 'OperateTowers':
+      return outcome.kind;
+  }
 }
-
-const PermanentDesires: readonly WarlordDesireOutcome[] = [
-  { kind: 'MaintainEffectiveStrategy' },
-  { kind: 'UseMilitaryAssetsEffectively' },
-];

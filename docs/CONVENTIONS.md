@@ -86,32 +86,34 @@ const actorControlPolicy = ...;
 
 Where initialization order forbids it, the declaration stays above its use: a module-level `const` evaluated while the module loads, such as the exported constant `myFunction4` above, cannot move below the code that reads it at load time. Function bodies run later, so a private `const` they use may sit below them.
 
-### Component Public API
+### Intention Kind Public API
 
-Every Intention module, and every reusable Plan or Controller module, has one public entry point, `<component-name>.api.ts`. It declares nothing itself; it only re-exports what other modules need to use or compose the component, such as its assemble function, its Capabilities, and types read by its owner. Other modules import the component only through this file; the rest of the module is internal. Plans and Controllers private to an Intention are part of its module and have no API file of their own.
+Every Intention kind module has one public entry point, `<kind-name>.api.ts`. It declares nothing itself; it only re-exports what other modules need to use the kind, such as the function creating it and its Capabilities. Other modules import the kind only through this file; the rest of the module, such as its plans' runs, is internal.
 
 ```ts
-// tower-rush.api.ts
+// operate-towers.api.ts
 import {
-  assembleTowerRushIntention,
-  TowerRushIntention,
-} from './tower-rush.intention';
+  createOperateTowersKind,
+  OperateTowersCapabilities,
+} from './operate-towers.kind';
 
-export { assembleTowerRushIntention, type TowerRushIntention };
+export { createOperateTowersKind, type OperateTowersCapabilities };
 ```
 
 ### Capabilities
 
-A component declares what it needs from outside its module as a `<Name>Capabilities` interface, next to its class or, once it grows, in a file of its own, and only when it needs something. Its assemble function receives them as `capabilities`. The owner that assembles the component supplies a `<name>CapabilitiesProvider` object implementing the interface; it needs no type of its own.
+An Intention kind, a reflex, or a part of a plan run declares what it needs from outside as a `<Name>Capabilities` interface, next to the code using it or, once it grows, in a file of its own, and only when it needs something. The function or constructor creating it receives them as `capabilities`. The owner supplies a `<name>CapabilitiesProvider` object implementing the interface; it needs no type of its own.
 
 ```ts
-interface TowerRushCapabilities {
+interface OperateTowersCapabilities {
   readonly actorControl: ActorControl;
 }
 
-const towerRushCapabilitiesProvider: TowerRushCapabilities = { actorControl };
+const operateTowersCapabilitiesProvider: OperateTowersCapabilities = {
+  actorControl,
+};
 
-assembleTowerRushIntention({ capabilities: towerRushCapabilitiesProvider });
+createOperateTowersKind({ capabilities: operateTowersCapabilitiesProvider });
 ```
 
 ## Named Parameters
@@ -130,7 +132,7 @@ Calls explain themselves, arguments of the same type cannot be swapped, and para
 
 Signatures dictated by an external API keep their parameter list: array method callbacks, TSTL plugin visitors, Warcraft natives and runtime globals, and the bundle's `main`, called by `runtime/runtime-template.lua`.
 
-TSTL gives function-typed properties a Lua `self` parameter, so a function declared elsewhere is passed as a callback wrapped in an arrow function: `assemble: () => assembleController()`.
+TSTL gives function-typed properties and the callbacks of array methods a Lua `self` parameter, so a function declared elsewhere is passed wrapped in an arrow function: `kindOf: ({ outcome }) => kindOf({ outcome })`, `entries.sort((a, b) => agendaOrder(a, b))`. TSTL does not always report a missing wrapper: a generic function passed to `sort` compiled, and then received the `self` argument as its first entry.
 
 ## Parameter Types
 

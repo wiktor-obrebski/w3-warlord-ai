@@ -13,14 +13,14 @@ This document covers what they don't: how far the code has been migrated to the 
 
 ## Migration status
 
-The code is being migrated to Chain of Command in phases. Until the migration ends, parts of the first-iteration framework, documented in [`@lib/bdi`](../lib/bdi/README.md), run inside the bot.
+The code is being migrated to Chain of Command in phases. The decision layer, Desires, Deliberation, and the Intention runtime, comes from [`@lib/chain-of-command`](../lib/chain-of-command/README.md). Until Allocation replaces it, the first-iteration actor control of [`@lib/bdi`](../lib/bdi/README.md) decides which part of the bot may order each unit.
 
 | Phase | Content                                                                                        | Status                           |
 | ----- | ---------------------------------------------------------------------------------------------- | -------------------------------- |
 | 0     | The architecture documents are adopted                                                         | done                             |
 | 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done                             |
-| 2     | One world model in Beliefs                                                                     | done, awaiting the in-game check |
-| 3     | Desires, Deliberation, Intention kinds                                                         | not started                      |
+| 2     | One world model in Beliefs                                                                     | done                             |
+| 3     | Desires, Deliberation, Intention kinds                                                         | done, awaiting the in-game check |
 | 4     | Unit Behaviors, Allocation, Directives                                                         | not started                      |
 | 5     | Clean-up                                                                                       | not started                      |
 
@@ -28,17 +28,22 @@ The bot's behaviors today:
 
 - **Worker safety:** attacked workers flee from the nearby enemy force, taking control of the worker from whatever controlled it. Until Unit Behaviors give workers their reflexes, it is an interim reflex: the mind steps it every tick, before anything else.
 
-The others are first-iteration Intentions:
+The rest goes through Desires and Intentions:
 
-- **AdaptStrategy:** prefers the tower rush when the bot plays Human and knows where the enemy started. It knows that only on maps with a single start location besides its own, since it does not read which start location the enemy got.
-- **TowerRush:** the Human tower rush. Three of the starting Peasants go forward as Militia, build Scout Towers next to the enemy main, and upgrade them to Guard Towers; the rest of the workers run the home economy; the forward Peasants then repair the towers and hide behind them.
-- **OperateTowers:** once the tower position stands, Guard Towers focus their fire by target priority.
+- **The strategy concern** proposes `ExecuteStrategy{HumanTowerRush}` when the bot plays Human and knows where the enemy started. It knows that only on maps with a single start location besides its own, since it does not read which start location the enemy got; otherwise it vetoes its proposal, giving that reason.
+- **ExecuteStrategy** is the committed strategy: it follows the Human tower rush playbook (`src/playbooks/`). The playbook's Rush phase proposes EstablishTowerPosition; its Hold phase begins once the rush towers stand as Guard Towers, and adds OperateTowers.
+- **EstablishTowerPosition** is the tower rush itself. Three of the starting Peasants go forward as Militia, build Scout Towers next to the enemy main, and upgrade them to Guard Towers; the rest of the workers run the home economy; the forward Peasants then repair the towers and hide behind them. The home economy splits out into RunEconomy once Allocation decides who owns which Peasant.
+- **OperateTowers:** Guard Towers focus their fire by target priority.
 
-They run inside the mind, behind the two boundaries. Every 0.1 s, `src/shell/runtime.ts` takes Perception's observations, steps the mind, hands the orders the step returns to the order executor, and writes the step's decision record. Units and destructables are named by ids; only the shell holds Warcraft handles. An order Warcraft refuses reaches the mind with the next observations, and the component that gave it can correct its own state. Randomness comes from one generator, seeded once from Warcraft's synchronized generator.
+They run inside the mind, behind the two boundaries. Every 0.1 s, `src/shell/runtime.ts` takes Perception's observations, steps the mind, hands the orders the step returns to the order executor, and writes the step's decision record. Units and destructables are named by ids; only the shell holds Warcraft handles. An order Warcraft refuses reaches the mind with the next observations, and the part of the mind that gave it can correct its own state. Randomness comes from one generator, seeded once from Warcraft's synchronized generator.
 
-Each step first revises the Beliefs, which have only the sections today's behaviors read: the time; self, with the bot's units, resources, and home, and the attacks on its units it still remembers; and enemy, with the enemy units in sight and, when the start locations tell it, where the enemy started. Enemy units seen earlier are not remembered, and there are no neutral, map, or events sections yet. What a component remembers for itself, such as when each worker was last attacked, is its own execution state.
+Each step first revises the Beliefs, which have only the sections today's behaviors read: the time; self, with the bot's units, resources, and home, and the attacks on its units it still remembers; and enemy, with the enemy units in sight and, when the start locations tell it, where the enemy started. Enemy units seen earlier are not remembered, and there are no neutral, map, or events sections yet. What a reflex or a plan run remembers for itself, such as when each worker was last attacked, is its own execution state.
 
-Two temporary exceptions remain, for later phases to remove:
+After worker safety, a deliberation cycle runs once a second, and on the next step after an Intention is adopted or ends: the concerns and the Intentions' runs propose Desires, and Deliberation adopts, drops, and orders the Intentions. Every Intention kind has a single plan so far. The mind then steps the agenda's Intentions in its order, each at its kind's pace, and records every Desire, Intention, and agenda change as a note.
+
+Three temporary exceptions remain, for later phases to remove:
+
+- **Actor control.** Worker safety and each Intention claim the units they order through the first-iteration actor control, so the agenda's order only decides who asks first. The weights are placeholders, since nothing competes for units or money before Allocation.
 
 - **Probes.** The mind still makes some Warcraft calls directly, through the `WarcraftProbes` the shell gives it: the orders whose acceptance is a test (Lumber Mill and Scout Tower placement, the tree-test harvests, tower targeting's fallback to the next target) and two static reads (`IsTerrainPathable` and `IsUnitInRange`). A probe orders its unit at once, so the mind refuses one for a unit that already has an order queued in the same step.
 - **Knowledge** is a stub. Static facts, such as the start locations, the gold mines, and the trees near home, still come from Perception.
@@ -85,7 +90,7 @@ Installation and test-only code with access beyond normal gameplay, such as repl
 
 ### Logging
 
-Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/shell/logging.ts` holds the logging configuration and creates two loggers: the bot's root logger, and the decision record's logger, whose session is the root session with a `-record` suffix, so the record lands in files of its own. Both add `gameTime` to every record and write to the library's preload transport, given the preload natives. A timer flushes them every half game second, writing batch files synchronously on the game thread. The decision record is, for now, the notes the components make during a step of the mind; after each step the runtime shows them in-game and writes them, with the step's orders, to the record's log. Every error the runtime wrapper catches once logging has started goes to the root log as `Uncaught error`, with the message shown in-game as `err`. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
+Structured logs come from [`@lib/logger`](../lib/logger/README.md), a Pino-like logger whose calls only store records in a bounded buffer. `src/shell/logging.ts` holds the logging configuration and creates two loggers: the bot's root logger, and the decision record's logger, whose session is the root session with a `-record` suffix, so the record lands in files of its own. Both add `gameTime` to every record and write to the library's preload transport, given the preload natives. A timer flushes them every half game second, writing batch files synchronously on the game thread. The decision record is, for now, the notes the mind and its parts make during a step, such as every Desire, Intention, and agenda change; after each step the runtime shows them in-game and writes them, with the step's orders, to the record's log. Every error the runtime wrapper catches once logging has started goes to the root log as `Uncaught error`, with the message shown in-game as `err`. On the host, the [`bin/collect-logs`](../bin/collect-logs/README.md) script reads the batch files with `@lib/logger`'s `parseBatchFile` and writes their records as Pino JSON lines. The runtime wrapper provides the wall clock for record times.
 
 ### Debug mode and diagnostic artifacts
 
@@ -135,42 +140,38 @@ The bot should therefore support resetting its logical state and releasing or un
 src/
 ├─ main.ts        startup: installs the bot player, debug mode, logging, starts the runtime
 ├─ shell/         the only code touching Warcraft: the bot loop (runtime.ts), Perception, the order executor, the probes, logging, debug output, the game clock
-├─ mind/          the mind, running the first-iteration framework below, and the orders it gives
+├─ mind/          the mind: the tick's phases, the orders it gives, and its decision record notes
 ├─ knowledge/     the Knowledge type, a stub so far
-├─ contracts/     type-only vocabulary shared across layers: ids, observations, the Beliefs, orders, probes, the decision record, Warlord component types, Actor and actor control requests, desire outcomes, strategies, observed world records
+├─ contracts/     type-only vocabulary shared across layers: ids, observations, the Beliefs, orders, probes, the decision record, outcomes and proposals, Warlord Intention kind types, playbooks, Actor and actor control requests, observed world records
 ├─ beliefs/       the belief models, revising the Beliefs from the observations
-├─ desires/       the bot's Option Generation, its permanent Desires, and outcome identity
-├─ deliberation/  creates, retains, and drops Intentions
-├─ components/
-│  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, and *.assessments.ts
-│  ├─ plans/        Plans assembled by several Intentions
-│  └─ controllers/  Controllers assembled by several Intentions
+├─ desires/       outcome identity and the concerns
+├─ deliberation/  the adoption registry: which Intention kind pursues each kind of outcome
+├─ intentions/    one module per Intention kind: the *.api.ts entry point, *.kind.ts, its plans' runs, their parts, and *.assessments.ts
+├─ playbooks/     the strategies as data: the Human tower rush
 ├─ reflexes/      worker safety, which the mind steps every tick before anything else
-├─ capabilities/  implementations of what components declare in their Capabilities, one module per capability: actor control
+├─ capabilities/  implementations of what Intention kinds and reflexes declare in their Capabilities, one module per capability: actor control
 └─ privileged/    installation and debug-mode code beyond normal gameplay
 ```
 
 Which modules may import which, to be enforced by an architecture linter later:
 
-| Module                                                           | May import                                                                                                            |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `lib/**`                                                         | nothing from `src/`                                                                                                   |
-| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                                                   |
-| `knowledge/`                                                     | `@lib/**`, `contracts/`                                                                                               |
-| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                                                                   |
-| `desires/`                                                       | `@lib/bdi`, `contracts/`                                                                                              |
-| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                                               |
-| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                                               |
-| `capabilities/<module>/`, `reflexes/<module>/`                   | `@lib/**`, `contracts/`, its own module                                                                               |
-| `deliberation/`                                                  | `@lib/**`, `contracts/`, `desires/`, `components/**/*.api.ts`                                                         |
-| `mind/`                                                          | `@lib/**`, `contracts/`, `knowledge/`, `beliefs/`, `desires/`, `deliberation/`, `reflexes/`, `capabilities/`, `mind/` |
-| `shell/`                                                         | `@lib/**`, `contracts/`, `knowledge/`, `mind/mind.ts`, `shell/`                                                       |
-| `main.ts`                                                        | `@lib/**`, `shell/`, `privileged/`                                                                                    |
-| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                                               |
+| Module                                         | May import                                                                                                            |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `lib/**`                                       | nothing from `src/`                                                                                                   |
+| `contracts/`                                   | `@lib/**`, `contracts/`; types only                                                                                   |
+| `knowledge/`                                   | `@lib/**`, `contracts/`                                                                                               |
+| `beliefs/`                                     | `@lib/**`, `contracts/`, `beliefs/`                                                                                   |
+| `desires/`, `playbooks/`                       | `@lib/**`, `contracts/`, its own directory                                                                            |
+| `intentions/<module>/`                         | `@lib/**`, `contracts/`, its own module                                                                               |
+| `capabilities/<module>/`, `reflexes/<module>/` | `@lib/**`, `contracts/`, its own module                                                                               |
+| `deliberation/`                                | `@lib/**`, `contracts/`, `playbooks/`, `intentions/**/*.api.ts`                                                       |
+| `mind/`                                        | `@lib/**`, `contracts/`, `knowledge/`, `beliefs/`, `desires/`, `deliberation/`, `reflexes/`, `capabilities/`, `mind/` |
+| `shell/`                                       | `@lib/**`, `contracts/`, `knowledge/`, `mind/mind.ts`, `shell/`                                                       |
+| `main.ts`                                      | `@lib/**`, `shell/`, `privileged/`                                                                                    |
+| `privileged/`                                  | `@lib/warcraft3-api/**`                                                                                               |
 
 - Contracts are imported with `import type`.
 - Only `shell/`, `privileged/`, and `main.ts` import `@lib/warcraft3-api`; elsewhere, `@lib/**` excludes it. The race modules (`human`, `neutral`, `nightelf`, `orc`, `undead`) are the exception: their rawcodes are compile-time constants. Lint enforces this.
-- From outside a component module, only its `*.api.ts` file is imported. Components never import other component modules or `capabilities/`: a reusable Plan or Controller, like any capability, reaches an Intention through its Capabilities.
+- From outside an Intention kind module, only its `*.api.ts` file is imported. Intention kinds never import other Intention kind modules, `playbooks/`, or `capabilities/`: what they need from outside, such as the playbooks, reaches them through their Capabilities.
 - Only `privileged/` imports `@lib/warcraft3-api/privileged`.
 - No import cycles other than type-only imports.
-- Temporary exception: Intention modules may still import `components/intentions/update-interval.ts`.

@@ -1,12 +1,10 @@
 # Desires
 
-The outcomes the bot currently considers desirable, and the Option Generation that keeps them.
+Where the bot's own Desires come from, and how outcomes are told apart.
 
-- `desires.ts` — the bot's permanent Desires and the canonical identity of its outcomes.
-- `option-generation.ts` — the Option Generation: it tracks the supports Intentions express, lets stale ones decay and expire, and consolidates them into Desires.
+- `concerns.ts` — the concerns: what the bot cares about all game, each proposing Desires from the Beliefs every deliberation cycle. So far, the strategy concern, which proposes the playbook the bot prefers.
+- `desires.ts` — the identity of an outcome, its kind and its arguments, which merges proposals for the same outcome into one Desire.
 
-The outcome types themselves are contracts (`contracts/desires.ts`).
+The outcome types themselves are contracts (`contracts/desires.ts`); proposals and Desires are `@lib/chain-of-command` types.
 
-The mind creates the Option Generation, generates the current Desires at the start of every step, and passes them to Deliberation. It runs every Intention update through the Option Generation, whose desire expression reaches Intentions as a capability through Deliberation, and it withdraws the supports of Intentions that left the component tree.
-
-Option Generation decides what is worth pursuing, never what the bot commits to; that is Deliberation's decision.
+The concerns are one source of Desires. The other is the Intentions: each Intention's run may propose requests, such as the playbook's Desires, which the committed strategy proposes. The mind collects both every cycle and hands the Desires to Deliberation. A Desire decides what is worth pursuing, never what the bot commits to; that is Deliberation's decision.
