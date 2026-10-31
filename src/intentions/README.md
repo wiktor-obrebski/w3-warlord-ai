@@ -4,7 +4,6 @@ The bot's Intention kinds, one module each: what it pursues for each kind of out
 
 - `execute-strategy/` — the committed strategy: it follows its playbook's phases and proposes each phase's Desires.
 - `establish-tower-position/` — the Human tower rush: Guard Towers next to the enemy main, funded by a home economy and kept repaired.
-- `operate-towers/` — the Guard Towers' fire, focused by target priority.
 
 A module's `*.kind.ts` declares the kind, as `@lib/chain-of-command` runs it: its pace, its conditions, its plans, and its failure policy. Each plan starts a run, a class implementing `WarlordPlanRun`, which the generic runtime steps at the kind's pace; a run keeps its own execution state and may propose requests. Larger runs are made of parts in the same module, such as the tower rush's establishing steps, home economy, and tower maintenance, which share the run's state.
 

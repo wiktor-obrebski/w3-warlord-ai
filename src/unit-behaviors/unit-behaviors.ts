@@ -11,6 +11,7 @@ import type { OrderQueue, OrderTarget } from '../contracts/orders';
 import type { WarcraftProbes } from '../contracts/probes';
 import type { DecisionRecorder } from '../contracts/record';
 import type { OwnUnit } from '../contracts/world';
+import { TowerTargeting } from './tower-targeting';
 import { WorkerSafety } from './worker-safety';
 import { carriesOut, isLasting, orderFor, sameTarget, sameTask } from './tasks';
 
@@ -34,7 +35,8 @@ interface UnitBehaviorsCapabilities {
  * What every own unit does. A unit's owner gives it a Directive, and each
  * step its behavior turns the Directive into an order. The workers' reflex
  * comes first: it may take a worker over to keep it alive, and the worker
- * starts its unfinished Directive anew once let go.
+ * starts its unfinished Directive anew once let go. A Guard Tower without a
+ * Directive in progress picks its own targets.
  */
 interface UnitBehaviors {
   /** How plan runs give their units Directives. */
@@ -64,6 +66,7 @@ function createUnitBehaviors({
 }: CreateUnitBehaviorsArgs): UnitBehaviors {
   const { orders } = capabilities;
   const workerSafety = new WorkerSafety({ capabilities });
+  const towerTargeting = new TowerTargeting({ capabilities });
   const directiveStates = new Map<UnitId, DirectiveState>();
   // The rally each producer was last ordered to point at. A refused rally
   // is not tried again for the same target, so production goes on.
@@ -90,14 +93,12 @@ function createUnitBehaviors({
   };
 
   const interrupt = ({ directiveState }: InterruptArgs) => {
-    const { task, progress } = directiveState;
-
     if (
-      isLasting({ task }) &&
-      (progress.status === 'pending' || progress.status === 'underway')
+      isLasting({ task: directiveState.task }) &&
+      isOngoing({ directiveState })
     ) {
       directiveState.ordered = false;
-      progress.status = 'pending';
+      directiveState.progress.status = 'pending';
     }
   };
 
@@ -217,11 +218,9 @@ function createUnitBehaviors({
 
         if (currentDirectiveState) {
           const { progress } = currentDirectiveState;
-          const isOngoing =
-            progress.status === 'pending' || progress.status === 'underway';
 
           if (
-            isOngoing &&
+            isOngoing({ directiveState: currentDirectiveState }) &&
             sameTask({ a: currentDirectiveState.task, b: task })
           ) {
             return progress;
@@ -249,6 +248,7 @@ function createUnitBehaviors({
 
     startStep({ beliefs }) {
       workerSafety.claim({ beliefs });
+      towerTargeting.startStep({ beliefs });
       forgetLostUnits({ beliefs });
 
       for (const ownUnit of beliefs.self.units.values()) {
@@ -280,18 +280,45 @@ function createUnitBehaviors({
 
         const directiveState = directiveStates.get(ownUnit.unit);
 
-        if (directiveState === undefined) {
-          continue;
-        }
-
-        if (isLasting({ task: directiveState.task })) {
-          carryOutLasting({ ownUnit, directiveState, beliefs });
-        } else {
-          carryOutSingle({ unit: ownUnit.unit, directiveState });
+        if (directiveState !== undefined && isOngoing({ directiveState })) {
+          if (isLasting({ task: directiveState.task })) {
+            carryOutLasting({ ownUnit, directiveState, beliefs });
+          } else {
+            carryOutSingle({ unit: ownUnit.unit, directiveState });
+          }
+        } else if (isFinishedGuardTower({ unit: ownUnit.unit, beliefs })) {
+          towerTargeting.aim({ tower: ownUnit.unit, beliefs });
         }
       }
     },
   };
+}
+
+interface IsOngoingArgs {
+  directiveState: DirectiveState;
+}
+
+function isOngoing({ directiveState }: IsOngoingArgs): boolean {
+  const { status } = directiveState.progress;
+
+  return status === 'pending' || status === 'underway';
+}
+
+interface IsFinishedGuardTowerArgs {
+  unit: UnitId;
+  beliefs: Beliefs;
+}
+
+// A tower upgrading to a Guard Tower may already have its type; it is left
+// alone until the upgrade ends.
+function isFinishedGuardTower({
+  unit,
+  beliefs,
+}: IsFinishedGuardTowerArgs): boolean {
+  return (
+    beliefs.self.guardTowers.includes(unit) &&
+    !beliefs.self.buildingsUpgrading.includes(unit)
+  );
 }
 
 interface DirectiveState {

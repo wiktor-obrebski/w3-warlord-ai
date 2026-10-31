@@ -1,6 +1,6 @@
-import type { UnitId } from '../../contracts/ids';
-import type { VisibleEnemy } from '../../contracts/world';
-import type { Beliefs } from '../../contracts/beliefs';
+import type { UnitId } from '../contracts/ids';
+import type { VisibleEnemy } from '../contracts/world';
+import type { Beliefs } from '../contracts/beliefs';
 
 export { TARGET_PRIORITY, type RankedTarget, rankTowerTargets };
 

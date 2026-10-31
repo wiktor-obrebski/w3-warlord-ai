@@ -91,29 +91,33 @@ Where initialization order forbids it, the declaration stays above its use: a mo
 Every Intention kind module has one public entry point, `<kind-name>.api.ts`. It declares nothing itself; it only re-exports what other modules need to use the kind, such as the function creating it and its Capabilities. Other modules import the kind only through this file; the rest of the module, such as its plans' runs, is internal.
 
 ```ts
-// operate-towers.api.ts
+// execute-strategy.api.ts
 import {
-  createOperateTowersKind,
-  OperateTowersCapabilities,
-} from './operate-towers.kind';
+  createExecuteStrategyKind,
+  ExecuteStrategyCapabilities,
+} from './execute-strategy.kind';
 
-export { createOperateTowersKind, type OperateTowersCapabilities };
+export { createExecuteStrategyKind, type ExecuteStrategyCapabilities };
 ```
 
 ### Capabilities
 
-An Intention kind, a reflex, or a part of a plan run declares what it needs from outside as a `<Name>Capabilities` interface, next to the code using it or, once it grows, in a file of its own, and only when it needs something. The function or constructor creating it receives them as `capabilities`. The owner supplies a `<name>CapabilitiesProvider` object implementing the interface; it needs no type of its own.
+An Intention kind, a Unit Behavior or one of its parts such as a reflex, or a part of a plan run declares what it needs from outside as a `<Name>Capabilities` interface, next to the code using it or, once it grows, in a file of its own, and only when it needs something. The function or constructor creating it receives them as `capabilities`. The owner supplies a `<name>CapabilitiesProvider` object implementing the interface; it needs no type of its own.
 
 ```ts
-interface OperateTowersCapabilities {
-  readonly actorControl: ActorControl;
+interface ExecuteStrategyCapabilities {
+  readonly playbooks: Readonly<Record<PlaybookName, Playbook>>;
+  readonly recorder: DecisionRecorder;
 }
 
-const operateTowersCapabilitiesProvider: OperateTowersCapabilities = {
-  actorControl,
+const executeStrategyCapabilitiesProvider: ExecuteStrategyCapabilities = {
+  playbooks: Playbooks,
+  recorder,
 };
 
-createOperateTowersKind({ capabilities: operateTowersCapabilitiesProvider });
+createExecuteStrategyKind({
+  capabilities: executeStrategyCapabilitiesProvider,
+});
 ```
 
 ## Named Parameters

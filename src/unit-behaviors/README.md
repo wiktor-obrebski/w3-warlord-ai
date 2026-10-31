@@ -6,4 +6,6 @@ A lasting task, such as Harvest, is ordered once, unless the unit already carrie
 
 Reflexes keep the units alive, whatever their Directive: so far, worker safety (`worker-safety.ts`), which makes attacked workers flee. At the start of every step, before the Intentions run, the reflexes claim the units they protect with preemptive actor control, which takes them from whatever held them, so no run directs or probes them; once a unit is safe, they stop requesting it and it is free again. A Directive left unfinished when the reflex took its unit over starts anew once the reflex lets go.
 
+A Guard Tower without a Directive in progress picks its own targets (`tower-targeting.ts`). Once a second, the visible enemies are ranked by priority, then by lowest life, the same ranking for every tower, and each tower attacks the best one in its range, so overlapping towers focus their fire. A tower still upgrading is left alone.
+
 Unit Behaviors read only the Beliefs and act only through the capabilities the mind gives them.

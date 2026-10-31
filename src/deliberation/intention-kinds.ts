@@ -14,10 +14,6 @@ import {
   createExecuteStrategyKind,
   ExecuteStrategyCapabilities,
 } from '../intentions/execute-strategy/execute-strategy.api';
-import {
-  createOperateTowersKind,
-  OperateTowersCapabilities,
-} from '../intentions/operate-towers/operate-towers.api';
 import { HUMAN_TOWER_RUSH } from '../playbooks/human-tower-rush';
 
 export { createIntentionKinds };
@@ -51,20 +47,12 @@ function createIntentionKinds({
   };
   const establishTowerPositionCapabilitiesProvider: EstablishTowerPositionCapabilities =
     { actorControl, directives, probes, recorder, random };
-  const operateTowersCapabilitiesProvider: OperateTowersCapabilities = {
-    actorControl,
-    probes,
-    recorder,
-  };
   const kinds: IntentionKinds = {
     ExecuteStrategy: createExecuteStrategyKind({
       capabilities: executeStrategyCapabilitiesProvider,
     }),
     EstablishTowerPosition: createEstablishTowerPositionKind({
       capabilities: establishTowerPositionCapabilitiesProvider,
-    }),
-    OperateTowers: createOperateTowersKind({
-      capabilities: operateTowersCapabilitiesProvider,
     }),
   };
 

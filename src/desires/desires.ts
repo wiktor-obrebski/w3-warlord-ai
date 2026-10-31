@@ -11,7 +11,6 @@ function identifyOutcome({ outcome }: { outcome: WarlordOutcome }): string {
     case 'ExecuteStrategy':
       return `ExecuteStrategy{${outcome.playbook}}`;
     case 'EstablishTowerPosition':
-    case 'OperateTowers':
       return outcome.kind;
   }
 }

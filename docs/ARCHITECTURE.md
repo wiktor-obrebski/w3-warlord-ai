@@ -15,33 +15,32 @@ This document covers what they don't: how far the code has been migrated to the 
 
 The code is being migrated to Chain of Command in phases. The decision layer, Desires, Deliberation, and the Intention runtime, comes from [`@lib/chain-of-command`](../lib/chain-of-command/README.md). Until Allocation replaces it, the first-iteration actor control of [`@lib/bdi`](../lib/bdi/README.md) decides which part of the bot may direct each unit.
 
-| Phase | Content                                                                                        | Status      |
-| ----- | ---------------------------------------------------------------------------------------------- | ----------- |
-| 0     | The architecture documents are adopted                                                         | done        |
-| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done        |
-| 2     | One world model in Beliefs                                                                     | done        |
-| 3     | Desires, Deliberation, Intention kinds                                                         | done        |
-| 4a    | Unit Behaviors and Directives                                                                  | in progress |
-| 4b    | Allocation of units                                                                            | not started |
-| 4c    | Allocation of money                                                                            | not started |
-| 5     | Clean-up                                                                                       | not started |
+| Phase | Content                                                                                        | Status                           |
+| ----- | ---------------------------------------------------------------------------------------------- | -------------------------------- |
+| 0     | The architecture documents are adopted                                                         | done                             |
+| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done                             |
+| 2     | One world model in Beliefs                                                                     | done                             |
+| 3     | Desires, Deliberation, Intention kinds                                                         | done                             |
+| 4a    | Unit Behaviors and Directives                                                                  | done, awaiting the in-game check |
+| 4b    | Allocation of units                                                                            | not started                      |
+| 4c    | Allocation of money                                                                            | not started                      |
+| 5     | Clean-up                                                                                       | not started                      |
 
 The bot's behaviors today:
 
-- **Unit Behaviors** order every unit, carrying out the Directive its owner gave it. The workers' reflex comes first: attacked workers flee from the nearby enemy force, whatever their Directive, and take an unfinished one up again once safe.
+- **Unit Behaviors** order every unit, carrying out the Directive its owner gave it. The workers' reflex comes first: attacked workers flee from the nearby enemy force, whatever their Directive, and take an unfinished one up again once safe. Guard Towers without a Directive in progress focus their fire by target priority, each from the moment its upgrade ends.
 
 The rest goes through Desires and Intentions:
 
 - **The strategy concern** proposes `ExecuteStrategy{HumanTowerRush}` when the bot plays Human and knows where the enemy started. It knows that only on maps with a single start location besides its own, since it does not read which start location the enemy got; otherwise it vetoes its proposal, giving that reason.
-- **ExecuteStrategy** is the committed strategy: it follows the Human tower rush playbook (`src/playbooks/`). The playbook's Rush phase proposes EstablishTowerPosition; its Hold phase begins once the rush towers stand as Guard Towers, and adds OperateTowers.
+- **ExecuteStrategy** is the committed strategy: it follows the Human tower rush playbook (`src/playbooks/`). The playbook has a single phase, Rush, which proposes EstablishTowerPosition.
 - **EstablishTowerPosition** is the tower rush itself. Three of the starting Peasants go forward as Militia, build Scout Towers next to the enemy main, and upgrade them to Guard Towers; the rest of the workers run the home economy; the forward Peasants then repair the towers and hide behind them. The home economy splits out into RunEconomy once Allocation decides who owns which Peasant.
-- **OperateTowers:** Guard Towers focus their fire by target priority.
 
 They run inside the mind, behind the two boundaries. Every 0.1 s, `src/shell/runtime.ts` takes Perception's observations, steps the mind, hands the orders the step returns to the order executor, and writes the step's decision record. Units and destructables are named by ids; only the shell holds Warcraft handles. An order Warcraft refuses reaches the mind with the next observations, and the part of the mind that gave it can correct its own state. Randomness comes from one generator, seeded once from Warcraft's synchronized generator.
 
 Each step first revises the Beliefs, which have only the sections today's behaviors read: the time; self, with the bot's units, resources, and home, and the attacks on its units it still remembers; and enemy, with the enemy units in sight and, when the start locations tell it, where the enemy started. Enemy units seen earlier are not remembered, and there are no neutral, map, or events sections yet. What a reflex or a plan run remembers for itself, such as when each worker was last attacked, is its own execution state.
 
-Then the workers' reflex claims the workers it protects, and a deliberation cycle runs once a second, and on the next step after an Intention is adopted or ends: the concerns and the Intentions' runs propose Desires, and Deliberation adopts, drops, and orders the Intentions. Every Intention kind has a single plan so far. The mind then steps the agenda's Intentions in its order, each at its kind's pace, whose runs give their units Directives, and records every Desire, Intention, and agenda change as a note. Last, the Unit Behaviors order the units: the reflex its workers, and every other unit with a Directive as that Directive asks.
+Then the workers' reflex claims the workers it protects, and a deliberation cycle runs once a second, and on the next step after an Intention is adopted or ends: the concerns and the Intentions' runs propose Desires, and Deliberation adopts, drops, and orders the Intentions. Every Intention kind has a single plan so far. The mind then steps the agenda's Intentions in its order, each at its kind's pace, whose runs give their units Directives, and records every Desire, Intention, and agenda change as a note. Last, the Unit Behaviors order the units: the reflex its workers, every other unit with a Directive in progress as that Directive asks, and the Guard Towers without one at the targets they pick.
 
 Three temporary exceptions remain, for later phases to remove:
 

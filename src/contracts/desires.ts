@@ -4,7 +4,6 @@ export {
   type PlaybookName,
   type ExecuteStrategy,
   type EstablishTowerPosition,
-  type OperateTowers,
   type WarlordOutcome,
   type WarlordProposal,
   type WarlordDesire,
@@ -27,13 +26,8 @@ interface EstablishTowerPosition {
   readonly kind: 'EstablishTowerPosition';
 }
 
-/** Direct the fire of the bot's Guard Towers. */
-interface OperateTowers {
-  readonly kind: 'OperateTowers';
-}
-
 /** Every outcome the bot can desire. */
-type WarlordOutcome = ExecuteStrategy | EstablishTowerPosition | OperateTowers;
+type WarlordOutcome = ExecuteStrategy | EstablishTowerPosition;
 
 type WarlordProposal = Proposal<WarlordOutcome>;
 
