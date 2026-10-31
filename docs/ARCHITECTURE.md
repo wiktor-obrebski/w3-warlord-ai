@@ -24,9 +24,12 @@ The code is being migrated to Chain of Command in phases. Until the migration en
 | 4     | Unit Behaviors, Allocation, Directives                                                         | not started                      |
 | 5     | Clean-up                                                                                       | not started                      |
 
-The bot's behaviors today, as first-iteration Intentions:
+The bot's behaviors today:
 
-- **MaintainWorkerSafety:** attacked workers flee from the nearby enemy force, taking control of the worker from whatever controlled it.
+- **Worker safety:** attacked workers flee from the nearby enemy force, taking control of the worker from whatever controlled it. Until Unit Behaviors give workers their reflexes, it is an interim reflex: the mind steps it every tick, before anything else.
+
+The others are first-iteration Intentions:
+
 - **AdaptStrategy:** prefers the tower rush when the bot plays Human and knows where the enemy started. It knows that only on maps with a single start location besides its own, since it does not read which start location the enemy got.
 - **TowerRush:** the Human tower rush. Three of the starting Peasants go forward as Militia, build Scout Towers next to the enemy main, and upgrade them to Guard Towers; the rest of the workers run the home economy; the forward Peasants then repair the towers and hide behind them.
 - **OperateTowers:** once the tower position stands, Guard Towers focus their fire by target priority.
@@ -142,27 +145,28 @@ src/
 │  ├─ intentions/   one module per Intention: the *.api.ts entry point, *.intention.ts, its private *.plan.ts and *.ctrl.ts, and *.assessments.ts
 │  ├─ plans/        Plans assembled by several Intentions
 │  └─ controllers/  Controllers assembled by several Intentions
+├─ reflexes/      worker safety, which the mind steps every tick before anything else
 ├─ capabilities/  implementations of what components declare in their Capabilities, one module per capability: actor control
 └─ privileged/    installation and debug-mode code beyond normal gameplay
 ```
 
 Which modules may import which, to be enforced by an architecture linter later:
 
-| Module                                                           | May import                                                                                               |
-| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `lib/**`                                                         | nothing from `src/`                                                                                      |
-| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                                      |
-| `knowledge/`                                                     | `@lib/**`, `contracts/`                                                                                  |
-| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                                                      |
-| `desires/`                                                       | `@lib/bdi`, `contracts/`                                                                                 |
-| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                                  |
-| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                                  |
-| `capabilities/<module>/`                                         | `@lib/**`, `contracts/`, its own module                                                                  |
-| `deliberation/`                                                  | `@lib/**`, `contracts/`, `desires/`, `components/**/*.api.ts`                                            |
-| `mind/`                                                          | `@lib/**`, `contracts/`, `knowledge/`, `beliefs/`, `desires/`, `deliberation/`, `capabilities/`, `mind/` |
-| `shell/`                                                         | `@lib/**`, `contracts/`, `knowledge/`, `mind/mind.ts`, `shell/`                                          |
-| `main.ts`                                                        | `@lib/**`, `shell/`, `privileged/`                                                                       |
-| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                                  |
+| Module                                                           | May import                                                                                                            |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `lib/**`                                                         | nothing from `src/`                                                                                                   |
+| `contracts/`                                                     | `@lib/**`, `contracts/`; types only                                                                                   |
+| `knowledge/`                                                     | `@lib/**`, `contracts/`                                                                                               |
+| `beliefs/`                                                       | `@lib/**`, `contracts/`, `beliefs/`                                                                                   |
+| `desires/`                                                       | `@lib/bdi`, `contracts/`                                                                                              |
+| `components/intentions/<module>/`                                | `@lib/**`, `contracts/`, its own module                                                                               |
+| `components/plans/<module>/`, `components/controllers/<module>/` | `@lib/**`, `contracts/`, its own module                                                                               |
+| `capabilities/<module>/`, `reflexes/<module>/`                   | `@lib/**`, `contracts/`, its own module                                                                               |
+| `deliberation/`                                                  | `@lib/**`, `contracts/`, `desires/`, `components/**/*.api.ts`                                                         |
+| `mind/`                                                          | `@lib/**`, `contracts/`, `knowledge/`, `beliefs/`, `desires/`, `deliberation/`, `reflexes/`, `capabilities/`, `mind/` |
+| `shell/`                                                         | `@lib/**`, `contracts/`, `knowledge/`, `mind/mind.ts`, `shell/`                                                       |
+| `main.ts`                                                        | `@lib/**`, `shell/`, `privileged/`                                                                                    |
+| `privileged/`                                                    | `@lib/warcraft3-api/**`                                                                                               |
 
 - Contracts are imported with `import type`.
 - Only `shell/`, `privileged/`, and `main.ts` import `@lib/warcraft3-api`; elsewhere, `@lib/**` excludes it. The race modules (`human`, `neutral`, `nightelf`, `orc`, `undead`) are the exception: their rawcodes are compile-time constants. Lint enforces this.

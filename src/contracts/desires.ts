@@ -16,11 +16,6 @@ interface ExecuteTowerRushStrategy {
   readonly kind: 'ExecuteTowerRushStrategy';
 }
 
-/** Keep workers and other economic assets alive. */
-interface ProtectEconomicAssets {
-  readonly kind: 'ProtectEconomicAssets';
-}
-
 /** Get the most out of the bot's military assets. */
 interface UseMilitaryAssetsEffectively {
   readonly kind: 'UseMilitaryAssetsEffectively';
@@ -30,7 +25,6 @@ interface UseMilitaryAssetsEffectively {
 type WarlordDesireOutcome =
   | MaintainEffectiveStrategy
   | ExecuteTowerRushStrategy
-  | ProtectEconomicAssets
   | UseMilitaryAssetsEffectively;
 
 type WarlordDesire = Desire<WarlordDesireOutcome>;

@@ -19,10 +19,6 @@ import {
   AdaptStrategyCapabilities,
 } from '../components/intentions/adapt-strategy/adapt-strategy.api';
 import {
-  assembleMaintainWorkerSafetyIntention,
-  MaintainWorkerSafetyCapabilities,
-} from '../components/intentions/maintain-worker-safety/maintain-worker-safety.api';
-import {
   assembleTowerRushIntention,
   TowerRushCapabilities,
   TowerRushIntention,
@@ -49,7 +45,6 @@ interface CreateDeliberationArgs {
 /**
  * A fixed policy for now, adopting one Intention for each Desire:
  *
- * - ProtectEconomicAssets → MaintainWorkerSafety
  * - MaintainEffectiveStrategy → AdaptStrategy
  * - ExecuteTowerRushStrategy → TowerRush, the bot's strategy commitment
  * - UseMilitaryAssetsEffectively → OperateTowers, once the tower rush has
@@ -58,11 +53,8 @@ interface CreateDeliberationArgs {
  * A retained Intention is kept for as long as it assesses its commitment as
  * still worthwhile, even if its Desire is gone, and dropped otherwise.
  *
- * Intentions are returned in update order. Worker safety comes first so it
- * takes attacked workers over before the others order them on the same tick.
- *
- * Deliberation remembers the Intentions it assembled, so it can tell them
- * apart and read their state.
+ * Intentions are returned in update order. Deliberation remembers the
+ * Intentions it assembled, so it can tell them apart and read their state.
  */
 function createDeliberation({
   actorControl,
@@ -76,13 +68,6 @@ function createDeliberation({
   WarlordDesire,
   AssembledIntention
 > {
-  const workerSafetyCapabilitiesProvider: MaintainWorkerSafetyCapabilities = {
-    actorControl,
-    orders,
-    probes,
-    recorder,
-    random,
-  };
   const adaptStrategyCapabilitiesProvider: AdaptStrategyCapabilities = {
     desireExpression,
     recorder,
@@ -99,7 +84,6 @@ function createDeliberation({
     probes,
     recorder,
   };
-  let workerSafety: AssembledIntention | null = null;
   let adaptStrategy: AssembledIntention | null = null;
   let towerRush: AssembledWarlordComponent<TowerRushIntention> | null = null;
   let operateTowers: AssembledIntention | null = null;
@@ -128,14 +112,6 @@ function createDeliberation({
       };
       const active: AssembledIntention[] = [];
 
-      workerSafety = commit({
-        intention: workerSafety,
-        desireKind: 'ProtectEconomicAssets',
-        adopt: () =>
-          assembleMaintainWorkerSafetyIntention({
-            capabilities: workerSafetyCapabilitiesProvider,
-          }),
-      });
       adaptStrategy = commit({
         intention: adaptStrategy,
         desireKind: 'MaintainEffectiveStrategy',
@@ -165,10 +141,6 @@ function createDeliberation({
 
       // Pushed one by one: in Lua, null elements of an array literal leave
       // holes that end iteration early.
-      if (workerSafety) {
-        active.push(workerSafety);
-      }
-
       if (adaptStrategy) {
         active.push(adaptStrategy);
       }

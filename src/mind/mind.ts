@@ -21,6 +21,10 @@ import {
   createDeliberation,
   AssembledIntention,
 } from '../deliberation/deliberation';
+import {
+  WorkerSafetyController,
+  WorkerSafetyControllerCapabilities,
+} from '../reflexes/worker-safety/worker-safety.ctrl';
 import { createMindOrders } from './mind-orders';
 
 export { type Mind, type MindStep, createMind };
@@ -50,9 +54,11 @@ interface CreateMindArgs {
 
 /**
  * Creates the mind for one game. Each step revises the Beliefs from the
- * observations, then runs the first iteration's framework on them: it
- * generates the current Desires, deliberates on them, and updates the
- * Intentions, which update their Plans and Controllers.
+ * observations, and runs worker safety first, so it takes attacked workers
+ * over before anything else orders them in the same step. Then the first
+ * iteration's framework runs on the Beliefs: the step generates the current
+ * Desires, deliberates on them, and updates the Intentions, which update
+ * their Plans and Controllers.
  *
  * Every Intention update runs through Option Generation, whose desire
  * expression then acts for it; Desires it expresses appear on the next
@@ -72,6 +78,16 @@ function createMind({ random, probes, tickSeconds }: CreateMindArgs): Mind {
   const orders = createMindOrders({ probes, recorder });
   const optionGeneration = createDesires({ tickSeconds });
   const arbiter = createActorControl();
+  const workerSafetyCapabilitiesProvider: WorkerSafetyControllerCapabilities = {
+    actorControl: arbiter.actorControl,
+    orders: orders.queue,
+    probes: orders.probes,
+    recorder,
+    random,
+  };
+  const workerSafety = new WorkerSafetyController({
+    capabilities: workerSafetyCapabilitiesProvider,
+  });
   const deliberation = createDeliberation({
     actorControl: arbiter.actorControl,
     desireExpression: optionGeneration.desireExpression,
@@ -96,6 +112,10 @@ function createMind({ random, probes, tickSeconds }: CreateMindArgs): Mind {
       const previousDesires = desires;
 
       previousBeliefs = beliefs;
+      arbiter.update({
+        source: workerSafety,
+        run: () => workerSafety.update({ beliefs }),
+      });
       ({ desires } = optionGeneration.generate({ now }));
       reportDesireChanges({ previousDesires, desires, recorder });
 
@@ -121,7 +141,9 @@ function createMind({ random, probes, tickSeconds }: CreateMindArgs): Mind {
 
       const activeComponents = componentsInTree({ roots: intentions });
 
-      arbiter.releaseInactive({ activeSources: activeComponents });
+      arbiter.releaseInactive({
+        activeSources: new Set([workerSafety, ...activeComponents]),
+      });
       optionGeneration.releaseInactive({ activeSources: activeComponents });
 
       const record: DecisionRecord = { notes };

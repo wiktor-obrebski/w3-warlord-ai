@@ -1,50 +1,18 @@
 import { Point, Random, Vector } from '@lib/math';
-import type { ActorControl } from '../../../contracts/actor-control';
-import type { UnitId } from '../../../contracts/ids';
-import type { OrderQueue } from '../../../contracts/orders';
-import type { WarcraftProbes } from '../../../contracts/probes';
-import type { DecisionRecorder } from '../../../contracts/record';
-import type { OwnUnit } from '../../../contracts/world';
-import type { Beliefs } from '../../../contracts/beliefs';
-import type {
-  AssembledWarlordComponent,
-  WarlordController,
-} from '../../../contracts/component';
+import type { ActorControl } from '../../contracts/actor-control';
+import type { UnitId } from '../../contracts/ids';
+import type { OrderQueue } from '../../contracts/orders';
+import type { WarcraftProbes } from '../../contracts/probes';
+import type { DecisionRecorder } from '../../contracts/record';
+import type { OwnUnit } from '../../contracts/world';
+import type { Beliefs } from '../../contracts/beliefs';
 import {
   isRecentlyAttacked,
   nearbyThreats,
   threatCenter,
 } from './worker-safety.assessments';
 
-export { assembleWorkerSafetyController };
-
-interface AssembleWorkerSafetyControllerArgs {
-  capabilities: WorkerSafetyControllerCapabilities;
-}
-
-function assembleWorkerSafetyController({
-  capabilities,
-}: AssembleWorkerSafetyControllerArgs): AssembledWarlordComponent<WarlordController> {
-  return {
-    component: new WorkerSafetyController({ capabilities }),
-    children: [],
-  };
-}
-
-// A worker unattacked for this long is safe again.
-const SafeAfterAttackSeconds = 1;
-const FleeRoundDistance = 300;
-const FleeDestinationReachedDistance = 32;
-const FleeAngleStep = Math.PI / 6;
-// Alternating to either side of straight away, ending straight back.
-const FleeAngleOffsets = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6].map(
-  (step) => step * FleeAngleStep
-);
-
-interface FleeRound {
-  origin: Point;
-  destination: Point;
-}
+export { WorkerSafetyController, type WorkerSafetyControllerCapabilities };
 
 interface WorkerSafetyControllerCapabilities {
   readonly actorControl: ActorControl;
@@ -83,7 +51,7 @@ interface WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs {
  * releases it by no longer requesting it. While recovering, the worker is not
  * ordered at all.
  */
-class WorkerSafetyController implements WarlordController {
+class WorkerSafetyController {
   private readonly capabilities: WorkerSafetyControllerCapabilities;
   private readonly fleeRounds = new Map<UnitId, FleeRound>();
   // When each worker attacked within the last SafeAfterAttackSeconds was
@@ -215,6 +183,21 @@ class WorkerSafetyController implements WarlordController {
       this.fleeRounds.delete(worker);
     }
   }
+}
+
+// A worker unattacked for this long is safe again.
+const SafeAfterAttackSeconds = 1;
+const FleeRoundDistance = 300;
+const FleeDestinationReachedDistance = 32;
+const FleeAngleStep = Math.PI / 6;
+// Alternating to either side of straight away, ending straight back.
+const FleeAngleOffsets = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6].map(
+  (step) => step * FleeAngleStep
+);
+
+interface FleeRound {
+  origin: Point;
+  destination: Point;
 }
 
 interface FleeRoundFinishedArgs {

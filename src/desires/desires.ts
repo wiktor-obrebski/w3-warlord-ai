@@ -26,6 +26,5 @@ function createDesires({
 
 const PermanentDesires: readonly WarlordDesireOutcome[] = [
   { kind: 'MaintainEffectiveStrategy' },
-  { kind: 'ProtectEconomicAssets' },
   { kind: 'UseMilitaryAssetsEffectively' },
 ];
