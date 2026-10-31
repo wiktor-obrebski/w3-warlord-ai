@@ -1,0 +1,6 @@
+{
+  "name": "@lib/chain-of-command",
+  "private": true,
+  "main": "./chain-of-command.ts",
+  "types": "./chain-of-command.ts"
+}

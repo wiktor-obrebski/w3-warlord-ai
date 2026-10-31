@@ -17,6 +17,7 @@
     "paths": {
       "@lib/math": ["./lib/math/math.ts"],
       "@lib/bdi": ["./lib/bdi/bdi.ts"],
+      "@lib/chain-of-command": ["./lib/chain-of-command/chain-of-command.ts"],
       "@lib/logger": ["./lib/logger/logger.ts"]
     }
   },
