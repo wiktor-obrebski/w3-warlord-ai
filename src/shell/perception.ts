@@ -181,6 +181,7 @@ function observeWorld({
   const peasants: UnitId[] = [];
   const militia: UnitId[] = [];
   const idleUnits: UnitId[] = [];
+  const movingUnits: UnitId[] = [];
   const harvestingUnits: UnitId[] = [];
   const holdingPositionUnits: UnitId[] = [];
   const repairingUnits: UnitId[] = [];
@@ -195,6 +196,7 @@ function observeWorld({
   const harvestOrders = HarvestOrderStrings.map((order) =>
     W3UnitApi.OrderId(order)
   );
+  const moveOrder = W3UnitApi.OrderId('move');
   const holdPositionOrder = W3UnitApi.OrderId('holdposition');
   // Assumed, not verified in-game, to stay the current order while repairing.
   const repairOrder = W3UnitApi.OrderId('repair');
@@ -212,6 +214,7 @@ function observeWorld({
       life: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_LIFE),
       maxLife: W3UnitApi.GetUnitState(unit, W3UnitApi.UNIT_STATE_MAX_LIFE),
       isIdle: order === NoOrder,
+      order,
     };
 
     ownUnits.set(id, observed);
@@ -222,6 +225,8 @@ function observeWorld({
 
     if (order === NoOrder) {
       idleUnits.push(id);
+    } else if (order === moveOrder) {
+      movingUnits.push(id);
     } else if (harvestOrders.includes(order)) {
       harvestingUnits.push(id);
     } else if (order === holdPositionOrder) {
@@ -278,6 +283,7 @@ function observeWorld({
       peasants,
       militia,
       idleUnits,
+      movingUnits,
       harvestingUnits,
       holdingPositionUnits,
       repairingUnits,

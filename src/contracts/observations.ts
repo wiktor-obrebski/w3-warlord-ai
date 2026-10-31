@@ -50,6 +50,7 @@ interface ObservedSelf {
   readonly peasants: readonly UnitId[];
   readonly militia: readonly UnitId[];
   readonly idleUnits: readonly UnitId[];
+  readonly movingUnits: readonly UnitId[];
   readonly harvestingUnits: readonly UnitId[];
   readonly holdingPositionUnits: readonly UnitId[];
   readonly repairingUnits: readonly UnitId[];
