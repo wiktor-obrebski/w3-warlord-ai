@@ -140,7 +140,7 @@ function createDeliberation<TOutcome, TBeliefs>({
         retained.push({ intention, desire });
       }
 
-      retained.sort(agendaOrder);
+      retained.sort((a, b) => agendaOrder(a, b));
       agenda = retained.map(({ intention }) => intention);
 
       return { agenda, events };
