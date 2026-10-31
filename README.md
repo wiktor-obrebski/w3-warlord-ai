@@ -37,7 +37,7 @@ npm test              # unit tests (node:test) of workspaces and scripts
 
 ## Logs
 
-The bot writes structured logs, configured in `src/logging.ts`, to `<CustomMapData>/WarlordLogs`. `<CustomMapData>` is `Documents/Warcraft III/CustomMapData`; under Proton or Wine it is inside the prefix, `<prefix>/drive_c/users/<user>/Documents/Warcraft III/CustomMapData`, where `<user>` is `steamuser` under Proton. The game creates the folder with its first batch.
+The bot writes structured logs, configured in `src/shell/logging.ts`, to `<CustomMapData>/WarlordLogs`. `<CustomMapData>` is `Documents/Warcraft III/CustomMapData`; under Proton or Wine it is inside the prefix, `<prefix>/drive_c/users/<user>/Documents/Warcraft III/CustomMapData`, where `<user>` is `steamuser` under Proton. The game creates the folder with its first batch.
 
 Collect them as Pino JSON lines while the game runs:
 
