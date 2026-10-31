@@ -1,6 +1,6 @@
 import type { ActorControl } from '../../contracts/actor-control';
 import type { UnitId } from '../../contracts/ids';
-import type { OrderQueue } from '../../contracts/orders';
+import type { Directives } from '../../contracts/directives';
 import type { DecisionRecorder } from '../../contracts/record';
 import type { Beliefs } from '../../contracts/beliefs';
 import { TowerRushState } from './tower-rush.state';
@@ -23,7 +23,7 @@ export {
 
 interface TowerMaintenanceControllerCapabilities {
   readonly actorControl: ActorControl;
-  readonly orders: OrderQueue;
+  readonly directives: Directives;
   readonly recorder: DecisionRecorder;
 }
 
@@ -63,7 +63,7 @@ class TowerMaintenanceController {
       throw new Error('Tower rush: enemy start position not found.');
     }
 
-    const { actorControl, orders, recorder } = this.capabilities;
+    const { actorControl, directives, recorder } = this.capabilities;
     const towers = [...beliefs.self.scoutTowers, ...beliefs.self.guardTowers];
     const previousTarget = this.repairTarget;
     const repairTarget = chooseRepairTarget({
@@ -93,7 +93,7 @@ class TowerMaintenanceController {
             worker,
             tower: repairTarget,
             rush: this.rush,
-            orders,
+            directives,
           });
         }
       } else if (
@@ -106,7 +106,7 @@ class TowerMaintenanceController {
           enemyMain,
           beliefs,
           rush: this.rush,
-          orders,
+          directives,
           recorder,
         });
       }
@@ -165,20 +165,16 @@ interface OrderRepairArgs {
   worker: UnitId;
   tower: UnitId;
   rush: TowerRushState;
-  orders: OrderQueue;
+  directives: Directives;
 }
 
 // A refused repair leaves the Peasant not repairing, so the next update
 // orders it again.
-function orderRepair({ worker, tower, rush, orders }: OrderRepairArgs) {
-  orders.queue({
-    order: {
-      kind: 'target',
-      unit: worker,
-      orderString: 'repair',
-      target: { unit: tower },
-      reason: 'Tower rush: forward Peasant repairs a tower',
-    },
+function orderRepair({ worker, tower, rush, directives }: OrderRepairArgs) {
+  directives.give({
+    unit: worker,
+    task: { kind: 'Repair', repairTarget: tower },
+    reason: 'Tower rush: forward Peasant repairs a tower',
   });
   forgetSentToSafety({ worker, rush });
 }

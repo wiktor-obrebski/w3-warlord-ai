@@ -79,6 +79,14 @@ function issue({ order, perception }: IssueArgs): boolean {
         W3UnitApi.IssueTargetOrder(unit, order.orderString, target)
       );
     }
+
+    case 'build':
+      return W3UnitApi.IssueBuildOrderById(
+        unit,
+        order.building,
+        order.point.x,
+        order.point.y
+      );
   }
 }
 

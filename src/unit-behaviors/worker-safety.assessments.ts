@@ -1,7 +1,7 @@
 import { Point, Vector } from '@lib/math';
-import type { UnitId } from '../../contracts/ids';
-import type { OwnUnit, VisibleEnemy } from '../../contracts/world';
-import type { Beliefs } from '../../contracts/beliefs';
+import type { UnitId } from '../contracts/ids';
+import type { OwnUnit, VisibleEnemy } from '../contracts/world';
+import type { Beliefs } from '../contracts/beliefs';
 
 export { nearbyThreats, threatCenter, isRecentlyAttacked };
 

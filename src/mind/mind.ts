@@ -23,9 +23,9 @@ import { proposeConcerns } from '../desires/concerns';
 import { identifyOutcome } from '../desires/desires';
 import { createIntentionKinds } from '../deliberation/intention-kinds';
 import {
-  WorkerSafetyController,
-  WorkerSafetyControllerCapabilities,
-} from '../reflexes/worker-safety/worker-safety.ctrl';
+  createUnitBehaviors,
+  UnitBehaviorsCapabilities,
+} from '../unit-behaviors/unit-behaviors';
 import {
   noteAgendaChange,
   noteDesireChanges,
@@ -60,16 +60,18 @@ interface CreateMindArgs {
  * Creates the mind for one game. Each step:
  *
  * 1. revises the Beliefs from the observations;
- * 2. steps worker safety, so it takes attacked workers over before anything
- *    else orders them;
+ * 2. starts the Unit Behaviors' step: their reflexes claim the units they
+ *    protect, so no Intention directs them in this step, and the Directives'
+ *    progress catches up with the Beliefs;
  * 3. runs a deliberation cycle once a second: it collects the Desires the
  *    concerns and the Intentions propose, and deliberates on them;
  * 4. steps the Intentions on the agenda, in its order, each at its kind's
- *    pace.
+ *    pace, which give their units Directives;
+ * 5. lets the Unit Behaviors order the units.
  *
  * Adopting or ending an Intention changes what is proposed, so the next
- * cycle comes on the next step instead. Units are ordered under actor
- * control: worker safety and each Intention request the units they order,
+ * cycle comes on the next step instead. Units are directed under actor
+ * control: the reflexes and each Intention request the units they direct,
  * and lose their control once they are gone.
  */
 function createMind({ random, probes }: CreateMindArgs): Mind {
@@ -81,19 +83,20 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
   };
   const orders = createMindOrders({ probes, recorder });
   const arbiter = createActorControl();
-  const workerSafetyCapabilitiesProvider: WorkerSafetyControllerCapabilities = {
+  const unitBehaviorsCapabilitiesProvider: UnitBehaviorsCapabilities = {
     actorControl: arbiter.actorControl,
     orders: orders.queue,
     probes: orders.probes,
     recorder,
     random,
+    wasProbed: ({ unit }) => orders.wasProbed({ unit }),
   };
-  const workerSafety = new WorkerSafetyController({
-    capabilities: workerSafetyCapabilitiesProvider,
+  const unitBehaviors = createUnitBehaviors({
+    capabilities: unitBehaviorsCapabilitiesProvider,
   });
   const kindOf = createIntentionKinds({
     actorControl: arbiter.actorControl,
-    orders: orders.queue,
+    directives: unitBehaviors.directives,
     probes: orders.probes,
     recorder,
     random,
@@ -119,8 +122,8 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
 
       previousBeliefs = beliefs;
       arbiter.update({
-        source: workerSafety,
-        run: () => workerSafety.update({ beliefs }),
+        source: unitBehaviors,
+        run: () => unitBehaviors.startStep({ beliefs }),
       });
 
       if (nextCycleAt === undefined || now >= nextCycleAt) {
@@ -161,9 +164,13 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
         });
       }
 
+      // Outside an arbiter update: one for the Unit Behaviors would let their
+      // claims expire, as nothing is requested while deciding.
+      unitBehaviors.decide({ beliefs });
+
       arbiter.releaseInactive({
         activeSources: new Set<object>([
-          workerSafety,
+          unitBehaviors,
           ...agenda.filter((intention) => intention.status !== 'finished'),
         ]),
       });

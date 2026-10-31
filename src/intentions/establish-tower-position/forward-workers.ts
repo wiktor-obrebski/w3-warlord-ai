@@ -1,7 +1,7 @@
 import { Point, Vector } from '@lib/math';
 import type { ActorControl } from '../../contracts/actor-control';
+import type { Directives } from '../../contracts/directives';
 import type { UnitId } from '../../contracts/ids';
-import type { OrderQueue } from '../../contracts/orders';
 import type { DecisionRecorder } from '../../contracts/record';
 import type { Beliefs } from '../../contracts/beliefs';
 import { TowerRushState } from './tower-rush.state';
@@ -15,7 +15,7 @@ interface HideBehindClosestTowerArgs {
   enemyMain: Point;
   beliefs: Beliefs;
   rush: TowerRushState;
-  orders: OrderQueue;
+  directives: Directives;
   recorder: DecisionRecorder;
 }
 
@@ -25,7 +25,7 @@ function hideBehindClosestTower({
   enemyMain,
   beliefs,
   rush,
-  orders,
+  directives,
   recorder,
 }: HideBehindClosestTowerArgs) {
   const shelter = closestUnit({ beliefs, units: towers, to: worker });
@@ -39,15 +39,10 @@ function hideBehindClosestTower({
     enemyMain,
   });
 
-  orders.queue({
-    order: {
-      kind: 'point',
-      unit: worker,
-      orderString: 'move',
-      point: spot,
-      reason: 'Tower rush: forward Peasant hides behind a tower',
-    },
-    onRefused: () => forgetSentToSafety({ worker, rush }),
+  directives.give({
+    unit: worker,
+    task: { kind: 'Move', point: spot },
+    reason: 'Tower rush: forward Peasant hides behind a tower',
   });
   rush.forwardWorkersSentToSafety.push(worker);
   recorder.note({

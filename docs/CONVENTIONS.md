@@ -9,7 +9,7 @@ Declarations that mirror Warcraft natives and runtime globals, such as the ambie
 ### File Naming
 
 - TypeScript files and the directories containing them are named in `kebab-case`.
-  A role suffix separated by a dot, such as `worker-safety.ctrl.ts`, is allowed.
+  A role suffix separated by a dot, such as `tower-rush.run.ts`, is allowed.
 
 ### Syntax Naming
 

@@ -1,7 +1,7 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { Directives } from '../../../contracts/directives';
 import type { UnitId } from '../../../contracts/ids';
-import type { OrderQueue } from '../../../contracts/orders';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { Point, Vector } from '@lib/math';
@@ -16,7 +16,7 @@ interface UpdateStartArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
   actorControl: ActorControl;
-  orders: OrderQueue;
+  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -25,7 +25,7 @@ function updateStart({
   beliefs,
   rush,
   actorControl,
-  orders,
+  directives,
   probes,
   recorder,
 }: UpdateStartArgs) {
@@ -67,13 +67,10 @@ function updateStart({
   }
 
   for (const worker of rush.forwardWorkers) {
-    orders.queue({
-      order: {
-        kind: 'immediate',
-        unit: worker,
-        orderString: 'militia',
-        reason: 'Tower rush: forward worker answers the Call to Arms',
-      },
+    directives.give({
+      unit: worker,
+      task: { kind: 'UseAbility', orderString: 'militia' },
+      reason: 'Tower rush: forward worker answers the Call to Arms',
     });
   }
 
@@ -82,19 +79,16 @@ function updateStart({
     hall: positionOf({ beliefs, unit: townHall }),
     mine: homeGoldMine.position,
     beliefs,
+    directives,
     probes,
     recorder,
   });
-  orders.queue({
-    order: {
-      kind: 'target',
-      unit: homeWorker,
-      orderString: 'harvest',
-      target: { unit: homeGoldMine.unit },
-      reason: 'Tower rush: home worker harvests gold',
-    },
+  directives.give({
+    unit: homeWorker,
+    task: { kind: 'Harvest', harvestTarget: { unit: homeGoldMine.unit } },
+    reason: 'Tower rush: home worker harvests gold',
   });
-  trainPeasant({ townHall, beliefs, rush, orders, recorder });
+  trainPeasant({ townHall, beliefs, rush, directives, recorder });
 }
 
 const StartingPeasantCount = 5;
@@ -112,6 +106,7 @@ interface OrderLumberMillArgs {
   hall: Point;
   mine: Point;
   beliefs: Beliefs;
+  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -125,6 +120,7 @@ function orderLumberMill({
   hall,
   mine,
   beliefs,
+  directives,
   probes,
   recorder,
 }: OrderLumberMillArgs) {
@@ -148,6 +144,15 @@ function orderLumberMill({
     });
 
     if (accepted) {
+      directives.give({
+        unit: builder,
+        task: {
+          kind: 'Build',
+          building: W3HumanApi.Building.LUMBER_MILL,
+          point: site.position,
+        },
+        reason: 'Tower rush start: Lumber Mill',
+      });
       recorder.note({
         message: `Tower rush start: Lumber Mill ordered ${Math.floor(site.hallDistance)} from the Town Hall and ${Math.floor(site.treeDistance)} from a tree.`,
       });

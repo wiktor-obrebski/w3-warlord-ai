@@ -2,7 +2,7 @@ import type { Random } from '@lib/math';
 import type { ActorControl } from '../../contracts/actor-control';
 import type { EstablishTowerPosition } from '../../contracts/desires';
 import type { WarlordIntentionKind } from '../../contracts/intentions';
-import type { OrderQueue } from '../../contracts/orders';
+import type { Directives } from '../../contracts/directives';
 import type { WarcraftProbes } from '../../contracts/probes';
 import type { DecisionRecorder } from '../../contracts/record';
 import { TowerRushRun } from './tower-rush.run';
@@ -14,7 +14,7 @@ export {
 
 interface EstablishTowerPositionCapabilities {
   readonly actorControl: ActorControl;
-  readonly orders: OrderQueue;
+  readonly directives: Directives;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
   readonly random: Random;

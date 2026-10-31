@@ -1,7 +1,7 @@
 import { Point, Random } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type { Beliefs } from '../../../contracts/beliefs';
-import type { OrderQueue } from '../../../contracts/orders';
+import type { Directives } from '../../../contracts/directives';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { TowerRushState } from '../tower-rush.state';
@@ -14,7 +14,7 @@ export { EstablishingSteps, type EstablishingStepsCapabilities };
 
 interface EstablishingStepsCapabilities {
   readonly actorControl: ActorControl;
-  readonly orders: OrderQueue;
+  readonly directives: Directives;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
   readonly random: Random;
@@ -34,7 +34,7 @@ interface EstablishingStepsUpdateArgs {
  * there, and upgrades them to Guard Towers. The tower position is
  * established once every rush tower is a Guard Tower.
  *
- * Each step requests the Actors it orders, so what the steps control follows
+ * Each step requests the Actors it directs, so what the steps control follows
  * the step: e.g. they stop requesting the forward Peasants once the towers
  * are built.
  */
@@ -68,7 +68,7 @@ class EstablishingSteps {
       throw new Error('Establishing steps: updated after they ended.');
     }
 
-    const { actorControl, orders, probes, recorder, random } =
+    const { actorControl, directives, probes, recorder, random } =
       this.capabilities;
 
     switch (this.step) {
@@ -77,7 +77,7 @@ class EstablishingSteps {
           beliefs,
           rush: this.rush,
           actorControl,
-          orders,
+          directives,
           probes,
           recorder,
         });
@@ -91,7 +91,7 @@ class EstablishingSteps {
             rush: this.rush,
             moveForwardState: this.moveForward,
             actorControl,
-            orders,
+            directives,
           }).arrived
         ) {
           this.advanceTo({ nextStep: STEP.BUILD_TOWERS });
@@ -104,7 +104,7 @@ class EstablishingSteps {
           rush: this.rush,
           buildTowersState: this.buildTowers,
           actorControl,
-          orders,
+          directives,
           probes,
           recorder,
           random,
@@ -123,7 +123,7 @@ class EstablishingSteps {
             beliefs,
             towerPositions: this.towerPositions,
             actorControl,
-            orders,
+            directives,
             recorder,
           }).allUpgraded
         ) {

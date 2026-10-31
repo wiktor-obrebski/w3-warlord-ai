@@ -1,7 +1,7 @@
 import { Vector } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
+import type { Directives } from '../../../contracts/directives';
 import type { UnitId } from '../../../contracts/ids';
-import type { OrderQueue } from '../../../contracts/orders';
 import type { GoldMine } from '../../../contracts/world';
 import type { Beliefs } from '../../../contracts/beliefs';
 import { TowerRushState } from '../tower-rush.state';
@@ -11,11 +11,10 @@ export { type MoveForwardState, createMoveForwardState, updateMoveForward };
 
 interface MoveForwardState {
   forwardWorkersSentToEnemy: UnitId[];
-  forwardWorkersHoldingPosition: UnitId[];
 }
 
 function createMoveForwardState(): MoveForwardState {
-  return { forwardWorkersSentToEnemy: [], forwardWorkersHoldingPosition: [] };
+  return { forwardWorkersSentToEnemy: [] };
 }
 
 interface UpdateMoveForwardArgs {
@@ -23,7 +22,7 @@ interface UpdateMoveForwardArgs {
   rush: TowerRushState;
   moveForwardState: MoveForwardState;
   actorControl: ActorControl;
-  orders: OrderQueue;
+  directives: Directives;
 }
 
 /** Returns whether the forward workers `arrived` as Peasants again. */
@@ -32,7 +31,7 @@ function updateMoveForward({
   rush,
   moveForwardState,
   actorControl,
-  orders,
+  directives,
 }: UpdateMoveForwardArgs): { arrived: boolean } {
   const destination = beliefs.enemy.mainGoldMine;
 
@@ -51,14 +50,14 @@ function updateMoveForward({
     beliefs,
     moveForwardState,
     controlled,
-    orders,
+    directives,
   });
   sendNewMilitiaToEnemy({
     destination,
     beliefs,
     moveForwardState,
     controlled,
-    orders,
+    directives,
   });
 
   return {
@@ -78,7 +77,7 @@ interface SendNewMilitiaToEnemyArgs {
   beliefs: Beliefs;
   moveForwardState: MoveForwardState;
   controlled: readonly UnitId[];
-  orders: OrderQueue;
+  directives: Directives;
 }
 
 // Warcraft scripts cannot queue orders, so a move issued together with the
@@ -89,21 +88,17 @@ function sendNewMilitiaToEnemy({
   beliefs,
   moveForwardState,
   controlled,
-  orders,
+  directives,
 }: SendNewMilitiaToEnemyArgs) {
   for (const worker of controlled) {
     if (
       beliefs.self.militia.includes(worker) &&
       !moveForwardState.forwardWorkersSentToEnemy.includes(worker)
     ) {
-      orders.queue({
-        order: {
-          kind: 'point',
-          unit: worker,
-          orderString: 'move',
-          point: destination.position,
-          reason: 'Tower rush: forward Militia moves to the enemy main',
-        },
+      directives.give({
+        unit: worker,
+        task: { kind: 'Move', point: destination.position },
+        reason: 'Tower rush: forward Militia moves to the enemy main',
       });
       moveForwardState.forwardWorkersSentToEnemy.push(worker);
     }
@@ -115,7 +110,7 @@ interface HoldArrivedMilitiaArgs {
   beliefs: Beliefs;
   moveForwardState: MoveForwardState;
   controlled: readonly UnitId[];
-  orders: OrderQueue;
+  directives: Directives;
 }
 
 // Idle Militia acquire and chase nearby enemies on their own, which would
@@ -125,33 +120,22 @@ function holdArrivedMilitia({
   beliefs,
   moveForwardState,
   controlled,
-  orders,
+  directives,
 }: HoldArrivedMilitiaArgs) {
   for (const worker of moveForwardState.forwardWorkersSentToEnemy) {
     if (
       controlled.includes(worker) &&
       beliefs.self.militia.includes(worker) &&
-      !moveForwardState.forwardWorkersHoldingPosition.includes(worker) &&
       new Vector({
         start: positionOf({ beliefs, unit: worker }),
         end: destination.position,
       }).length <= ArrivalRadius
     ) {
-      orders.queue({
-        order: {
-          kind: 'immediate',
-          unit: worker,
-          orderString: 'holdposition',
-          reason: 'Tower rush: arrived Militia holds position',
-        },
-        onRefused: () => {
-          moveForwardState.forwardWorkersHoldingPosition =
-            moveForwardState.forwardWorkersHoldingPosition.filter(
-              (holding) => holding !== worker
-            );
-        },
+      directives.give({
+        unit: worker,
+        task: { kind: 'Hold' },
+        reason: 'Tower rush: arrived Militia holds position',
       });
-      moveForwardState.forwardWorkersHoldingPosition.push(worker);
     }
   }
 }

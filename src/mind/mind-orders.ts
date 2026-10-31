@@ -23,6 +23,8 @@ interface MindOrders {
    * executor issues only after the step.
    */
   readonly probes: WarcraftProbes;
+  /** Whether an accepted probe ordered the unit during this step. */
+  wasProbed({ unit }: { unit: UnitId }): boolean;
   /**
    * Notes the previous step's refused orders and runs their handlers. The
    * orders of a step that failed before handing them over are dropped, so
@@ -45,6 +47,7 @@ function createMindOrders({
   let queued: QueuedOrder[] = [];
   // The orders of the previous step, in ticket order.
   let issued: QueuedOrder[] = [];
+  let probedUnits = new Set<UnitId>();
 
   const assertNothingQueuedFor = ({ unit }: { unit: UnitId }) => {
     const overtaken = queued.find(({ order }) => order.unit === unit);
@@ -54,6 +57,13 @@ function createMindOrders({
         `Mind orders: a probe would overtake the order queued for unit ${unit} (${overtaken.order.reason}).`
       );
     }
+  };
+  const noteAccepted = ({ unit, accepted }: NoteAcceptedArgs): boolean => {
+    if (accepted) {
+      probedUnits.add(unit);
+    }
+
+    return accepted;
   };
 
   return {
@@ -66,17 +76,26 @@ function createMindOrders({
     probes: {
       tryBuild(args) {
         assertNothingQueuedFor({ unit: args.unit });
-        return probes.tryBuild(args);
+        return noteAccepted({
+          unit: args.unit,
+          accepted: probes.tryBuild(args),
+        });
       },
 
       tryHarvest(args) {
         assertNothingQueuedFor({ unit: args.unit });
-        return probes.tryHarvest(args);
+        return noteAccepted({
+          unit: args.unit,
+          accepted: probes.tryHarvest(args),
+        });
       },
 
       tryAttack(args) {
         assertNothingQueuedFor({ unit: args.unit });
-        return probes.tryAttack(args);
+        return noteAccepted({
+          unit: args.unit,
+          accepted: probes.tryAttack(args),
+        });
       },
 
       isWalkable(args) {
@@ -107,6 +126,11 @@ function createMindOrders({
 
       issued = [];
       queued = [];
+      probedUnits = new Set();
+    },
+
+    wasProbed({ unit }) {
+      return probedUnits.has(unit);
     },
 
     takeOrders() {
@@ -124,4 +148,9 @@ function createMindOrders({
 interface QueuedOrder {
   readonly order: Order;
   readonly onRefused?: () => void;
+}
+
+interface NoteAcceptedArgs {
+  unit: UnitId;
+  accepted: boolean;
 }

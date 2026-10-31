@@ -1,20 +1,20 @@
 import { Point, Random, Vector } from '@lib/math';
-import type { ActorControl } from '../../contracts/actor-control';
-import type { UnitId } from '../../contracts/ids';
-import type { OrderQueue } from '../../contracts/orders';
-import type { WarcraftProbes } from '../../contracts/probes';
-import type { DecisionRecorder } from '../../contracts/record';
-import type { OwnUnit } from '../../contracts/world';
-import type { Beliefs } from '../../contracts/beliefs';
+import type { ActorControl } from '../contracts/actor-control';
+import type { UnitId } from '../contracts/ids';
+import type { OrderQueue } from '../contracts/orders';
+import type { WarcraftProbes } from '../contracts/probes';
+import type { DecisionRecorder } from '../contracts/record';
+import type { OwnUnit } from '../contracts/world';
+import type { Beliefs } from '../contracts/beliefs';
 import {
   isRecentlyAttacked,
   nearbyThreats,
   threatCenter,
 } from './worker-safety.assessments';
 
-export { WorkerSafetyController, type WorkerSafetyControllerCapabilities };
+export { WorkerSafety, type WorkerSafetyCapabilities };
 
-interface WorkerSafetyControllerCapabilities {
+interface WorkerSafetyCapabilities {
   readonly actorControl: ActorControl;
   readonly orders: OrderQueue;
   readonly probes: WarcraftProbes;
@@ -22,48 +22,54 @@ interface WorkerSafetyControllerCapabilities {
   readonly random: Random;
 }
 
-interface WorkerSafetyControllerConstructorArgs {
-  capabilities: WorkerSafetyControllerCapabilities;
+interface WorkerSafetyConstructorArgs {
+  capabilities: WorkerSafetyCapabilities;
 }
 
-interface WorkerSafetyControllerUpdateArgs {
+interface WorkerSafetyClaimArgs {
   beliefs: Beliefs;
 }
 
-interface WorkerSafetyControllerRememberAttacksArgs {
+interface WorkerSafetyRememberAttacksArgs {
   beliefs: Beliefs;
 }
 
-interface WorkerSafetyControllerProtectWorkerArgs {
+interface WorkerSafetyProtectArgs {
   worker: OwnUnit;
   beliefs: Beliefs;
 }
 
-interface WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs {
+interface WorkerSafetyForgetLostWorkersArgs {
   beliefs: Beliefs;
 }
 
 /**
- * Attacked workers run away from the nearby enemy force.
+ * The workers' reflex: attacked workers run away from the nearby enemy
+ * force.
  *
  * From the first attack until the worker is safe again, worker safety holds
  * preemptive control of it, taking it from whatever controlled it before, and
  * releases it by no longer requesting it. While recovering, the worker is not
  * ordered at all.
  */
-class WorkerSafetyController {
-  private readonly capabilities: WorkerSafetyControllerCapabilities;
+class WorkerSafety {
+  private readonly capabilities: WorkerSafetyCapabilities;
   private readonly fleeRounds = new Map<UnitId, FleeRound>();
   // When each worker attacked within the last SafeAfterAttackSeconds was
   // last attacked.
   private readonly lastAttackedAt = new Map<UnitId, number>();
+  // The workers claimed in this step.
+  private protecting = new Set<UnitId>();
 
-  public constructor({ capabilities }: WorkerSafetyControllerConstructorArgs) {
+  public constructor({ capabilities }: WorkerSafetyConstructorArgs) {
     this.capabilities = capabilities;
   }
 
-  public update({ beliefs }: WorkerSafetyControllerUpdateArgs) {
+  /** Claims the workers that are not safe, under preemptive control. */
+  public claim({ beliefs }: WorkerSafetyClaimArgs) {
+    this.forgetLostWorkers({ beliefs });
     this.rememberAttacks({ beliefs });
+    this.protecting = new Set();
 
     for (const worker of beliefs.self.workers) {
       const isUnsafe =
@@ -77,45 +83,21 @@ class WorkerSafetyController {
           request: 'preemptive',
         })
       ) {
-        this.protectWorker({ worker, beliefs });
+        this.protecting.add(worker.unit);
       }
     }
-
-    this.forgetFleeRoundsOfLostWorkers({ beliefs });
   }
 
-  // A dead worker's entry is left to expire like any other: ids are never
-  // reused, so it cannot mark another worker.
-  private rememberAttacks({
-    beliefs,
-  }: WorkerSafetyControllerRememberAttacksArgs) {
-    for (const worker of beliefs.self.workers) {
-      if (isRecentlyAttacked({ beliefs, attackedUnit: worker.unit })) {
-        this.lastAttackedAt.set(worker.unit, beliefs.time);
-      }
-    }
-
-    const safeAgain: UnitId[] = [];
-
-    for (const [worker, attackedAt] of this.lastAttackedAt) {
-      if (beliefs.time - attackedAt >= SafeAfterAttackSeconds) {
-        safeAgain.push(worker);
-      }
-    }
-
-    for (const worker of safeAgain) {
-      this.lastAttackedAt.delete(worker);
-    }
+  /** Whether the worker was claimed in this step. */
+  public protects({ worker }: { worker: UnitId }): boolean {
+    return this.protecting.has(worker);
   }
 
   // Each flee round runs to a destination kept until the round ends, so the
   // worker is not turned around on every update as the enemies move. A worker
   // no longer attacked stops halfway, so it does not run further from its
   // work than needed.
-  private protectWorker({
-    worker,
-    beliefs,
-  }: WorkerSafetyControllerProtectWorkerArgs) {
+  public protect({ worker, beliefs }: WorkerSafetyProtectArgs) {
     const { orders, probes, recorder, random } = this.capabilities;
     const isAttacked = isRecentlyAttacked({
       beliefs,
@@ -164,9 +146,7 @@ class WorkerSafetyController {
     }
   }
 
-  private forgetFleeRoundsOfLostWorkers({
-    beliefs,
-  }: WorkerSafetyControllerForgetFleeRoundsOfLostWorkersArgs) {
+  private forgetLostWorkers({ beliefs }: WorkerSafetyForgetLostWorkersArgs) {
     const lostWorkers: UnitId[] = [];
 
     for (const worker of this.fleeRounds.keys()) {
@@ -181,6 +161,28 @@ class WorkerSafetyController {
 
     for (const worker of lostWorkers) {
       this.fleeRounds.delete(worker);
+    }
+  }
+
+  // A dead worker's entry is left to expire like any other: ids are never
+  // reused, so it cannot mark another worker.
+  private rememberAttacks({ beliefs }: WorkerSafetyRememberAttacksArgs) {
+    for (const worker of beliefs.self.workers) {
+      if (isRecentlyAttacked({ beliefs, attackedUnit: worker.unit })) {
+        this.lastAttackedAt.set(worker.unit, beliefs.time);
+      }
+    }
+
+    const safeAgain: UnitId[] = [];
+
+    for (const [worker, attackedAt] of this.lastAttackedAt) {
+      if (beliefs.time - attackedAt >= SafeAfterAttackSeconds) {
+        safeAgain.push(worker);
+      }
+    }
+
+    for (const worker of safeAgain) {
+      this.lastAttackedAt.delete(worker);
     }
   }
 }

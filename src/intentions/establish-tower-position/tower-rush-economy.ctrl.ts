@@ -1,7 +1,8 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import type { ActorControl } from '../../contracts/actor-control';
 import type { UnitId } from '../../contracts/ids';
-import type { OrderQueue, OrderTarget } from '../../contracts/orders';
+import type { Directives } from '../../contracts/directives';
+import type { OrderTarget } from '../../contracts/orders';
 import type { WarcraftProbes } from '../../contracts/probes';
 import type { DecisionRecorder } from '../../contracts/record';
 import type { Beliefs } from '../../contracts/beliefs';
@@ -17,7 +18,7 @@ export {
 
 interface TowerRushEconomyControllerCapabilities {
   readonly actorControl: ActorControl;
-  readonly orders: OrderQueue;
+  readonly directives: Directives;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
 }
@@ -49,7 +50,7 @@ class TowerRushEconomyController {
   }
 
   public update({ beliefs }: TowerRushEconomyControllerUpdateArgs) {
-    const { actorControl, orders, probes, recorder } = this.capabilities;
+    const { actorControl, directives, probes, recorder } = this.capabilities;
     const townHall =
       beliefs.self.townHall &&
       actorControl.request({
@@ -60,12 +61,13 @@ class TowerRushEconomyController {
         : undefined;
 
     forgetDeadWorkers({ beliefs, rush: this.rush });
+    forgetRefusedPeasantTraining({ rush: this.rush });
     assignNewHomeWorkers({
       beliefs,
       rush: this.rush,
       townHall,
       actorControl,
-      orders,
+      directives,
       probes,
       recorder,
     });
@@ -73,7 +75,7 @@ class TowerRushEconomyController {
       beliefs,
       rush: this.rush,
       actorControl,
-      orders,
+      directives,
       probes,
       recorder,
     });
@@ -81,7 +83,7 @@ class TowerRushEconomyController {
       beliefs,
       rush: this.rush,
       townHall,
-      orders,
+      directives,
       recorder,
     });
   }
@@ -91,42 +93,49 @@ interface TrainPeasantArgs {
   townHall: UnitId;
   beliefs: Beliefs;
   rush: TowerRushState;
-  orders: OrderQueue;
+  directives: Directives;
   recorder: DecisionRecorder;
 }
 
-// Nothing reads the Peasants in training before a refusal comes back, at the
-// start of the next step, so the refused one is still the last.
+// A Peasant queued behind another leaves the rally to the one in training;
+// the rally points at a Peasant's own resource only when it trains at once.
 function trainPeasant({
   townHall,
   beliefs,
   rush,
-  orders,
+  directives,
   recorder,
 }: TrainPeasantArgs) {
   const resource = nextWorkerResource({ rush });
   const startsNow = rush.peasantsInTraining.length === 0;
 
   if (startsNow) {
-    setRally({ townHall, resource, beliefs, orders });
+    rush.peasantRally = rallyTarget({ townHall, resource, beliefs });
     rush.peasantTrainingStartedAt = beliefs.time;
   }
 
-  orders.queue({
-    order: {
-      kind: 'immediateById',
-      unit: townHall,
-      orderId: W3HumanApi.Unit.PEASANT,
-      reason: `Tower rush: Peasant training for ${HOME_RESOURCE[resource]}`,
+  rush.lastPeasantTraining = directives.give({
+    unit: townHall,
+    task: {
+      kind: 'Produce',
+      unitType: W3HumanApi.Unit.PEASANT,
+      rallyTarget: rush.peasantRally,
     },
-    onRefused: () => {
-      rush.peasantsInTraining.pop();
-    },
+    reason: `Tower rush: Peasant training for ${HOME_RESOURCE[resource]}`,
   });
   rush.peasantsInTraining.push(resource);
   recorder.note({
     message: `Tower rush: Peasant training ${startsNow ? 'ordered' : 'queued'} for ${HOME_RESOURCE[resource]}.`,
   });
+}
+
+// Nothing reads the Peasants in training between a refusal and the next
+// update, so the refused one is still the last.
+function forgetRefusedPeasantTraining({ rush }: { rush: TowerRushState }) {
+  if (rush.lastPeasantTraining?.status === 'failed') {
+    rush.peasantsInTraining.pop();
+    rush.lastPeasantTraining = undefined;
+  }
 }
 
 const PeasantGoldCost = 75;
@@ -171,7 +180,7 @@ interface AssignNewHomeWorkersArgs {
   rush: TowerRushState;
   townHall: UnitId | undefined;
   actorControl: ActorControl;
-  orders: OrderQueue;
+  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -184,7 +193,7 @@ function assignNewHomeWorkers({
   rush,
   townHall,
   actorControl,
-  orders,
+  directives,
   probes,
   recorder,
 }: AssignNewHomeWorkersArgs) {
@@ -194,7 +203,7 @@ function assignNewHomeWorkers({
     }
 
     const resource =
-      finishPeasantTraining({ beliefs, rush, townHall, orders }) ??
+      finishPeasantTraining({ beliefs, rush, townHall, directives }) ??
       nextWorkerResource({ rush });
 
     if (resource === HOME_RESOURCE.GOLD) {
@@ -215,7 +224,7 @@ function assignNewHomeWorkers({
         worker: peasant,
         resource,
         beliefs,
-        orders,
+        directives,
         probes,
         recorder,
       });
@@ -227,7 +236,7 @@ interface FinishPeasantTrainingArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
   townHall: UnitId | undefined;
-  orders: OrderQueue;
+  directives: Directives;
 }
 
 // The Town Hall has a single rally point, which a Peasant follows when it
@@ -237,7 +246,7 @@ function finishPeasantTraining({
   beliefs,
   rush,
   townHall,
-  orders,
+  directives,
 }: FinishPeasantTrainingArgs): HOME_RESOURCE | undefined {
   const finished = rush.peasantsInTraining.shift();
   const nextResource = rush.peasantsInTraining[0];
@@ -246,7 +255,13 @@ function finishPeasantTraining({
     rush.peasantTrainingStartedAt += PeasantTrainingSeconds;
 
     if (townHall) {
-      setRally({ townHall, resource: nextResource, beliefs, orders });
+      setRally({
+        townHall,
+        resource: nextResource,
+        beliefs,
+        rush,
+        directives,
+      });
     }
   }
 
@@ -298,7 +313,7 @@ interface ReturnIdleWorkersToTheirResourceArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
   actorControl: ActorControl;
-  orders: OrderQueue;
+  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -307,7 +322,7 @@ function returnIdleWorkersToTheirResource({
   beliefs,
   rush,
   actorControl,
-  orders,
+  directives,
   probes,
   recorder,
 }: ReturnIdleWorkersToTheirResourceArgs) {
@@ -318,13 +333,19 @@ function returnIdleWorkersToTheirResource({
 
   for (const worker of rush.goldWorkers) {
     if (isReturning({ worker })) {
-      orderHarvestGold({ worker, beliefs, orders });
+      orderHarvestGold({ worker, beliefs, directives });
     }
   }
 
   for (const worker of rush.lumberWorkers) {
     if (isReturning({ worker })) {
-      orderHarvestPreferredTree({ worker, beliefs, probes, recorder });
+      orderHarvestPreferredTree({
+        worker,
+        beliefs,
+        directives,
+        probes,
+        recorder,
+      });
     }
   }
 }
@@ -333,7 +354,7 @@ interface MaintainPeasantProductionArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
   townHall: UnitId | undefined;
-  orders: OrderQueue;
+  directives: Directives;
   recorder: DecisionRecorder;
 }
 
@@ -343,7 +364,7 @@ function maintainPeasantProduction({
   beliefs,
   rush,
   townHall,
-  orders,
+  directives,
   recorder,
 }: MaintainPeasantProductionArgs) {
   const homeWorkersMissing = currentWorkerTargets({ rush }) !== undefined;
@@ -355,7 +376,7 @@ function maintainPeasantProduction({
     beliefs.self.gold - goldReservedForUpgrades({ beliefs, rush }) >=
       PeasantGoldCost
   ) {
-    trainPeasant({ townHall, beliefs, rush, orders, recorder });
+    trainPeasant({ townHall, beliefs, rush, directives, recorder });
   }
 }
 
@@ -405,18 +426,24 @@ interface SetRallyArgs {
   townHall: UnitId;
   resource: HOME_RESOURCE;
   beliefs: Beliefs;
-  orders: OrderQueue;
+  rush: TowerRushState;
+  directives: Directives;
 }
 
-function setRally({ townHall, resource, beliefs, orders }: SetRallyArgs) {
-  orders.queue({
-    order: {
-      kind: 'target',
-      unit: townHall,
-      orderString: 'setrally',
-      target: rallyTarget({ townHall, resource, beliefs }),
-      reason: `Tower rush: rally to ${HOME_RESOURCE[resource]}`,
-    },
+function setRally({
+  townHall,
+  resource,
+  beliefs,
+  rush,
+  directives,
+}: SetRallyArgs) {
+  const rally = rallyTarget({ townHall, resource, beliefs });
+
+  rush.peasantRally = rally;
+  directives.give({
+    unit: townHall,
+    task: { kind: 'Rally', rallyTarget: rally },
+    reason: `Tower rush: rally to ${HOME_RESOURCE[resource]}`,
   });
 }
 
@@ -472,7 +499,7 @@ interface OrderHarvestArgs {
   worker: UnitId;
   resource: HOME_RESOURCE;
   beliefs: Beliefs;
-  orders: OrderQueue;
+  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -481,42 +508,52 @@ function orderHarvest({
   worker,
   resource,
   beliefs,
-  orders,
+  directives,
   probes,
   recorder,
 }: OrderHarvestArgs) {
   if (resource === HOME_RESOURCE.GOLD) {
-    orderHarvestGold({ worker, beliefs, orders });
+    orderHarvestGold({ worker, beliefs, directives });
   } else {
-    orderHarvestPreferredTree({ worker, beliefs, probes, recorder });
+    orderHarvestPreferredTree({
+      worker,
+      beliefs,
+      directives,
+      probes,
+      recorder,
+    });
   }
 }
 
 interface OrderHarvestGoldArgs {
   worker: UnitId;
   beliefs: Beliefs;
-  orders: OrderQueue;
+  directives: Directives;
 }
 
-function orderHarvestGold({ worker, beliefs, orders }: OrderHarvestGoldArgs) {
+function orderHarvestGold({
+  worker,
+  beliefs,
+  directives,
+}: OrderHarvestGoldArgs) {
   if (!beliefs.self.homeGoldMine) {
     throw new Error('Tower rush: home gold mine not found.');
   }
 
-  orders.queue({
-    order: {
-      kind: 'target',
-      unit: worker,
-      orderString: 'harvest',
-      target: { unit: beliefs.self.homeGoldMine.unit },
-      reason: 'Tower rush: gold worker harvests gold',
+  directives.give({
+    unit: worker,
+    task: {
+      kind: 'Harvest',
+      harvestTarget: { unit: beliefs.self.homeGoldMine.unit },
     },
+    reason: 'Tower rush: gold worker harvests gold',
   });
 }
 
 interface OrderHarvestPreferredTreeArgs {
   worker: UnitId;
   beliefs: Beliefs;
+  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -526,6 +563,7 @@ interface OrderHarvestPreferredTreeArgs {
 function orderHarvestPreferredTree({
   worker,
   beliefs,
+  directives,
   probes,
   recorder,
 }: OrderHarvestPreferredTreeArgs) {
@@ -534,6 +572,11 @@ function orderHarvestPreferredTree({
     peasantOrigin: worker,
   })) {
     if (probes.tryHarvest({ unit: worker, destructable })) {
+      directives.give({
+        unit: worker,
+        task: { kind: 'Harvest', harvestTarget: { destructable } },
+        reason: 'Tower rush: lumber worker harvests a tree',
+      });
       return;
     }
   }

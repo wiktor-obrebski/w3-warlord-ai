@@ -1,7 +1,7 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type { UnitId } from '../../../contracts/ids';
-import type { OrderQueue } from '../../../contracts/orders';
+import type { Directives } from '../../../contracts/directives';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { Point, Vector } from '@lib/math';
 import type { Beliefs } from '../../../contracts/beliefs';
@@ -15,7 +15,7 @@ interface UpdateUpgradeTowersArgs {
   beliefs: Beliefs;
   towerPositions: readonly Point[];
   actorControl: ActorControl;
-  orders: OrderQueue;
+  directives: Directives;
   recorder: DecisionRecorder;
 }
 
@@ -30,7 +30,7 @@ function updateUpgradeTowers({
   beliefs,
   towerPositions,
   actorControl,
-  orders,
+  directives,
   recorder,
 }: UpdateUpgradeTowersArgs): { allUpgraded: boolean } {
   const towers = towerPositions.map((position) =>
@@ -46,7 +46,7 @@ function updateUpgradeTowers({
       canAffordGuardTower({ budget }) &&
       actorControl.request({ actor: tower.unit, request: 'normal' })
     ) {
-      orderGuardTower({ tower: tower.unit, budget, orders, recorder });
+      orderGuardTower({ tower: tower.unit, budget, directives, recorder });
     }
   }
 
@@ -138,7 +138,7 @@ function canAffordGuardTower({ budget }: CanAffordGuardTowerArgs) {
 interface OrderGuardTowerArgs {
   tower: UnitId;
   budget: { gold: number; lumber: number };
-  orders: OrderQueue;
+  directives: Directives;
   recorder: DecisionRecorder;
 }
 
@@ -148,16 +148,13 @@ interface OrderGuardTowerArgs {
 function orderGuardTower({
   tower,
   budget,
-  orders,
+  directives,
   recorder,
 }: OrderGuardTowerArgs) {
-  orders.queue({
-    order: {
-      kind: 'immediateById',
-      unit: tower,
-      orderId: W3HumanApi.Building.GUARD_TOWER,
-      reason: 'Tower rush: Guard Tower upgrade',
-    },
+  directives.give({
+    unit: tower,
+    task: { kind: 'Produce', unitType: W3HumanApi.Building.GUARD_TOWER },
+    reason: 'Tower rush: Guard Tower upgrade',
   });
   recorder.note({
     message: `Tower rush: Guard Tower upgrade ordered (gold ${budget.gold}, lumber ${budget.lumber}).`,

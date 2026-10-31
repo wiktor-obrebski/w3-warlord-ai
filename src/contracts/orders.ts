@@ -13,7 +13,12 @@ export {
  * An order for the order executor to issue, and why. The shapes follow
  * Warcraft's own order natives.
  */
-type Order = ImmediateOrder | ImmediateOrderById | PointOrder | TargetOrder;
+type Order =
+  | ImmediateOrder
+  | ImmediateOrderById
+  | PointOrder
+  | TargetOrder
+  | BuildOrder;
 
 interface ImmediateOrder {
   readonly kind: 'immediate';
@@ -43,6 +48,15 @@ interface TargetOrder {
   readonly unit: UnitId;
   readonly orderString: string;
   readonly target: OrderTarget;
+  readonly reason: string;
+}
+
+interface BuildOrder {
+  readonly kind: 'build';
+  readonly unit: UnitId;
+  // The rawcode of the building.
+  readonly building: number;
+  readonly point: Point;
   readonly reason: string;
 }
 

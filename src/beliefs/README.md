@@ -4,4 +4,4 @@ The belief models: pure functions revising the Beliefs, the bot's one world mode
 
 Perception, in `shell/`, reads Warcraft state. Each section of the Beliefs (`contracts/beliefs.ts`) is revised from the previous section and the observations of the step being run, keeping what must be remembered across steps, such as recent attacks, and inferring what the observations imply, such as where the enemy started.
 
-The mind revises the Beliefs at the start of every step and passes them to worker safety, the concerns, Deliberation, and the Intentions; to everything but the belief models, they are read-only.
+The mind revises the Beliefs at the start of every step and passes them to the concerns, Deliberation, the Intentions, and the Unit Behaviors; to everything but the belief models, they are read-only.

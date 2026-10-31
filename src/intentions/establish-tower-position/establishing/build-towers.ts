@@ -2,7 +2,7 @@ import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { Point, Random, Vector } from '@lib/math';
 import type { ActorControl } from '../../../contracts/actor-control';
 import type { UnitId } from '../../../contracts/ids';
-import type { OrderQueue } from '../../../contracts/orders';
+import type { Directives } from '../../../contracts/directives';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { Beliefs } from '../../../contracts/beliefs';
@@ -40,7 +40,7 @@ interface UpdateBuildTowersArgs {
   rush: TowerRushState;
   buildTowersState: BuildTowersState;
   actorControl: ActorControl;
-  orders: OrderQueue;
+  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
@@ -61,7 +61,7 @@ function updateBuildTowers({
   rush,
   buildTowersState,
   actorControl,
-  orders,
+  directives,
   probes,
   recorder,
   random,
@@ -133,6 +133,7 @@ function updateBuildTowers({
         },
         beliefs,
         buildTowersState,
+        directives,
         probes,
         recorder,
         random,
@@ -148,7 +149,7 @@ function updateBuildTowers({
             enemyMain,
             beliefs,
             rush,
-            orders,
+            directives,
             recorder,
           });
         }
@@ -159,7 +160,7 @@ function updateBuildTowers({
           worker,
           beliefs,
           buildTowersState,
-          orders,
+          directives,
           recorder,
         });
       }
@@ -264,7 +265,7 @@ interface HelpUnfinishedTowerArgs {
   worker: UnitId;
   beliefs: Beliefs;
   buildTowersState: BuildTowersState;
-  orders: OrderQueue;
+  directives: Directives;
   recorder: DecisionRecorder;
 }
 
@@ -274,7 +275,7 @@ function helpUnfinishedTower({
   worker,
   beliefs,
   buildTowersState,
-  orders,
+  directives,
   recorder,
 }: HelpUnfinishedTowerArgs) {
   const unfinished = beliefs.self.scoutTowers.filter((tower) =>
@@ -303,24 +304,15 @@ function helpUnfinishedTower({
     return;
   }
 
-  const help: TowerHelper = { builder: worker, tower };
-
-  // Human Peasants help an unfinished building through the repair order.
-  orders.queue({
-    order: {
-      kind: 'target',
-      unit: worker,
-      orderString: 'repair',
-      target: { unit: tower },
-      reason: 'Tower rush: forward Peasant helps an unfinished tower',
-    },
-    onRefused: () => {
-      buildTowersState.towerHelpers = buildTowersState.towerHelpers.filter(
-        (helper) => helper !== help
-      );
-    },
+  // Human Peasants help an unfinished building through the repair order. A
+  // helper whose repair is refused stays free, so it is forgotten on the
+  // next update.
+  directives.give({
+    unit: worker,
+    task: { kind: 'Repair', repairTarget: tower },
+    reason: 'Tower rush: forward Peasant helps an unfinished tower',
   });
-  buildTowersState.towerHelpers.push(help);
+  buildTowersState.towerHelpers.push({ builder: worker, tower });
   recorder.note({
     message: `Tower rush: forward Peasant ${abandoned ? 'takes over' : 'helps'} a tower at ${Math.floor(constructionProgress({ beliefs, building: tower }) * 100)}% progress.`,
   });
@@ -452,6 +444,7 @@ interface OrderScoutTowerArgs {
   rules: PlacementRules;
   beliefs: Beliefs;
   buildTowersState: BuildTowersState;
+  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
@@ -464,6 +457,7 @@ function orderScoutTower({
   rules,
   beliefs,
   buildTowersState,
+  directives,
   probes,
   recorder,
   random,
@@ -487,6 +481,7 @@ function orderScoutTower({
         worker,
         rules: searchRules,
         buildTowersState,
+        directives,
         probes,
         random,
       }).accepted
@@ -501,6 +496,7 @@ function orderScoutTower({
       worker,
       rules: searchRules,
       buildTowersState,
+      directives,
       probes,
       random,
     });
@@ -555,6 +551,7 @@ interface OrderScoutTowerNextToFirstTowerArgs {
   worker: UnitId;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
+  directives: Directives;
   probes: WarcraftProbes;
   random: Random;
 }
@@ -563,6 +560,7 @@ function orderScoutTowerNextToFirstTower({
   worker,
   rules,
   buildTowersState,
+  directives,
   probes,
   random,
 }: OrderScoutTowerNextToFirstTowerArgs): { accepted: boolean } {
@@ -585,6 +583,7 @@ function orderScoutTowerNextToFirstTower({
         position,
         rules,
         buildTowersState,
+        directives,
         probes,
       }).accepted
     ) {
@@ -599,6 +598,7 @@ interface OrderScoutTowerNearMineArgs {
   worker: UnitId;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
+  directives: Directives;
   probes: WarcraftProbes;
   random: Random;
 }
@@ -609,6 +609,7 @@ function orderScoutTowerNearMine({
   worker,
   rules,
   buildTowersState,
+  directives,
   probes,
   random,
 }: OrderScoutTowerNearMineArgs): { distanceFromMine: number | undefined } {
@@ -628,6 +629,7 @@ function orderScoutTowerNearMine({
         position,
         rules,
         buildTowersState,
+        directives,
         probes,
       }).accepted
     ) {
@@ -649,6 +651,7 @@ interface TryOrderScoutTowerArgs {
   position: Point;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
+  directives: Directives;
   probes: WarcraftProbes;
 }
 
@@ -660,6 +663,7 @@ function tryOrderScoutTower({
   position,
   rules,
   buildTowersState,
+  directives,
   probes,
 }: TryOrderScoutTowerArgs): { accepted: boolean } {
   const distanceToEnemyMain = new Vector({
@@ -702,6 +706,15 @@ function tryOrderScoutTower({
 
   if (accepted) {
     buildTowersState.pendingTowerSites.push({ builder: worker, position });
+    directives.give({
+      unit: worker,
+      task: {
+        kind: 'Build',
+        building: W3HumanApi.Building.SCOUT_TOWER,
+        point: position,
+      },
+      reason: 'Tower rush: forward Peasant builds a Scout Tower',
+    });
   }
 
   return { accepted };

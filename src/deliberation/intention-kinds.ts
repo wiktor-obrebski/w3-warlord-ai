@@ -2,7 +2,7 @@ import type { Random } from '@lib/math';
 import type { ActorControl } from '../contracts/actor-control';
 import type { PlaybookName, WarlordOutcome } from '../contracts/desires';
 import type { WarlordIntentionKind } from '../contracts/intentions';
-import type { OrderQueue } from '../contracts/orders';
+import type { Directives } from '../contracts/directives';
 import type { Playbook } from '../contracts/playbook';
 import type { WarcraftProbes } from '../contracts/probes';
 import type { DecisionRecorder } from '../contracts/record';
@@ -24,7 +24,7 @@ export { createIntentionKinds };
 
 interface CreateIntentionKindsArgs {
   actorControl: ActorControl;
-  orders: OrderQueue;
+  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
@@ -36,7 +36,7 @@ interface CreateIntentionKindsArgs {
  */
 function createIntentionKinds({
   actorControl,
-  orders,
+  directives,
   probes,
   recorder,
   random,
@@ -50,7 +50,7 @@ function createIntentionKinds({
     recorder,
   };
   const establishTowerPositionCapabilitiesProvider: EstablishTowerPositionCapabilities =
-    { actorControl, orders, probes, recorder, random };
+    { actorControl, directives, probes, recorder, random };
   const operateTowersCapabilitiesProvider: OperateTowersCapabilities = {
     actorControl,
     probes,
