@@ -8,7 +8,7 @@ Writes the records of the game's log batch files to stdout as JSON lines,
 and diagnostics to stderr.
 
   --dir <folder>                 the batch files' folder, which must exist, e.g.
-                                 <Documents>/Warcraft III/CustomMapData/WarlordLogs
+                                 <Documents>/Warcraft III/CustomMapData/Warlord/Logs
   --poll-ms <ms>                 how often to look for new batches (default 250)
   --gap-timeout-ms <ms>          wait for a missing batch (default 10000)
   --incomplete-timeout-ms <ms>   wait for a batch file being written (default 10000)

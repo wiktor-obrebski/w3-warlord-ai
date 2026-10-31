@@ -27,19 +27,22 @@ const BufferCapacity = 4096;
 const BatchSize = 256;
 const FlushIntervalSeconds = 0.5;
 // Relative to Warcraft's CustomMapData folder.
-const LogDirectory = 'WarlordLogs';
+const LogDirectory = 'Warlord/Logs';
+const RecordDirectory = 'Warlord/DecisionRecord';
 const RecordSessionSuffix = '-record';
 
 /**
  * Creates the bot's root logger and the decision record's logger, and
- * flushes their records every half game second to `CustomMapData/WarlordLogs`,
- * where `bin/collect-logs` picks them up. Every record carries `gameTime`, in
- * game seconds. From then on, every error the runtime wrapper shows in-game
- * is logged too.
+ * flushes their records every half game second, each logger to a folder of
+ * its own in `CustomMapData/Warlord`, where `bin/collect-logs` picks them up.
+ * Every record carries `gameTime`, in game seconds. From then on, every error
+ * the runtime wrapper shows in-game is logged too.
  *
  * The session, named after the start time and the bot's player, keeps the
- * logs of every game and bot apart, and the record's session adds a suffix to
- * it; without a wall clock there is no unique name, and logging stays off.
+ * logs of every game and bot apart. The record's session adds a suffix to it,
+ * so the record's lines stay apart from the game log's even when both are
+ * collected into one stream. Without a wall clock there is no unique name,
+ * and logging stays off.
  */
 function startLogging({ bot }: { bot: W3PlayerApi.player }): BotLoggers {
   if (!LoggingEnabled) {
@@ -55,9 +58,14 @@ function startLogging({ bot }: { bot: W3PlayerApi.player }): BotLoggers {
 
   const clock = startGameClock();
   const session = `${startedAt}-p${W3PlayerApi.GetPlayerId(bot)}`;
-  const logger = createBotLogger({ session, clock });
+  const logger = createBotLogger({
+    session,
+    directory: LogDirectory,
+    clock,
+  });
   const recordLogger = createBotLogger({
     session: `${session}${RecordSessionSuffix}`,
+    directory: RecordDirectory,
     clock,
   });
 
@@ -86,15 +94,20 @@ function disabledLoggers(): BotLoggers {
 
 interface CreateBotLoggerArgs {
   session: string;
+  directory: string;
   clock: GameClock;
 }
 
-function createBotLogger({ session, clock }: CreateBotLoggerArgs): Logger {
+function createBotLogger({
+  session,
+  directory,
+  clock,
+}: CreateBotLoggerArgs): Logger {
   return createLogger({
     level: LogLevel,
     transport: createPreloadTransport({ natives: WarcraftPreloadNatives })({
       session,
-      directory: LogDirectory,
+      directory,
     }),
     bufferCapacity: BufferCapacity,
     batchSize: BatchSize,
