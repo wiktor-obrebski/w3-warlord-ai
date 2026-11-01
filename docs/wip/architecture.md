@@ -104,7 +104,6 @@ Warcraft ──▶ Perception ──▶ ┌────────────�
 
 - **Unit ids.** The _**mind**_ never holds Warcraft handles. _**Perception**_ gives each unit an id for its lifetime and keeps the map from ids to handles. Orders name units by id, and the executor maps them back.
 - **The _order executor_** is the only code issuing Warcraft orders.
-  - It skips an order equal to what the unit is already doing, because a re-issued attack restarts it.
   - It records each order's reason.
   - When Warcraft refuses an order, the refusal reaches the _**mind**_ with the next tick's _**observations**_, 0.1 s later. _**Beliefs**_ hold it among that tick's events, and a _**belief model**_ keeps what should last, such as what a shop has in stock after a purchase failed.
 - **Inputs are injected.**
@@ -449,7 +448,7 @@ _**Allocation**_ rests on these rules:
 - its current _**plan**_ works through the steps of one way to pursue the goal;
 - the _**plan**_ runs a _**Tactic**_ for each group of its units, which decides the group's fighting, movement, and positions;
 - each _**Tactic**_ writes a _**Directive**_ for every unit in its group: what is asked of the unit, and within which limits;
-- every unit's _**Unit Behavior**_ turns its _**Directive**_ into one order each tick, which the _**order executor**_ issues.
+- every unit's _**Unit Behavior**_ turns its _**Directive**_ into at most one order each tick, which the _**order executor**_ issues.
 
 Constraints go down the chain and status comes back up, so each level decides only what it is best placed to decide. This is the chain for the Demon Hunter's harassment:
 
@@ -499,7 +498,7 @@ interface TacticStep {
 }
 ```
 
-**_Directives_.** A _**Directive**_ is what a unit's owner asks of it. Every own unit gets one from its owner's _**plan run**_: a _**Tactic**_ writes the _**Directives**_ for the units in its group, and the run writes them itself for units outside any group, such as a builder or a scout. A _**Directive**_ holds until the run replaces it; in between, the unit's _**Unit Behavior**_ turns it into an order every tick. When a unit changes owner, its old _**Directive**_ ends, and the new owner's run gives it one in the same tick.
+**_Directives_.** A _**Directive**_ is what a unit's owner asks of it. Every own unit gets one from its owner's _**plan run**_: a _**Tactic**_ writes the _**Directives**_ for the units in its group, and the run writes them itself for units outside any group, such as a builder or a scout. A _**Directive**_ holds until the run replaces it; in between, the unit's _**Unit Behavior**_ gives the orders that carry it out, but never one the unit is already carrying out, because a re-issued attack restarts it. When a unit changes owner, its old _**Directive**_ ends, and the new owner's run gives it one in the same tick.
 
 A _**Directive**_ says:
 

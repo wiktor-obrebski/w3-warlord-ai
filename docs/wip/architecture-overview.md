@@ -38,7 +38,7 @@ Everything between the two boundaries is plain TypeScript over plain data, so it
 | _**Plans**_           | carry out one way to pursue an _**Intention**_, running _**Tactics**_ for its groups       | issue orders                                               |
 | _**Tactics**_         | steer a group: fight or flight, targets, positions                                         | issue orders                                               |
 | _**Directives**_      | ask one unit for a _**task**_, with a _**role**_ and _**latitude**_                        | say how to do it                                           |
-| _**Unit Behaviors**_  | turn a unit's _**Directive**_ into one order each tick, _**reflexes**_ first               | deviate beyond their _**latitude**_, except to survive     |
+| _**Unit Behaviors**_  | turn a unit's _**Directive**_ into at most one order each tick, _**reflexes**_ first       | deviate beyond their _**latitude**_, except to survive     |
 | _**Decision record**_ | holds every decision and why, returned with the orders                                     | leaves a decision without its reason                       |
 
 _**Desires**_ come from three sources: _**concerns**_, what any competent player keeps caring about; the _**playbook**_, the committed strategy as data; and _**requests**_, goals that active _**Intentions**_ depend on but do not pursue themselves.
