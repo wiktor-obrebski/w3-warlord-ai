@@ -1,4 +1,4 @@
-# WC3 Warlord AI Architecture
+# WC3 Warlord AI Implementation
 
 The bot's mind follows **Chain of Command**, a BDI architecture for real-time strategy. These documents describe it:
 
