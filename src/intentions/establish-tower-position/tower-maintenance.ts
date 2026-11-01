@@ -92,7 +92,7 @@ class TowerMaintenance {
         }
       } else if (
         isAvailableForwardPeasant({ beliefs, worker }) &&
-        !this.rush.forwardWorkersSentToSafety.includes(worker)
+        !this.rush.forwardWorkersSentToSafety.has(worker)
       ) {
         hideBehindClosestTower({
           worker,

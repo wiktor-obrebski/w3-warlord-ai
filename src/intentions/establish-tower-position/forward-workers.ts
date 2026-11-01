@@ -39,12 +39,14 @@ function hideBehindClosestTower({
     enemyMain,
   });
 
-  directives.give({
-    unit: worker,
-    task: { kind: 'Move', point: spot },
-    reason: 'Tower rush: forward Peasant hides behind a tower',
-  });
-  rush.forwardWorkersSentToSafety.push(worker);
+  rush.forwardWorkersSentToSafety.set(
+    worker,
+    directives.give({
+      unit: worker,
+      task: { kind: 'Move', point: spot },
+      reason: 'Tower rush: forward Peasant hides behind a tower',
+    })
+  );
   recorder.note({
     message: 'Tower rush: forward Peasant hides behind a tower.',
   });
@@ -56,9 +58,7 @@ interface ForgetSentToSafetyArgs {
 }
 
 function forgetSentToSafety({ worker, rush }: ForgetSentToSafetyArgs) {
-  rush.forwardWorkersSentToSafety = rush.forwardWorkersSentToSafety.filter(
-    (sent) => sent !== worker
-  );
+  rush.forwardWorkersSentToSafety.delete(worker);
 }
 
 interface ForwardPeasantsInForceArgs {
@@ -70,10 +70,11 @@ interface ForwardPeasantsInForceArgs {
 /**
  * The living forward Peasants in the run's force.
  *
- * A Peasant missing from the force, claimed by worker safety, may have left
- * its hiding spot, so it is sent to hide again once back. Worker safety
- * claims an attacked Peasant for longer than the time between two tower rush
- * updates, so a claim is always seen here.
+ * A Peasant is sent to hide again when its move to hide has failed, or once
+ * it is back after missing from the force: claimed by worker safety, it may
+ * have left its hiding spot. Worker safety claims an attacked Peasant for
+ * longer than the time between two tower rush updates, so a claim is always
+ * seen here.
  */
 function forwardPeasantsInForce({
   beliefs,
@@ -87,10 +88,15 @@ function forwardPeasantsInForce({
       continue;
     }
 
+    const hideFailed =
+      rush.forwardWorkersSentToSafety.get(worker)?.status === 'failed';
+
+    if (!force.units.has(worker) || hideFailed) {
+      forgetSentToSafety({ worker, rush });
+    }
+
     if (force.units.has(worker)) {
       inForce.push(worker);
-    } else {
-      forgetSentToSafety({ worker, rush });
     }
   }
 

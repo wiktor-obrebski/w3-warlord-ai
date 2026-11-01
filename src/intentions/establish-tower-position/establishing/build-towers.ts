@@ -140,7 +140,7 @@ function updateBuildTowers({
   } else if (towerPositions.length >= RUSH_TOWER_COUNT) {
     if (allRushTowersBuilt({ beliefs })) {
       for (const worker of freeWorkers) {
-        if (!rush.forwardWorkersSentToSafety.includes(worker)) {
+        if (!rush.forwardWorkersSentToSafety.has(worker)) {
           hideBehindClosestTower({
             worker,
             towers: beliefs.self.scoutTowers,
@@ -423,7 +423,7 @@ function towerBuildingFinished({
     (beliefs.self.scoutTowers.length >= RUSH_TOWER_COUNT ||
       livingForwardPeasants.length === 0) &&
     livingForwardPeasants.every((worker) =>
-      rush.forwardWorkersSentToSafety.includes(worker)
+      rush.forwardWorkersSentToSafety.has(worker)
     )
   );
 }
