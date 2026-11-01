@@ -2,7 +2,7 @@
 
 **Chain of Command** is a BDI architecture for real-time strategy: how the WC3 Warlord AI knows, wants, commits, and acts. One _**mind**_ commands many units through a chain of command: commitments go down as constraints, and status comes back up.
 
-This is the short version of the [architecture](architecture.md), which has every rule and the reasons for it; where the two disagree, the architecture is right. Terms of the architecture are set in _**bold italics**_; the [glossary](glossary.md) defines them.
+This is the short version of the [architecture](ARCHITECTURE.md), which has every rule and the reasons for it; where the two disagree, the architecture is right. Terms of the architecture are set in _**bold italics**_; the [glossary](GLOSSARY.md) defines them.
 
 ## The shape
 
@@ -82,14 +82,14 @@ Every 0.1 s, the same phases run:
 | A new fact or inference                             | a _**belief model**_                                     |
 | How the game works                                  | _**Knowledge**_                                          |
 
-The full table, with the rule behind it, is in the [architecture](architecture.md#5-where-a-new-behavior-goes).
+The full table, with the rule behind it, is in the [architecture](ARCHITECTURE.md#5-where-a-new-behavior-goes).
 
 ## Read next
 
-- [Introduction](../research/rts-architecture-introduction.md): the architecture built up one idea at a time, around one moment of one game.
-- [Architecture](architecture.md): every rule, and why.
-- [Testability](architecture-testability.md): what makes the architecture easy to test.
-- [Risks](architecture-risks.md): where the architecture is still unproven or undecided.
-- [Glossary](glossary.md): every term, with the section that defines it.
-- [Research architecture document](../research/rts-behavior-architecture.md): walkthroughs and the roadmap.
-- [Ideas](../research/rts-ideas.md): techniques the architecture could use but does not depend on.
+- [Introduction](../research/RTS_ARCHITECTURE_INTRODUCTION.md): the architecture built up one idea at a time, around one moment of one game.
+- [Architecture](ARCHITECTURE.md): every rule, and why.
+- [Testability](ARCHITECTURE_TESTABILITY.md): what makes the architecture easy to test.
+- [Risks](ARCHITECTURE_RISKS.md): where the architecture is still unproven or undecided.
+- [Glossary](GLOSSARY.md): every term, with the section that defines it.
+- [Research architecture document](../research/RTS_BEHAVIOR_ARCHITECTURE.md): walkthroughs and the roadmap.
+- [Ideas](../research/RTS_IDEAS.md): techniques the architecture could use but does not depend on.

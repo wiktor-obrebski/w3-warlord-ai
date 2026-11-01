@@ -1,6 +1,6 @@
 # Research: Sources and What They Contributed
 
-Companion to [`rts-behavior-architecture.md`](rts-behavior-architecture.md). It records the sources read for its second iteration (October 2026): what each one contributed, and what it warned against. Section 5 lists the sources that were not reachable. Terms of the proposed architecture are set in _**bold italics**_, to tell them from the sources' own terms.
+Companion to [`RTS_BEHAVIOR_ARCHITECTURE.md`](RTS_BEHAVIOR_ARCHITECTURE.md). It records the sources read for its second iteration (October 2026): what each one contributed, and what it warned against. Section 5 lists the sources that were not reachable. Terms of the proposed architecture are set in _**bold italics**_, to tell them from the sources' own terms.
 
 ## 1. RTS bots
 

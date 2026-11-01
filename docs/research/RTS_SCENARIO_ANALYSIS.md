@@ -1,6 +1,6 @@
 # Research: Gameplay Scenario Analysis
 
-Companion to [`rts-behavior-architecture.md`](rts-behavior-architecture.md). It analyzes a set of Night Elf versus Human scenarios and checks every deviation against the proposed architecture. The scenarios are examples of decisions a player makes, not a split of the code:
+Companion to [`RTS_BEHAVIOR_ARCHITECTURE.md`](RTS_BEHAVIOR_ARCHITECTURE.md). It analyzes a set of Night Elf versus Human scenarios and checks every deviation against the proposed architecture. The scenarios are examples of decisions a player makes, not a split of the code:
 
 - the default game plan (Demon Hunter and Archers into fast Bears);
 - the Demon Hunter's harassment, and switching it to the Human expansion;
@@ -80,7 +80,7 @@ An architecture that asks each question continuously, at the right level and pac
 
 ## 3. Scenario coverage
 
-The tables below map every deviation to the part of the [proposed architecture](rts-behavior-architecture.md) that handles it: where the decision is made, and from which information. An entry claims that the architecture has a clear place for the response, not that the bot will play it well. That depends on knowledge, estimates, and tuning that do not exist yet; [Where the coverage is thin](#where-the-coverage-is-thin) lists the entries that rest on the weakest assumptions.
+The tables below map every deviation to the part of the [proposed architecture](RTS_BEHAVIOR_ARCHITECTURE.md) that handles it: where the decision is made, and from which information. An entry claims that the architecture has a clear place for the response, not that the bot will play it well. That depends on knowledge, estimates, and tuning that do not exist yet; [Where the coverage is thin](#where-the-coverage-is-thin) lists the entries that rest on the weakest assumptions.
 
 **How defenses are sized.** Many entries below say `DefendBase`. The _**threat assessment**_ rates each threat lethal, serious, or small, from the enemy's strength against what defends the target. The _**base-safety concern**_ ranks it _**Survival**_, _**Emergency**_, or _**Game plan**_ accordingly, so that a small threat competes by _**weight**_. DefendBase's _**need**_ is the strength the _**combat estimate**_ says the threat requires, arriving in time. _**Allocation**_ fills it with the nearest units first and stops once it is met, so a defense reaches a distant hero only when the units at home are not enough.
 
@@ -256,7 +256,7 @@ Every entry above names a home for the response. These entries rest on parts tha
 - **Fine timing.** Last hits (1.13, 2.16, 4.8) and stepping out of Blizzard (6.16) need damage and spell prediction within a 0.1 s tick.
 - **Calibration.** Which commitment wins (1.4, 2.14, 2B.1, 4.1, 5.1, 6.19, 6.20) depends on _**ranks**_, _**weights**_, and _**interruption costs**_ that are not tuned yet, including where a threat stops being small.
 
-The architecture document's [risks and open questions](rts-behavior-architecture.md#10-risks-and-open-questions) cover all of these except the enemy's whereabouts and intent, and fine timing.
+The architecture document's [risks and open questions](RTS_BEHAVIOR_ARCHITECTURE.md#10-risks-and-open-questions) cover all of these except the enemy's whereabouts and intent, and fine timing.
 
 ## 4. The original scenarios
 

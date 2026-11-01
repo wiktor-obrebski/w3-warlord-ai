@@ -10,7 +10,7 @@ The project is primarily written in **TypeScript**, compiled with **TypeScriptTo
 
 For project architecture:
 
-- [`docs/wip/architecture-overview.md`](docs/wip/architecture-overview.md) — **default architectural reference**. Read this for a quick understanding of the system, concepts, responsibilities, and where things belong.
+- [`docs/architecture/ARCHITECTURE_OVERVIEW.md`](docs/architecture/ARCHITECTURE_OVERVIEW.md) — **default architectural reference**. Read this for a quick understanding of the system, concepts, responsibilities, and where things belong.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **detailed architecture reference**: the migration status, the runtime environment, the source layout, and links to the full architecture documents. Consult it when deeper architectural context is relevant, such as when making architectural decisions, introducing or changing concepts, deciding file/module ownership or structure, modifying boundaries between subsystems, or when the overview is insufficient to answer an architectural question confidently.
 
 Do **not** read the full architecture documents by default for routine implementation work. Start from the overview and existing local code, and consult the detailed documents when the task warrants it.
@@ -54,7 +54,7 @@ Keep changes focused and reviewable.
 
 ## Architecture
 
-Use `docs/wip/architecture-overview.md` as the normal guide to the architecture.
+Use `docs/architecture/ARCHITECTURE_OVERVIEW.md` as the normal guide to the architecture.
 
 Consult `docs/ARCHITECTURE.md` and the documents it links when deeper understanding is needed, especially when:
 

@@ -1,6 +1,6 @@
 # Research: Introduction to the Proposed Architecture
 
-Status: a tutorial introduction to the proposed architecture (second iteration) described in the architecture document, [`rts-behavior-architecture.md`](rts-behavior-architecture.md). [`ARCHITECTURE.md`](../ARCHITECTURE.md) links the adopted architecture, which grew from it. Where this introduction and the architecture document disagree, the architecture document is right.
+Status: a tutorial introduction to the proposed architecture (second iteration) described in the architecture document, [`RTS_BEHAVIOR_ARCHITECTURE.md`](RTS_BEHAVIOR_ARCHITECTURE.md). [`ARCHITECTURE.md`](../ARCHITECTURE.md) links the adopted architecture, which grew from it. Where this introduction and the architecture document disagree, the architecture document is right.
 
 This introduction builds the proposed architecture up one idea at a time, following one moment of one game. It explains what each part is for and how the parts work together, and links to the architecture document for the exact rules. It assumes you know TypeScript and the basics of Warcraft III, but not BDI. Terms of the architecture are set in _**bold italics**_; [the glossary](#17-glossary) defines them.
 
@@ -50,11 +50,11 @@ Warcraft ──▶ Perception ──▶ mind ──▶ order executor ──▶ 
 
 That one boundary does three jobs. It enforces fair information, it lets tests feed _**observations**_ and read orders without the game, and it gives one place where every decision and its reason can be recorded.
 
-Details: [One mind, two boundaries](rts-behavior-architecture.md#41-one-mind-two-boundaries).
+Details: [One mind, two boundaries](RTS_BEHAVIOR_ARCHITECTURE.md#41-one-mind-two-boundaries).
 
 ## 3. The running example
 
-The rest of this introduction follows one moment of a Night Elf versus Human game, the architecture document's [first walkthrough](rts-behavior-architecture.md#61-the-demon-hunters-harassment-interrupted-twice).
+The rest of this introduction follows one moment of a Night Elf versus Human game, the architecture document's [first walkthrough](RTS_BEHAVIOR_ARCHITECTURE.md#61-the-demon-hunters-harassment-interrupted-twice).
 
 The Night Elf plays the Fast Bears strategy. Its Demon Hunter carries a Staff of Teleportation and is harassing the Human Archmage. Then:
 
@@ -80,7 +80,7 @@ _**Beliefs**_ are one world model in plain data. Small pure functions, the _**be
 
 _**Knowledge**_ is everything known before the game starts, and it never changes during the game. Game data (costs, build times, damage tables, requirements) and map knowledge (terrain, trees, regions, creep camps, shops) come from build-time tooling and are handed to the _**mind**_ when it is created. Whatever changes during a game, however rarely, is not _**Knowledge**_: trees are cut down and buildings go up, opening and closing routes, so _**Beliefs**_ hold the map as the bot believes it now. Pure _**Knowledge**_ functions compute what all parts must agree on, such as the _**combat estimate**_ and travel time. When the raid asks whether the Demon Hunter can reach the Town Hall before it is finished, it uses the same build time and travel time as every other part of the bot.
 
-Details: [Beliefs and Knowledge](rts-behavior-architecture.md#43-beliefs-and-knowledge), [The enemy model](rts-behavior-architecture.md#412-the-enemy-model).
+Details: [Beliefs and Knowledge](RTS_BEHAVIOR_ARCHITECTURE.md#43-beliefs-and-knowledge), [The enemy model](RTS_BEHAVIOR_ARCHITECTURE.md#412-the-enemy-model).
 
 ## 5. Interpreting: Assessments
 
@@ -102,7 +102,7 @@ concerns, playbook, requests ─▶ Desires
 
 Which strategy the enemy follows is a claim about the world, so recognizing it belongs to _**Beliefs**_, as in the previous section. Whether that strategy beats ours is an _**assessment**_.
 
-Details: [Assessments](rts-behavior-architecture.md#44-assessments).
+Details: [Assessments](RTS_BEHAVIOR_ARCHITECTURE.md#44-assessments).
 
 ## 6. Wanting: Desires
 
@@ -149,7 +149,7 @@ const raidProposal = {
 };
 ```
 
-Details: [Desires](rts-behavior-architecture.md#45-desires).
+Details: [Desires](RTS_BEHAVIOR_ARCHITECTURE.md#45-desires).
 
 ## 7. Committing: Deliberation and Intentions
 
@@ -175,7 +175,7 @@ One small generic runtime chooses the _**plan**_ and handles failure, so kinds d
 
 **State.** An _**Intention**_ is active, paused, or finished, and its progress is idle, _**starved**_, or running, each with a reason. The harassment is about to be _**starved**_: still adopted and still wanted, but without the Demon Hunter. It keeps its state. When it gets him back, its _**plan**_ works out where it stands from _**Beliefs**_ instead of replaying from where it stopped.
 
-Details: [Deliberation](rts-behavior-architecture.md#46-deliberation), [Intentions](rts-behavior-architecture.md#47-intentions).
+Details: [Deliberation](RTS_BEHAVIOR_ARCHITECTURE.md#46-deliberation), [Intentions](RTS_BEHAVIOR_ARCHITECTURE.md#47-intentions).
 
 ## 8. Allocating: who gets the Demon Hunter
 
@@ -201,7 +201,7 @@ A few more rules complete the picture:
 
 Money works the same way. It is reserved in _**agenda**_ order, against the stock plus a short projection of income. That is how the bot saves: an unmet _**need**_ reports when it will become affordable, and spending lower on the _**agenda**_ waits.
 
-Details: [Allocation](rts-behavior-architecture.md#48-allocation).
+Details: [Allocation](RTS_BEHAVIOR_ARCHITECTURE.md#48-allocation).
 
 ## 9. Acting: from commitment to orders
 
@@ -225,7 +225,7 @@ _**Roles**_, not unit types, decide how a unit plays: the same Demon Hunter burn
 
 **Opportunities at every level.** Whoever sees a chance, such as a dying creep in range or a lone Peasant on the way, takes it if its value beats the detour, the risk, and what it interrupts, within the _**latitude**_ it was given. A _**Unit Behavior**_ takes a last hit, a _**Tactic**_ finishes a wounded camp, a _**plan**_ takes a camp on its route, and anything bigger becomes a _**Desire**_ that competes on the _**agenda**_. A scout's _**Directive**_ allows free opportunism; the Wisp walking to the Tavern allows none.
 
-Details: [Execution](rts-behavior-architecture.md#49-execution), [Opportunities and latitude](rts-behavior-architecture.md#410-opportunities-and-latitude).
+Details: [Execution](RTS_BEHAVIOR_ARCHITECTURE.md#49-execution), [Opportunities and latitude](RTS_BEHAVIOR_ARCHITECTURE.md#410-opportunities-and-latitude).
 
 ## 10. The twist: an attack at home
 
@@ -257,7 +257,7 @@ Every tick, ten times a second, runs the same phases:
 
 Each phase reads only _**Beliefs**_ and what earlier phases produced. No part relies on another having run first, an ordering that kept producing bugs in Steamhammer. Slow work runs less often: _**Deliberation**_ about once a second, _**Tactics**_ several times a second, and _**reflexes**_ every tick.
 
-Details: [A tick, phase by phase](rts-behavior-architecture.md#42-a-tick-phase-by-phase), [Timing](rts-behavior-architecture.md#413-timing).
+Details: [A tick, phase by phase](RTS_BEHAVIOR_ARCHITECTURE.md#42-a-tick-phase-by-phase), [Timing](RTS_BEHAVIOR_ARCHITECTURE.md#413-timing).
 
 ## 12. The game plan: playbooks
 
@@ -275,7 +275,7 @@ A _**playbook**_ holds:
 
 In the example, the harassment exists because of the Harass phase, and the raid because of the fast-expansion _**adaptation**_. Changing how the bot plays Night Elf versus Human means editing its _**playbook**_, not the machinery.
 
-Details: [Strategy, playbooks, and production](rts-behavior-architecture.md#411-strategy-playbooks-and-production).
+Details: [Strategy, playbooks, and production](RTS_BEHAVIOR_ARCHITECTURE.md#411-strategy-playbooks-and-production).
 
 ## 13. Seeing why: the decision record
 
@@ -290,7 +290,7 @@ Each tick, the _**mind**_ returns, next to its orders, one record of what was de
 
 Behavioral tests read it straight from what the _**mind**_ returns. The runtime shell writes what changed into log files of the record's own, apart from the game log, and the in-game overlay shows the latest record as status text over units. In the example, it answers "why did the Demon Hunter leave the Archmage?" with the raid's 340 gold against the harassment's 240, plus 20 for commitment and 40 for the engagement under way.
 
-Details: [The decision record](rts-behavior-architecture.md#414-the-decision-record).
+Details: [The decision record](RTS_BEHAVIOR_ARCHITECTURE.md#414-the-decision-record).
 
 ## 14. Testing
 
@@ -302,7 +302,7 @@ Because the _**mind**_ takes plain data in and gives plain data out, the story a
 
 A test creates a fresh _**mind**_ with a seeded random source, steps it through the timeline, and checks the _**decision record**_ at the coarsest level that pins the behavior: the raid takes the Demon Hunter, the defense takes him away, and the harassment gets him back. The same scenario with a lone Footman checks that the defense leaves him on the raid. Each step can also be tested alone: an _**assessment**_ from given _**Beliefs**_, or _**Desires**_ from given _**Assessments**_, without simulating how a threat was detected. Warcraft is never involved. End-to-end tests run the same _**mind**_ in the game, with the real _**Perception**_ and _**order executor**_, on a test map.
 
-Details: [Testability](rts-behavior-architecture.md#5-testability).
+Details: [Testability](RTS_BEHAVIOR_ARCHITECTURE.md#5-testability).
 
 ## 15. Where a new behavior goes
 
@@ -322,7 +322,7 @@ Put a behavior at the lowest level that has the information and the authority it
 | Inferring a new fact, such as the enemy's tech                                    | an inference rule in _**Beliefs**_                 |
 | How long a Town Hall takes to build                                               | _**Knowledge**_                                    |
 
-The full list is in [Where a new behavior goes](rts-behavior-architecture.md#7-where-a-new-behavior-goes).
+The full list is in [Where a new behavior goes](RTS_BEHAVIOR_ARCHITECTURE.md#7-where-a-new-behavior-goes).
 
 ## 16. What is still open
 
@@ -334,7 +334,7 @@ The proposed architecture is research, and parts of it are unproven:
 - the format of the map data from the build tooling is not defined yet;
 - launching Warcraft III into a test map automatically is unverified.
 
-See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-questions) and [Where the coverage is thin](rts-scenario-analysis.md#where-the-coverage-is-thin).
+See [Risks and open questions](RTS_BEHAVIOR_ARCHITECTURE.md#10-risks-and-open-questions) and [Where the coverage is thin](RTS_SCENARIO_ANALYSIS.md#where-the-coverage-is-thin).
 
 ## 17. Glossary
 
@@ -379,7 +379,7 @@ See [Risks and open questions](rts-behavior-architecture.md#10-risks-and-open-qu
 
 ## 18. Where to read next
 
-- [`rts-behavior-architecture.md`](rts-behavior-architecture.md): the architecture document, with every rule, sketches, more walkthroughs, and the roadmap.
-- [`rts-scenario-analysis.md`](rts-scenario-analysis.md): how each deviation of the Night Elf versus Human scenarios fits the architecture.
-- [`rts-research-sources.md`](rts-research-sources.md): what each studied bot and paper contributed.
-- [`rts-ideas.md`](rts-ideas.md): techniques that could fill parts of the architecture, such as particles for unseen units.
+- [`RTS_BEHAVIOR_ARCHITECTURE.md`](RTS_BEHAVIOR_ARCHITECTURE.md): the architecture document, with every rule, sketches, more walkthroughs, and the roadmap.
+- [`RTS_SCENARIO_ANALYSIS.md`](RTS_SCENARIO_ANALYSIS.md): how each deviation of the Night Elf versus Human scenarios fits the architecture.
+- [`RTS_RESEARCH_SOURCES.md`](RTS_RESEARCH_SOURCES.md): what each studied bot and paper contributed.
+- [`RTS_IDEAS.md`](RTS_IDEAS.md): techniques that could fill parts of the architecture, such as particles for unseen units.

@@ -2,12 +2,12 @@
 
 The bot's mind follows **Chain of Command**, a BDI architecture for real-time strategy. These documents describe it:
 
-- [Overview](wip/architecture-overview.md): the short version, for everyday work.
-- [Architecture](wip/architecture.md): every concept and rule with its reasons, and where a new behavior goes.
-- [Testability](wip/architecture-testability.md): what makes the bot easy to test.
-- [Risks and open questions](wip/architecture-risks.md).
-- [Glossary](wip/glossary.md): every term of the architecture.
-- [Research](research/rts-behavior-architecture.md): the research behind the architecture, with walkthroughs, the [scenario analysis](research/rts-scenario-analysis.md), and the [sources](research/rts-research-sources.md).
+- [Overview](architecture/ARCHITECTURE_OVERVIEW.md): the short version, for everyday work.
+- [Architecture](architecture/ARCHITECTURE.md): every concept and rule with its reasons, and where a new behavior goes.
+- [Testability](architecture/ARCHITECTURE_TESTABILITY.md): what makes the bot easy to test.
+- [Risks and open questions](architecture/ARCHITECTURE_RISKS.md).
+- [Glossary](architecture/GLOSSARY.md): every term of the architecture.
+- [Research](research/RTS_BEHAVIOR_ARCHITECTURE.md): the research behind the architecture, with walkthroughs, the [scenario analysis](research/RTS_SCENARIO_ANALYSIS.md), and the [sources](research/RTS_RESEARCH_SOURCES.md).
 
 This document covers what they don't: how far the code has been migrated to the architecture, how the bot runs inside Warcraft III, and how the source is laid out.
 
@@ -109,7 +109,7 @@ Where Warcraft's runtime permits it, prefer one self-contained structured artifa
 
 ## Testing beyond the architecture
 
-So far only `@lib/logger` and `bin/collect-logs` have automated tests. [Testability](wip/architecture-testability.md) describes the tests the architecture is built for; two more concerns lie outside it.
+So far only `@lib/logger` and `bin/collect-logs` have automated tests. [Testability](architecture/ARCHITECTURE_TESTABILITY.md) describes the tests the architecture is built for; two more concerns lie outside it.
 
 ### Generated-Lua and packaging validation
 
