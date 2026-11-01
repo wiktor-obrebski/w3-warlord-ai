@@ -13,18 +13,18 @@ This document covers what they don't: how far the code has been migrated to the 
 
 ## Migration status
 
-The code is being migrated to Chain of Command in phases. The decision layer, Desires, Deliberation, the Intention runtime, and Allocation, comes from [`@lib/chain-of-command`](../lib/chain-of-command/README.md).
+The code was migrated to Chain of Command in phases, now all done. The decision layer, Desires, Deliberation, the Intention runtime, and Allocation, comes from [`@lib/chain-of-command`](../lib/chain-of-command/README.md).
 
-| Phase | Content                                                                                        | Status      |
-| ----- | ---------------------------------------------------------------------------------------------- | ----------- |
-| 0     | The architecture documents are adopted                                                         | done        |
-| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done        |
-| 2     | One world model in Beliefs                                                                     | done        |
-| 3     | Desires, Deliberation, Intention kinds                                                         | done        |
-| 4a    | Unit Behaviors and Directives                                                                  | done        |
-| 4b    | Allocation of units                                                                            | done        |
-| 4c    | Allocation of money, RunEconomy                                                                | done        |
-| 5     | Clean-up                                                                                       | in progress |
+| Phase | Content                                                                                        | Status |
+| ----- | ---------------------------------------------------------------------------------------------- | ------ |
+| 0     | The architecture documents are adopted                                                         | done   |
+| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done   |
+| 2     | One world model in Beliefs                                                                     | done   |
+| 3     | Desires, Deliberation, Intention kinds                                                         | done   |
+| 4a    | Unit Behaviors and Directives                                                                  | done   |
+| 4b    | Allocation of units                                                                            | done   |
+| 4c    | Allocation of money, RunEconomy                                                                | done   |
+| 5     | Clean-up                                                                                       | done   |
 
 The bot's behaviors today:
 
@@ -43,7 +43,7 @@ Each step first revises the Beliefs, which have only the sections today's behavi
 
 Then the workers' reflex claims the workers it protects, and a deliberation cycle runs once a second, and on the next step after an Intention is adopted or ends: the concerns and the Intentions' runs propose Desires, and Deliberation adopts, drops, and orders the Intentions. Every Intention kind has a single plan so far, and the weights are placeholders: ranks alone order the Intentions that compete. Every step, Allocation grants each unit to the first Intention on the agenda whose run needs it, up to the need's count, and reserves each run's money need from what the Intentions before it left of the stock. It has no minimums, switching margins, or projection of income yet, and the workers' default owner is simply the last Intention whose need matches every worker. The mind steps the agenda's Intentions in its order, each at its kind's pace, with its force: the units it was granted, less those the reflex claimed. Their runs give these units Directives, and a Directive or probe for a unit outside the force throws. The mind records every Desire, Intention, agenda, and grant change as a note. Last, the Unit Behaviors order the units: the reflex its workers, every other unit with a Directive in progress as that Directive asks, and the Guard Towers without one at the targets they pick.
 
-Two temporary exceptions remain, for later phases to remove:
+Two temporary exceptions remain, for later work to remove:
 
 - **Probes.** The mind still makes some Warcraft calls directly, through the `WarcraftProbes` the shell gives it: the orders whose acceptance is a test (Lumber Mill and Scout Tower placement, the tree-test harvests, tower targeting's fallback to the next target) and two static reads (`IsTerrainPathable` and `IsUnitInRange`). A probe orders its unit at once, so the mind refuses one for a unit that already has an order queued in the same step, the Unit Behaviors leave a unit a probe ordered alone until the next step, and a run's force leaves out the units the reflex claimed.
 - **Knowledge** is a stub. Static facts, such as the start locations, the gold mines, and the trees near home, still come from Perception.
