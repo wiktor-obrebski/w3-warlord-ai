@@ -1,7 +1,7 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { Point, Vector } from '@lib/math';
 import type { Beliefs } from '../../contracts/beliefs';
-import type { DirectiveProgress, Directives } from '../../contracts/directives';
+import type { Directive } from '../../contracts/directives';
 import type { UnitId } from '../../contracts/ids';
 import type { WarcraftProbes } from '../../contracts/probes';
 import type { DecisionRecorder } from '../../contracts/record';
@@ -17,14 +17,14 @@ interface OrderLumberMillArgs {
   hall: Point;
   mine: Point;
   beliefs: Beliefs;
-  directives: Directives;
+  directives: Directive[];
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
 
 /**
- * Orders the Lumber Mill, and returns how its Build Directive is going;
- * undefined when every spot was rejected.
+ * Orders the Lumber Mill, and returns its Build Directive; undefined when
+ * every spot was rejected.
  *
  * Spots are tried from the one closest to both the Town Hall and a tree;
  * Warcraft refuses a build order for a blocked spot, so the order itself is
@@ -39,7 +39,7 @@ function orderLumberMill({
   directives,
   probes,
   recorder,
-}: OrderLumberMillArgs): DirectiveProgress | undefined {
+}: OrderLumberMillArgs): Directive | undefined {
   const trees = treePositions({ builder, beliefs, probes });
   const sites = lumberMillCandidates({ hall, mine })
     .map((position) => ({
@@ -64,7 +64,7 @@ function orderLumberMill({
         message: `Economy: Lumber Mill ordered ${Math.floor(site.hallDistance)} from the Town Hall and ${Math.floor(site.treeDistance)} from a tree.`,
       });
 
-      return directives.give({
+      const build: Directive = {
         unit: builder,
         task: {
           kind: 'Build',
@@ -72,7 +72,11 @@ function orderLumberMill({
           point: site.position,
         },
         reason: 'Economy: Lumber Mill',
-      });
+      };
+
+      directives.push(build);
+
+      return build;
     }
   }
 

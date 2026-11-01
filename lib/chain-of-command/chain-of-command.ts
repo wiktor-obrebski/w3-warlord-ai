@@ -17,6 +17,8 @@ import type {
 } from './desires';
 import type { Deliberation, DeliberationCycle } from './deliberation';
 import type {
+  DirectiveStatus,
+  DirectiveStatuses,
   FailurePolicy,
   Intention,
   IntentionChange,
@@ -24,8 +26,10 @@ import type {
   IntentionEvent,
   IntentionKind,
   IntentionStatus,
+  IntentionStep,
   Plan,
   PlanRun,
+  PlanRunNeedsArgs,
   PlanRunStepArgs,
   PlanStep,
 } from './intention';
@@ -47,6 +51,8 @@ export {
   type SourcedProposal,
   type Deliberation,
   type DeliberationCycle,
+  type DirectiveStatus,
+  type DirectiveStatuses,
   type FailurePolicy,
   type Intention,
   type IntentionChange,
@@ -54,8 +60,10 @@ export {
   type IntentionEvent,
   type IntentionKind,
   type IntentionStatus,
+  type IntentionStep,
   type Plan,
   type PlanRun,
+  type PlanRunNeedsArgs,
   type PlanRunStepArgs,
   type PlanStep,
 };

@@ -1,15 +1,14 @@
-import type { PlanRunStepArgs, PlanStep } from '@lib/chain-of-command';
 import type { Beliefs } from '../../contracts/beliefs';
 import type {
   ExecuteStrategy,
   PlaybookName,
   WarlordProposal,
 } from '../../contracts/desires';
-import type { UnitId } from '../../contracts/ids';
 import type {
   WarlordIntentionKind,
   WarlordPlanRun,
-  WarlordResource,
+  WarlordPlanRunStepArgs,
+  WarlordPlanStep,
 } from '../../contracts/intentions';
 import type { Playbook } from '../../contracts/playbook';
 import type { DecisionRecorder } from '../../contracts/record';
@@ -79,9 +78,7 @@ class PlaybookRun implements WarlordPlanRun {
     this.recorder = recorder;
   }
 
-  public step({
-    beliefs,
-  }: PlanRunStepArgs<Beliefs, UnitId, WarlordResource>): PlanStep {
+  public step({ beliefs }: WarlordPlanRunStepArgs): WarlordPlanStep {
     let next = this.playbook.phases[this.phase + 1];
 
     while (next) {

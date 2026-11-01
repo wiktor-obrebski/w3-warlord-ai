@@ -1,6 +1,6 @@
 # Unit Behaviors
 
-What every own unit does on every step. A unit's owner, the run of the Intention that Allocation granted it to, gives it a Directive (`contracts/directives.ts`): a task from a closed vocabulary, such as Move, Harvest, Build, or Produce, and the reason for it. The unit's behavior turns the Directive into orders, and the progress `give` returns tells the run how it is going. `tasks.ts` says, for each task, how a unit shows it carries the task out and which order starts it.
+What every own unit does on every step. A unit's owner, the run of the Intention that Allocation granted it to, gives it a Directive (`contracts/directives.ts`): a task from a closed vocabulary, such as Move, Harvest, Build, or Produce, and the reason for it. The mind hands the Unit Behaviors the Directives each run's step returns, and the unit's behavior turns its Directive into orders. Each step starts by bringing the status of every Directive in effect up to date; the runs read those statuses to see how the Directives they gave are going. `tasks.ts` says, for each task, how a unit shows it carries the task out and which order starts it.
 
 A lasting task, such as Harvest, is ordered once, unless the unit already carries it out, and ends once the unit stops; a single-order task, such as Produce, is done once ordered. A unit takes at most one order per step, so a Produce with a rally points the rally in a step of its own. A unit a probe ordered in the step is left alone until the next.
 

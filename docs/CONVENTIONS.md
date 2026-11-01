@@ -145,18 +145,20 @@ TSTL gives function-typed properties and the callbacks of array methods a Lua `s
 When a signature does not fit on one line, its parameter type moves to a local interface named after the function with an `Args` suffix, declared before the function or the interface or class that owns it. A method's interface is prefixed with its owner's name.
 
 ```ts
-interface IntentionStepArgs<TBeliefs, TUnit, TResource extends string> {
-  beliefs: TBeliefs;
-  now: number;
-  force: Force<TUnit, TResource>;
+interface EstablishingStepsUpdateArgs {
+  beliefs: Beliefs;
+  force: WarlordForce;
+  directiveStatuses: WarlordDirectiveStatuses;
+  directives: Directive[];
 }
 
-class Intention<TGoal, TBeliefs, TOutcome, TUnit, TResource extends string> {
-  public step({
+class EstablishingSteps {
+  public update({
     beliefs,
-    now,
     force,
-  }: IntentionStepArgs<TBeliefs, TUnit, TResource>): IntentionEvent[] {
+    directiveStatuses,
+    directives,
+  }: EstablishingStepsUpdateArgs) {
     ...
   }
 }

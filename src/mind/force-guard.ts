@@ -1,37 +1,35 @@
-import type { Directives } from '../contracts/directives';
 import type { UnitId } from '../contracts/ids';
-import type { WarlordForce } from '../contracts/intentions';
+import type {
+  WarlordForce,
+  WarlordIntentionStep,
+} from '../contracts/intentions';
 import type { WarcraftProbes } from '../contracts/probes';
 
 export { type ForceGuard, createForceGuard };
 
 interface ForceGuardWithinArgs {
   force: WarlordForce;
-  run: () => void;
+  step: () => WarlordIntentionStep;
 }
 
 /**
- * Keeps plan runs to their Intentions' forces: the Directives and probes it
- * hands out throw for a unit outside the force of the Intention being
- * stepped, since a run directing a unit it was not granted is a bug.
+ * Keeps plan runs to their Intentions' forces: the probes it hands out, and
+ * the Directives a step returns, throw for a unit outside the force of the
+ * Intention being stepped, since a run directing a unit it was not granted
+ * is a bug.
  */
 interface ForceGuard {
-  readonly directives: Directives;
   readonly probes: WarcraftProbes;
 
   /** Steps an Intention, while the guard checks units against its force. */
-  within({ force, run }: ForceGuardWithinArgs): void;
+  within({ force, step }: ForceGuardWithinArgs): WarlordIntentionStep;
 }
 
 interface CreateForceGuardArgs {
-  directives: Directives;
   probes: WarcraftProbes;
 }
 
-function createForceGuard({
-  directives,
-  probes,
-}: CreateForceGuardArgs): ForceGuard {
+function createForceGuard({ probes }: CreateForceGuardArgs): ForceGuard {
   let steppedForce: WarlordForce | undefined;
 
   const assertInForce = ({ unit, use }: AssertInForceArgs) => {
@@ -49,16 +47,6 @@ function createForceGuard({
   };
 
   return {
-    directives: {
-      give(directive) {
-        assertInForce({
-          unit: directive.unit,
-          use: `directed (${directive.reason})`,
-        });
-        return directives.give(directive);
-      },
-    },
-
     probes: {
       tryBuild(args) {
         assertInForce({ unit: args.unit, use: 'probed with a build order' });
@@ -84,13 +72,24 @@ function createForceGuard({
       },
     },
 
-    within({ force, run }) {
+    within({ force, step }) {
       // Not reset in a `finally`: TSTL rethrows from it, so the error report
       // would lose the original traceback. An error ends the step, and the
       // next Intention's step replaces the stale force.
       steppedForce = force;
-      run();
+
+      const intentionStep = step();
+
+      for (const directive of intentionStep.directives) {
+        assertInForce({
+          unit: directive.unit,
+          use: `directed (${directive.reason})`,
+        });
+      }
+
       steppedForce = undefined;
+
+      return intentionStep;
     },
   };
 }

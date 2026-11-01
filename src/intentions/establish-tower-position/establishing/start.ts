@@ -1,5 +1,5 @@
 import type { Beliefs } from '../../../contracts/beliefs';
-import type { Directives } from '../../../contracts/directives';
+import type { Directive } from '../../../contracts/directives';
 import type { WarlordForce } from '../../../contracts/intentions';
 import { TowerRushState } from '../tower-rush.state';
 import { FORWARD_WORKER_COUNT } from '../tower-rush.judgments';
@@ -10,7 +10,7 @@ interface UpdateStartArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
   force: WarlordForce;
-  directives: Directives;
+  directives: Directive[];
 }
 
 /**
@@ -33,7 +33,7 @@ function updateStart({ beliefs, rush, force, directives }: UpdateStartArgs) {
   }
 
   for (const worker of rush.forwardWorkers) {
-    directives.give({
+    directives.push({
       unit: worker,
       task: { kind: 'UseAbility', orderString: 'militia' },
       reason: 'Tower rush: forward worker answers the Call to Arms',

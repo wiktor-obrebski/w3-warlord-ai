@@ -1,10 +1,10 @@
-import type { PlanRunStepArgs, PlanStep } from '@lib/chain-of-command';
 import type { Beliefs } from '../../contracts/beliefs';
-import type { UnitId } from '../../contracts/ids';
+import type { Directive } from '../../contracts/directives';
 import type {
   WarlordNeeds,
   WarlordPlanRun,
-  WarlordResource,
+  WarlordPlanRunStepArgs,
+  WarlordPlanStep,
   WarlordUnitNeed,
 } from '../../contracts/intentions';
 import type { EstablishTowerPositionCapabilities } from './establish-tower-position.kind';
@@ -79,31 +79,44 @@ class TowerRushRun implements WarlordPlanRun {
   /**
    * Maintenance relies on a tower's life fraction reflecting damage, not
    * build progress, so it starts once the towers are built. The establishing
-   * steps are let go once they have ended.
+   * steps are let go once they have ended. Both add the Directives they give
+   * to the step's.
    */
   public step({
     beliefs,
     force,
-  }: PlanRunStepArgs<Beliefs, UnitId, WarlordResource>): PlanStep {
-    const { directives, recorder } = this.capabilities;
+    directiveStatuses,
+  }: WarlordPlanRunStepArgs): WarlordPlanStep {
+    const { recorder } = this.capabilities;
+    const directives: Directive[] = [];
 
     if (this.establishing?.towersBuilt) {
       this.towerMaintenance ??= new TowerMaintenance({
         rush: this.rush,
-        capabilities: { directives, recorder },
+        capabilities: { recorder },
       });
     }
 
     if (this.establishing) {
-      this.establishing.update({ beliefs, force });
+      this.establishing.update({
+        beliefs,
+        force,
+        directiveStatuses,
+        directives,
+      });
 
       if (this.establishing.established) {
         this.establishing = null;
       }
     }
 
-    this.towerMaintenance?.update({ beliefs, force });
+    this.towerMaintenance?.update({
+      beliefs,
+      force,
+      directiveStatuses,
+      directives,
+    });
 
-    return { status: 'running' };
+    return { status: 'running', directives };
   }
 }

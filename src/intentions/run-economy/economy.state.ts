@@ -1,4 +1,4 @@
-import type { DirectiveProgress } from '../../contracts/directives';
+import type { Directive } from '../../contracts/directives';
 import type { UnitId } from '../../contracts/ids';
 import type { OrderTarget } from '../../contracts/orders';
 
@@ -20,8 +20,8 @@ interface EconomyState {
   peasantTrainingStartedAt: number;
   // Where the first Peasant in training will go, as the Town Hall's rally.
   peasantRally: OrderTarget | undefined;
-  // How the latest Peasant training ordered is going.
-  lastPeasantTraining: DirectiveProgress | undefined;
+  // The Directive of the latest Peasant training ordered.
+  lastPeasantTraining: Directive | undefined;
   // The bot's units at the previous update, so a Peasant that appears is
   // known to have left training; undefined before the first update.
   knownUnits: ReadonlySet<UnitId> | undefined;

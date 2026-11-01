@@ -1,8 +1,12 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { Point, Random, Vector } from '@lib/math';
 import type { UnitId } from '../../../contracts/ids';
-import type { Directives } from '../../../contracts/directives';
-import type { WarlordForce, WarlordMoney } from '../../../contracts/intentions';
+import type { Directive } from '../../../contracts/directives';
+import type {
+  WarlordDirectiveStatuses,
+  WarlordForce,
+  WarlordMoney,
+} from '../../../contracts/intentions';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { Beliefs } from '../../../contracts/beliefs';
@@ -47,7 +51,8 @@ interface UpdateBuildTowersArgs {
   rush: TowerRushState;
   buildTowersState: BuildTowersState;
   force: WarlordForce;
-  directives: Directives;
+  directiveStatuses: WarlordDirectiveStatuses;
+  directives: Directive[];
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
@@ -68,6 +73,7 @@ function updateBuildTowers({
   rush,
   buildTowersState,
   force,
+  directiveStatuses,
   directives,
   probes,
   recorder,
@@ -92,7 +98,12 @@ function updateBuildTowers({
   const sitesAwaitingTower = buildTowersState.pendingTowerSites.filter(
     (site) => !hasStartedTower({ site, towerPositions })
   );
-  const workersInForce = forwardPeasantsInForce({ beliefs, rush, force });
+  const workersInForce = forwardPeasantsInForce({
+    beliefs,
+    rush,
+    force,
+    directiveStatuses,
+  });
   const freeWorkers = workersInForce.filter((worker) =>
     isAvailableForwardPeasant({ beliefs, worker })
   );
@@ -310,7 +321,7 @@ interface HelpUnfinishedTowerArgs {
   worker: UnitId;
   beliefs: Beliefs;
   buildTowersState: BuildTowersState;
-  directives: Directives;
+  directives: Directive[];
   recorder: DecisionRecorder;
 }
 
@@ -352,7 +363,7 @@ function helpUnfinishedTower({
   // Human Peasants help an unfinished building through the repair order. A
   // helper whose repair is refused stays free, so it is forgotten on the
   // next update.
-  directives.give({
+  directives.push({
     unit: worker,
     task: { kind: 'Repair', repairTarget: tower },
     reason: 'Tower rush: forward Peasant helps an unfinished tower',
@@ -488,7 +499,7 @@ interface OrderScoutTowerArgs {
   worker: UnitId;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
-  directives: Directives;
+  directives: Directive[];
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
@@ -553,7 +564,7 @@ interface OrderScoutTowerNextToFirstTowerArgs {
   worker: UnitId;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
-  directives: Directives;
+  directives: Directive[];
   probes: WarcraftProbes;
   random: Random;
 }
@@ -600,7 +611,7 @@ interface OrderScoutTowerNearMineArgs {
   worker: UnitId;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
-  directives: Directives;
+  directives: Directive[];
   probes: WarcraftProbes;
   random: Random;
 }
@@ -653,7 +664,7 @@ interface TryOrderScoutTowerArgs {
   position: Point;
   rules: PlacementRules;
   buildTowersState: BuildTowersState;
-  directives: Directives;
+  directives: Directive[];
   probes: WarcraftProbes;
 }
 
@@ -689,7 +700,7 @@ function tryOrderScoutTower({
 
   if (accepted) {
     buildTowersState.pendingTowerSites.push({ builder: worker, position });
-    directives.give({
+    directives.push({
       unit: worker,
       task: {
         kind: 'Build',

@@ -1,4 +1,4 @@
-import type { Intention } from './intention';
+import type { DirectiveStatuses, Intention } from './intention';
 
 export {
   type UnitNeed,
@@ -42,20 +42,48 @@ interface NeedGrant<TUnit> {
 }
 
 /** What Allocation granted one Intention on the agenda. */
-interface Grant<TOutcome, TBeliefs, TUnit, TResource extends string> {
-  readonly intention: Intention<TOutcome, TBeliefs, TOutcome, TUnit, TResource>;
+interface Grant<
+  TOutcome,
+  TBeliefs,
+  TUnit,
+  TResource extends string,
+  TDirective,
+> {
+  readonly intention: Intention<
+    TOutcome,
+    TBeliefs,
+    TOutcome,
+    TUnit,
+    TResource,
+    TDirective
+  >;
   readonly force: Force<TUnit, TResource>;
   // In the order the Intention's run declared its unit needs.
   readonly needs: readonly NeedGrant<TUnit>[];
 }
 
-interface AllocateArgs<TOutcome, TBeliefs, TUnit, TResource extends string> {
-  agenda: readonly Intention<TOutcome, TBeliefs, TOutcome, TUnit, TResource>[];
+interface AllocateArgs<
+  TOutcome,
+  TBeliefs,
+  TUnit,
+  TResource extends string,
+  TDirective,
+> {
+  agenda: readonly Intention<
+    TOutcome,
+    TBeliefs,
+    TOutcome,
+    TUnit,
+    TResource,
+    TDirective
+  >[];
   // Every unit of the agent, in the order needs are served from.
   units: readonly TUnit[];
   // The money the agent has.
   stock: Money<TResource>;
+  // What the runs read to declare their needs.
   beliefs: TBeliefs;
+  directiveStatuses: DirectiveStatuses<TDirective>;
 }
 
 /**
@@ -66,16 +94,24 @@ interface AllocateArgs<TOutcome, TBeliefs, TUnit, TResource extends string> {
  * are asked anew every round, so an Intention that no longer needs a unit or
  * money loses it without releasing anything.
  */
-function allocate<TOutcome, TBeliefs, TUnit, TResource extends string>({
+function allocate<
+  TOutcome,
+  TBeliefs,
+  TUnit,
+  TResource extends string,
+  TDirective,
+>({
   agenda,
   units,
   stock,
   beliefs,
-}: AllocateArgs<TOutcome, TBeliefs, TUnit, TResource>): Grant<
+  directiveStatuses,
+}: AllocateArgs<TOutcome, TBeliefs, TUnit, TResource, TDirective>): Grant<
   TOutcome,
   TBeliefs,
   TUnit,
-  TResource
+  TResource,
+  TDirective
 >[] {
   const granted = new Set<TUnit>();
   const available = { ...stock };
@@ -83,6 +119,7 @@ function allocate<TOutcome, TBeliefs, TUnit, TResource extends string>({
   return agenda.map((intention) => {
     const { units: unitNeeds, money: moneyNeed } = intention.needs({
       beliefs,
+      directiveStatuses,
     });
     const forceUnits = new Set<TUnit>();
     const needs: NeedGrant<TUnit>[] = [];

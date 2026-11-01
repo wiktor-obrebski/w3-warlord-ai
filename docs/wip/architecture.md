@@ -356,7 +356,7 @@ _**Plan runs**_ are small, explicit state machines. A run:
 - monitors its own progress: it has an expected progress and a stall timeout, after which it repairs itself, changes its steps, or fails;
 - reports its _**interruption cost**_: what interrupting it now would waste ([section 4.8](#48-allocation)). A step that must not be interrupted at all, such as a Town Portal about to take effect or a purchase being made, marks itself _**uninterruptible**_ for a bounded time.
 
-**Needs change over an _Intention_'s life.** Its current _**plan run**_ declares them anew every round, so they follow the run's progress and change when the runtime switches _**plans**_: HireHero needs nothing at first, then a Wisp, then the hero's gold and food ([walkthrough 6.2](../research/rts-behavior-architecture.md#62-buying-the-second-hero)). Each step, the run receives its force, the units and money _**Allocation**_ last granted for those _**needs**_, as an argument, and returns _**Directives**_. That makes it data in and data out.
+**Needs change over an _Intention_'s life.** Its current _**plan run**_ declares them anew every round, so they follow the run's progress and change when the runtime switches _**plans**_: HireHero needs nothing at first, then a Wisp, then the hero's gold and food ([walkthrough 6.2](../research/rts-behavior-architecture.md#62-buying-the-second-hero)). Each step, the run receives its force, the units and money _**Allocation**_ last granted for those _**needs**_, and how the _**Directives**_ it gave are going, as arguments, and returns _**Directives**_. That makes it data in and data out.
 
 ```ts
 // An Intention kind (sketch).
@@ -375,7 +375,7 @@ const creep = intentionKind<CreepGoal>({
 // A plan's run (sketch).
 interface PlanRun {
   needs({ beliefs }: { beliefs: Beliefs }): Needs;
-  step({ beliefs, force }: PlanRunStepArgs): PlanStep; // status, directives, reason
+  step({ beliefs, force, directiveStatuses }: PlanRunStepArgs): PlanStep; // status, directives, reason
   interruptionCost(): InterruptionCost; // named losses; uninterruptible until when
   abort({ reason }: { reason: string }): readonly Directive[];
 }

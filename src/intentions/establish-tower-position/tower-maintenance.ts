@@ -1,6 +1,9 @@
 import type { UnitId } from '../../contracts/ids';
-import type { Directives } from '../../contracts/directives';
-import type { WarlordForce } from '../../contracts/intentions';
+import type { Directive } from '../../contracts/directives';
+import type {
+  WarlordDirectiveStatuses,
+  WarlordForce,
+} from '../../contracts/intentions';
 import type { DecisionRecorder } from '../../contracts/record';
 import type { Beliefs } from '../../contracts/beliefs';
 import { TowerRushState } from './tower-rush.state';
@@ -19,7 +22,6 @@ import {
 export { TowerMaintenance, type TowerMaintenanceCapabilities };
 
 interface TowerMaintenanceCapabilities {
-  readonly directives: Directives;
   readonly recorder: DecisionRecorder;
 }
 
@@ -31,6 +33,9 @@ interface TowerMaintenanceConstructorArgs {
 interface TowerMaintenanceUpdateArgs {
   beliefs: Beliefs;
   force: WarlordForce;
+  directiveStatuses: WarlordDirectiveStatuses;
+  // Where the update adds the Directives it gives.
+  directives: Directive[];
 }
 
 /**
@@ -50,14 +55,19 @@ class TowerMaintenance {
     this.capabilities = capabilities;
   }
 
-  public update({ beliefs, force }: TowerMaintenanceUpdateArgs) {
+  public update({
+    beliefs,
+    force,
+    directiveStatuses,
+    directives,
+  }: TowerMaintenanceUpdateArgs) {
     const enemyMain = beliefs.enemy.startPosition;
 
     if (!enemyMain) {
       throw new Error('Tower rush: enemy start position not found.');
     }
 
-    const { directives, recorder } = this.capabilities;
+    const { recorder } = this.capabilities;
     const towers = [...beliefs.self.scoutTowers, ...beliefs.self.guardTowers];
     const previousTarget = this.repairTarget;
     const repairTarget = chooseRepairTarget({
@@ -80,6 +90,7 @@ class TowerMaintenance {
       beliefs,
       rush: this.rush,
       force,
+      directiveStatuses,
     })) {
       if (repairTarget) {
         if (targetChanged || !beliefs.self.repairingUnits.includes(worker)) {
@@ -159,13 +170,13 @@ interface OrderRepairArgs {
   worker: UnitId;
   tower: UnitId;
   rush: TowerRushState;
-  directives: Directives;
+  directives: Directive[];
 }
 
 // A refused repair leaves the Peasant not repairing, so the next update
 // orders it again.
 function orderRepair({ worker, tower, rush, directives }: OrderRepairArgs) {
-  directives.give({
+  directives.push({
     unit: worker,
     task: { kind: 'Repair', repairTarget: tower },
     reason: 'Tower rush: forward Peasant repairs a tower',

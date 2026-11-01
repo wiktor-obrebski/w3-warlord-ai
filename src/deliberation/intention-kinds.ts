@@ -1,7 +1,6 @@
 import type { Random } from '@lib/math';
 import type { PlaybookName, WarlordOutcome } from '../contracts/desires';
 import type { WarlordIntentionKind } from '../contracts/intentions';
-import type { Directives } from '../contracts/directives';
 import type { Playbook } from '../contracts/playbook';
 import type { WarcraftProbes } from '../contracts/probes';
 import type { DecisionRecorder } from '../contracts/record';
@@ -22,7 +21,6 @@ import { HUMAN_TOWER_RUSH } from '../playbooks/human-tower-rush';
 export { createIntentionKinds };
 
 interface CreateIntentionKindsArgs {
-  directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
   random: Random;
@@ -33,7 +31,6 @@ interface CreateIntentionKindsArgs {
  * outcome, created with the capabilities it needs.
  */
 function createIntentionKinds({
-  directives,
   probes,
   recorder,
   random,
@@ -47,9 +44,8 @@ function createIntentionKinds({
     recorder,
   };
   const establishTowerPositionCapabilitiesProvider: EstablishTowerPositionCapabilities =
-    { directives, probes, recorder, random };
+    { probes, recorder, random };
   const runEconomyCapabilitiesProvider: RunEconomyCapabilities = {
-    directives,
     probes,
     recorder,
   };

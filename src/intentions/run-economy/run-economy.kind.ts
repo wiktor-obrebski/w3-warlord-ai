@@ -1,4 +1,3 @@
-import type { Directives } from '../../contracts/directives';
 import type { RunEconomy } from '../../contracts/desires';
 import type { WarlordIntentionKind } from '../../contracts/intentions';
 import type { WarcraftProbes } from '../../contracts/probes';
@@ -8,7 +7,6 @@ import { HumanEconomyRun } from './human-economy.run';
 export { createRunEconomyKind, type RunEconomyCapabilities };
 
 interface RunEconomyCapabilities {
-  readonly directives: Directives;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
 }

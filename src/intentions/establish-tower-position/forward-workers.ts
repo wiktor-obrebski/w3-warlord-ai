@@ -1,7 +1,10 @@
 import { Point, Vector } from '@lib/math';
-import type { Directives } from '../../contracts/directives';
+import type { Directive } from '../../contracts/directives';
 import type { UnitId } from '../../contracts/ids';
-import type { WarlordForce } from '../../contracts/intentions';
+import type {
+  WarlordDirectiveStatuses,
+  WarlordForce,
+} from '../../contracts/intentions';
 import type { DecisionRecorder } from '../../contracts/record';
 import type { Beliefs } from '../../contracts/beliefs';
 import { TowerRushState } from './tower-rush.state';
@@ -15,7 +18,7 @@ interface HideBehindClosestTowerArgs {
   enemyMain: Point;
   beliefs: Beliefs;
   rush: TowerRushState;
-  directives: Directives;
+  directives: Directive[];
   recorder: DecisionRecorder;
 }
 
@@ -39,14 +42,14 @@ function hideBehindClosestTower({
     enemyMain,
   });
 
-  rush.forwardWorkersSentToSafety.set(
-    worker,
-    directives.give({
-      unit: worker,
-      task: { kind: 'Move', point: spot },
-      reason: 'Tower rush: forward Peasant hides behind a tower',
-    })
-  );
+  const hide: Directive = {
+    unit: worker,
+    task: { kind: 'Move', point: spot },
+    reason: 'Tower rush: forward Peasant hides behind a tower',
+  };
+
+  directives.push(hide);
+  rush.forwardWorkersSentToSafety.set(worker, hide);
   recorder.note({
     message: 'Tower rush: forward Peasant hides behind a tower.',
   });
@@ -65,6 +68,7 @@ interface ForwardPeasantsInForceArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
   force: WarlordForce;
+  directiveStatuses: WarlordDirectiveStatuses;
 }
 
 /**
@@ -80,6 +84,7 @@ function forwardPeasantsInForce({
   beliefs,
   rush,
   force,
+  directiveStatuses,
 }: ForwardPeasantsInForceArgs): UnitId[] {
   const inForce: UnitId[] = [];
 
@@ -88,8 +93,9 @@ function forwardPeasantsInForce({
       continue;
     }
 
+    const hide = rush.forwardWorkersSentToSafety.get(worker);
     const hideFailed =
-      rush.forwardWorkersSentToSafety.get(worker)?.status === 'failed';
+      hide !== undefined && directiveStatuses.get(hide) === 'failed';
 
     if (!force.units.has(worker) || hideFailed) {
       forgetSentToSafety({ worker, rush });

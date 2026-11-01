@@ -1,11 +1,9 @@
+import type { DirectiveStatus } from '@lib/chain-of-command';
 import type { Random } from '@lib/math';
 import type { Beliefs } from '../contracts/beliefs';
-import type {
-  Directives,
-  DirectiveStatus,
-  Task,
-} from '../contracts/directives';
+import type { Directive } from '../contracts/directives';
 import type { UnitId } from '../contracts/ids';
+import type { WarlordDirectiveStatuses } from '../contracts/intentions';
 import type { OrderQueue, OrderTarget } from '../contracts/orders';
 import type { WarcraftProbes } from '../contracts/probes';
 import type { DecisionRecorder } from '../contracts/record';
@@ -37,21 +35,28 @@ interface UnitBehaviorsCapabilities {
  * Directive in progress picks its own targets.
  */
 interface UnitBehaviors {
-  /** How plan runs give their units Directives. */
-  readonly directives: Directives;
-
   /**
    * Starts the step, before the plan runs: the reflexes claim the units they
-   * protect, and the progress of every Directive catches up with the
-   * Beliefs, so the runs read how their Directives are going now.
+   * protect, and the status of every Directive in effect catches up with the
+   * Beliefs. The runs read those statuses to see how their Directives are
+   * going.
    */
-  startStep({ beliefs }: { beliefs: Beliefs }): void;
+  startStep({ beliefs }: { beliefs: Beliefs }): {
+    directiveStatuses: WarlordDirectiveStatuses;
+  };
 
   /**
    * Whether a reflex claimed the unit in this step. The mind leaves such
    * units out of their owners' forces, so no run directs or probes them.
    */
   protects({ unit }: { unit: UnitId }): boolean;
+
+  /**
+   * Gives each unit its Directive, in place of its current one. A Directive
+   * for the task its unit is still pending or underway with takes over that
+   * one's status instead of starting anew.
+   */
+  direct({ directives }: { directives: readonly Directive[] }): void;
 
   /**
    * Orders each own unit for the step, after the plan runs. A unit a probe
@@ -97,11 +102,11 @@ function createUnitBehaviors({
 
   const interrupt = ({ directiveState }: InterruptArgs) => {
     if (
-      isLasting({ task: directiveState.task }) &&
+      isLasting({ task: directiveState.directive.task }) &&
       isOngoing({ directiveState })
     ) {
       directiveState.ordered = false;
-      directiveState.progress.status = 'pending';
+      directiveState.status = 'pending';
     }
   };
 
@@ -110,21 +115,21 @@ function createUnitBehaviors({
     directiveState,
     beliefs,
   }: NoteProgressArgs) => {
-    const { task, progress } = directiveState;
+    const { task } = directiveState.directive;
 
     if (
       !isLasting({ task }) ||
-      progress.status === 'done' ||
-      progress.status === 'failed'
+      directiveState.status === 'done' ||
+      directiveState.status === 'failed'
     ) {
       return;
     }
 
     if (carriesOut({ task, ownUnit, beliefs })) {
       directiveState.ordered = true;
-      progress.status = 'underway';
+      directiveState.status = 'underway';
     } else if (directiveState.ordered) {
-      progress.status = 'done';
+      directiveState.status = 'done';
     }
   };
 
@@ -133,27 +138,23 @@ function createUnitBehaviors({
     directiveState,
     beliefs,
   }: CarryOutLastingArgs) => {
-    const { task, progress } = directiveState;
+    const { task, reason } = directiveState.directive;
 
-    if (progress.status !== 'pending') {
+    if (directiveState.status !== 'pending') {
       return;
     }
 
     if (carriesOut({ task, ownUnit, beliefs })) {
       directiveState.ordered = true;
-      progress.status = 'underway';
+      directiveState.status = 'underway';
       return;
     }
 
     directiveState.ordered = true;
     orders.queue({
-      order: orderFor({
-        task,
-        unit: ownUnit.unit,
-        reason: directiveState.reason,
-      }),
+      order: orderFor({ task, unit: ownUnit.unit, reason }),
       onRefused: () => {
-        progress.status = 'failed';
+        directiveState.status = 'failed';
       },
     });
   };
@@ -161,9 +162,9 @@ function createUnitBehaviors({
   // Produce points the rally first, in a step of its own, so each unit
   // takes at most one order per step.
   const carryOutSingle = ({ unit, directiveState }: CarryOutSingleArgs) => {
-    const { task, progress, reason } = directiveState;
+    const { task, reason } = directiveState.directive;
 
-    if (progress.status !== 'pending') {
+    if (directiveState.status !== 'pending') {
       return;
     }
 
@@ -182,18 +183,18 @@ function createUnitBehaviors({
 
     if (task.kind === 'Rally') {
       if (isRallied({ producer: unit, rallyTarget: task.rallyTarget })) {
-        progress.status = 'done';
+        directiveState.status = 'done';
         return;
       }
 
       rallies.set(unit, task.rallyTarget);
     }
 
-    progress.status = 'done';
+    directiveState.status = 'done';
     orders.queue({
       order: orderFor({ task, unit, reason }),
       onRefused: () => {
-        progress.status = 'failed';
+        directiveState.status = 'failed';
       },
     });
   };
@@ -215,40 +216,6 @@ function createUnitBehaviors({
   };
 
   return {
-    directives: {
-      give({ unit, task, reason }) {
-        const currentDirectiveState = directiveStates.get(unit);
-
-        if (currentDirectiveState) {
-          const { progress } = currentDirectiveState;
-
-          if (
-            isOngoing({ directiveState: currentDirectiveState }) &&
-            sameTask({ a: currentDirectiveState.task, b: task })
-          ) {
-            return progress;
-          }
-
-          if (progress.status === 'pending') {
-            progress.status = 'failed';
-          } else if (progress.status === 'underway') {
-            progress.status = 'done';
-          }
-        }
-
-        const directiveState: DirectiveState = {
-          task,
-          reason,
-          progress: { status: 'pending' },
-          ordered: false,
-        };
-
-        directiveStates.set(unit, directiveState);
-
-        return directiveState.progress;
-      },
-    },
-
     startStep({ beliefs }) {
       workerSafety.claim({ beliefs });
       towerTargeting.startStep({ beliefs });
@@ -268,10 +235,41 @@ function createUnitBehaviors({
           noteProgress({ ownUnit, directiveState, beliefs });
         }
       }
+
+      const directiveStatuses = new Map<Directive, DirectiveStatus>();
+
+      for (const directiveState of directiveStates.values()) {
+        directiveStatuses.set(directiveState.directive, directiveState.status);
+      }
+
+      return { directiveStatuses };
     },
 
     protects({ unit }) {
       return workerSafety.protects({ worker: unit });
+    },
+
+    direct({ directives }) {
+      for (const directive of directives) {
+        const currentDirectiveState = directiveStates.get(directive.unit);
+
+        if (
+          currentDirectiveState !== undefined &&
+          isOngoing({ directiveState: currentDirectiveState }) &&
+          sameTask({
+            a: currentDirectiveState.directive.task,
+            b: directive.task,
+          })
+        ) {
+          currentDirectiveState.directive = directive;
+        } else {
+          directiveStates.set(directive.unit, {
+            directive,
+            status: 'pending',
+            ordered: false,
+          });
+        }
+      }
     },
 
     decide({ beliefs }) {
@@ -288,7 +286,7 @@ function createUnitBehaviors({
         const directiveState = directiveStates.get(ownUnit.unit);
 
         if (directiveState !== undefined && isOngoing({ directiveState })) {
-          if (isLasting({ task: directiveState.task })) {
+          if (isLasting({ task: directiveState.directive.task })) {
             carryOutLasting({ ownUnit, directiveState, beliefs });
           } else {
             carryOutSingle({ unit: ownUnit.unit, directiveState });
@@ -306,7 +304,7 @@ interface IsOngoingArgs {
 }
 
 function isOngoing({ directiveState }: IsOngoingArgs): boolean {
-  const { status } = directiveState.progress;
+  const { status } = directiveState;
 
   return status === 'pending' || status === 'underway';
 }
@@ -329,9 +327,10 @@ function isFinishedGuardTower({
 }
 
 interface DirectiveState {
-  readonly task: Task;
-  readonly reason: string;
-  readonly progress: { status: DirectiveStatus };
+  // The Directive in effect: the last one given for the task, which is the
+  // one its run looks its status up by.
+  directive: Directive;
+  status: DirectiveStatus;
   // Whether the unit was ordered, or seen carrying the task out, since the
   // task last started.
   ordered: boolean;

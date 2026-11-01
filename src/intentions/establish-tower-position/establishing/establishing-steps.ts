@@ -1,7 +1,11 @@
 import { Point, Random } from '@lib/math';
 import type { Beliefs } from '../../../contracts/beliefs';
-import type { Directives } from '../../../contracts/directives';
-import type { WarlordForce, WarlordMoney } from '../../../contracts/intentions';
+import type { Directive } from '../../../contracts/directives';
+import type {
+  WarlordDirectiveStatuses,
+  WarlordForce,
+  WarlordMoney,
+} from '../../../contracts/intentions';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { TowerRushState } from '../tower-rush.state';
@@ -17,7 +21,6 @@ import { updateUpgradeTowers, upgradeCosts } from './upgrade-towers';
 export { EstablishingSteps, type EstablishingStepsCapabilities };
 
 interface EstablishingStepsCapabilities {
-  readonly directives: Directives;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
   readonly random: Random;
@@ -31,6 +34,9 @@ interface EstablishingStepsConstructorArgs {
 interface EstablishingStepsUpdateArgs {
   beliefs: Beliefs;
   force: WarlordForce;
+  directiveStatuses: WarlordDirectiveStatuses;
+  // Where the update adds the Directives it gives.
+  directives: Directive[];
 }
 
 /**
@@ -86,12 +92,17 @@ class EstablishingSteps {
     };
   }
 
-  public update({ beliefs, force }: EstablishingStepsUpdateArgs) {
+  public update({
+    beliefs,
+    force,
+    directiveStatuses,
+    directives,
+  }: EstablishingStepsUpdateArgs) {
     if (this.hasEstablished) {
       throw new Error('Establishing steps: updated after they ended.');
     }
 
-    const { directives, probes, recorder, random } = this.capabilities;
+    const { probes, recorder, random } = this.capabilities;
 
     switch (this.step) {
       case STEP.START:
@@ -119,6 +130,7 @@ class EstablishingSteps {
           rush: this.rush,
           buildTowersState: this.buildTowers,
           force,
+          directiveStatuses,
           directives,
           probes,
           recorder,

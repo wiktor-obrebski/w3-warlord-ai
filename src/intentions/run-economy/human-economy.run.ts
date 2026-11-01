@@ -1,14 +1,16 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
-import type { PlanRunStepArgs, PlanStep } from '@lib/chain-of-command';
 import type { Beliefs } from '../../contracts/beliefs';
 import type { BuildOrder, WorkerTargets } from '../../contracts/build-order';
-import type { DirectiveProgress, Directives } from '../../contracts/directives';
+import type { Directive } from '../../contracts/directives';
 import type { UnitId } from '../../contracts/ids';
 import type {
+  WarlordDirectiveStatuses,
   WarlordForce,
   WarlordNeeds,
   WarlordPlanRun,
-  WarlordResource,
+  WarlordPlanRunNeedsArgs,
+  WarlordPlanRunStepArgs,
+  WarlordPlanStep,
 } from '../../contracts/intentions';
 import type { OrderTarget } from '../../contracts/orders';
 import type { WarcraftProbes } from '../../contracts/probes';
@@ -32,6 +34,11 @@ interface HumanEconomyRunConstructorArgs {
   capabilities: RunEconomyCapabilities;
 }
 
+interface HumanEconomyRunLumberMillGoldArgs {
+  beliefs: Beliefs;
+  directiveStatuses: WarlordDirectiveStatuses;
+}
+
 /**
  * A Human home economy, built up as its build order says. On its first step,
  * its first worker puts up the opening buildings; from then on it trains
@@ -44,8 +51,8 @@ class HumanEconomyRun implements WarlordPlanRun {
   private readonly capabilities: RunEconomyCapabilities;
   private economy = createEconomyState();
   private openingOrdered = false;
-  // How the Lumber Mill's Build Directive is going, once ordered.
-  private lumberMillBuild: DirectiveProgress | undefined;
+  // The Lumber Mill's Build Directive, once given.
+  private lumberMillBuild: Directive | undefined;
 
   public constructor({
     buildOrder,
@@ -68,12 +75,19 @@ class HumanEconomyRun implements WarlordPlanRun {
    * before it on the agenda leave; the gold for the Lumber Mill until it is
    * placed, and for the next Peasant once one is due.
    */
-  public needs({ beliefs }: { beliefs: Beliefs }): WarlordNeeds {
+  public needs({
+    beliefs,
+    directiveStatuses,
+  }: WarlordPlanRunNeedsArgs): WarlordNeeds {
     const { peasants, townHall } = beliefs.self;
     // Allocation asks for the needs before the step catches the economy up,
     // so they read it as caught up; otherwise a Peasant training Warcraft
     // refused would get its gold an update late.
-    const economy = caughtUp({ beliefs, economy: this.economy });
+    const economy = caughtUp({
+      beliefs,
+      economy: this.economy,
+      directiveStatuses,
+    });
     const peasantGold = wantsPeasant({
       beliefs,
       economy,
@@ -88,7 +102,7 @@ class HumanEconomyRun implements WarlordPlanRun {
         { name: 'workers', matches: ({ unit }) => peasants.includes(unit) },
       ],
       money: {
-        gold: this.lumberMillGold({ beliefs }) + peasantGold,
+        gold: this.lumberMillGold({ beliefs, directiveStatuses }) + peasantGold,
         lumber: 0,
       },
     };
@@ -97,12 +111,21 @@ class HumanEconomyRun implements WarlordPlanRun {
   public step({
     beliefs,
     force,
-  }: PlanRunStepArgs<Beliefs, UnitId, WarlordResource>): PlanStep {
-    this.economy = caughtUp({ beliefs, economy: this.economy });
+    directiveStatuses,
+  }: WarlordPlanRunStepArgs): WarlordPlanStep {
+    this.economy = caughtUp({
+      beliefs,
+      economy: this.economy,
+      directiveStatuses,
+    });
 
-    const { directives, probes, recorder } = this.capabilities;
+    const { probes, recorder } = this.capabilities;
     const { economy } = this;
     const { workerTargets } = this.buildOrder;
+    const directives: Directive[] = [];
+    // Read before the opening is ordered, as the needs read it: a Directive
+    // given in this step has no status yet.
+    const lumberMillGold = this.lumberMillGold({ beliefs, directiveStatuses });
     const townHall =
       beliefs.self.townHall !== undefined &&
       force.units.has(beliefs.self.townHall)
@@ -112,7 +135,7 @@ class HumanEconomyRun implements WarlordPlanRun {
     const opening = !this.openingOrdered;
 
     if (opening) {
-      this.orderOpening({ beliefs, force });
+      this.orderOpening({ beliefs, force, directives });
       this.openingOrdered = true;
     }
 
@@ -151,19 +174,23 @@ class HumanEconomyRun implements WarlordPlanRun {
       economy,
       workerTargets,
       townHall,
-      gold: force.money.gold - this.lumberMillGold({ beliefs }),
+      gold: force.money.gold - lumberMillGold,
       directives,
       recorder,
     });
     economy.knownUnits = new Set(beliefs.self.units.keys());
 
-    return { status: 'running' };
+    return { status: 'running', directives };
   }
 
   // The first worker builds the opening, and counts as a lumber worker from
   // then on.
-  private orderOpening({ beliefs, force }: HumanEconomyRunOrderOpeningArgs) {
-    const { directives, probes, recorder } = this.capabilities;
+  private orderOpening({
+    beliefs,
+    force,
+    directives,
+  }: HumanEconomyRunOrderOpeningArgs) {
+    const { probes, recorder } = this.capabilities;
     const { townHall, homeGoldMine } = beliefs.self;
     const builder = beliefs.self.peasants.find((peasant) =>
       force.units.has(peasant)
@@ -202,8 +229,14 @@ class HumanEconomyRun implements WarlordPlanRun {
 
   // The mill is paid for once placed, so its gold stays reserved from before
   // it is ordered until then, unless its order is refused or dropped.
-  private lumberMillGold({ beliefs }: { beliefs: Beliefs }): number {
-    const status = this.lumberMillBuild?.status;
+  private lumberMillGold({
+    beliefs,
+    directiveStatuses,
+  }: HumanEconomyRunLumberMillGoldArgs): number {
+    const status =
+      this.lumberMillBuild !== undefined
+        ? directiveStatuses.get(this.lumberMillBuild)
+        : undefined;
     const unpaid =
       this.buildOrder.opening.includes(W3HumanApi.Building.LUMBER_MILL) &&
       beliefs.self.lumberMills.length === 0 &&
@@ -216,6 +249,7 @@ class HumanEconomyRun implements WarlordPlanRun {
 interface HumanEconomyRunOrderOpeningArgs {
   beliefs: Beliefs;
   force: WarlordForce;
+  directives: Directive[];
 }
 
 const PeasantGoldCost = 75;
@@ -228,7 +262,7 @@ interface TrainPeasantArgs {
   beliefs: Beliefs;
   economy: EconomyState;
   workerTargets: readonly WorkerTargets[];
-  directives: Directives;
+  directives: Directive[];
   recorder: DecisionRecorder;
 }
 
@@ -250,7 +284,7 @@ function trainPeasant({
     economy.peasantTrainingStartedAt = beliefs.time;
   }
 
-  economy.lastPeasantTraining = directives.give({
+  const training: Directive = {
     unit: townHall,
     task: {
       kind: 'Produce',
@@ -258,7 +292,10 @@ function trainPeasant({
       rallyTarget: economy.peasantRally,
     },
     reason: `Economy: Peasant training for ${HOME_RESOURCE[resource]}`,
-  });
+  };
+
+  directives.push(training);
+  economy.lastPeasantTraining = training;
   economy.peasantsInTraining.push(resource);
   recorder.note({
     message: `Economy: Peasant training ${startsNow ? 'ordered' : 'queued'} for ${HOME_RESOURCE[resource]}.`,
@@ -268,14 +305,22 @@ function trainPeasant({
 interface CaughtUpArgs {
   beliefs: Beliefs;
   economy: EconomyState;
+  directiveStatuses: WarlordDirectiveStatuses;
 }
 
 // The economy without its dead workers and a Peasant training Warcraft
 // refused. No Peasant is ordered between a refusal and the next update, so
 // the refused one is still the last.
-function caughtUp({ beliefs, economy }: CaughtUpArgs): EconomyState {
+function caughtUp({
+  beliefs,
+  economy,
+  directiveStatuses,
+}: CaughtUpArgs): EconomyState {
   const { peasants } = beliefs.self;
-  const trainingRefused = economy.lastPeasantTraining?.status === 'failed';
+  const { lastPeasantTraining } = economy;
+  const trainingRefused =
+    lastPeasantTraining !== undefined &&
+    directiveStatuses.get(lastPeasantTraining) === 'failed';
 
   return {
     ...economy,
@@ -302,7 +347,7 @@ interface NoteTrainedPeasantsArgs {
   economy: EconomyState;
   workerTargets: readonly WorkerTargets[];
   townHall: UnitId | undefined;
-  directives: Directives;
+  directives: Directive[];
 }
 
 // A Peasant that was not among the bot's units at the previous update has
@@ -336,7 +381,7 @@ interface AssignNewWorkersArgs {
   economy: EconomyState;
   workerTargets: readonly WorkerTargets[];
   force: WarlordForce;
-  directives: Directives;
+  directives: Directive[];
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -391,7 +436,7 @@ interface FinishPeasantTrainingArgs {
   beliefs: Beliefs;
   economy: EconomyState;
   townHall: UnitId | undefined;
-  directives: Directives;
+  directives: Directive[];
 }
 
 // The Town Hall has a single rally point, which a Peasant follows when it
@@ -478,7 +523,7 @@ interface ReturnIdleWorkersToTheirResourceArgs {
   beliefs: Beliefs;
   economy: EconomyState;
   force: WarlordForce;
-  directives: Directives;
+  directives: Directive[];
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -540,7 +585,7 @@ interface MaintainPeasantProductionArgs {
   townHall: UnitId | undefined;
   // The gold granted for Peasants.
   gold: number;
-  directives: Directives;
+  directives: Directive[];
   recorder: DecisionRecorder;
 }
 
@@ -594,7 +639,7 @@ interface SetRallyArgs {
   resource: HOME_RESOURCE;
   beliefs: Beliefs;
   economy: EconomyState;
-  directives: Directives;
+  directives: Directive[];
 }
 
 function setRally({
@@ -607,7 +652,7 @@ function setRally({
   const rally = rallyTarget({ townHall, resource, beliefs });
 
   economy.peasantRally = rally;
-  directives.give({
+  directives.push({
     unit: townHall,
     task: { kind: 'Rally', rallyTarget: rally },
     reason: `Economy: rally to ${HOME_RESOURCE[resource]}`,
@@ -665,7 +710,7 @@ interface OrderHarvestArgs {
   worker: UnitId;
   resource: HOME_RESOURCE;
   beliefs: Beliefs;
-  directives: Directives;
+  directives: Directive[];
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -694,7 +739,7 @@ function orderHarvest({
 interface OrderHarvestGoldArgs {
   worker: UnitId;
   beliefs: Beliefs;
-  directives: Directives;
+  directives: Directive[];
 }
 
 function orderHarvestGold({
@@ -706,7 +751,7 @@ function orderHarvestGold({
     throw new Error('Economy: home gold mine not found.');
   }
 
-  directives.give({
+  directives.push({
     unit: worker,
     task: {
       kind: 'Harvest',
@@ -719,7 +764,7 @@ function orderHarvestGold({
 interface OrderHarvestPreferredTreeArgs {
   worker: UnitId;
   beliefs: Beliefs;
-  directives: Directives;
+  directives: Directive[];
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
 }
@@ -738,7 +783,7 @@ function orderHarvestPreferredTree({
     peasantOrigin: worker,
   })) {
     if (probes.tryHarvest({ unit: worker, destructable })) {
-      directives.give({
+      directives.push({
         unit: worker,
         task: { kind: 'Harvest', harvestTarget: { destructable } },
         reason: 'Economy: lumber worker harvests a tree',

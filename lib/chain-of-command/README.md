@@ -1,6 +1,6 @@
 # `@lib/chain-of-command`
 
-The decision layer of a Chain of Command agent: proposals merged into Desires, Deliberation over them, a small generic runtime pursuing Intentions through plans, and Allocation granting them units and money. It knows nothing about any game: outcomes, beliefs, units, resources, and what plans do are the caller's types and code.
+The decision layer of a Chain of Command agent: proposals merged into Desires, Deliberation over them, a small generic runtime pursuing Intentions through plans, and Allocation granting them units and money. It knows nothing about any game: outcomes, beliefs, units, resources, Directives, and what plans do are the caller's types and code.
 
 ## Vocabulary
 
@@ -13,6 +13,7 @@ The decision layer of a Chain of Command agent: proposals merged into Desires, D
 | Intention kind | `IntentionKind`                                           | The declaration behind Intentions of one kind of outcome: conditions, plans, a failure policy, and a pace.                                         |
 | Plan, run      | `Plan`, `PlanRun`, `PlanStep`                             | One way to pursue an Intention, chosen by applicability and preference; each attempt at it is a run, which may declare needs and propose requests. |
 | Need, force    | `Needs`, `UnitNeed`, `Money`, `Force`                     | The units and money a run asks for, and those granted to its Intention, which the run is stepped with.                                             |
+| Directive      | `PlanStep`, `DirectiveStatus`, `DirectiveStatuses`        | What a run asks of a unit, in the caller's type. A run's step returns them and reads how each is going: pending, underway, done, or failed.        |
 | Allocation     | `allocate`, `Grant`, `NeedGrant`                          | The only owner of units and money: serves the needs in agenda order.                                                                               |
 | Failure policy | `FailurePolicy`                                           | How long a failed plan is excluded, how many failed runs are allowed, and then whether to recur or to give up.                                     |
 | Intention      | `Intention`, `IntentionStatus`, `IntentionEvent`          | A commitment to one Desire: active, paused, or finished.                                                                                           |
@@ -21,7 +22,13 @@ The decision layer of a Chain of Command agent: proposals merged into Desires, D
 ## A deliberation cycle
 
 ```ts
-const deliberation = createDeliberation<Outcome, Beliefs, Unit, Resource>({
+const deliberation = createDeliberation<
+  Outcome,
+  Beliefs,
+  Unit,
+  Resource,
+  Directive
+>({
   kindOf: ({ outcome }) => kinds[outcome.kind],
 });
 
@@ -44,14 +51,22 @@ for (const intention of agenda) {
   record({ events: intention.prepare({ beliefs, now }) });
 }
 
-const grants = allocate({ agenda, units, stock, beliefs });
+const grants = allocate({ agenda, units, stock, beliefs, directiveStatuses });
 
 for (const { intention, force } of grants) {
-  record({ events: intention.step({ beliefs, now, force }) });
+  const { events, directives } = intention.step({
+    beliefs,
+    now,
+    force,
+    directiveStatuses,
+  });
+
+  record({ events });
+  direct({ directives });
 }
 ```
 
-The caller decides how often cycles and Allocation rounds run, prepares the agenda's Intentions before each round, and steps them as often as it likes: each Intention steps only as often as its kind's pace allows.
+The caller decides how often cycles and Allocation rounds run, prepares the agenda's Intentions before each round, and steps them as often as it likes: each Intention steps only as often as its kind's pace allows. It carries out the Directives the steps return, and tells the runs how they are going: `directiveStatuses` maps each Directive still in effect to its status, so a run looks up the ones it gave.
 
 ## Desires
 
@@ -78,7 +93,7 @@ It returns the agenda and an event, with its reason, for every adoption, pause, 
 `Intention.prepare` and `Intention.step` are the means-end reasoning:
 
 - `prepare`, before each Allocation round, starts the best applicable plan that is not excluded when no run is under way: the highest preference, then the one listed first. A new run is so granted its force before its first step.
-- `step`, once per pace of its kind, steps the run with the Intention's force. A run that succeeds ends, and the next `prepare` chooses a plan again. A run that fails excludes its plan for `excludeSeconds`.
+- `step`, once per pace of its kind, steps the run with the Intention's force and the Directives' statuses, and returns the Directives the run gives. A run that succeeds ends, and the next `prepare` chooses a plan again. A run that fails excludes its plan for `excludeSeconds`.
 - After `attempts` failed runs, or when no plan applies, the Intention is exhausted. It then recurs, pausing until `excludeSeconds` later, or fails, giving up.
 - A paused Intention is not stepped. One waiting to recur resumes in the first `prepare` once its time has come. A run is kept while its Intention is paused.
 

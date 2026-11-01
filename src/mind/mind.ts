@@ -8,6 +8,7 @@ import {
 import type { Random } from '@lib/math';
 import type { Beliefs } from '../contracts/beliefs';
 import type { WarlordDesire, WarlordOutcome } from '../contracts/desires';
+import type { Directive } from '../contracts/directives';
 import type { UnitId } from '../contracts/ids';
 import type {
   WarlordForce,
@@ -74,14 +75,16 @@ interface TakeIntentionEventsArgs {
  *
  * 1. revises the Beliefs from the observations;
  * 2. starts the Unit Behaviors' step: their reflexes claim the units they
- *    protect, and the Directives' progress catches up with the Beliefs;
+ *    protect, and the status of every Directive catches up with the
+ *    Beliefs;
  * 3. runs a deliberation cycle once a second: it collects the Desires the
  *    concerns and the Intentions propose, and deliberates on them;
  * 4. prepares the Intentions on the agenda, which starts a plan for each
  *    one without a run;
  * 5. allocates the units to the Intentions on the agenda, by their needs;
  * 6. steps the Intentions on the agenda, in its order, each at its kind's
- *    pace, with its force, which gives its units Directives;
+ *    pace, with its force and the Directives' statuses, and gives its units
+ *    the Directives its run returns;
  * 7. lets the Unit Behaviors order the units.
  *
  * Adopting or ending an Intention changes what is proposed, so the next
@@ -105,12 +108,8 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
   const unitBehaviors = createUnitBehaviors({
     capabilities: unitBehaviorsCapabilitiesProvider,
   });
-  const forceGuard = createForceGuard({
-    directives: unitBehaviors.directives,
-    probes: orders.probes,
-  });
+  const forceGuard = createForceGuard({ probes: orders.probes });
   const kindOf = createIntentionKinds({
-    directives: forceGuard.directives,
     probes: forceGuard.probes,
     recorder,
     random,
@@ -119,7 +118,8 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
     WarlordOutcome,
     Beliefs,
     UnitId,
-    WarlordResource
+    WarlordResource,
+    Directive
   >({
     kindOf: ({ outcome }) => kindOf({ outcome }),
   });
@@ -148,7 +148,8 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
       };
 
       previousBeliefs = beliefs;
-      unitBehaviors.startStep({ beliefs });
+
+      const { directiveStatuses } = unitBehaviors.startStep({ beliefs });
 
       if (nextCycleAt === undefined || now >= nextCycleAt) {
         const previousDesires = desires;
@@ -186,6 +187,7 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
         units: [...beliefs.self.units.keys()],
         stock: { gold: beliefs.self.gold, lumber: beliefs.self.lumber },
         beliefs,
+        directiveStatuses,
       });
       noteGrantChanges({ previousGrants, grants, recorder });
 
@@ -194,14 +196,14 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
           force: grant.force,
           unitBehaviors,
         });
-
-        forceGuard.within({
+        const { events, directives } = forceGuard.within({
           force,
-          run: () =>
-            takeIntentionEvents({
-              events: grant.intention.step({ beliefs, now, force }),
-            }),
+          step: () =>
+            grant.intention.step({ beliefs, now, force, directiveStatuses }),
         });
+
+        takeIntentionEvents({ events });
+        unitBehaviors.direct({ directives });
       }
 
       unitBehaviors.decide({ beliefs });

@@ -1,7 +1,6 @@
 import type { Random } from '@lib/math';
 import type { EstablishTowerPosition } from '../../contracts/desires';
 import type { WarlordIntentionKind } from '../../contracts/intentions';
-import type { Directives } from '../../contracts/directives';
 import type { WarcraftProbes } from '../../contracts/probes';
 import type { DecisionRecorder } from '../../contracts/record';
 import { TowerRushRun } from './tower-rush.run';
@@ -12,7 +11,6 @@ export {
 };
 
 interface EstablishTowerPositionCapabilities {
-  readonly directives: Directives;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
   readonly random: Random;

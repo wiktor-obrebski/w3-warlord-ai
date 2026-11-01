@@ -1,5 +1,5 @@
 import { Vector } from '@lib/math';
-import type { Directives } from '../../../contracts/directives';
+import type { Directive } from '../../../contracts/directives';
 import type { UnitId } from '../../../contracts/ids';
 import type { WarlordForce } from '../../../contracts/intentions';
 import type { GoldMine } from '../../../contracts/world';
@@ -22,7 +22,7 @@ interface UpdateMoveForwardArgs {
   rush: TowerRushState;
   moveForwardState: MoveForwardState;
   force: WarlordForce;
-  directives: Directives;
+  directives: Directive[];
 }
 
 /** Returns whether the forward workers `arrived` as Peasants again. */
@@ -75,7 +75,7 @@ interface SendNewMilitiaToEnemyArgs {
   beliefs: Beliefs;
   moveForwardState: MoveForwardState;
   inForce: readonly UnitId[];
-  directives: Directives;
+  directives: Directive[];
 }
 
 // Warcraft scripts cannot queue orders, so a move issued together with the
@@ -93,7 +93,7 @@ function sendNewMilitiaToEnemy({
       beliefs.self.militia.includes(worker) &&
       !moveForwardState.forwardWorkersSentToEnemy.includes(worker)
     ) {
-      directives.give({
+      directives.push({
         unit: worker,
         task: { kind: 'Move', point: destination.position },
         reason: 'Tower rush: forward Militia moves to the enemy main',
@@ -108,7 +108,7 @@ interface HoldArrivedMilitiaArgs {
   beliefs: Beliefs;
   moveForwardState: MoveForwardState;
   inForce: readonly UnitId[];
-  directives: Directives;
+  directives: Directive[];
 }
 
 // Idle Militia acquire and chase nearby enemies on their own, which would
@@ -129,7 +129,7 @@ function holdArrivedMilitia({
         end: destination.position,
       }).length <= ArrivalRadius
     ) {
-      directives.give({
+      directives.push({
         unit: worker,
         task: { kind: 'Hold' },
         reason: 'Tower rush: arrived Militia holds position',

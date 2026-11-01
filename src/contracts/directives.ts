@@ -13,9 +13,6 @@ export {
   type RallyTask,
   type UseAbilityTask,
   type Directive,
-  type DirectiveStatus,
-  type DirectiveProgress,
-  type Directives,
 };
 
 /**
@@ -80,34 +77,16 @@ interface UseAbilityTask {
   readonly orderString: string;
 }
 
-/** What a unit's owner asks of it, and why. */
+/**
+ * What a unit's owner asks of it, and why. Its status follows its task: a
+ * lasting task is pending until its unit is first seen carrying it out,
+ * underway while it does, and done once it stops; a single-order task is
+ * done once ordered. A Directive fails when its order is refused. An
+ * unfinished one is pending again while a reflex has taken its unit over,
+ * and starts anew once the reflex lets go.
+ */
 interface Directive {
   readonly unit: UnitId;
   readonly task: Task;
   readonly reason: string;
-}
-
-/**
- * A lasting task is pending until its unit is first seen carrying it out,
- * underway while it does, and done once it stops; a single-order task is
- * done once ordered. A Directive fails when its order is refused, or when
- * another replaces it while it is still pending. An unfinished one is
- * pending again while a reflex has taken its unit over, and starts anew
- * once the reflex lets go.
- */
-type DirectiveStatus = 'pending' | 'underway' | 'done' | 'failed';
-
-/** How a Directive is going, updated as its unit carries it out. */
-interface DirectiveProgress {
-  readonly status: DirectiveStatus;
-}
-
-/** How plan runs direct their units. */
-interface Directives {
-  /**
-   * Gives the unit a Directive, replacing its current one. Giving the task
-   * the unit is already pending or underway with changes nothing; giving it
-   * again once it has ended starts it anew.
-   */
-  give({ unit, task, reason }: Directive): DirectiveProgress;
 }

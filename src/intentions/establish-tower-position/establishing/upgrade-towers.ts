@@ -1,6 +1,6 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import type { UnitId } from '../../../contracts/ids';
-import type { Directives } from '../../../contracts/directives';
+import type { Directive } from '../../../contracts/directives';
 import type { WarlordForce, WarlordMoney } from '../../../contracts/intentions';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { Point, Vector } from '@lib/math';
@@ -13,7 +13,7 @@ interface UpdateUpgradeTowersArgs {
   beliefs: Beliefs;
   towerPositions: readonly Point[];
   force: WarlordForce;
-  directives: Directives;
+  directives: Directive[];
   recorder: DecisionRecorder;
 }
 
@@ -150,7 +150,7 @@ function canAffordGuardTower({ budget }: CanAffordGuardTowerArgs) {
 interface OrderGuardTowerArgs {
   tower: UnitId;
   budget: { gold: number; lumber: number };
-  directives: Directives;
+  directives: Directive[];
   recorder: DecisionRecorder;
 }
 
@@ -163,7 +163,7 @@ function orderGuardTower({
   directives,
   recorder,
 }: OrderGuardTowerArgs) {
-  directives.give({
+  directives.push({
     unit: tower,
     task: { kind: 'Produce', unitType: W3HumanApi.Building.GUARD_TOWER },
     reason: 'Tower rush: Guard Tower upgrade',
