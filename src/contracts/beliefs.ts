@@ -1,4 +1,5 @@
 import type { Point } from '@lib/math';
+import type { UnitId } from './ids';
 import type { ObservedEnemy, ObservedSelf } from './observations';
 import type { GoldMine, ObservedAttack } from './world';
 
@@ -17,6 +18,7 @@ interface Beliefs {
 }
 
 interface SelfBeliefs extends ObservedSelf {
+  readonly finishedLumberMills: readonly UnitId[];
   // The latest attack of each visible attacker, and every attack by an
   // unseen one, while still recent; oldest first.
   readonly recentAttacks: readonly ObservedAttack[];

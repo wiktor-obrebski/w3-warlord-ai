@@ -14,7 +14,6 @@ export {
   lifeFractionOf,
   mostDamagedUnit,
   constructionProgress,
-  completedLumberMill,
   closestUnit,
 };
 
@@ -157,18 +156,6 @@ function constructionProgress({
     (lifeFractionOf({ beliefs, unit: building }) -
       ConstructionStartLifeFraction) /
     (1 - ConstructionStartLifeFraction)
-  );
-}
-
-interface CompletedLumberMillArgs {
-  beliefs: Beliefs;
-}
-
-function completedLumberMill({
-  beliefs,
-}: CompletedLumberMillArgs): UnitId | undefined {
-  return beliefs.self.lumberMills.find(
-    (mill) => !beliefs.self.buildingsUnderConstruction.includes(mill)
   );
 }
 

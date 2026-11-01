@@ -26,9 +26,13 @@ interface ReviseSelfArgs {
 
 function reviseSelf({ previous, observations }: ReviseSelfArgs): SelfBeliefs {
   const { world, attacksStarted } = observations;
+  const { lumberMills, buildingsUnderConstruction } = world.self;
 
   return {
     ...world.self,
+    finishedLumberMills: lumberMills.filter(
+      (mill) => !buildingsUnderConstruction.includes(mill)
+    ),
     recentAttacks: reviseRecentAttacks({
       previous: previous?.recentAttacks ?? [],
       started: attacksStarted,

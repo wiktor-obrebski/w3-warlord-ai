@@ -5,7 +5,7 @@ import type { WarlordForce, WarlordMoney } from '../../../contracts/intentions';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { Point, Vector } from '@lib/math';
 import type { Beliefs } from '../../../contracts/beliefs';
-import { completedLumberMill, positionOf } from '../tower-rush.judgments';
+import { positionOf } from '../tower-rush.judgments';
 
 export { updateUpgradeTowers, upgradeCosts };
 
@@ -40,7 +40,7 @@ function updateUpgradeTowers({
     if (
       tower.unit &&
       tower.towerStatus === TOWER_STATE.SCOUT_TOWER &&
-      completedLumberMill({ beliefs }) !== undefined &&
+      beliefs.self.finishedLumberMills.length > 0 &&
       canAffordGuardTower({ budget }) &&
       force.units.has(tower.unit)
     ) {

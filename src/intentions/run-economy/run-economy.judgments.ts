@@ -3,7 +3,7 @@ import type { UnitId } from '../../contracts/ids';
 import type { HomeDestructable } from '../../contracts/world';
 import type { Beliefs } from '../../contracts/beliefs';
 
-export { lumberDestructablesByPreference, positionOf, completedLumberMill };
+export { lumberDestructablesByPreference, positionOf };
 
 interface LumberDestructablesByPreferenceArgs {
   beliefs: Beliefs;
@@ -25,7 +25,7 @@ function lumberDestructablesByPreference({
   beliefs,
   peasantOrigin,
 }: LumberDestructablesByPreferenceArgs): readonly HomeDestructable[] {
-  const mill = completedLumberMill({ beliefs });
+  const mill = beliefs.self.finishedLumberMills[0];
 
   if (!mill) {
     return destructablesAwayFromUnfinishedMill({ beliefs });
@@ -57,18 +57,6 @@ function positionOf({ beliefs, unit }: PositionOfArgs): Point {
   }
 
   return believed.position;
-}
-
-interface CompletedLumberMillArgs {
-  beliefs: Beliefs;
-}
-
-function completedLumberMill({
-  beliefs,
-}: CompletedLumberMillArgs): UnitId | undefined {
-  return beliefs.self.lumberMills.find(
-    (mill) => !beliefs.self.buildingsUnderConstruction.includes(mill)
-  );
 }
 
 const MillTreeCandidates = 4;
