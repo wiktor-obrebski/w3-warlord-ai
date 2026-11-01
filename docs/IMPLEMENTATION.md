@@ -9,7 +9,7 @@ The bot's mind follows **Chain of Command**, a BDI architecture for real-time st
 - [Glossary](architecture/GLOSSARY.md): every term of the architecture.
 - [Research](research/RTS_BEHAVIOR_ARCHITECTURE.md): the research behind the architecture, with walkthroughs, the [scenario analysis](research/RTS_SCENARIO_ANALYSIS.md), and the [sources](research/RTS_RESEARCH_SOURCES.md).
 
-This document covers what they don't: what the bot does today and where it still falls short of the architecture, how it runs inside Warcraft III, and how the source is laid out.
+This document covers what they don't: what the bot does today, how it runs inside Warcraft III, and how the source is laid out. What is left to build of the architecture is in the [migration plan](WIP_ARCHITECTURE_MIGRATION.md).
 
 ## The bot today
 
