@@ -9,7 +9,7 @@ interface TowerRushState {
   // How the move of each forward Peasant sent to hide is going.
   forwardWorkersSentToSafety: Map<UnitId, DirectiveProgress>;
   // Once set, the run reserves the money for every Scout Tower that has not
-  // started its Guard Tower upgrade.
+  // started its Guard Tower upgrade, as long as a Lumber Mill stands.
   reservingForUpgrades: boolean;
 }
 

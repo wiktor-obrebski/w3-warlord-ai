@@ -66,16 +66,19 @@ class EstablishingSteps {
 
   /**
    * The money for the towers still to be built, while they are, and for the
-   * upgrades still to start, once the towers are far enough along.
+   * upgrades still to start, once the towers are far enough along. The
+   * upgrades require a Lumber Mill, so without one standing, even
+   * unfinished, their money is not reserved.
    */
   public moneyNeeded({ beliefs }: { beliefs: Beliefs }): WarlordMoney {
     const towers =
       this.step === STEP.BUILD_TOWERS
         ? towerBuildCosts({ beliefs })
         : { gold: 0, lumber: 0 };
-    const upgrades = this.rush.reservingForUpgrades
-      ? upgradeCosts({ beliefs })
-      : { gold: 0, lumber: 0 };
+    const upgrades =
+      this.rush.reservingForUpgrades && beliefs.self.lumberMills.length > 0
+        ? upgradeCosts({ beliefs })
+        : { gold: 0, lumber: 0 };
 
     return {
       gold: towers.gold + upgrades.gold,
