@@ -2,8 +2,9 @@ import type { PlanRunStepArgs, PlanStep } from '@lib/chain-of-command';
 import type { Beliefs } from '../../contracts/beliefs';
 import type { UnitId } from '../../contracts/ids';
 import type {
+  WarlordNeeds,
   WarlordPlanRun,
-  WarlordUnitNeed,
+  WarlordResource,
 } from '../../contracts/intentions';
 import type { EstablishTowerPositionCapabilities } from './establish-tower-position.kind';
 import { createTowerRushState } from './tower-rush.state';
@@ -42,21 +43,26 @@ class TowerRushRun implements WarlordPlanRun {
    * Hall training them, and the Scout Towers to upgrade. Until the start
    * picks the forward workers, every Peasant counts as a home worker.
    */
-  public needs({ beliefs }: { beliefs: Beliefs }): readonly WarlordUnitNeed[] {
+  public needs({ beliefs }: { beliefs: Beliefs }): WarlordNeeds {
     const { peasants, townHall, scoutTowers } = beliefs.self;
 
-    return [
-      {
-        name: 'forward workers',
-        matches: ({ unit }) => this.rush.forwardWorkers.includes(unit),
-      },
-      { name: 'home workers', matches: ({ unit }) => peasants.includes(unit) },
-      { name: 'Town Hall', matches: ({ unit }) => unit === townHall },
-      {
-        name: 'Scout Towers',
-        matches: ({ unit }) => scoutTowers.includes(unit),
-      },
-    ];
+    return {
+      units: [
+        {
+          name: 'forward workers',
+          matches: ({ unit }) => this.rush.forwardWorkers.includes(unit),
+        },
+        {
+          name: 'home workers',
+          matches: ({ unit }) => peasants.includes(unit),
+        },
+        { name: 'Town Hall', matches: ({ unit }) => unit === townHall },
+        {
+          name: 'Scout Towers',
+          matches: ({ unit }) => scoutTowers.includes(unit),
+        },
+      ],
+    };
   }
 
   /**
@@ -67,7 +73,10 @@ class TowerRushRun implements WarlordPlanRun {
    * build progress, so it starts once the towers are built. The establishing
    * steps are let go once they have ended.
    */
-  public step({ beliefs, force }: PlanRunStepArgs<Beliefs, UnitId>): PlanStep {
+  public step({
+    beliefs,
+    force,
+  }: PlanRunStepArgs<Beliefs, UnitId, WarlordResource>): PlanStep {
     const { directives, probes, recorder, random } = this.capabilities;
 
     if (!this.steppedBefore) {

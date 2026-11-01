@@ -13,6 +13,7 @@ import type {
   WarlordForce,
   WarlordGrant,
   WarlordIntention,
+  WarlordResource,
 } from '../contracts/intentions';
 import type { Observations } from '../contracts/observations';
 import type { TicketedOrder } from '../contracts/orders';
@@ -108,7 +109,12 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
     recorder,
     random,
   });
-  const deliberation = createDeliberation<WarlordOutcome, Beliefs, UnitId>({
+  const deliberation = createDeliberation<
+    WarlordOutcome,
+    Beliefs,
+    UnitId,
+    WarlordResource
+  >({
     kindOf: ({ outcome }) => kindOf({ outcome }),
   });
   let previousBeliefs: Beliefs | undefined;
@@ -159,6 +165,7 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
       grants = allocate({
         agenda,
         units: [...beliefs.self.units.keys()],
+        stock: { gold: beliefs.self.gold, lumber: beliefs.self.lumber },
         beliefs,
         now,
       });
@@ -241,5 +248,6 @@ function withoutClaimedUnits({
     units: new Set(
       [...force.units].filter((unit) => !unitBehaviors.protects({ unit }))
     ),
+    money: force.money,
   };
 }

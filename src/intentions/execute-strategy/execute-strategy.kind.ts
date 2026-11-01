@@ -9,6 +9,7 @@ import type { UnitId } from '../../contracts/ids';
 import type {
   WarlordIntentionKind,
   WarlordPlanRun,
+  WarlordResource,
 } from '../../contracts/intentions';
 import type { Playbook } from '../../contracts/playbook';
 import type { DecisionRecorder } from '../../contracts/record';
@@ -78,7 +79,9 @@ class PlaybookRun implements WarlordPlanRun {
     this.recorder = recorder;
   }
 
-  public step({ beliefs }: PlanRunStepArgs<Beliefs, UnitId>): PlanStep {
+  public step({
+    beliefs,
+  }: PlanRunStepArgs<Beliefs, UnitId, WarlordResource>): PlanStep {
     let next = this.playbook.phases[this.phase + 1];
 
     while (next) {

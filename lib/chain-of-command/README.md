@@ -1,6 +1,6 @@
 # `@lib/chain-of-command`
 
-The decision layer of a Chain of Command agent: proposals merged into Desires, Deliberation over them, a small generic runtime pursuing Intentions through plans, and Allocation granting them units. It knows nothing about any game: outcomes, beliefs, units, and what plans do are the caller's types and code.
+The decision layer of a Chain of Command agent: proposals merged into Desires, Deliberation over them, a small generic runtime pursuing Intentions through plans, and Allocation granting them units and money. It knows nothing about any game: outcomes, beliefs, units, resources, and what plans do are the caller's types and code.
 
 ## Vocabulary
 
@@ -12,8 +12,8 @@ The decision layer of a Chain of Command agent: proposals merged into Desires, D
 | Desire         | `Desire`, `collectDesires`                                | An outcome worth pursuing in this cycle, backed by every proposal for it. It ranks as its best proposal.                                           |
 | Intention kind | `IntentionKind`                                           | The declaration behind Intentions of one kind of outcome: conditions, plans, a failure policy, and a pace.                                         |
 | Plan, run      | `Plan`, `PlanRun`, `PlanStep`                             | One way to pursue an Intention, chosen by applicability and preference; each attempt at it is a run, which may declare needs and propose requests. |
-| Need, force    | `UnitNeed`, `Force`                                       | The units a run asks for, and the units granted to its Intention, which the run is stepped with.                                                   |
-| Allocation     | `allocate`, `Grant`, `NeedGrant`                          | The only owner of units: grants each unit to the first Intention on the agenda with a need it matches.                                             |
+| Need, force    | `Needs`, `UnitNeed`, `Money`, `Force`                     | The units and money a run asks for, and those granted to its Intention, which the run is stepped with.                                             |
+| Allocation     | `allocate`, `Grant`, `NeedGrant`                          | The only owner of units and money: serves the needs in agenda order.                                                                               |
 | Failure policy | `FailurePolicy`                                           | How long a failed plan is excluded, how many failed runs are allowed, and then whether to recur or to give up.                                     |
 | Intention      | `Intention`, `IntentionStatus`, `IntentionEvent`          | A commitment to one Desire: active, paused, or finished.                                                                                           |
 | Deliberation   | `Deliberation`, `DeliberationCycle`, `createDeliberation` | Drops, finishes, pauses, and adopts Intentions, and orders the agenda.                                                                             |
@@ -21,7 +21,7 @@ The decision layer of a Chain of Command agent: proposals merged into Desires, D
 ## A deliberation cycle
 
 ```ts
-const deliberation = createDeliberation<Outcome, Beliefs, Unit>({
+const deliberation = createDeliberation<Outcome, Beliefs, Unit, Resource>({
   kindOf: ({ outcome }) => kinds[outcome.kind],
 });
 
@@ -40,7 +40,9 @@ const desires = collectDesires({
 });
 const { agenda, events } = deliberation.deliberate({ desires, beliefs });
 
-for (const { intention, force } of allocate({ agenda, units, beliefs, now })) {
+const grants = allocate({ agenda, units, stock, beliefs, now });
+
+for (const { intention, force } of grants) {
   record({ events: intention.step({ beliefs, now, force }) });
 }
 ```
@@ -82,11 +84,12 @@ An Intention that finishes while it is stepped leaves the agenda in the next cyc
 
 Each round, `allocate` walks the agenda in order and asks every Intention for its run's needs:
 
-- **Each unit goes to the first Intention with a need it matches**, for the first such need. A unit no need matches stays free.
-- **Needs are asked anew every round**, so an Intention that no longer needs a unit loses it without releasing anything.
+- **Each unit goes to the first Intention with a need it matches**, for the first such need that has room left: a need takes every unit it matches, or at most its `max`. A unit no need matches stays free.
+- **Money is reserved in the same order.** An Intention's money need is met, as far as it can be, from what the Intentions before it left of the stock, and its force holds what was reserved. A need met only in part keeps what it got, so an Intention saving for something keeps that money from the ones after it.
+- **Needs are asked anew every round**, so an Intention that no longer needs a unit or money loses it without releasing anything.
 - **A paused or finished Intention needs nothing.** An active one without a run first starts its best applicable plan, so a new run is granted its force before its first step; its start is reported by the next `step`.
 
-The agenda's order alone decides who gets a unit: there are no counts, minimums, or switching margins yet.
+The agenda's order alone decides who gets what: there are no minimums or switching margins yet, and an Intention keeps no unit it held before unless it is first to ask again. An Intention last on the agenda whose need matches every unit of a class takes whatever the others left, as a default owner would.
 
 ## Constraints
 

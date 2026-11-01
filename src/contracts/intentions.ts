@@ -3,6 +3,8 @@ import type {
   Grant,
   Intention,
   IntentionKind,
+  Money,
+  Needs,
   Plan,
   PlanRun,
   UnitNeed,
@@ -16,7 +18,10 @@ export {
   type WarlordPlan,
   type WarlordPlanRun,
   type WarlordIntention,
+  type WarlordResource,
+  type WarlordMoney,
   type WarlordUnitNeed,
+  type WarlordNeeds,
   type WarlordForce,
   type WarlordGrant,
 };
@@ -26,27 +31,37 @@ type WarlordIntentionKind<TGoal extends WarlordOutcome> = IntentionKind<
   TGoal,
   Beliefs,
   WarlordOutcome,
-  UnitId
+  UnitId,
+  WarlordResource
 >;
 
 type WarlordPlan<TGoal extends WarlordOutcome> = Plan<
   TGoal,
   Beliefs,
   WarlordOutcome,
-  UnitId
+  UnitId,
+  WarlordResource
 >;
 
-type WarlordPlanRun = PlanRun<Beliefs, WarlordOutcome, UnitId>;
+type WarlordPlanRun = PlanRun<Beliefs, WarlordOutcome, UnitId, WarlordResource>;
 
 type WarlordIntention = Intention<
   WarlordOutcome,
   Beliefs,
   WarlordOutcome,
-  UnitId
+  UnitId,
+  WarlordResource
 >;
+
+/** The resources Allocation hands out with the units. */
+type WarlordResource = 'gold' | 'lumber';
+
+type WarlordMoney = Money<WarlordResource>;
 
 type WarlordUnitNeed = UnitNeed<UnitId>;
 
-type WarlordForce = Force<UnitId>;
+type WarlordNeeds = Needs<UnitId, WarlordResource>;
 
-type WarlordGrant = Grant<WarlordOutcome, Beliefs, UnitId>;
+type WarlordForce = Force<UnitId, WarlordResource>;
+
+type WarlordGrant = Grant<WarlordOutcome, Beliefs, UnitId, WarlordResource>;
