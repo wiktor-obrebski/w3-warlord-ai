@@ -425,7 +425,7 @@ Each round, _**Allocation**_ walks the _**agenda**_ in order:
 
 2. **Applies the minimum.** A _**need**_ whose minimum cannot be met gets nothing, so units are not wasted on a force too weak to act.
 3. **Reserves money.** Money is reserved against the stock plus a short projection of income. An unmet _**need**_ reports when it becomes affordable; that is how saving works.
-4. **Assigns leftovers to _default owners_.** Workers nobody asked for go to RunEconomy, army units and heroes to Reserve.
+4. **Assigns leftovers to _default owners_.** Workers nobody asked for go to RunEconomy, army units and heroes to Reserve. Other units nobody asked for, such as towers, stay without an owner and follow their _**Unit Behavior**_'s default ([section 4.9](#49-execution)).
 5. **Records every grant and denial with its reason.**
 
 **The two terms of the _switching margin_:**
@@ -498,7 +498,7 @@ interface TacticStep {
 }
 ```
 
-**_Directives_.** A _**Directive**_ is what a unit's owner asks of it. Every own unit gets one from its owner's _**plan run**_: a _**Tactic**_ writes the _**Directives**_ for the units in its group, and the run writes them itself for units outside any group, such as a builder or a scout. A _**Directive**_ holds until the run replaces it; in between, the unit's _**Unit Behavior**_ gives the orders that carry it out, but never one the unit is already carrying out, because a re-issued attack restarts it. When a unit changes owner, its old _**Directive**_ ends, and the new owner's run gives it one in the same tick.
+**_Directives_.** A _**Directive**_ is what a unit's owner asks of it, through its _**plan run**_: a _**Tactic**_ writes the _**Directives**_ for the units in its group, and the run writes them itself for units outside any group, such as a builder or a scout. A unit without a _**Directive**_, such as a tower nobody owns, follows its _**Unit Behavior**_'s default: a tower attacks what comes in range, picking its target as any _**Unit Behavior**_ does. A _**Directive**_ holds until the run replaces it; in between, the unit's _**Unit Behavior**_ gives the orders that carry it out, but never one the unit is already carrying out, because a re-issued attack restarts it. When a unit changes owner, its old _**Directive**_ ends, and the new owner's run gives it one in the same tick.
 
 A _**Directive**_ says:
 
