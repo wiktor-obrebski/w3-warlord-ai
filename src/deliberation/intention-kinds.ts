@@ -13,6 +13,10 @@ import {
   createExecuteStrategyKind,
   ExecuteStrategyCapabilities,
 } from '../intentions/execute-strategy/execute-strategy.api';
+import {
+  createRunEconomyKind,
+  RunEconomyCapabilities,
+} from '../intentions/run-economy/run-economy.api';
 import { HUMAN_TOWER_RUSH } from '../playbooks/human-tower-rush';
 
 export { createIntentionKinds };
@@ -44,12 +48,20 @@ function createIntentionKinds({
   };
   const establishTowerPositionCapabilitiesProvider: EstablishTowerPositionCapabilities =
     { directives, probes, recorder, random };
+  const runEconomyCapabilitiesProvider: RunEconomyCapabilities = {
+    directives,
+    probes,
+    recorder,
+  };
   const kinds: IntentionKinds = {
     ExecuteStrategy: createExecuteStrategyKind({
       capabilities: executeStrategyCapabilitiesProvider,
     }),
     EstablishTowerPosition: createEstablishTowerPositionKind({
       capabilities: establishTowerPositionCapabilitiesProvider,
+    }),
+    RunEconomy: createRunEconomyKind({
+      capabilities: runEconomyCapabilitiesProvider,
     }),
   };
 

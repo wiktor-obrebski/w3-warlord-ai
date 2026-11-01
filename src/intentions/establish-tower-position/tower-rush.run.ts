@@ -5,11 +5,12 @@ import type {
   WarlordNeeds,
   WarlordPlanRun,
   WarlordResource,
+  WarlordUnitNeed,
 } from '../../contracts/intentions';
 import type { EstablishTowerPositionCapabilities } from './establish-tower-position.kind';
 import { createTowerRushState } from './tower-rush.state';
+import { FORWARD_WORKER_COUNT } from './tower-rush.assessments';
 import { EstablishingSteps } from './establishing/establishing-steps';
-import { TowerRushEconomyController } from './tower-rush-economy.ctrl';
 import { TowerMaintenanceController } from './tower-maintenance.ctrl';
 
 export { TowerRushRun };
@@ -20,8 +21,8 @@ interface TowerRushRunConstructorArgs {
 
 /**
  * A Human tower rush with the starting Peasants: Guard Towers established
- * next to the enemy main, funded by a home economy and kept repaired by the
- * forward workers. It runs for as long as its Intention does.
+ * next to the enemy main and kept repaired by the forward workers. It runs
+ * for as long as its Intention does.
  *
  * Its parts share the tower rush's execution state, which keeps the units
  * each of them directs apart.
@@ -29,46 +30,53 @@ interface TowerRushRunConstructorArgs {
 class TowerRushRun implements WarlordPlanRun {
   private readonly capabilities: EstablishTowerPositionCapabilities;
   private readonly rush = createTowerRushState();
-  private establishing: EstablishingSteps | null = null;
-  private economy: TowerRushEconomyController | null = null;
+  private establishing: EstablishingSteps | null;
   private towerMaintenance: TowerMaintenanceController | null = null;
-  private steppedBefore = false;
 
   public constructor({ capabilities }: TowerRushRunConstructorArgs) {
     this.capabilities = capabilities;
+    this.establishing = new EstablishingSteps({
+      rush: this.rush,
+      capabilities,
+    });
   }
 
   /**
-   * The forward workers, every other Peasant for the home economy, the Town
-   * Hall training them, and the Scout Towers to upgrade. Until the start
-   * picks the forward workers, every Peasant counts as a home worker.
+   * The forward workers, which the start picks from the Peasants it is
+   * granted, and the Scout Towers to upgrade; the money for the towers and
+   * their upgrades.
    */
   public needs({ beliefs }: { beliefs: Beliefs }): WarlordNeeds {
-    const { peasants, townHall, scoutTowers } = beliefs.self;
+    const { peasants, scoutTowers } = beliefs.self;
+    const { forwardWorkers } = this.rush;
+    const forwardWorkersNeed: WarlordUnitNeed =
+      forwardWorkers.length === 0
+        ? {
+            name: 'forward workers',
+            matches: ({ unit }) => peasants.includes(unit),
+            max: FORWARD_WORKER_COUNT,
+          }
+        : {
+            name: 'forward workers',
+            matches: ({ unit }) => forwardWorkers.includes(unit),
+          };
 
     return {
       units: [
-        {
-          name: 'forward workers',
-          matches: ({ unit }) => this.rush.forwardWorkers.includes(unit),
-        },
-        {
-          name: 'home workers',
-          matches: ({ unit }) => peasants.includes(unit),
-        },
-        { name: 'Town Hall', matches: ({ unit }) => unit === townHall },
+        forwardWorkersNeed,
         {
           name: 'Scout Towers',
           matches: ({ unit }) => scoutTowers.includes(unit),
         },
       ],
+      money: this.establishing?.moneyNeeded({ beliefs }) ?? {
+        gold: 0,
+        lumber: 0,
+      },
     };
   }
 
   /**
-   * The establishing steps start on the first step. Their first step
-   * assigns the workers the economy manages and gives Directives that step's
-   * Beliefs predate, so the economy starts from the next step on.
    * Maintenance relies on a tower's life fraction reflecting damage, not
    * build progress, so it starts once the towers are built. The establishing
    * steps are let go once they have ended.
@@ -77,19 +85,7 @@ class TowerRushRun implements WarlordPlanRun {
     beliefs,
     force,
   }: PlanRunStepArgs<Beliefs, UnitId, WarlordResource>): PlanStep {
-    const { directives, probes, recorder, random } = this.capabilities;
-
-    if (!this.steppedBefore) {
-      this.establishing = new EstablishingSteps({
-        rush: this.rush,
-        capabilities: { directives, probes, recorder, random },
-      });
-    } else {
-      this.economy ??= new TowerRushEconomyController({
-        rush: this.rush,
-        capabilities: { directives, probes, recorder },
-      });
-    }
+    const { directives, recorder } = this.capabilities;
 
     if (this.establishing?.towersBuilt) {
       this.towerMaintenance ??= new TowerMaintenanceController({
@@ -106,9 +102,7 @@ class TowerRushRun implements WarlordPlanRun {
       }
     }
 
-    this.economy?.update({ beliefs, force });
     this.towerMaintenance?.update({ beliefs, force });
-    this.steppedBefore = true;
 
     return { status: 'running' };
   }

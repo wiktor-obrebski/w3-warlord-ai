@@ -22,8 +22,8 @@ The code is being migrated to Chain of Command in phases. The decision layer, De
 | 2     | One world model in Beliefs                                                                     | done                             |
 | 3     | Desires, Deliberation, Intention kinds                                                         | done                             |
 | 4a    | Unit Behaviors and Directives                                                                  | done                             |
-| 4b    | Allocation of units                                                                            | done, awaiting the in-game check |
-| 4c    | Allocation of money, RunEconomy                                                                | not started                      |
+| 4b    | Allocation of units                                                                            | done                             |
+| 4c    | Allocation of money, RunEconomy                                                                | done, awaiting the in-game check |
 | 5     | Clean-up                                                                                       | not started                      |
 
 The bot's behaviors today:
@@ -33,14 +33,15 @@ The bot's behaviors today:
 The rest goes through Desires and Intentions:
 
 - **The strategy concern** proposes `ExecuteStrategy{HumanTowerRush}` when the bot plays Human and knows where the enemy started. It knows that only on maps with a single start location besides its own, since it does not read which start location the enemy got; otherwise it vetoes its proposal, giving that reason.
-- **ExecuteStrategy** is the committed strategy: it follows the Human tower rush playbook (`src/playbooks/`). The playbook has a single phase, Rush, which proposes EstablishTowerPosition.
-- **EstablishTowerPosition** is the tower rush itself. Three of the starting Peasants go forward as Militia, build Scout Towers next to the enemy main, and upgrade them to Guard Towers; the rest of the workers run the home economy; the forward Peasants then repair the towers and hide behind them. Its run asks Allocation for the forward workers, every other Peasant, the Town Hall, and the Scout Towers. The home economy splits out into RunEconomy with the allocation of money, which then keeps the gold for the Guard Tower upgrades.
+- **ExecuteStrategy** is the committed strategy: it follows the Human tower rush playbook (`src/playbooks/`). The playbook has a single phase, Rush, which proposes EstablishTowerPosition and `RunEconomy{TowerRush}`, handing RunEconomy the playbook's build order in its Desire.
+- **EstablishTowerPosition** is the tower rush itself. Three of the starting Peasants go forward as Militia, build Scout Towers next to the enemy main, upgrade them to Guard Towers, and then repair the towers and hide behind them. Its run asks Allocation for three Peasants, then for those forward workers by name, and for the Scout Towers; it reserves the money for the towers while it builds them, and for the upgrades from when the towers are half built.
+- **RunEconomy** is the home economy, as the build order in its Desire says: the first worker puts up the opening, the Lumber Mill, and then Peasants are trained and sent to gold or lumber, stage by stage, until the last stage of workers is reached. It reserves the money for the mill and for each Peasant. Proposed at Background rank, it comes last on the agenda, so it gets the Town Hall and every worker the rush leaves, as their default owner. The architecture has a concern propose RunEconomy; here the playbook does, since an economy belongs to its strategy.
 
 They run inside the mind, behind the two boundaries. Every 0.1 s, `src/shell/runtime.ts` takes Perception's observations, steps the mind, hands the orders the step returns to the order executor, and writes the step's decision record. Units and destructables are named by ids; only the shell holds Warcraft handles. An order Warcraft refuses reaches the mind with the next observations, and the part of the mind that gave it can correct its own state. Randomness comes from one generator, seeded once from Warcraft's synchronized generator.
 
 Each step first revises the Beliefs, which have only the sections today's behaviors read: the time; self, with the bot's units, resources, and home, and the attacks on its units it still remembers; and enemy, with the enemy units in sight and, when the start locations tell it, where the enemy started. Enemy units seen earlier are not remembered, and there are no neutral, map, or events sections yet. What a reflex or a plan run remembers for itself, such as when each worker was last attacked, is its own execution state.
 
-Then the workers' reflex claims the workers it protects, and a deliberation cycle runs once a second, and on the next step after an Intention is adopted or ends: the concerns and the Intentions' runs propose Desires, and Deliberation adopts, drops, and orders the Intentions. Every Intention kind has a single plan so far, and the weights are placeholders, since nothing competes for units or money yet. Every step, Allocation grants each unit to the first Intention on the agenda whose run needs it; with no competition, it has no counts, minimums, switching margins, or default owners yet. The mind steps the agenda's Intentions in its order, each at its kind's pace, with its force: the units it was granted, less those the reflex claimed. Their runs give these units Directives, and a Directive or probe for a unit outside the force throws. The mind records every Desire, Intention, agenda, and grant change as a note. Last, the Unit Behaviors order the units: the reflex its workers, every other unit with a Directive in progress as that Directive asks, and the Guard Towers without one at the targets they pick.
+Then the workers' reflex claims the workers it protects, and a deliberation cycle runs once a second, and on the next step after an Intention is adopted or ends: the concerns and the Intentions' runs propose Desires, and Deliberation adopts, drops, and orders the Intentions. Every Intention kind has a single plan so far, and the weights are placeholders: ranks alone order the Intentions that compete. Every step, Allocation grants each unit to the first Intention on the agenda whose run needs it, up to the need's count, and reserves each run's money need from what the Intentions before it left of the stock. It has no minimums, switching margins, or projection of income yet, and the workers' default owner is simply the last Intention whose need matches every worker. The mind steps the agenda's Intentions in its order, each at its kind's pace, with its force: the units it was granted, less those the reflex claimed. Their runs give these units Directives, and a Directive or probe for a unit outside the force throws. The mind records every Desire, Intention, agenda, and grant change as a note. Last, the Unit Behaviors order the units: the reflex its workers, every other unit with a Directive in progress as that Directive asks, and the Guard Towers without one at the targets they pick.
 
 Two temporary exceptions remain, for later phases to remove:
 
@@ -141,12 +142,12 @@ src/
 ├─ shell/         the only code touching Warcraft: the bot loop (runtime.ts), Perception, the order executor, the probes, logging, debug output, the game clock
 ├─ mind/          the mind: the tick's phases, the orders it gives, and its decision record notes
 ├─ knowledge/     the Knowledge type, a stub so far
-├─ contracts/     type-only vocabulary shared across layers: ids, observations, the Beliefs, orders, probes, the decision record, outcomes and proposals, Warlord Intention kind types, Directives, playbooks, observed world records
+├─ contracts/     type-only vocabulary shared across layers: ids, observations, the Beliefs, orders, probes, the decision record, outcomes and proposals, Warlord Intention kind types, Directives, playbooks and build orders, observed world records
 ├─ beliefs/       the belief models, revising the Beliefs from the observations
 ├─ desires/       outcome identity and the concerns
 ├─ deliberation/  the adoption registry: which Intention kind pursues each kind of outcome
 ├─ intentions/    one module per Intention kind: the *.api.ts entry point, *.kind.ts, its plans' runs, their parts, and *.assessments.ts
-├─ playbooks/     the strategies as data: the Human tower rush
+├─ playbooks/     the strategies as data, with their build orders: the Human tower rush
 ├─ unit-behaviors/ what every own unit does each step: the workers' reflex, then the Directive its owner gave it
 └─ privileged/    installation and debug-mode code beyond normal gameplay
 ```

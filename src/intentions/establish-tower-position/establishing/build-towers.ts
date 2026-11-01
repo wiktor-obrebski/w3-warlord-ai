@@ -2,7 +2,7 @@ import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { Point, Random, Vector } from '@lib/math';
 import type { UnitId } from '../../../contracts/ids';
 import type { Directives } from '../../../contracts/directives';
-import type { WarlordForce } from '../../../contracts/intentions';
+import type { WarlordForce, WarlordMoney } from '../../../contracts/intentions';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { Beliefs } from '../../../contracts/beliefs';
@@ -22,17 +22,24 @@ import {
   rushTowersAtLeast,
 } from '../tower-rush.assessments';
 
-export { type BuildTowersState, createBuildTowersState, updateBuildTowers };
+export {
+  type BuildTowersState,
+  createBuildTowersState,
+  updateBuildTowers,
+  towerBuildCosts,
+};
 
 interface BuildTowersState {
   // Build orders whose builder is still busy with them.
   pendingTowerSites: TowerSite[];
   // Repair orders on unfinished towers whose helper is still busy with them.
   towerHelpers: TowerHelper[];
+  // Whether a missing tower waits for the money reserved for it.
+  waitingForMoney: boolean;
 }
 
 function createBuildTowersState(): BuildTowersState {
-  return { pendingTowerSites: [], towerHelpers: [] };
+  return { pendingTowerSites: [], towerHelpers: [], waitingForMoney: false };
 }
 
 interface UpdateBuildTowersArgs {
@@ -106,7 +113,15 @@ function updateBuildTowers({
   // the beginning. An ordered tower can still fail when its builder arrives,
   // so free Peasants only help or hide once every tower has started; until
   // then they stay free to retry a failed build.
-  if (towerPositions.length + sitesAwaitingTower.length < RUSH_TOWER_COUNT) {
+  if (
+    towerPositions.length + sitesAwaitingTower.length < RUSH_TOWER_COUNT &&
+    canAffordAnotherTower({
+      money: force.money,
+      awaiting: sitesAwaitingTower.length,
+      buildTowersState,
+      recorder,
+    })
+  ) {
     const builder =
       freeWorkers[0] ??
       busyNonBuilder({ workersInForce, buildTowersState, recorder });
@@ -166,15 +181,15 @@ function updateBuildTowers({
   // From here the towers finish soon enough that the upgrade gold must
   // already be at hand, or the last upgrade waits for income.
   if (
-    !rush.reservingGoldForUpgrades &&
+    !rush.reservingForUpgrades &&
     rushTowersAtLeast({
       beliefs,
-      lifeFraction: ReserveUpgradeGoldLifeFraction,
+      lifeFraction: ReserveUpgradeMoneyLifeFraction,
     })
   ) {
-    rush.reservingGoldForUpgrades = true;
+    rush.reservingForUpgrades = true;
     recorder.note({
-      message: 'Tower rush: reserving gold for the Guard Tower upgrades.',
+      message: 'Tower rush: reserving money for the Guard Tower upgrades.',
     });
   }
 
@@ -185,6 +200,23 @@ function updateBuildTowers({
   };
 }
 
+// A Scout Tower is paid when its builder places it, so a tower that has
+// started costs nothing more.
+function towerBuildCosts({ beliefs }: { beliefs: Beliefs }): WarlordMoney {
+  const towersToBuild = Math.max(
+    0,
+    RUSH_TOWER_COUNT - beliefs.self.scoutTowers.length
+  );
+
+  return {
+    gold: towersToBuild * ScoutTowerGoldCost,
+    lumber: towersToBuild * ScoutTowerLumberCost,
+  };
+}
+
+// Warcraft's listed costs; not verified in-game.
+const ScoutTowerGoldCost = 30;
+const ScoutTowerLumberCost = 20;
 // Center distance at which a target still counts as within reach of the
 // upgraded tower (Guard Tower range is 700). Not verified in-game.
 const TowerReach = 700;
@@ -206,7 +238,37 @@ const MinTowerCenterOffset = 160;
 const StartedTowerMatchDistance = 64;
 const AttemptsNextToFirstTower = 10;
 const MaxBuildProgressWorthHelping = 0.5;
-const ReserveUpgradeGoldLifeFraction = 0.5;
+const ReserveUpgradeMoneyLifeFraction = 0.5;
+
+interface CanAffordAnotherTowerArgs {
+  money: WarlordMoney;
+  // Towers ordered but not yet placed, still to be paid from the same money.
+  awaiting: number;
+  buildTowersState: BuildTowersState;
+  recorder: DecisionRecorder;
+}
+
+// Notes when a missing tower starts waiting for its money.
+function canAffordAnotherTower({
+  money,
+  awaiting,
+  buildTowersState,
+  recorder,
+}: CanAffordAnotherTowerArgs): boolean {
+  const affordable =
+    money.gold >= (awaiting + 1) * ScoutTowerGoldCost &&
+    money.lumber >= (awaiting + 1) * ScoutTowerLumberCost;
+
+  if (!affordable && !buildTowersState.waitingForMoney) {
+    recorder.note({
+      message: `Tower rush: a Scout Tower waits for money (gold ${money.gold}, lumber ${money.lumber} reserved).`,
+    });
+  }
+
+  buildTowersState.waitingForMoney = !affordable;
+
+  return affordable;
+}
 
 interface TowerSite {
   builder: UnitId;

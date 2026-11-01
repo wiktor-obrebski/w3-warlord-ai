@@ -3,10 +3,11 @@
 The bot's Intention kinds, one module each: what it pursues for each kind of outcome, and how.
 
 - `execute-strategy/` — the committed strategy: it follows its playbook's phases and proposes each phase's Desires.
-- `establish-tower-position/` — the Human tower rush: Guard Towers next to the enemy main, funded by a home economy and kept repaired.
+- `establish-tower-position/` — the Human tower rush: Guard Towers next to the enemy main, kept repaired.
+- `run-economy/` — the home economy, built up as the build order in its goal says.
 
-A module's `*.kind.ts` declares the kind, as `@lib/chain-of-command` runs it: its pace, its conditions, its plans, and its failure policy. Each plan starts a run, a class implementing `WarlordPlanRun`, which the generic runtime steps at the kind's pace; a run keeps its own execution state and may propose requests. Larger runs are made of parts in the same module, such as the tower rush's establishing steps, home economy, and tower maintenance, which share the run's state.
+A module's `*.kind.ts` declares the kind, as `@lib/chain-of-command` runs it: its pace, its conditions, its plans, and its failure policy. Each plan starts a run, a class implementing `WarlordPlanRun`, which the generic runtime steps at the kind's pace; a run keeps its own execution state and may propose requests. Larger runs are made of parts in the same module, such as the tower rush's establishing steps and tower maintenance, which share the run's state.
 
-Each module has one public entry point, `*.api.ts`, exporting the function creating its kind and the Capabilities the kind needs; the rest of the module is internal. The adoption registry in `deliberation/` creates the kinds and supplies their Capabilities. A run declares the units it needs and is stepped with its force, the units Allocation granted it; through its Capabilities, it gives Directives to those units only, notes its decisions in the decision record, and, for now, makes a few direct Warcraft calls through the probes.
+Each module has one public entry point, `*.api.ts`, exporting the function creating its kind and the Capabilities the kind needs; the rest of the module is internal. The adoption registry in `deliberation/` creates the kinds and supplies their Capabilities. A run declares the units and money it needs and is stepped with its force, what Allocation granted it; through its Capabilities, it gives Directives to those units only, spends only that money, notes its decisions in the decision record, and, for now, makes a few direct Warcraft calls through the probes.
 
 Intention kinds import only `@lib/**`, `contracts/`, and their own module.

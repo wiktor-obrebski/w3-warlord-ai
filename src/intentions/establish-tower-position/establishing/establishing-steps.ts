@@ -1,14 +1,18 @@
 import { Point, Random } from '@lib/math';
 import type { Beliefs } from '../../../contracts/beliefs';
 import type { Directives } from '../../../contracts/directives';
-import type { WarlordForce } from '../../../contracts/intentions';
+import type { WarlordForce, WarlordMoney } from '../../../contracts/intentions';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { TowerRushState } from '../tower-rush.state';
 import { updateStart } from './start';
 import { createMoveForwardState, updateMoveForward } from './move-forward';
-import { createBuildTowersState, updateBuildTowers } from './build-towers';
-import { updateUpgradeTowers } from './upgrade-towers';
+import {
+  createBuildTowersState,
+  towerBuildCosts,
+  updateBuildTowers,
+} from './build-towers';
+import { updateUpgradeTowers, upgradeCosts } from './upgrade-towers';
 
 export { EstablishingSteps, type EstablishingStepsCapabilities };
 
@@ -60,6 +64,25 @@ class EstablishingSteps {
     return this.step === STEP.UPGRADE_TOWERS;
   }
 
+  /**
+   * The money for the towers still to be built, while they are, and for the
+   * upgrades still to start, once the towers are far enough along.
+   */
+  public moneyNeeded({ beliefs }: { beliefs: Beliefs }): WarlordMoney {
+    const towers =
+      this.step === STEP.BUILD_TOWERS
+        ? towerBuildCosts({ beliefs })
+        : { gold: 0, lumber: 0 };
+    const upgrades = this.rush.reservingForUpgrades
+      ? upgradeCosts({ beliefs })
+      : { gold: 0, lumber: 0 };
+
+    return {
+      gold: towers.gold + upgrades.gold,
+      lumber: towers.lumber + upgrades.lumber,
+    };
+  }
+
   public update({ beliefs, force }: EstablishingStepsUpdateArgs) {
     if (this.hasEstablished) {
       throw new Error('Establishing steps: updated after they ended.');
@@ -69,13 +92,7 @@ class EstablishingSteps {
 
     switch (this.step) {
       case STEP.START:
-        updateStart({
-          beliefs,
-          rush: this.rush,
-          directives,
-          probes,
-          recorder,
-        });
+        updateStart({ beliefs, rush: this.rush, force, directives });
         this.advanceTo({ nextStep: STEP.MOVE_FORWARD });
         break;
 

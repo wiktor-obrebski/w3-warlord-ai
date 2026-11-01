@@ -23,8 +23,8 @@ interface CreateEstablishTowerPositionKindArgs {
 }
 
 /**
- * Guard Towers established next to the enemy main and kept repaired, funded
- * by a home economy, for as long as the strategy wants them.
+ * Guard Towers established next to the enemy main and kept repaired, for as
+ * long as the strategy wants them.
  */
 function createEstablishTowerPositionKind({
   capabilities,

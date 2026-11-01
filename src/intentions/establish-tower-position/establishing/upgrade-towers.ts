@@ -1,15 +1,13 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import type { UnitId } from '../../../contracts/ids';
 import type { Directives } from '../../../contracts/directives';
-import type { WarlordForce } from '../../../contracts/intentions';
+import type { WarlordForce, WarlordMoney } from '../../../contracts/intentions';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { Point, Vector } from '@lib/math';
 import type { Beliefs } from '../../../contracts/beliefs';
 import { completedLumberMill, positionOf } from '../tower-rush.assessments';
 
-export { GUARD_TOWER_UPGRADE_GOLD_COST, updateUpgradeTowers };
-
-const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
+export { updateUpgradeTowers, upgradeCosts };
 
 interface UpdateUpgradeTowersArgs {
   beliefs: Beliefs;
@@ -22,9 +20,9 @@ interface UpdateUpgradeTowersArgs {
 /**
  * Returns whether every rush tower has become a Guard Tower (`allUpgraded`).
  *
- * Each completed Scout Tower is upgraded as soon as the player can afford it,
- * in the order the towers are stored, so a short budget upgrades them one by
- * one without waiting for the others to finish.
+ * Each completed Scout Tower is upgraded as soon as the money reserved for
+ * the run covers it, in the order the towers are stored, so a short budget
+ * upgrades them one by one without waiting for the others to finish.
  */
 function updateUpgradeTowers({
   beliefs,
@@ -36,7 +34,7 @@ function updateUpgradeTowers({
   const towers = towerPositions.map((position) =>
     plannedTowerAt({ position, beliefs })
   );
-  const budget = { gold: beliefs.self.gold, lumber: beliefs.self.lumber };
+  const budget = { gold: force.money.gold, lumber: force.money.lumber };
 
   for (const tower of towers) {
     if (
@@ -57,6 +55,20 @@ function updateUpgradeTowers({
   };
 }
 
+// A Guard Tower upgrade is paid when it starts, so an upgrading tower costs
+// nothing more.
+function upgradeCosts({ beliefs }: { beliefs: Beliefs }): WarlordMoney {
+  const towersAwaitingUpgrade = beliefs.self.scoutTowers.filter(
+    (tower) => !beliefs.self.buildingsUpgrading.includes(tower)
+  ).length;
+
+  return {
+    gold: towersAwaitingUpgrade * GuardTowerUpgradeGoldCost,
+    lumber: towersAwaitingUpgrade * GuardTowerUpgradeLumberCost,
+  };
+}
+
+const GuardTowerUpgradeGoldCost = 70;
 const GuardTowerUpgradeLumberCost = 50;
 // Towers do not move, so their stored position matches closely; rush towers
 // stand at least 160 apart.
@@ -130,7 +142,7 @@ interface CanAffordGuardTowerArgs {
 
 function canAffordGuardTower({ budget }: CanAffordGuardTowerArgs) {
   return (
-    budget.gold >= GUARD_TOWER_UPGRADE_GOLD_COST &&
+    budget.gold >= GuardTowerUpgradeGoldCost &&
     budget.lumber >= GuardTowerUpgradeLumberCost
   );
 }
@@ -159,6 +171,6 @@ function orderGuardTower({
   recorder.note({
     message: `Tower rush: Guard Tower upgrade ordered (gold ${budget.gold}, lumber ${budget.lumber}).`,
   });
-  budget.gold -= GUARD_TOWER_UPGRADE_GOLD_COST;
+  budget.gold -= GuardTowerUpgradeGoldCost;
   budget.lumber -= GuardTowerUpgradeLumberCost;
 }
