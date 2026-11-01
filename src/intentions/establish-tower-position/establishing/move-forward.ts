@@ -5,7 +5,7 @@ import type { WarlordForce } from '../../../contracts/intentions';
 import type { GoldMine } from '../../../contracts/world';
 import type { Beliefs } from '../../../contracts/beliefs';
 import { TowerRushState } from '../tower-rush.state';
-import { positionOf } from '../tower-rush.assessments';
+import { positionOf } from '../tower-rush.judgments';
 
 export { type MoveForwardState, createMoveForwardState, updateMoveForward };
 

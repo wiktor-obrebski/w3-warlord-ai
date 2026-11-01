@@ -22,7 +22,7 @@ import { LUMBER_MILL_GOLD_COST, orderLumberMill } from './lumber-mill';
 import {
   lumberDestructablesByPreference,
   positionOf,
-} from './run-economy.assessments';
+} from './run-economy.judgments';
 import type { RunEconomyCapabilities } from './run-economy.kind';
 
 export { HumanEconomyRun };

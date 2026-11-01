@@ -2,7 +2,7 @@ import type { Beliefs } from '../../../contracts/beliefs';
 import type { Directives } from '../../../contracts/directives';
 import type { WarlordForce } from '../../../contracts/intentions';
 import { TowerRushState } from '../tower-rush.state';
-import { FORWARD_WORKER_COUNT } from '../tower-rush.assessments';
+import { FORWARD_WORKER_COUNT } from '../tower-rush.judgments';
 
 export { updateStart };
 

@@ -146,7 +146,7 @@ src/
 ├─ beliefs/       the belief models, revising the Beliefs from the observations
 ├─ desires/       outcome identity and the concerns
 ├─ deliberation/  the adoption registry: which Intention kind pursues each kind of outcome
-├─ intentions/    one module per Intention kind: the *.api.ts entry point, *.kind.ts, its plans' runs, their parts, and *.assessments.ts
+├─ intentions/    one module per Intention kind: the *.api.ts entry point, *.kind.ts, its plans' runs, their parts, and *.judgments.ts, its private interpretations of the Beliefs
 ├─ playbooks/     the strategies as data, with their build orders: the Human tower rush
 ├─ unit-behaviors/ what every own unit does each step: the workers' reflex, then the Directive its owner gave it
 └─ privileged/    installation and debug-mode code beyond normal gameplay

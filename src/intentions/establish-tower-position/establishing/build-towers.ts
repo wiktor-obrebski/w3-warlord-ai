@@ -20,7 +20,7 @@ import {
   positionOf,
   RUSH_TOWER_COUNT,
   rushTowersAtLeast,
-} from '../tower-rush.assessments';
+} from '../tower-rush.judgments';
 
 export {
   type BuildTowersState,

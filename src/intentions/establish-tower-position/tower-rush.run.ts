@@ -9,7 +9,7 @@ import type {
 } from '../../contracts/intentions';
 import type { EstablishTowerPositionCapabilities } from './establish-tower-position.kind';
 import { createTowerRushState } from './tower-rush.state';
-import { FORWARD_WORKER_COUNT } from './tower-rush.assessments';
+import { FORWARD_WORKER_COUNT } from './tower-rush.judgments';
 import { EstablishingSteps } from './establishing/establishing-steps';
 import { TowerMaintenance } from './tower-maintenance';
 

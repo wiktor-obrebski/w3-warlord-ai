@@ -14,7 +14,7 @@ import {
   lifeFractionOf,
   mostDamagedUnit,
   ownUnit,
-} from './tower-rush.assessments';
+} from './tower-rush.judgments';
 
 export { TowerMaintenance, type TowerMaintenanceCapabilities };
 

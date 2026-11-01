@@ -5,7 +5,7 @@ import type { WarlordForce, WarlordMoney } from '../../../contracts/intentions';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { Point, Vector } from '@lib/math';
 import type { Beliefs } from '../../../contracts/beliefs';
-import { completedLumberMill, positionOf } from '../tower-rush.assessments';
+import { completedLumberMill, positionOf } from '../tower-rush.judgments';
 
 export { updateUpgradeTowers, upgradeCosts };
 

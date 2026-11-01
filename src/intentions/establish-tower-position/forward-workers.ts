@@ -5,7 +5,7 @@ import type { WarlordForce } from '../../contracts/intentions';
 import type { DecisionRecorder } from '../../contracts/record';
 import type { Beliefs } from '../../contracts/beliefs';
 import { TowerRushState } from './tower-rush.state';
-import { closestUnit, positionOf } from './tower-rush.assessments';
+import { closestUnit, positionOf } from './tower-rush.judgments';
 
 export { hideBehindClosestTower, forgetSentToSafety, forwardPeasantsInForce };
 

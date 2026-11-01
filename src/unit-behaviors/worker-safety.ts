@@ -9,7 +9,7 @@ import {
   isRecentlyAttacked,
   nearbyThreats,
   threatCenter,
-} from './worker-safety.assessments';
+} from './worker-safety.judgments';
 
 export { WorkerSafety, type WorkerSafetyCapabilities };
 

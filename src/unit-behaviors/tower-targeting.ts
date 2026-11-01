@@ -6,7 +6,7 @@ import {
   RankedTarget,
   rankTowerTargets,
   TARGET_PRIORITY,
-} from './tower-targeting.assessments';
+} from './tower-targeting.judgments';
 
 export { TowerTargeting, type TowerTargetingCapabilities };
 
