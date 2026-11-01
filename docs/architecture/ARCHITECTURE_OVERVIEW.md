@@ -84,7 +84,9 @@ Every 0.1 s, the same phases run:
 
 The full table, with the rule behind it, is in the [architecture](ARCHITECTURE.md#5-where-a-new-behavior-goes).
 
-## Read next
+## Further reading
+
+These go deeper than most tasks need; read one when this overview is not enough.
 
 - [Introduction](../research/RTS_ARCHITECTURE_INTRODUCTION.md): the architecture built up one idea at a time, around one moment of one game.
 - [Architecture](ARCHITECTURE.md): every rule, and why.

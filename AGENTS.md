@@ -10,10 +10,12 @@ The project is primarily written in **TypeScript**, compiled with **TypeScriptTo
 
 For project architecture:
 
-- [`docs/architecture/ARCHITECTURE_OVERVIEW.md`](docs/architecture/ARCHITECTURE_OVERVIEW.md) — **default architectural reference**. Read this for a quick understanding of the system, concepts, responsibilities, and where things belong.
-- [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) — **detailed architecture reference**: the bot as it is today, the runtime environment, the source layout, and links to the full architecture documents. Consult it when deeper architectural context is relevant, such as when making architectural decisions, introducing or changing concepts, deciding file/module ownership or structure, modifying boundaries between subsystems, or when the overview is insufficient to answer an architectural question confidently.
+- [`docs/architecture/ARCHITECTURE_OVERVIEW.md`](docs/architecture/ARCHITECTURE_OVERVIEW.md) — **default architectural reference**. Read it at the start of every session, before working on the code, for a quick understanding of the system, concepts, responsibilities, and where things belong.
+- [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md) — **detailed architecture reference**: every concept and rule, with its reasons. It is long: read only the sections a task needs, which the [glossary](docs/architecture/GLOSSARY.md) links term by term. Consult it when deeper architectural context is relevant, such as when making architectural decisions, introducing or changing concepts, deciding file/module ownership or structure, modifying boundaries between subsystems, or when the overview is insufficient to answer an architectural question confidently.
+- [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) — the bot as it is today, the runtime environment, and the source layout with its import rules. Consult it when a task depends on them, such as deciding where new code goes.
+- [`docs/WIP_ARCHITECTURE_MIGRATION.md`](docs/WIP_ARCHITECTURE_MIGRATION.md) — the parts of the architecture not built yet. The overview describes the whole architecture, so check this before relying on a part of it existing in the code.
 
-Do **not** read the full architecture documents by default for routine implementation work. Start from the overview and existing local code, and consult the detailed documents when the task warrants it.
+Do **not** read the detailed architecture reference or the research archive (`docs/research/`) by default for routine implementation work. Start from the overview and existing local code, and consult the detailed documents when the task warrants it.
 
 Do not duplicate architectural documentation in this file.
 
@@ -56,7 +58,7 @@ Keep changes focused and reviewable.
 
 Use `docs/architecture/ARCHITECTURE_OVERVIEW.md` as the normal guide to the architecture.
 
-Consult `docs/IMPLEMENTATION.md` and the documents it links when deeper understanding is needed, especially when:
+Consult the sections of `docs/architecture/ARCHITECTURE.md` that the task needs when deeper understanding is needed, especially when:
 
 - making or evaluating an architectural decision,
 - introducing a new architectural concept,
