@@ -1,14 +1,14 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
 import { Point, Random, Vector } from '@lib/math';
-import type { ActorControl } from '../../../contracts/actor-control';
 import type { UnitId } from '../../../contracts/ids';
 import type { Directives } from '../../../contracts/directives';
+import type { WarlordForce } from '../../../contracts/intentions';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import type { Beliefs } from '../../../contracts/beliefs';
 import { TowerRushState } from '../tower-rush.state';
 import {
-  controlForwardPeasants,
+  forwardPeasantsInForce,
   forgetSentToSafety,
   hideBehindClosestTower,
 } from '../forward-workers';
@@ -39,7 +39,7 @@ interface UpdateBuildTowersArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
   buildTowersState: BuildTowersState;
-  actorControl: ActorControl;
+  force: WarlordForce;
   directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
@@ -60,7 +60,7 @@ function updateBuildTowers({
   beliefs,
   rush,
   buildTowersState,
-  actorControl,
+  force,
   directives,
   probes,
   recorder,
@@ -85,12 +85,8 @@ function updateBuildTowers({
   const sitesAwaitingTower = buildTowersState.pendingTowerSites.filter(
     (site) => !hasStartedTower({ site, towerPositions })
   );
-  const controlledWorkers = controlForwardPeasants({
-    beliefs,
-    rush,
-    actorControl,
-  });
-  const freeWorkers = controlledWorkers.filter((worker) =>
+  const workersInForce = forwardPeasantsInForce({ beliefs, rush, force });
+  const freeWorkers = workersInForce.filter((worker) =>
     isAvailableForwardPeasant({ beliefs, worker })
   );
 
@@ -113,7 +109,7 @@ function updateBuildTowers({
   if (towerPositions.length + sitesAwaitingTower.length < RUSH_TOWER_COUNT) {
     const builder =
       freeWorkers[0] ??
-      busyNonBuilder({ controlledWorkers, buildTowersState, recorder });
+      busyNonBuilder({ workersInForce, buildTowersState, recorder });
 
     if (builder) {
       forgetSentToSafety({ worker: builder, rush });
@@ -230,24 +226,24 @@ interface PlacementRules {
 }
 
 interface BusyNonBuilderArgs {
-  controlledWorkers: readonly UnitId[];
+  workersInForce: readonly UnitId[];
   buildTowersState: BuildTowersState;
   recorder: DecisionRecorder;
 }
 
 // A missing tower must not wait for a free Peasant: Warcraft can keep a
 // Peasant busy on its own, e.g. attacking or repairing, until the other
-// towers finish. Any controlled forward Peasant that is not building a tower
-// is taken off its order instead.
+// towers finish. Any forward Peasant of the force that is not building a
+// tower is taken off its order instead.
 function busyNonBuilder({
-  controlledWorkers,
+  workersInForce,
   buildTowersState,
   recorder,
 }: BusyNonBuilderArgs): UnitId | undefined {
   const builders = buildTowersState.pendingTowerSites.map(
     (site) => site.builder
   );
-  const worker = controlledWorkers.find(
+  const worker = workersInForce.find(
     (candidate) => !builders.includes(candidate)
   );
 

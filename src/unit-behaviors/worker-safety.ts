@@ -1,5 +1,4 @@
 import { Point, Random, Vector } from '@lib/math';
-import type { ActorControl } from '../contracts/actor-control';
 import type { UnitId } from '../contracts/ids';
 import type { OrderQueue } from '../contracts/orders';
 import type { WarcraftProbes } from '../contracts/probes';
@@ -15,7 +14,6 @@ import {
 export { WorkerSafety, type WorkerSafetyCapabilities };
 
 interface WorkerSafetyCapabilities {
-  readonly actorControl: ActorControl;
   readonly orders: OrderQueue;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
@@ -47,10 +45,9 @@ interface WorkerSafetyForgetLostWorkersArgs {
  * The workers' reflex: attacked workers run away from the nearby enemy
  * force.
  *
- * From the first attack until the worker is safe again, worker safety holds
- * preemptive control of it, taking it from whatever controlled it before, and
- * releases it by no longer requesting it. While recovering, the worker is not
- * ordered at all.
+ * From the first attack until the worker is safe again, worker safety claims
+ * it, whoever owns it, so no plan run directs it. While recovering, the
+ * worker is not ordered at all.
  */
 class WorkerSafety {
   private readonly capabilities: WorkerSafetyCapabilities;
@@ -65,23 +62,16 @@ class WorkerSafety {
     this.capabilities = capabilities;
   }
 
-  /** Claims the workers that are not safe, under preemptive control. */
+  /** Claims the workers that are not safe, for this step. */
   public claim({ beliefs }: WorkerSafetyClaimArgs) {
     this.forgetLostWorkers({ beliefs });
     this.rememberAttacks({ beliefs });
     this.protecting = new Set();
 
     for (const worker of beliefs.self.workers) {
-      const isUnsafe =
-        this.fleeRounds.has(worker.unit) ||
-        this.lastAttackedAt.has(worker.unit);
-
       if (
-        isUnsafe &&
-        this.capabilities.actorControl.request({
-          actor: worker.unit,
-          request: 'preemptive',
-        })
+        this.fleeRounds.has(worker.unit) ||
+        this.lastAttackedAt.has(worker.unit)
       ) {
         this.protecting.add(worker.unit);
       }

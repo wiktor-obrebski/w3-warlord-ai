@@ -1,7 +1,7 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
-import type { ActorControl } from '../../contracts/actor-control';
 import type { UnitId } from '../../contracts/ids';
 import type { Directives } from '../../contracts/directives';
+import type { WarlordForce } from '../../contracts/intentions';
 import type { OrderTarget } from '../../contracts/orders';
 import type { WarcraftProbes } from '../../contracts/probes';
 import type { DecisionRecorder } from '../../contracts/record';
@@ -17,7 +17,6 @@ export {
 };
 
 interface TowerRushEconomyControllerCapabilities {
-  readonly actorControl: ActorControl;
   readonly directives: Directives;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
@@ -30,12 +29,13 @@ interface TowerRushEconomyControllerConstructorArgs {
 
 interface TowerRushEconomyControllerUpdateArgs {
   beliefs: Beliefs;
+  force: WarlordForce;
 }
 
 /**
- * The home economy that funds the tower rush. The Town Hall and every home
- * worker are requested on each update, so they stay controlled for as long as
- * the economy runs; one taken over meanwhile is left alone.
+ * The home economy that funds the tower rush. It directs only the Town Hall
+ * and home workers of the run's force, so one a reflex claimed is left
+ * alone.
  */
 class TowerRushEconomyController {
   private readonly rush: TowerRushState;
@@ -49,14 +49,11 @@ class TowerRushEconomyController {
     this.capabilities = capabilities;
   }
 
-  public update({ beliefs }: TowerRushEconomyControllerUpdateArgs) {
-    const { actorControl, directives, probes, recorder } = this.capabilities;
+  public update({ beliefs, force }: TowerRushEconomyControllerUpdateArgs) {
+    const { directives, probes, recorder } = this.capabilities;
     const townHall =
-      beliefs.self.townHall &&
-      actorControl.request({
-        actor: beliefs.self.townHall,
-        request: 'normal',
-      })
+      beliefs.self.townHall !== undefined &&
+      force.units.has(beliefs.self.townHall)
         ? beliefs.self.townHall
         : undefined;
 
@@ -66,7 +63,7 @@ class TowerRushEconomyController {
       beliefs,
       rush: this.rush,
       townHall,
-      actorControl,
+      force,
       directives,
       probes,
       recorder,
@@ -74,7 +71,7 @@ class TowerRushEconomyController {
     returnIdleWorkersToTheirResource({
       beliefs,
       rush: this.rush,
-      actorControl,
+      force,
       directives,
       probes,
       recorder,
@@ -179,7 +176,7 @@ interface AssignNewHomeWorkersArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
   townHall: UnitId | undefined;
-  actorControl: ActorControl;
+  force: WarlordForce;
   directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
@@ -192,7 +189,7 @@ function assignNewHomeWorkers({
   beliefs,
   rush,
   townHall,
-  actorControl,
+  force,
   directives,
   probes,
   recorder,
@@ -218,7 +215,7 @@ function assignNewHomeWorkers({
 
     if (
       !beliefs.self.harvestingUnits.includes(peasant) &&
-      actorControl.request({ actor: peasant, request: 'normal' })
+      force.units.has(peasant)
     ) {
       orderHarvest({
         worker: peasant,
@@ -312,7 +309,7 @@ function describeWorkers({ rush }: { rush: TowerRushState }): string {
 interface ReturnIdleWorkersToTheirResourceArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
-  actorControl: ActorControl;
+  force: WarlordForce;
   directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
@@ -321,15 +318,13 @@ interface ReturnIdleWorkersToTheirResourceArgs {
 function returnIdleWorkersToTheirResource({
   beliefs,
   rush,
-  actorControl,
+  force,
   directives,
   probes,
   recorder,
 }: ReturnIdleWorkersToTheirResourceArgs) {
-  // Requested before checking idleness, so busy workers stay controlled too.
   const isReturning = ({ worker }: { worker: UnitId }) =>
-    actorControl.request({ actor: worker, request: 'normal' }) &&
-    beliefs.self.idleUnits.includes(worker);
+    force.units.has(worker) && beliefs.self.idleUnits.includes(worker);
 
   for (const worker of rush.goldWorkers) {
     if (isReturning({ worker })) {

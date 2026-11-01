@@ -1,5 +1,4 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
-import type { ActorControl } from '../../../contracts/actor-control';
 import type { Directives } from '../../../contracts/directives';
 import type { UnitId } from '../../../contracts/ids';
 import type { WarcraftProbes } from '../../../contracts/probes';
@@ -15,7 +14,6 @@ export { updateStart };
 interface UpdateStartArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
-  actorControl: ActorControl;
   directives: Directives;
   probes: WarcraftProbes;
   recorder: DecisionRecorder;
@@ -24,7 +22,6 @@ interface UpdateStartArgs {
 function updateStart({
   beliefs,
   rush,
-  actorControl,
   directives,
   probes,
   recorder,
@@ -56,15 +53,6 @@ function updateStart({
   rush.forwardWorkers = beliefs.self.peasants.slice(0, ForwardWorkerCount);
   rush.goldWorkers = [homeWorker];
   rush.lumberWorkers = [lumberMillBuilder];
-
-  // Nothing else has had a chance to claim the starting units yet.
-  for (const actor of [...beliefs.self.peasants, townHall]) {
-    if (!actorControl.request({ actor, request: 'normal' })) {
-      throw new Error(
-        'Tower rush start: a starting unit is already controlled.'
-      );
-    }
-  }
 
   for (const worker of rush.forwardWorkers) {
     directives.give({

@@ -1,12 +1,12 @@
-import type { ActorControl } from '../../contracts/actor-control';
 import type { UnitId } from '../../contracts/ids';
 import type { Directives } from '../../contracts/directives';
+import type { WarlordForce } from '../../contracts/intentions';
 import type { DecisionRecorder } from '../../contracts/record';
 import type { Beliefs } from '../../contracts/beliefs';
 import { TowerRushState } from './tower-rush.state';
 import {
-  controlForwardPeasants,
   forgetSentToSafety,
+  forwardPeasantsInForce,
   hideBehindClosestTower,
 } from './forward-workers';
 import {
@@ -22,7 +22,6 @@ export {
 };
 
 interface TowerMaintenanceControllerCapabilities {
-  readonly actorControl: ActorControl;
   readonly directives: Directives;
   readonly recorder: DecisionRecorder;
 }
@@ -34,10 +33,11 @@ interface TowerMaintenanceControllerConstructorArgs {
 
 interface TowerMaintenanceControllerUpdateArgs {
   beliefs: Beliefs;
+  force: WarlordForce;
 }
 
 /**
- * The forward Peasants it controls repair the most damaged tower, and hide
+ * The forward Peasants of the force repair the most damaged tower, and hide
  * behind the towers when none needs repair. Only to be used once every rush
  * tower is built, so a tower's life fraction reflects damage, not build
  * progress.
@@ -56,14 +56,14 @@ class TowerMaintenanceController {
     this.capabilities = capabilities;
   }
 
-  public update({ beliefs }: TowerMaintenanceControllerUpdateArgs) {
+  public update({ beliefs, force }: TowerMaintenanceControllerUpdateArgs) {
     const enemyMain = beliefs.enemy.startPosition;
 
     if (!enemyMain) {
       throw new Error('Tower rush: enemy start position not found.');
     }
 
-    const { actorControl, directives, recorder } = this.capabilities;
+    const { directives, recorder } = this.capabilities;
     const towers = [...beliefs.self.scoutTowers, ...beliefs.self.guardTowers];
     const previousTarget = this.repairTarget;
     const repairTarget = chooseRepairTarget({
@@ -82,10 +82,10 @@ class TowerMaintenanceController {
       });
     }
 
-    for (const worker of controlForwardPeasants({
+    for (const worker of forwardPeasantsInForce({
       beliefs,
       rush: this.rush,
-      actorControl,
+      force,
     })) {
       if (repairTarget) {
         if (targetChanged || !beliefs.self.repairingUnits.includes(worker)) {

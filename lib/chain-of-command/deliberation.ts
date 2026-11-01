@@ -13,17 +13,17 @@ interface DeliberationDeliberateArgs<TOutcome, TBeliefs> {
   beliefs: TBeliefs;
 }
 
-interface DeliberationCycle<TOutcome, TBeliefs> {
+interface DeliberationCycle<TOutcome, TBeliefs, TUnit> {
   /**
    * The unfinished Intentions, by their Desires' rank, then weight, then
    * adoption order: the order in which they are stepped.
    */
-  readonly agenda: readonly Intention<TOutcome, TBeliefs, TOutcome>[];
+  readonly agenda: readonly Intention<TOutcome, TBeliefs, TOutcome, TUnit>[];
   readonly events: readonly IntentionEvent[];
 }
 
 /** Decides which Intentions the agent pursues, and owns their lifecycle. */
-interface Deliberation<TOutcome, TBeliefs> {
+interface Deliberation<TOutcome, TBeliefs, TUnit> {
   /**
    * Runs one deliberation cycle. An Intention is dropped when its Desire is
    * gone or vetoed, and finished when its kind's achieved or impossible
@@ -38,26 +38,28 @@ interface Deliberation<TOutcome, TBeliefs> {
     beliefs,
   }: DeliberationDeliberateArgs<TOutcome, TBeliefs>): DeliberationCycle<
     TOutcome,
-    TBeliefs
+    TBeliefs,
+    TUnit
   >;
 }
 
-interface CreateDeliberationArgs<TOutcome, TBeliefs> {
+interface CreateDeliberationArgs<TOutcome, TBeliefs, TUnit> {
   // The kind of Intention that pursues the outcome.
   kindOf: ({
     outcome,
   }: {
     outcome: TOutcome;
-  }) => IntentionKind<TOutcome, TBeliefs, TOutcome>;
+  }) => IntentionKind<TOutcome, TBeliefs, TOutcome, TUnit>;
 }
 
-function createDeliberation<TOutcome, TBeliefs>({
+function createDeliberation<TOutcome, TBeliefs, TUnit>({
   kindOf,
-}: CreateDeliberationArgs<TOutcome, TBeliefs>): Deliberation<
+}: CreateDeliberationArgs<TOutcome, TBeliefs, TUnit>): Deliberation<
   TOutcome,
-  TBeliefs
+  TBeliefs,
+  TUnit
 > {
-  let agenda: Intention<TOutcome, TBeliefs, TOutcome>[] = [];
+  let agenda: Intention<TOutcome, TBeliefs, TOutcome, TUnit>[] = [];
   let lastSequence = 0;
   // The Desires whose last Intention gave up.
   const mustLapse = new Set<string>();
@@ -83,7 +85,7 @@ function createDeliberation<TOutcome, TBeliefs>({
         }
       }
 
-      const retained: AgendaEntry<TOutcome, TBeliefs>[] = [];
+      const retained: AgendaEntry<TOutcome, TBeliefs, TUnit>[] = [];
 
       for (const intention of agenda) {
         const desire = desiresById.get(intention.desireId);
@@ -148,15 +150,15 @@ function createDeliberation<TOutcome, TBeliefs>({
   };
 }
 
-interface AgendaEntry<TOutcome, TBeliefs> {
-  intention: Intention<TOutcome, TBeliefs, TOutcome>;
+interface AgendaEntry<TOutcome, TBeliefs, TUnit> {
+  intention: Intention<TOutcome, TBeliefs, TOutcome, TUnit>;
   desire: Desire<TOutcome>;
 }
 
 // Adoption order settles ties, since Lua's sort is not stable.
-function agendaOrder<TOutcome, TBeliefs>(
-  a: AgendaEntry<TOutcome, TBeliefs>,
-  b: AgendaEntry<TOutcome, TBeliefs>
+function agendaOrder<TOutcome, TBeliefs, TUnit>(
+  a: AgendaEntry<TOutcome, TBeliefs, TUnit>,
+  b: AgendaEntry<TOutcome, TBeliefs, TUnit>
 ): number {
   const byStrength = strongerFirst(a.desire.best, b.desire.best);
 
@@ -165,19 +167,19 @@ function agendaOrder<TOutcome, TBeliefs>(
     : a.intention.sequence - b.intention.sequence;
 }
 
-interface ReconsiderArgs<TOutcome, TBeliefs> {
-  intention: Intention<TOutcome, TBeliefs, TOutcome>;
+interface ReconsiderArgs<TOutcome, TBeliefs, TUnit> {
+  intention: Intention<TOutcome, TBeliefs, TOutcome, TUnit>;
   desire: Desire<TOutcome> | undefined;
   beliefs: TBeliefs;
 }
 
 // An Intention that finished while it was stepped leaves the agenda without
 // an event, since its step already reported the change.
-function reconsider<TOutcome, TBeliefs>({
+function reconsider<TOutcome, TBeliefs, TUnit>({
   intention,
   desire,
   beliefs,
-}: ReconsiderArgs<TOutcome, TBeliefs>): IntentionEvent | undefined {
+}: ReconsiderArgs<TOutcome, TBeliefs, TUnit>): IntentionEvent | undefined {
   if (intention.status === 'finished') {
     return undefined;
   }

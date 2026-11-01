@@ -1,3 +1,4 @@
+import type { Force, UnitNeed } from './allocation';
 import type { Proposal } from './desires';
 
 export {
@@ -24,10 +25,10 @@ interface IntentionConditionArgs<TGoal, TBeliefs> {
  * condition returns its reason while it holds, and null otherwise; an
  * omitted condition never holds.
  */
-interface IntentionKind<TGoal, TBeliefs, TOutcome> {
+interface IntentionKind<TGoal, TBeliefs, TOutcome, TUnit> {
   // How often an Intention of the kind is stepped, in seconds.
   readonly paceSeconds: number;
-  readonly plans: readonly Plan<TGoal, TBeliefs, TOutcome>[];
+  readonly plans: readonly Plan<TGoal, TBeliefs, TOutcome, TUnit>[];
   readonly failure: FailurePolicy;
 
   achieved?({
@@ -48,7 +49,7 @@ interface IntentionKind<TGoal, TBeliefs, TOutcome> {
 }
 
 /** One way to pursue an Intention. Each attempt at it is a run. */
-interface Plan<TGoal, TBeliefs, TOutcome> {
+interface Plan<TGoal, TBeliefs, TOutcome, TUnit> {
   readonly name: string;
   // Of the applicable plans, the one with the highest preference runs; on a
   // tie, the one listed first.
@@ -62,24 +63,31 @@ interface Plan<TGoal, TBeliefs, TOutcome> {
   start({
     goal,
     beliefs,
-  }: IntentionConditionArgs<TGoal, TBeliefs>): PlanRun<TBeliefs, TOutcome>;
+  }: IntentionConditionArgs<TGoal, TBeliefs>): PlanRun<
+    TBeliefs,
+    TOutcome,
+    TUnit
+  >;
 }
 
-interface PlanRunStepArgs<TBeliefs> {
+interface PlanRunStepArgs<TBeliefs, TUnit> {
   beliefs: TBeliefs;
+  // The units Allocation last granted for the run's needs.
+  force: Force<TUnit>;
 }
 
 /** One attempt at a plan, stepped at its Intention's pace. */
-interface PlanRun<TBeliefs, TOutcome> {
-  step({ beliefs }: PlanRunStepArgs<TBeliefs>): PlanStep;
+interface PlanRun<TBeliefs, TOutcome, TUnit> {
+  step({ beliefs, force }: PlanRunStepArgs<TBeliefs, TUnit>): PlanStep;
+
+  /** The units the run needs now, asked every Allocation round. */
+  needs?({ beliefs }: { beliefs: TBeliefs }): readonly UnitNeed<TUnit>[];
 
   /**
    * The Desires the run proposes for goals its Intention depends on but does
    * not pursue itself, asked every deliberation cycle.
    */
-  requests?({
-    beliefs,
-  }: PlanRunStepArgs<TBeliefs>): readonly Proposal<TOutcome>[];
+  requests?({ beliefs }: { beliefs: TBeliefs }): readonly Proposal<TOutcome>[];
 }
 
 type PlanStep =
@@ -120,17 +128,23 @@ interface IntentionEvent {
   readonly reason?: string;
 }
 
-interface IntentionConstructorArgs<TGoal, TBeliefs, TOutcome> {
+interface IntentionConstructorArgs<TGoal, TBeliefs, TOutcome, TUnit> {
   desireId: string;
   goal: TGoal;
-  kind: IntentionKind<TGoal, TBeliefs, TOutcome>;
+  kind: IntentionKind<TGoal, TBeliefs, TOutcome, TUnit>;
   // The order of adoption, which breaks ties on the agenda.
   sequence: number;
 }
 
-interface IntentionStepArgs<TBeliefs> {
+interface IntentionNeedsArgs<TBeliefs> {
   beliefs: TBeliefs;
   now: number;
+}
+
+interface IntentionStepArgs<TBeliefs, TUnit> {
+  beliefs: TBeliefs;
+  now: number;
+  force: Force<TUnit>;
 }
 
 interface IntentionPauseArgs {
@@ -150,6 +164,13 @@ interface IntentionChoosePlanArgs<TBeliefs> {
   now: number;
 }
 
+interface IntentionStartPlanArgs<TBeliefs> {
+  beliefs: TBeliefs;
+  now: number;
+  // Where the plan's start is reported.
+  events: IntentionEvent[];
+}
+
 interface IntentionExhaustArgs {
   reason: string;
   now: number;
@@ -161,31 +182,32 @@ interface IntentionExhaustArgs {
  * steps its run at the kind's pace, and applies the failure policy when a
  * run fails. Deliberation pauses, resumes, and finishes it.
  */
-class Intention<TGoal, TBeliefs, TOutcome> {
+class Intention<TGoal, TBeliefs, TOutcome, TUnit> {
   public readonly desireId: string;
   public readonly goal: TGoal;
-  public readonly kind: IntentionKind<TGoal, TBeliefs, TOutcome>;
+  public readonly kind: IntentionKind<TGoal, TBeliefs, TOutcome, TUnit>;
   public readonly sequence: number;
   private currentStatus: IntentionStatus = 'active';
   private finishedGivingUp = false;
   // Set only while waiting to recur, not while a pause condition holds.
   private recurAt: number | undefined;
-  private plan: Plan<TGoal, TBeliefs, TOutcome> | undefined;
-  private run: PlanRun<TBeliefs, TOutcome> | undefined;
+  private attempt: Attempt<TGoal, TBeliefs, TOutcome, TUnit> | undefined;
   private failedRuns = 0;
   private readonly excludedUntil = new Map<
-    Plan<TGoal, TBeliefs, TOutcome>,
+    Plan<TGoal, TBeliefs, TOutcome, TUnit>,
     number
   >();
   // Undefined until the first step, which comes at once.
   private nextStepAt: number | undefined;
+  // Changes made between steps, which the next step reports.
+  private pendingEvents: IntentionEvent[] = [];
 
   public constructor({
     desireId,
     goal,
     kind,
     sequence,
-  }: IntentionConstructorArgs<TGoal, TBeliefs, TOutcome>) {
+  }: IntentionConstructorArgs<TGoal, TBeliefs, TOutcome, TUnit>) {
     this.desireId = desireId;
     this.goal = goal;
     this.kind = kind;
@@ -205,24 +227,52 @@ class Intention<TGoal, TBeliefs, TOutcome> {
     return this.recurAt !== undefined;
   }
 
+  /**
+   * The units its run needs now; none while it is paused or finished. When
+   * no run is under way, the best applicable plan starts first, so a new run
+   * is granted its force before its first step.
+   */
+  public needs({
+    beliefs,
+    now,
+  }: IntentionNeedsArgs<TBeliefs>): readonly UnitNeed<TUnit>[] {
+    if (this.currentStatus !== 'active') {
+      return [];
+    }
+
+    const attempt =
+      this.attempt ??
+      this.startPlan({ beliefs, now, events: this.pendingEvents });
+
+    return attempt?.run.needs?.({ beliefs }) ?? [];
+  }
+
   /** The Desires its run currently proposes; none once it has finished. */
   public requests({
     beliefs,
-  }: PlanRunStepArgs<TBeliefs>): readonly Proposal<TOutcome>[] {
+  }: {
+    beliefs: TBeliefs;
+  }): readonly Proposal<TOutcome>[] {
     if (this.currentStatus === 'finished') {
       return [];
     }
 
-    return this.run?.requests?.({ beliefs }) ?? [];
+    return this.attempt?.run.requests?.({ beliefs }) ?? [];
   }
 
   /**
-   * Steps the current run when the kind's pace allows, first starting the
-   * best applicable plan if none runs. A paused Intention waits, unless the
-   * time it waits to recur has come.
+   * Steps the current run with its force when the kind's pace allows, first
+   * starting the best applicable plan if none runs. A paused Intention
+   * waits, unless the time it waits to recur has come.
    */
-  public step({ beliefs, now }: IntentionStepArgs<TBeliefs>): IntentionEvent[] {
-    const events: IntentionEvent[] = [];
+  public step({
+    beliefs,
+    now,
+    force,
+  }: IntentionStepArgs<TBeliefs, TUnit>): IntentionEvent[] {
+    const events = this.pendingEvents;
+
+    this.pendingEvents = [];
 
     if (
       this.currentStatus === 'finished' ||
@@ -242,41 +292,26 @@ class Intention<TGoal, TBeliefs, TOutcome> {
 
     this.nextStepAt = now + this.kind.paceSeconds;
 
-    let plan = this.plan;
-    let run = this.run;
+    const attempt = this.attempt ?? this.startPlan({ beliefs, now, events });
 
-    if (!plan || !run) {
-      plan = this.choosePlan({ beliefs, now });
-
-      if (!plan) {
-        events.push(this.exhaust({ reason: 'no plan applies', now }));
-        return events;
-      }
-
-      run = plan.start({ goal: this.goal, beliefs });
-      this.plan = plan;
-      this.run = run;
-      events.push({
-        intention: this.desireId,
-        change: 'planStarted',
-        plan: plan.name,
-      });
+    if (!attempt) {
+      events.push(this.exhaust({ reason: 'no plan applies', now }));
+      return events;
     }
 
-    const planStep = run.step({ beliefs });
+    const planStep = attempt.run.step({ beliefs, force });
 
     if (planStep.status === 'running') {
       return events;
     }
 
-    this.plan = undefined;
-    this.run = undefined;
+    this.attempt = undefined;
 
     if (planStep.status === 'succeeded') {
       events.push({
         intention: this.desireId,
         change: 'planSucceeded',
-        plan: plan.name,
+        plan: attempt.plan.name,
         reason: planStep.reason,
       });
       return events;
@@ -285,10 +320,13 @@ class Intention<TGoal, TBeliefs, TOutcome> {
     events.push({
       intention: this.desireId,
       change: 'planFailed',
-      plan: plan.name,
+      plan: attempt.plan.name,
       reason: planStep.reason,
     });
-    this.excludedUntil.set(plan, now + this.kind.failure.excludeSeconds);
+    this.excludedUntil.set(
+      attempt.plan,
+      now + this.kind.failure.excludeSeconds
+    );
     this.failedRuns += 1;
 
     if (this.failedRuns >= this.kind.failure.attempts) {
@@ -321,19 +359,41 @@ class Intention<TGoal, TBeliefs, TOutcome> {
   }: IntentionFinishArgs): IntentionEvent {
     this.currentStatus = 'finished';
     this.finishedGivingUp = gaveUp;
-    this.plan = undefined;
-    this.run = undefined;
+    this.attempt = undefined;
 
     return { intention: this.desireId, change: result, reason };
+  }
+
+  private startPlan({
+    beliefs,
+    now,
+    events,
+  }: IntentionStartPlanArgs<TBeliefs>):
+    | Attempt<TGoal, TBeliefs, TOutcome, TUnit>
+    | undefined {
+    const plan = this.choosePlan({ beliefs, now });
+
+    if (!plan) {
+      return undefined;
+    }
+
+    this.attempt = { plan, run: plan.start({ goal: this.goal, beliefs }) };
+    events.push({
+      intention: this.desireId,
+      change: 'planStarted',
+      plan: plan.name,
+    });
+
+    return this.attempt;
   }
 
   private choosePlan({
     beliefs,
     now,
   }: IntentionChoosePlanArgs<TBeliefs>):
-    | Plan<TGoal, TBeliefs, TOutcome>
+    | Plan<TGoal, TBeliefs, TOutcome, TUnit>
     | undefined {
-    let chosen: Plan<TGoal, TBeliefs, TOutcome> | undefined;
+    let chosen: Plan<TGoal, TBeliefs, TOutcome, TUnit> | undefined;
 
     for (const plan of this.kind.plans) {
       const excludedUntil = this.excludedUntil.get(plan);
@@ -365,4 +425,10 @@ class Intention<TGoal, TBeliefs, TOutcome> {
           gaveUp: true,
         });
   }
+}
+
+// The plan an Intention runs, and its run.
+interface Attempt<TGoal, TBeliefs, TOutcome, TUnit> {
+  readonly plan: Plan<TGoal, TBeliefs, TOutcome, TUnit>;
+  readonly run: PlanRun<TBeliefs, TOutcome, TUnit>;
 }

@@ -1,7 +1,7 @@
 import * as W3HumanApi from '@lib/warcraft3-api/human';
-import type { ActorControl } from '../../../contracts/actor-control';
 import type { UnitId } from '../../../contracts/ids';
 import type { Directives } from '../../../contracts/directives';
+import type { WarlordForce } from '../../../contracts/intentions';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { Point, Vector } from '@lib/math';
 import type { Beliefs } from '../../../contracts/beliefs';
@@ -14,7 +14,7 @@ const GUARD_TOWER_UPGRADE_GOLD_COST = 70;
 interface UpdateUpgradeTowersArgs {
   beliefs: Beliefs;
   towerPositions: readonly Point[];
-  actorControl: ActorControl;
+  force: WarlordForce;
   directives: Directives;
   recorder: DecisionRecorder;
 }
@@ -29,7 +29,7 @@ interface UpdateUpgradeTowersArgs {
 function updateUpgradeTowers({
   beliefs,
   towerPositions,
-  actorControl,
+  force,
   directives,
   recorder,
 }: UpdateUpgradeTowersArgs): { allUpgraded: boolean } {
@@ -44,7 +44,7 @@ function updateUpgradeTowers({
       tower.towerStatus === TOWER_STATE.SCOUT_TOWER &&
       completedLumberMill({ beliefs }) !== undefined &&
       canAffordGuardTower({ budget }) &&
-      actorControl.request({ actor: tower.unit, request: 'normal' })
+      force.units.has(tower.unit)
     ) {
       orderGuardTower({ tower: tower.unit, budget, directives, recorder });
     }

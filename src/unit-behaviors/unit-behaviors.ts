@@ -1,5 +1,4 @@
 import type { Random } from '@lib/math';
-import type { ActorControl } from '../contracts/actor-control';
 import type { Beliefs } from '../contracts/beliefs';
 import type {
   Directives,
@@ -22,7 +21,6 @@ export {
 };
 
 interface UnitBehaviorsCapabilities {
-  readonly actorControl: ActorControl;
   readonly orders: OrderQueue;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
@@ -43,12 +41,17 @@ interface UnitBehaviors {
   readonly directives: Directives;
 
   /**
-   * Starts the step, before the plan runs: the reflexes claim, under actor
-   * control, the units they protect, so no run directs or probes them, and
-   * the progress of every Directive catches up with the Beliefs, so the runs
-   * read how their Directives are going now.
+   * Starts the step, before the plan runs: the reflexes claim the units they
+   * protect, and the progress of every Directive catches up with the
+   * Beliefs, so the runs read how their Directives are going now.
    */
   startStep({ beliefs }: { beliefs: Beliefs }): void;
+
+  /**
+   * Whether a reflex claimed the unit in this step. The mind leaves such
+   * units out of their owners' forces, so no run directs or probes them.
+   */
+  protects({ unit }: { unit: UnitId }): boolean;
 
   /**
    * Orders each own unit for the step, after the plan runs. A unit a probe
@@ -265,6 +268,10 @@ function createUnitBehaviors({
           noteProgress({ ownUnit, directiveState, beliefs });
         }
       }
+    },
+
+    protects({ unit }) {
+      return workerSafety.protects({ worker: unit });
     },
 
     decide({ beliefs }) {

@@ -1,7 +1,7 @@
 import { Point, Random } from '@lib/math';
-import type { ActorControl } from '../../../contracts/actor-control';
 import type { Beliefs } from '../../../contracts/beliefs';
 import type { Directives } from '../../../contracts/directives';
+import type { WarlordForce } from '../../../contracts/intentions';
 import type { WarcraftProbes } from '../../../contracts/probes';
 import type { DecisionRecorder } from '../../../contracts/record';
 import { TowerRushState } from '../tower-rush.state';
@@ -13,7 +13,6 @@ import { updateUpgradeTowers } from './upgrade-towers';
 export { EstablishingSteps, type EstablishingStepsCapabilities };
 
 interface EstablishingStepsCapabilities {
-  readonly actorControl: ActorControl;
   readonly directives: Directives;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;
@@ -27,16 +26,14 @@ interface EstablishingStepsConstructorArgs {
 
 interface EstablishingStepsUpdateArgs {
   beliefs: Beliefs;
+  force: WarlordForce;
 }
 
 /**
  * Sends the forward workers next to the enemy main, builds the rush towers
  * there, and upgrades them to Guard Towers. The tower position is
- * established once every rush tower is a Guard Tower.
- *
- * Each step requests the Actors it directs, so what the steps control follows
- * the step: e.g. they stop requesting the forward Peasants once the towers
- * are built.
+ * established once every rush tower is a Guard Tower. Each step directs only
+ * units of the run's force.
  */
 class EstablishingSteps {
   private readonly rush: TowerRushState;
@@ -63,20 +60,18 @@ class EstablishingSteps {
     return this.step === STEP.UPGRADE_TOWERS;
   }
 
-  public update({ beliefs }: EstablishingStepsUpdateArgs) {
+  public update({ beliefs, force }: EstablishingStepsUpdateArgs) {
     if (this.hasEstablished) {
       throw new Error('Establishing steps: updated after they ended.');
     }
 
-    const { actorControl, directives, probes, recorder, random } =
-      this.capabilities;
+    const { directives, probes, recorder, random } = this.capabilities;
 
     switch (this.step) {
       case STEP.START:
         updateStart({
           beliefs,
           rush: this.rush,
-          actorControl,
           directives,
           probes,
           recorder,
@@ -90,7 +85,7 @@ class EstablishingSteps {
             beliefs,
             rush: this.rush,
             moveForwardState: this.moveForward,
-            actorControl,
+            force,
             directives,
           }).arrived
         ) {
@@ -103,7 +98,7 @@ class EstablishingSteps {
           beliefs,
           rush: this.rush,
           buildTowersState: this.buildTowers,
-          actorControl,
+          force,
           directives,
           probes,
           recorder,
@@ -122,7 +117,7 @@ class EstablishingSteps {
           updateUpgradeTowers({
             beliefs,
             towerPositions: this.towerPositions,
-            actorControl,
+            force,
             directives,
             recorder,
           }).allUpgraded

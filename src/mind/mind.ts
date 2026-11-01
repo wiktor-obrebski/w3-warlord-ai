@@ -1,4 +1,5 @@
 import {
+  allocate,
   collectDesires,
   createDeliberation,
   type IntentionEvent,
@@ -7,7 +8,12 @@ import {
 import type { Random } from '@lib/math';
 import type { Beliefs } from '../contracts/beliefs';
 import type { WarlordDesire, WarlordOutcome } from '../contracts/desires';
-import type { WarlordIntention } from '../contracts/intentions';
+import type { UnitId } from '../contracts/ids';
+import type {
+  WarlordForce,
+  WarlordGrant,
+  WarlordIntention,
+} from '../contracts/intentions';
 import type { Observations } from '../contracts/observations';
 import type { TicketedOrder } from '../contracts/orders';
 import type { WarcraftProbes } from '../contracts/probes';
@@ -17,20 +23,22 @@ import type {
   RecordNote,
 } from '../contracts/record';
 import type { Knowledge } from '../knowledge/knowledge';
-import { createActorControl } from '../capabilities/actor-control/actor-control';
 import { reviseBeliefs } from '../beliefs/beliefs';
 import { proposeConcerns } from '../desires/concerns';
 import { identifyOutcome } from '../desires/desires';
 import { createIntentionKinds } from '../deliberation/intention-kinds';
 import {
   createUnitBehaviors,
+  UnitBehaviors,
   UnitBehaviorsCapabilities,
 } from '../unit-behaviors/unit-behaviors';
+import { noteGrantChanges } from './allocation-notes';
 import {
   noteAgendaChange,
   noteDesireChanges,
   noteIntentionEvents,
 } from './deliberation-notes';
+import { createForceGuard } from './force-guard';
 import { createMindOrders } from './mind-orders';
 
 export { type Mind, type MindStep, createMind };
@@ -61,18 +69,16 @@ interface CreateMindArgs {
  *
  * 1. revises the Beliefs from the observations;
  * 2. starts the Unit Behaviors' step: their reflexes claim the units they
- *    protect, so no Intention directs them in this step, and the Directives'
- *    progress catches up with the Beliefs;
+ *    protect, and the Directives' progress catches up with the Beliefs;
  * 3. runs a deliberation cycle once a second: it collects the Desires the
  *    concerns and the Intentions propose, and deliberates on them;
- * 4. steps the Intentions on the agenda, in its order, each at its kind's
- *    pace, which give their units Directives;
- * 5. lets the Unit Behaviors order the units.
+ * 4. allocates the units to the Intentions on the agenda, by their needs;
+ * 5. steps the Intentions on the agenda, in its order, each at its kind's
+ *    pace, with its force, which gives its units Directives;
+ * 6. lets the Unit Behaviors order the units.
  *
  * Adopting or ending an Intention changes what is proposed, so the next
- * cycle comes on the next step instead. Units are directed under actor
- * control: the reflexes and each Intention request the units they direct,
- * and lose their control once they are gone.
+ * cycle comes on the next step instead.
  */
 function createMind({ random, probes }: CreateMindArgs): Mind {
   let notes: RecordNote[] = [];
@@ -82,9 +88,7 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
     },
   };
   const orders = createMindOrders({ probes, recorder });
-  const arbiter = createActorControl();
   const unitBehaviorsCapabilitiesProvider: UnitBehaviorsCapabilities = {
-    actorControl: arbiter.actorControl,
     orders: orders.queue,
     probes: orders.probes,
     recorder,
@@ -94,19 +98,23 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
   const unitBehaviors = createUnitBehaviors({
     capabilities: unitBehaviorsCapabilitiesProvider,
   });
-  const kindOf = createIntentionKinds({
-    actorControl: arbiter.actorControl,
+  const forceGuard = createForceGuard({
     directives: unitBehaviors.directives,
     probes: orders.probes,
+  });
+  const kindOf = createIntentionKinds({
+    directives: forceGuard.directives,
+    probes: forceGuard.probes,
     recorder,
     random,
   });
-  const deliberation = createDeliberation<WarlordOutcome, Beliefs>({
+  const deliberation = createDeliberation<WarlordOutcome, Beliefs, UnitId>({
     kindOf: ({ outcome }) => kindOf({ outcome }),
   });
   let previousBeliefs: Beliefs | undefined;
   let desires: readonly WarlordDesire[] = [];
   let agenda: readonly WarlordIntention[] = [];
+  let grants: readonly WarlordGrant[] = [];
   // Undefined until the first cycle, which comes at once.
   let nextCycleAt: number | undefined;
 
@@ -121,10 +129,7 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
       const now = beliefs.time;
 
       previousBeliefs = beliefs;
-      arbiter.update({
-        source: unitBehaviors,
-        run: () => unitBehaviors.startStep({ beliefs }),
-      });
+      unitBehaviors.startStep({ beliefs });
 
       if (nextCycleAt === undefined || now >= nextCycleAt) {
         const previousDesires = desires;
@@ -149,11 +154,26 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
           : now + CycleSeconds;
       }
 
-      for (const intention of agenda) {
-        arbiter.update({
-          source: intention,
+      const previousGrants = grants;
+
+      grants = allocate({
+        agenda,
+        units: [...beliefs.self.units.keys()],
+        beliefs,
+        now,
+      });
+      noteGrantChanges({ previousGrants, grants, recorder });
+
+      for (const grant of grants) {
+        const force = withoutClaimedUnits({
+          force: grant.force,
+          unitBehaviors,
+        });
+
+        forceGuard.within({
+          force,
           run: () => {
-            const events = intention.step({ beliefs, now });
+            const events = grant.intention.step({ beliefs, now, force });
 
             noteIntentionEvents({ events, recorder });
 
@@ -164,16 +184,7 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
         });
       }
 
-      // Outside an arbiter update: one for the Unit Behaviors would let their
-      // claims expire, as nothing is requested while deciding.
       unitBehaviors.decide({ beliefs });
-
-      arbiter.releaseInactive({
-        activeSources: new Set<object>([
-          unitBehaviors,
-          ...agenda.filter((intention) => intention.status !== 'finished'),
-        ]),
-      });
 
       const record: DecisionRecord = { notes };
       notes = [];
@@ -212,4 +223,23 @@ function changesProposals({
       change === 'failed' ||
       change === 'dropped'
   );
+}
+
+interface WithoutClaimedUnitsArgs {
+  force: WarlordForce;
+  unitBehaviors: UnitBehaviors;
+}
+
+// A unit a reflex claimed stays its holder's, but is out of its run's reach
+// for the step: a probe orders its unit at once, and would take it from the
+// reflex.
+function withoutClaimedUnits({
+  force,
+  unitBehaviors,
+}: WithoutClaimedUnitsArgs): WarlordForce {
+  return {
+    units: new Set(
+      [...force.units].filter((unit) => !unitBehaviors.protects({ unit }))
+    ),
+  };
 }

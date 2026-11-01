@@ -1,7 +1,7 @@
 import { Vector } from '@lib/math';
-import type { ActorControl } from '../../../contracts/actor-control';
 import type { Directives } from '../../../contracts/directives';
 import type { UnitId } from '../../../contracts/ids';
+import type { WarlordForce } from '../../../contracts/intentions';
 import type { GoldMine } from '../../../contracts/world';
 import type { Beliefs } from '../../../contracts/beliefs';
 import { TowerRushState } from '../tower-rush.state';
@@ -21,7 +21,7 @@ interface UpdateMoveForwardArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
   moveForwardState: MoveForwardState;
-  actorControl: ActorControl;
+  force: WarlordForce;
   directives: Directives;
 }
 
@@ -30,7 +30,7 @@ function updateMoveForward({
   beliefs,
   rush,
   moveForwardState,
-  actorControl,
+  force,
   directives,
 }: UpdateMoveForwardArgs): { arrived: boolean } {
   const destination = beliefs.enemy.mainGoldMine;
@@ -39,24 +39,22 @@ function updateMoveForward({
     throw new Error('Tower rush: enemy main gold mine not found.');
   }
 
-  const controlled = rush.forwardWorkers.filter(
-    (worker) =>
-      beliefs.self.units.has(worker) &&
-      actorControl.request({ actor: worker, request: 'normal' })
+  const inForce = rush.forwardWorkers.filter((worker) =>
+    force.units.has(worker)
   );
 
   holdArrivedMilitia({
     destination,
     beliefs,
     moveForwardState,
-    controlled,
+    inForce,
     directives,
   });
   sendNewMilitiaToEnemy({
     destination,
     beliefs,
     moveForwardState,
-    controlled,
+    inForce,
     directives,
   });
 
@@ -76,7 +74,7 @@ interface SendNewMilitiaToEnemyArgs {
   destination: GoldMine;
   beliefs: Beliefs;
   moveForwardState: MoveForwardState;
-  controlled: readonly UnitId[];
+  inForce: readonly UnitId[];
   directives: Directives;
 }
 
@@ -87,10 +85,10 @@ function sendNewMilitiaToEnemy({
   destination,
   beliefs,
   moveForwardState,
-  controlled,
+  inForce,
   directives,
 }: SendNewMilitiaToEnemyArgs) {
-  for (const worker of controlled) {
+  for (const worker of inForce) {
     if (
       beliefs.self.militia.includes(worker) &&
       !moveForwardState.forwardWorkersSentToEnemy.includes(worker)
@@ -109,7 +107,7 @@ interface HoldArrivedMilitiaArgs {
   destination: GoldMine;
   beliefs: Beliefs;
   moveForwardState: MoveForwardState;
-  controlled: readonly UnitId[];
+  inForce: readonly UnitId[];
   directives: Directives;
 }
 
@@ -119,12 +117,12 @@ function holdArrivedMilitia({
   destination,
   beliefs,
   moveForwardState,
-  controlled,
+  inForce,
   directives,
 }: HoldArrivedMilitiaArgs) {
   for (const worker of moveForwardState.forwardWorkersSentToEnemy) {
     if (
-      controlled.includes(worker) &&
+      inForce.includes(worker) &&
       beliefs.self.militia.includes(worker) &&
       new Vector({
         start: positionOf({ beliefs, unit: worker }),

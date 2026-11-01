@@ -1,13 +1,13 @@
 import { Point, Vector } from '@lib/math';
-import type { ActorControl } from '../../contracts/actor-control';
 import type { Directives } from '../../contracts/directives';
 import type { UnitId } from '../../contracts/ids';
+import type { WarlordForce } from '../../contracts/intentions';
 import type { DecisionRecorder } from '../../contracts/record';
 import type { Beliefs } from '../../contracts/beliefs';
 import { TowerRushState } from './tower-rush.state';
 import { closestUnit, positionOf } from './tower-rush.assessments';
 
-export { hideBehindClosestTower, forgetSentToSafety, controlForwardPeasants };
+export { hideBehindClosestTower, forgetSentToSafety, forwardPeasantsInForce };
 
 interface HideBehindClosestTowerArgs {
   worker: UnitId;
@@ -61,40 +61,40 @@ function forgetSentToSafety({ worker, rush }: ForgetSentToSafetyArgs) {
   );
 }
 
-interface ControlForwardPeasantsArgs {
+interface ForwardPeasantsInForceArgs {
   beliefs: Beliefs;
   rush: TowerRushState;
-  actorControl: ActorControl;
+  force: WarlordForce;
 }
 
 /**
- * Requests control of the living forward Peasants and returns those granted.
+ * The living forward Peasants in the run's force.
  *
- * A Peasant taken over, e.g. by worker safety, may have left its hiding spot,
- * so it is sent to hide again once regained. Worker safety holds an attacked
- * Peasant for longer than the time between two tower rush updates, so a
- * takeover is always seen here.
+ * A Peasant missing from the force, claimed by worker safety, may have left
+ * its hiding spot, so it is sent to hide again once back. Worker safety
+ * claims an attacked Peasant for longer than the time between two tower rush
+ * updates, so a claim is always seen here.
  */
-function controlForwardPeasants({
+function forwardPeasantsInForce({
   beliefs,
   rush,
-  actorControl,
-}: ControlForwardPeasantsArgs): UnitId[] {
-  const controlled: UnitId[] = [];
+  force,
+}: ForwardPeasantsInForceArgs): UnitId[] {
+  const inForce: UnitId[] = [];
 
   for (const worker of rush.forwardWorkers) {
     if (!beliefs.self.peasants.includes(worker)) {
       continue;
     }
 
-    if (actorControl.request({ actor: worker, request: 'normal' })) {
-      controlled.push(worker);
+    if (force.units.has(worker)) {
+      inForce.push(worker);
     } else {
       forgetSentToSafety({ worker, rush });
     }
   }
 
-  return controlled;
+  return inForce;
 }
 
 // Clears the tower's 128x128 footprint with room for the Peasant.

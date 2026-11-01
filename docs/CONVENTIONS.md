@@ -75,13 +75,15 @@ TSTL assigns an export block's bindings where the block appears, so exported con
 Public declarations come first, private ones below. The public interface is what matters most in a module, so it is visible at first glance. After the export block, declare the exported functions, interfaces, and types, then the module's private declarations.
 
 ```ts
-export { createActorControl };
+export { createMind };
 
-function createActorControl() {
-  return createArbiter({ policy: actorControlPolicy });
+function createMind() {
+  ...
+  nextCycleAt = now + CycleSeconds;
+  ...
 }
 
-const actorControlPolicy = ...;
+const CycleSeconds = 1;
 ```
 
 Where initialization order forbids it, the declaration stays above its use: a module-level `const` evaluated while the module loads, such as the exported constant `myFunction4` above, cannot move below the code that reads it at load time. Function bodies run later, so a private `const` they use may sit below them.

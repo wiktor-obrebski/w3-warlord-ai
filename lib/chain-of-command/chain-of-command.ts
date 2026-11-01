@@ -1,5 +1,7 @@
+import { allocate } from './allocation';
 import { RANK, collectDesires } from './desires';
 import { createDeliberation } from './deliberation';
+import type { Force, Grant, NeedGrant, UnitNeed } from './allocation';
 import type {
   Desire,
   Proposal,
@@ -23,8 +25,13 @@ import type {
 
 export {
   RANK,
+  allocate,
   collectDesires,
   createDeliberation,
+  type Force,
+  type Grant,
+  type NeedGrant,
+  type UnitNeed,
   type Desire,
   type Proposal,
   type ProposalSource,

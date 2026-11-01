@@ -1,5 +1,4 @@
 import type { Random } from '@lib/math';
-import type { ActorControl } from '../../contracts/actor-control';
 import type { EstablishTowerPosition } from '../../contracts/desires';
 import type { WarlordIntentionKind } from '../../contracts/intentions';
 import type { Directives } from '../../contracts/directives';
@@ -13,7 +12,6 @@ export {
 };
 
 interface EstablishTowerPositionCapabilities {
-  readonly actorControl: ActorControl;
   readonly directives: Directives;
   readonly probes: WarcraftProbes;
   readonly recorder: DecisionRecorder;

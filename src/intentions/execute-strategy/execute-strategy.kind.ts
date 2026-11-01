@@ -5,6 +5,7 @@ import type {
   PlaybookName,
   WarlordProposal,
 } from '../../contracts/desires';
+import type { UnitId } from '../../contracts/ids';
 import type {
   WarlordIntentionKind,
   WarlordPlanRun,
@@ -77,7 +78,7 @@ class PlaybookRun implements WarlordPlanRun {
     this.recorder = recorder;
   }
 
-  public step({ beliefs }: PlanRunStepArgs<Beliefs>): PlanStep {
+  public step({ beliefs }: PlanRunStepArgs<Beliefs, UnitId>): PlanStep {
     let next = this.playbook.phases[this.phase + 1];
 
     while (next) {
@@ -100,7 +101,9 @@ class PlaybookRun implements WarlordPlanRun {
 
   public requests({
     beliefs,
-  }: PlanRunStepArgs<Beliefs>): readonly WarlordProposal[] {
+  }: {
+    beliefs: Beliefs;
+  }): readonly WarlordProposal[] {
     return this.playbook.phases[this.phase]?.propose({ beliefs }) ?? [];
   }
 }

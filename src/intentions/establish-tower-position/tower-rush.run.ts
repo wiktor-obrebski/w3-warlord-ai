@@ -1,6 +1,10 @@
 import type { PlanRunStepArgs, PlanStep } from '@lib/chain-of-command';
 import type { Beliefs } from '../../contracts/beliefs';
-import type { WarlordPlanRun } from '../../contracts/intentions';
+import type { UnitId } from '../../contracts/ids';
+import type {
+  WarlordPlanRun,
+  WarlordUnitNeed,
+} from '../../contracts/intentions';
 import type { EstablishTowerPositionCapabilities } from './establish-tower-position.kind';
 import { createTowerRushState } from './tower-rush.state';
 import { EstablishingSteps } from './establishing/establishing-steps';
@@ -34,6 +38,28 @@ class TowerRushRun implements WarlordPlanRun {
   }
 
   /**
+   * The forward workers, every other Peasant for the home economy, the Town
+   * Hall training them, and the Scout Towers to upgrade. Until the start
+   * picks the forward workers, every Peasant counts as a home worker.
+   */
+  public needs({ beliefs }: { beliefs: Beliefs }): readonly WarlordUnitNeed[] {
+    const { peasants, townHall, scoutTowers } = beliefs.self;
+
+    return [
+      {
+        name: 'forward workers',
+        matches: ({ unit }) => this.rush.forwardWorkers.includes(unit),
+      },
+      { name: 'home workers', matches: ({ unit }) => peasants.includes(unit) },
+      { name: 'Town Hall', matches: ({ unit }) => unit === townHall },
+      {
+        name: 'Scout Towers',
+        matches: ({ unit }) => scoutTowers.includes(unit),
+      },
+    ];
+  }
+
+  /**
    * The establishing steps start on the first step. Their first step
    * assigns the workers the economy manages and gives Directives that step's
    * Beliefs predate, so the economy starts from the next step on.
@@ -41,39 +67,38 @@ class TowerRushRun implements WarlordPlanRun {
    * build progress, so it starts once the towers are built. The establishing
    * steps are let go once they have ended.
    */
-  public step({ beliefs }: PlanRunStepArgs<Beliefs>): PlanStep {
-    const { actorControl, directives, probes, recorder, random } =
-      this.capabilities;
+  public step({ beliefs, force }: PlanRunStepArgs<Beliefs, UnitId>): PlanStep {
+    const { directives, probes, recorder, random } = this.capabilities;
 
     if (!this.steppedBefore) {
       this.establishing = new EstablishingSteps({
         rush: this.rush,
-        capabilities: { actorControl, directives, probes, recorder, random },
+        capabilities: { directives, probes, recorder, random },
       });
     } else {
       this.economy ??= new TowerRushEconomyController({
         rush: this.rush,
-        capabilities: { actorControl, directives, probes, recorder },
+        capabilities: { directives, probes, recorder },
       });
     }
 
     if (this.establishing?.towersBuilt) {
       this.towerMaintenance ??= new TowerMaintenanceController({
         rush: this.rush,
-        capabilities: { actorControl, directives, recorder },
+        capabilities: { directives, recorder },
       });
     }
 
     if (this.establishing) {
-      this.establishing.update({ beliefs });
+      this.establishing.update({ beliefs, force });
 
       if (this.establishing.established) {
         this.establishing = null;
       }
     }
 
-    this.economy?.update({ beliefs });
-    this.towerMaintenance?.update({ beliefs });
+    this.economy?.update({ beliefs, force });
+    this.towerMaintenance?.update({ beliefs, force });
     this.steppedBefore = true;
 
     return { status: 'running' };
