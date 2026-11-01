@@ -13,18 +13,18 @@ This document covers what they don't: how far the code has been migrated to the 
 
 ## Migration status
 
-The code is being migrated to Chain of Command in phases. The decision layer, Desires, Deliberation, the Intention runtime, and Allocation, comes from [`@lib/chain-of-command`](../lib/chain-of-command/README.md). The first-iteration framework, [`@lib/bdi`](../lib/bdi/README.md), is no longer used.
+The code is being migrated to Chain of Command in phases. The decision layer, Desires, Deliberation, the Intention runtime, and Allocation, comes from [`@lib/chain-of-command`](../lib/chain-of-command/README.md).
 
-| Phase | Content                                                                                        | Status                           |
-| ----- | ---------------------------------------------------------------------------------------------- | -------------------------------- |
-| 0     | The architecture documents are adopted                                                         | done                             |
-| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done                             |
-| 2     | One world model in Beliefs                                                                     | done                             |
-| 3     | Desires, Deliberation, Intention kinds                                                         | done                             |
-| 4a    | Unit Behaviors and Directives                                                                  | done                             |
-| 4b    | Allocation of units                                                                            | done                             |
-| 4c    | Allocation of money, RunEconomy                                                                | done, awaiting the in-game check |
-| 5     | Clean-up                                                                                       | not started                      |
+| Phase | Content                                                                                        | Status      |
+| ----- | ---------------------------------------------------------------------------------------------- | ----------- |
+| 0     | The architecture documents are adopted                                                         | done        |
+| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done        |
+| 2     | One world model in Beliefs                                                                     | done        |
+| 3     | Desires, Deliberation, Intention kinds                                                         | done        |
+| 4a    | Unit Behaviors and Directives                                                                  | done        |
+| 4b    | Allocation of units                                                                            | done        |
+| 4c    | Allocation of money, RunEconomy                                                                | done        |
+| 5     | Clean-up                                                                                       | in progress |
 
 The bot's behaviors today:
 

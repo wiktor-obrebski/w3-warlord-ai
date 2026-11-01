@@ -31,9 +31,9 @@ Strict casing allows no consecutive capital letters, for example `rotate90Ccw`, 
 A name says what it holds. General words that could name almost anything are not allowed as variable, parameter, or field names, such as `value`, `state`, `control`, `target`, `next`, `current`, `helper`, `entry`, `item`, `container`, `instance`, `result`, `data`, `registered`, `context`, `node`, or `args`. Pair the word with the concept it holds:
 
 ```ts
-const beliefsContainer = createBeliefContainer({ commonModel });
-const registeredComponents: object[] = [];
-const currentUnit = units[0];
+const directiveState = directiveStates.get(unit);
+const currentRally = rallies.get(producer);
+let repairTarget: UnitId | undefined;
 ```
 
 ## Export Convention
@@ -145,18 +145,20 @@ TSTL gives function-typed properties and the callbacks of array methods a Lua `s
 When a signature does not fit on one line, its parameter type moves to a local interface named after the function with an `Args` suffix, declared before the function or the interface or class that owns it. A method's interface is prefixed with its owner's name.
 
 ```ts
-interface BeliefsModelReviseArgs<TBeliefs, TCommonBeliefs, TObservation> {
-  previous: Readonly<TBeliefs> | null;
-  observation: Readonly<TObservation>;
-  commonBeliefs: Readonly<TCommonBeliefs>;
+interface IntentionStepArgs<TBeliefs, TUnit, TResource extends string> {
+  beliefs: TBeliefs;
+  now: number;
+  force: Force<TUnit, TResource>;
 }
 
-interface BeliefsModel<TBeliefs, TCommonBeliefs, TObservation> {
-  revise({
-    previous,
-    observation,
-    commonBeliefs,
-  }: BeliefsModelReviseArgs<TBeliefs, TCommonBeliefs, TObservation>): TBeliefs;
+class Intention<TGoal, TBeliefs, TOutcome, TUnit, TResource extends string> {
+  public step({
+    beliefs,
+    now,
+    force,
+  }: IntentionStepArgs<TBeliefs, TUnit, TResource>): IntentionEvent[] {
+    ...
+  }
 }
 ```
 
@@ -165,14 +167,28 @@ interface BeliefsModel<TBeliefs, TCommonBeliefs, TObservation> {
 A function whose return value its name and type do not make obvious returns an object that names it, so call sites say what they receive. Every function returning `unknown` qualifies:
 
 ```ts
-reviseScopedBeliefs({ component }: { component: object }): { beliefs: unknown };
+function tryOrderScoutTower({
+  worker,
+  position,
+  rules,
+  buildTowersState,
+  directives,
+  probes,
+}: TryOrderScoutTowerArgs): { accepted: boolean } {
+  ...
+}
 
-const { beliefs } = beliefsContainer.reviseScopedBeliefs({ component });
+const { accepted } = tryOrderScoutTower({
+  worker,
+  position,
+  rules,
+  buildTowersState,
+  directives,
+  probes,
+});
 ```
 
 An obvious value of a simple type is returned as is: `getUserName({ user }): string`.
-
-`observe()` and `revise()` of a belief model keep returning their value directly; their names and type parameters say what it is.
 
 ## Dependency Injection
 
