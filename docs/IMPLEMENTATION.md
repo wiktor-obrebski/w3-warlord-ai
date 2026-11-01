@@ -9,24 +9,13 @@ The bot's mind follows **Chain of Command**, a BDI architecture for real-time st
 - [Glossary](architecture/GLOSSARY.md): every term of the architecture.
 - [Research](research/RTS_BEHAVIOR_ARCHITECTURE.md): the research behind the architecture, with walkthroughs, the [scenario analysis](research/RTS_SCENARIO_ANALYSIS.md), and the [sources](research/RTS_RESEARCH_SOURCES.md).
 
-This document covers what they don't: how far the code has been migrated to the architecture, how the bot runs inside Warcraft III, and how the source is laid out.
+This document covers what they don't: what the bot does today and where it still falls short of the architecture, how it runs inside Warcraft III, and how the source is laid out.
 
-## Migration status
+## The bot today
 
-The code was migrated to Chain of Command in phases, now all done. The decision layer, Desires, Deliberation, the Intention runtime, and Allocation, comes from [`@lib/chain-of-command`](../lib/chain-of-command/README.md).
+The decision layer, Desires, Deliberation, the Intention runtime, and Allocation, comes from [`@lib/chain-of-command`](../lib/chain-of-command/README.md).
 
-| Phase | Content                                                                                        | Status |
-| ----- | ---------------------------------------------------------------------------------------------- | ------ |
-| 0     | The architecture documents are adopted                                                         | done   |
-| 1     | Perception, unit ids, the order executor, seeded randomness, the mind, a first decision record | done   |
-| 2     | One world model in Beliefs                                                                     | done   |
-| 3     | Desires, Deliberation, Intention kinds                                                         | done   |
-| 4a    | Unit Behaviors and Directives                                                                  | done   |
-| 4b    | Allocation of units                                                                            | done   |
-| 4c    | Allocation of money, RunEconomy                                                                | done   |
-| 5     | Clean-up                                                                                       | done   |
-
-The bot's behaviors today:
+The bot's behaviors:
 
 - **Unit Behaviors** order every unit, carrying out the Directive its owner gave it. The workers' reflex comes first: attacked workers flee from the nearby enemy force, whatever their Directive, and take an unfinished one up again once safe. Guard Towers without a Directive in progress focus their fire by target priority, each from the moment its upgrade ends.
 

@@ -27,9 +27,9 @@ interface WarcraftProbesIsInRangeArgs {
 }
 
 /**
- * The Warcraft calls the mind still makes directly, until a later step of
- * the migration replaces them: orders whose acceptance is a test, issued at
- * once, and two static reads. They take ids; the shell maps them to handles.
+ * The Warcraft calls the mind still makes directly, until later work
+ * replaces them: orders whose acceptance is a test, issued at once, and two
+ * static reads. They take ids; the shell maps them to handles.
  * An order for a unit that no longer exists counts as refused.
  */
 interface WarcraftProbes {
