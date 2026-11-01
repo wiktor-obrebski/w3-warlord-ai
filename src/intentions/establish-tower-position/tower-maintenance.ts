@@ -16,22 +16,19 @@ import {
   ownUnit,
 } from './tower-rush.assessments';
 
-export {
-  TowerMaintenanceController,
-  type TowerMaintenanceControllerCapabilities,
-};
+export { TowerMaintenance, type TowerMaintenanceCapabilities };
 
-interface TowerMaintenanceControllerCapabilities {
+interface TowerMaintenanceCapabilities {
   readonly directives: Directives;
   readonly recorder: DecisionRecorder;
 }
 
-interface TowerMaintenanceControllerConstructorArgs {
+interface TowerMaintenanceConstructorArgs {
   rush: TowerRushState;
-  capabilities: TowerMaintenanceControllerCapabilities;
+  capabilities: TowerMaintenanceCapabilities;
 }
 
-interface TowerMaintenanceControllerUpdateArgs {
+interface TowerMaintenanceUpdateArgs {
   beliefs: Beliefs;
   force: WarlordForce;
 }
@@ -42,21 +39,18 @@ interface TowerMaintenanceControllerUpdateArgs {
  * tower is built, so a tower's life fraction reflects damage, not build
  * progress.
  */
-class TowerMaintenanceController {
+class TowerMaintenance {
   private readonly rush: TowerRushState;
-  private readonly capabilities: TowerMaintenanceControllerCapabilities;
+  private readonly capabilities: TowerMaintenanceCapabilities;
   // The tower the forward Peasants are repairing.
   private repairTarget: UnitId | undefined;
 
-  public constructor({
-    rush,
-    capabilities,
-  }: TowerMaintenanceControllerConstructorArgs) {
+  public constructor({ rush, capabilities }: TowerMaintenanceConstructorArgs) {
     this.rush = rush;
     this.capabilities = capabilities;
   }
 
-  public update({ beliefs, force }: TowerMaintenanceControllerUpdateArgs) {
+  public update({ beliefs, force }: TowerMaintenanceUpdateArgs) {
     const enemyMain = beliefs.enemy.startPosition;
 
     if (!enemyMain) {

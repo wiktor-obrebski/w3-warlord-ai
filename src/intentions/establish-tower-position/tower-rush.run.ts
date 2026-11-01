@@ -11,7 +11,7 @@ import type { EstablishTowerPositionCapabilities } from './establish-tower-posit
 import { createTowerRushState } from './tower-rush.state';
 import { FORWARD_WORKER_COUNT } from './tower-rush.assessments';
 import { EstablishingSteps } from './establishing/establishing-steps';
-import { TowerMaintenanceController } from './tower-maintenance.ctrl';
+import { TowerMaintenance } from './tower-maintenance';
 
 export { TowerRushRun };
 
@@ -31,7 +31,7 @@ class TowerRushRun implements WarlordPlanRun {
   private readonly capabilities: EstablishTowerPositionCapabilities;
   private readonly rush = createTowerRushState();
   private establishing: EstablishingSteps | null;
-  private towerMaintenance: TowerMaintenanceController | null = null;
+  private towerMaintenance: TowerMaintenance | null = null;
 
   public constructor({ capabilities }: TowerRushRunConstructorArgs) {
     this.capabilities = capabilities;
@@ -88,7 +88,7 @@ class TowerRushRun implements WarlordPlanRun {
     const { directives, recorder } = this.capabilities;
 
     if (this.establishing?.towersBuilt) {
-      this.towerMaintenance ??= new TowerMaintenanceController({
+      this.towerMaintenance ??= new TowerMaintenance({
         rush: this.rush,
         capabilities: { directives, recorder },
       });

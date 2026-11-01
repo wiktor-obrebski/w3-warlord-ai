@@ -435,8 +435,8 @@ interface VisibleEnemiesArgs {
   handles: ObservedHandles;
 }
 
-// An enemy unit keeps its id while it lives, also out of sight, as the
-// handles behind the first iteration's beliefs did.
+// An enemy unit keeps its id while it lives, also while out of sight, so it
+// is known as the same unit when seen again.
 function visibleEnemies({
   bot,
   enemies,

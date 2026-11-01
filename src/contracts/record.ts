@@ -11,8 +11,8 @@ interface DecisionRecord {
 }
 
 /**
- * A decision and why, as the first-iteration components put it in words; for
- * now the whole content of the decision record.
+ * A decision and why, as the part of the mind that made it puts it in
+ * words; for now the whole content of the decision record.
  */
 interface RecordNote {
   readonly message: string;
