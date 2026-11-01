@@ -56,7 +56,6 @@ interface AllocateArgs<TOutcome, TBeliefs, TUnit, TResource extends string> {
   // The money the agent has.
   stock: Money<TResource>;
   beliefs: TBeliefs;
-  now: number;
 }
 
 /**
@@ -72,7 +71,6 @@ function allocate<TOutcome, TBeliefs, TUnit, TResource extends string>({
   units,
   stock,
   beliefs,
-  now,
 }: AllocateArgs<TOutcome, TBeliefs, TUnit, TResource>): Grant<
   TOutcome,
   TBeliefs,
@@ -85,7 +83,6 @@ function allocate<TOutcome, TBeliefs, TUnit, TResource extends string>({
   return agenda.map((intention) => {
     const { units: unitNeeds, money: moneyNeed } = intention.needs({
       beliefs,
-      now,
     });
     const forceUnits = new Set<TUnit>();
     const needs: NeedGrant<TUnit>[] = [];

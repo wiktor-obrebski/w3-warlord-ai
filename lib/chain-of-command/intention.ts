@@ -152,7 +152,7 @@ interface IntentionConstructorArgs<
   sequence: number;
 }
 
-interface IntentionNeedsArgs<TBeliefs> {
+interface IntentionPrepareArgs<TBeliefs> {
   beliefs: TBeliefs;
   now: number;
 }
@@ -183,8 +183,6 @@ interface IntentionChoosePlanArgs<TBeliefs> {
 interface IntentionStartPlanArgs<TBeliefs> {
   beliefs: TBeliefs;
   now: number;
-  // Where the plan's start is reported.
-  events: IntentionEvent[];
 }
 
 interface IntentionExhaustArgs {
@@ -193,10 +191,11 @@ interface IntentionExhaustArgs {
 }
 
 /**
- * A commitment to one Desire, pursued through its kind's plans. Stepping it
- * is the generic means-end reasoning: it chooses the best applicable plan,
- * steps its run at the kind's pace, and applies the failure policy when a
- * run fails. Deliberation pauses, resumes, and finishes it.
+ * A commitment to one Desire, pursued through its kind's plans. Preparing and
+ * stepping it is the generic means-end reasoning: preparing chooses the best
+ * applicable plan, and stepping steps its run at the kind's pace and applies
+ * the failure policy when a run fails. Deliberation pauses, resumes, and
+ * finishes it.
  */
 class Intention<TGoal, TBeliefs, TOutcome, TUnit, TResource extends string> {
   public readonly desireId: string;
@@ -223,8 +222,6 @@ class Intention<TGoal, TBeliefs, TOutcome, TUnit, TResource extends string> {
   >();
   // Undefined until the first step, which comes at once.
   private nextStepAt: number | undefined;
-  // Changes made between steps, which the next step reports.
-  private pendingEvents: IntentionEvent[] = [];
 
   public constructor({
     desireId,
@@ -252,23 +249,40 @@ class Intention<TGoal, TBeliefs, TOutcome, TUnit, TResource extends string> {
   }
 
   /**
-   * What its run needs now; nothing while it is paused or finished. When no
-   * run is under way, the best applicable plan starts first, so a new run is
-   * granted its force before its first step.
+   * Readies it for an Allocation round, so that a new run is granted its
+   * force before its first step: one waiting to recur resumes once its time
+   * has come, and an active one without a run starts the best applicable
+   * plan.
    */
-  public needs({
+  public prepare({
     beliefs,
     now,
-  }: IntentionNeedsArgs<TBeliefs>): Needs<TUnit, TResource> {
+  }: IntentionPrepareArgs<TBeliefs>): IntentionEvent[] {
+    const events: IntentionEvent[] = [];
+
+    if (
+      this.currentStatus === 'paused' &&
+      this.recurAt !== undefined &&
+      now >= this.recurAt
+    ) {
+      this.failedRuns = 0;
+      events.push(this.resume({ reason: 'trying again' }));
+    }
+
+    if (this.currentStatus === 'active' && !this.attempt) {
+      events.push(this.startPlan({ beliefs, now }));
+    }
+
+    return events;
+  }
+
+  /** What its run needs now; nothing while it is paused or finished. */
+  public needs({ beliefs }: { beliefs: TBeliefs }): Needs<TUnit, TResource> {
     if (this.currentStatus !== 'active') {
       return { units: [] };
     }
 
-    const attempt =
-      this.attempt ??
-      this.startPlan({ beliefs, now, events: this.pendingEvents });
-
-    return attempt?.run.needs?.({ beliefs }) ?? { units: [] };
+    return this.attempt?.run.needs?.({ beliefs }) ?? { units: [] };
   }
 
   /** The Desires its run currently proposes; none once it has finished. */
@@ -285,43 +299,27 @@ class Intention<TGoal, TBeliefs, TOutcome, TUnit, TResource extends string> {
   }
 
   /**
-   * Steps the current run with its force when the kind's pace allows, first
-   * starting the best applicable plan if none runs. A paused Intention
-   * waits, unless the time it waits to recur has come.
+   * Steps its run with its force when the kind's pace allows. A run that
+   * ends is let go, and the next preparation starts another; a paused or
+   * finished Intention is not stepped.
    */
   public step({
     beliefs,
     now,
     force,
   }: IntentionStepArgs<TBeliefs, TUnit, TResource>): IntentionEvent[] {
-    const events = this.pendingEvents;
-
-    this.pendingEvents = [];
+    const events: IntentionEvent[] = [];
+    const { attempt } = this;
 
     if (
-      this.currentStatus === 'finished' ||
+      this.currentStatus !== 'active' ||
+      !attempt ||
       (this.nextStepAt !== undefined && now < this.nextStepAt)
     ) {
       return events;
     }
 
-    if (this.currentStatus === 'paused') {
-      if (this.recurAt === undefined || now < this.recurAt) {
-        return events;
-      }
-
-      this.failedRuns = 0;
-      events.push(this.resume({ reason: 'trying again' }));
-    }
-
     this.nextStepAt = now + this.kind.paceSeconds;
-
-    const attempt = this.attempt ?? this.startPlan({ beliefs, now, events });
-
-    if (!attempt) {
-      events.push(this.exhaust({ reason: 'no plan applies', now }));
-      return events;
-    }
 
     const planStep = attempt.run.step({ beliefs, force });
 
@@ -388,27 +386,20 @@ class Intention<TGoal, TBeliefs, TOutcome, TUnit, TResource extends string> {
     return { intention: this.desireId, change: result, reason };
   }
 
+  // Exhausts the Intention when no plan applies.
   private startPlan({
     beliefs,
     now,
-    events,
-  }: IntentionStartPlanArgs<TBeliefs>):
-    | Attempt<TGoal, TBeliefs, TOutcome, TUnit, TResource>
-    | undefined {
+  }: IntentionStartPlanArgs<TBeliefs>): IntentionEvent {
     const plan = this.choosePlan({ beliefs, now });
 
     if (!plan) {
-      return undefined;
+      return this.exhaust({ reason: 'no plan applies', now });
     }
 
     this.attempt = { plan, run: plan.start({ goal: this.goal, beliefs }) };
-    events.push({
-      intention: this.desireId,
-      change: 'planStarted',
-      plan: plan.name,
-    });
 
-    return this.attempt;
+    return { intention: this.desireId, change: 'planStarted', plan: plan.name };
   }
 
   private choosePlan({

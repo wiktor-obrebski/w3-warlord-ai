@@ -65,6 +65,10 @@ interface CreateMindArgs {
   probes: WarcraftProbes;
 }
 
+interface TakeIntentionEventsArgs {
+  events: readonly IntentionEvent[];
+}
+
 /**
  * Creates the mind for one game. Each step:
  *
@@ -73,10 +77,12 @@ interface CreateMindArgs {
  *    protect, and the Directives' progress catches up with the Beliefs;
  * 3. runs a deliberation cycle once a second: it collects the Desires the
  *    concerns and the Intentions propose, and deliberates on them;
- * 4. allocates the units to the Intentions on the agenda, by their needs;
- * 5. steps the Intentions on the agenda, in its order, each at its kind's
+ * 4. prepares the Intentions on the agenda, which starts a plan for each
+ *    one without a run;
+ * 5. allocates the units to the Intentions on the agenda, by their needs;
+ * 6. steps the Intentions on the agenda, in its order, each at its kind's
  *    pace, with its force, which gives its units Directives;
- * 6. lets the Unit Behaviors order the units.
+ * 7. lets the Unit Behaviors order the units.
  *
  * Adopting or ending an Intention changes what is proposed, so the next
  * cycle comes on the next step instead.
@@ -133,6 +139,13 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
         observations,
       });
       const now = beliefs.time;
+      const takeIntentionEvents = ({ events }: TakeIntentionEventsArgs) => {
+        noteIntentionEvents({ events, recorder });
+
+        if (changesProposals({ events })) {
+          nextCycleAt = now;
+        }
+      };
 
       previousBeliefs = beliefs;
       unitBehaviors.startStep({ beliefs });
@@ -160,6 +173,12 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
           : now + CycleSeconds;
       }
 
+      for (const intention of agenda) {
+        takeIntentionEvents({
+          events: intention.prepare({ beliefs, now }),
+        });
+      }
+
       const previousGrants = grants;
 
       grants = allocate({
@@ -167,7 +186,6 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
         units: [...beliefs.self.units.keys()],
         stock: { gold: beliefs.self.gold, lumber: beliefs.self.lumber },
         beliefs,
-        now,
       });
       noteGrantChanges({ previousGrants, grants, recorder });
 
@@ -179,15 +197,10 @@ function createMind({ random, probes }: CreateMindArgs): Mind {
 
         forceGuard.within({
           force,
-          run: () => {
-            const events = grant.intention.step({ beliefs, now, force });
-
-            noteIntentionEvents({ events, recorder });
-
-            if (changesProposals({ events })) {
-              nextCycleAt = now;
-            }
-          },
+          run: () =>
+            takeIntentionEvents({
+              events: grant.intention.step({ beliefs, now, force }),
+            }),
         });
       }
 

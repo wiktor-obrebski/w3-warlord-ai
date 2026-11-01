@@ -40,14 +40,18 @@ const desires = collectDesires({
 });
 const { agenda, events } = deliberation.deliberate({ desires, beliefs });
 
-const grants = allocate({ agenda, units, stock, beliefs, now });
+for (const intention of agenda) {
+  record({ events: intention.prepare({ beliefs, now }) });
+}
+
+const grants = allocate({ agenda, units, stock, beliefs });
 
 for (const { intention, force } of grants) {
   record({ events: intention.step({ beliefs, now, force }) });
 }
 ```
 
-The caller decides how often cycles and Allocation rounds run, and steps the agenda's Intentions as often as it likes: each Intention steps only as often as its kind's pace allows.
+The caller decides how often cycles and Allocation rounds run, prepares the agenda's Intentions before each round, and steps them as often as it likes: each Intention steps only as often as its kind's pace allows.
 
 ## Desires
 
@@ -71,12 +75,12 @@ It returns the agenda and an event, with its reason, for every adoption, pause, 
 
 ## Intentions
 
-`Intention.step` is the means-end reasoning, done once per pace of its kind:
+`Intention.prepare` and `Intention.step` are the means-end reasoning:
 
-- Without a run, it starts the best applicable plan that is not excluded: the highest preference, then the one listed first.
-- It steps the run with the Intention's force. A run that succeeds ends, and the next step chooses a plan again. A run that fails excludes its plan for `excludeSeconds`.
+- `prepare`, before each Allocation round, starts the best applicable plan that is not excluded when no run is under way: the highest preference, then the one listed first. A new run is so granted its force before its first step.
+- `step`, once per pace of its kind, steps the run with the Intention's force. A run that succeeds ends, and the next `prepare` chooses a plan again. A run that fails excludes its plan for `excludeSeconds`.
 - After `attempts` failed runs, or when no plan applies, the Intention is exhausted. It then recurs, pausing until `excludeSeconds` later, or fails, giving up.
-- A paused Intention is not stepped, except one waiting to recur once its time has come. A run is kept while its Intention is paused.
+- A paused Intention is not stepped. One waiting to recur resumes in the first `prepare` once its time has come. A run is kept while its Intention is paused.
 
 An Intention that finishes while it is stepped leaves the agenda in the next cycle.
 
@@ -87,7 +91,7 @@ Each round, `allocate` walks the agenda in order and asks every Intention for it
 - **Each unit goes to the first Intention with a need it matches**, for the first such need that has room left: a need takes every unit it matches, or at most its `max`. A unit no need matches stays free.
 - **Money is reserved in the same order.** An Intention's money need is met, as far as it can be, from what the Intentions before it left of the stock, and its force holds what was reserved. A need met only in part keeps what it got, so an Intention saving for something keeps that money from the ones after it.
 - **Needs are asked anew every round**, so an Intention that no longer needs a unit or money loses it without releasing anything.
-- **A paused or finished Intention needs nothing.** An active one without a run first starts its best applicable plan, so a new run is granted its force before its first step; its start is reported by the next `step`.
+- **Only a run has needs.** An Intention without a run needs nothing, and neither does a paused or finished one; preparing the agenda before the round starts the runs it lacks.
 
 The agenda's order alone decides who gets what: there are no minimums or switching margins yet, and an Intention keeps no unit it held before unless it is first to ask again. An Intention last on the agenda whose need matches every unit of a class takes whatever the others left, as a default owner would.
 
