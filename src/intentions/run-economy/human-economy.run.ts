@@ -179,6 +179,15 @@ class HumanEconomyRun implements WarlordPlanRun {
       );
     }
 
+    // The opening is ordered on the run's first step only, so its gold must
+    // be granted by then; spending gold not granted would take it from an
+    // Intention ahead on the agenda.
+    if (force.money.gold < LUMBER_MILL_GOLD_COST) {
+      throw new Error(
+        `Economy: the opening's Lumber Mill was granted ${force.money.gold} of its ${LUMBER_MILL_GOLD_COST} gold.`
+      );
+    }
+
     this.economy.lumberWorkers.push(builder);
     this.lumberMillBuild = orderLumberMill({
       builder,
