@@ -151,8 +151,9 @@ const SiegeUnitTypes: number[] = [
   W3UndeadApi.Unit.MEAT_WAGON,
 ];
 const NoOrder = 0;
-// Assumed, not verified in-game: a build order's id is the rawcode of the
-// building, as with IssueBuildOrderById.
+// A build order's id is the rawcode of the building, as with
+// IssueBuildOrderById; the tower rush's tracking of its build orders shows it
+// in-game.
 const ScoutTowerBuildOrder: number = W3HumanApi.Building.SCOUT_TOWER;
 const HarvestOrderStrings = ['harvest', 'resumeharvesting', 'returnresources'];
 // Warcraft treats units at or below this life as dead.

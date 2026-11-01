@@ -19,8 +19,8 @@ interface OwnUnit {
   readonly life: number;
   readonly maxLife: number;
   readonly isIdle: boolean;
-  // The id of the unit's current order, 0 for none. A build order's id is
-  // assumed, not verified in-game, to be the rawcode of the building.
+  // The id of the unit's current order, 0 for none. A build order's id is the
+  // rawcode of the building.
   readonly order: number;
 }
 
