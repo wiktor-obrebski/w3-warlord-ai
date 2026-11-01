@@ -42,7 +42,7 @@ interface HumanEconomyRunConstructorArgs {
 class HumanEconomyRun implements WarlordPlanRun {
   private readonly buildOrder: BuildOrder;
   private readonly capabilities: RunEconomyCapabilities;
-  private readonly economy = createEconomyState();
+  private economy = createEconomyState();
   private openingOrdered = false;
   // How the Lumber Mill's Build Directive is going, once ordered.
   private lumberMillBuild: DirectiveProgress | undefined;
@@ -70,12 +70,13 @@ class HumanEconomyRun implements WarlordPlanRun {
    */
   public needs({ beliefs }: { beliefs: Beliefs }): WarlordNeeds {
     const { peasants, townHall } = beliefs.self;
-
-    this.catchUp({ beliefs });
-
+    // Allocation asks for the needs before the step catches the economy up,
+    // so they read it as caught up; otherwise a Peasant training Warcraft
+    // refused would get its gold an update late.
+    const economy = caughtUp({ beliefs, economy: this.economy });
     const peasantGold = wantsPeasant({
       beliefs,
-      economy: this.economy,
+      economy,
       workerTargets: this.buildOrder.workerTargets,
     })
       ? PeasantGoldCost
@@ -97,6 +98,8 @@ class HumanEconomyRun implements WarlordPlanRun {
     beliefs,
     force,
   }: PlanRunStepArgs<Beliefs, UnitId, WarlordResource>): PlanStep {
+    this.economy = caughtUp({ beliefs, economy: this.economy });
+
     const { directives, probes, recorder } = this.capabilities;
     const { economy } = this;
     const { workerTargets } = this.buildOrder;
@@ -113,7 +116,6 @@ class HumanEconomyRun implements WarlordPlanRun {
       this.openingOrdered = true;
     }
 
-    this.catchUp({ beliefs });
     noteTrainedPeasants({
       beliefs,
       economy,
@@ -156,14 +158,6 @@ class HumanEconomyRun implements WarlordPlanRun {
     economy.knownUnits = new Set(beliefs.self.units.keys());
 
     return { status: 'running' };
-  }
-
-  // Allocation asks for the needs before the step, so they already forget
-  // the dead workers and a Peasant training Warcraft refused; otherwise the
-  // refused Peasant would get its gold an update late.
-  private catchUp({ beliefs }: { beliefs: Beliefs }) {
-    forgetDeadWorkers({ beliefs, economy: this.economy });
-    forgetRefusedPeasantTraining({ economy: this.economy });
   }
 
   // The first worker builds the opening, and counts as a lumber worker from
@@ -262,35 +256,36 @@ function trainPeasant({
   });
 }
 
-// Nothing reads the Peasants in training between a refusal and the next
-// update, so the refused one is still the last.
-function forgetRefusedPeasantTraining({ economy }: { economy: EconomyState }) {
-  if (economy.lastPeasantTraining?.status === 'failed') {
-    economy.peasantsInTraining.pop();
-    economy.lastPeasantTraining = undefined;
-  }
-}
-
-interface ForgetDeadWorkersArgs {
+interface CaughtUpArgs {
   beliefs: Beliefs;
   economy: EconomyState;
 }
 
-function forgetDeadWorkers({ beliefs, economy }: ForgetDeadWorkersArgs) {
+// The economy without its dead workers and a Peasant training Warcraft
+// refused. No Peasant is ordered between a refusal and the next update, so
+// the refused one is still the last.
+function caughtUp({ beliefs, economy }: CaughtUpArgs): EconomyState {
   const { peasants } = beliefs.self;
+  const trainingRefused = economy.lastPeasantTraining?.status === 'failed';
 
-  economy.goldWorkers = economy.goldWorkers.filter((worker) =>
-    peasants.includes(worker)
-  );
-  economy.lumberWorkers = economy.lumberWorkers.filter((worker) =>
-    peasants.includes(worker)
-  );
-
-  for (const peasant of [...economy.trainedFor.keys()]) {
-    if (!peasants.includes(peasant)) {
-      economy.trainedFor.delete(peasant);
-    }
-  }
+  return {
+    ...economy,
+    goldWorkers: economy.goldWorkers.filter((worker) =>
+      peasants.includes(worker)
+    ),
+    lumberWorkers: economy.lumberWorkers.filter((worker) =>
+      peasants.includes(worker)
+    ),
+    trainedFor: new Map(
+      [...economy.trainedFor].filter(([peasant]) => peasants.includes(peasant))
+    ),
+    peasantsInTraining: trainingRefused
+      ? economy.peasantsInTraining.slice(0, -1)
+      : economy.peasantsInTraining,
+    lastPeasantTraining: trainingRefused
+      ? undefined
+      : economy.lastPeasantTraining,
+  };
 }
 
 interface NoteTrainedPeasantsArgs {
